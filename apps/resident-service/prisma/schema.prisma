@@ -1,0 +1,324 @@
+// resident-service Prisma schema (per-tenant DB)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+// ─── Apartment / Building ─────────────────────────────────────────────────────
+model Apartment {
+  id        String    @id @default(cuid())
+  name      String
+  address   String
+  city      String
+  state     String
+  pincode   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  blocks    Block[]
+
+  @@map("apartments")
+}
+
+model Block {
+  id          String    @id @default(cuid())
+  name        String
+  apartmentId String
+  apartment   Apartment @relation(fields: [apartmentId], references: [id])
+  units       Unit[]
+
+  @@map("blocks")
+}
+
+model Unit {
+  id       String  @id @default(cuid())
+  number   String
+  floor    Int
+  blockId  String
+  block    Block   @relation(fields: [blockId], references: [id])
+  families Family[]
+
+  @@map("units")
+}
+
+// ─── Department ───────────────────────────────────────────────────────────────
+model Department {
+  id        String           @id @default(cuid())
+  name      String
+  type      DepartmentType
+  createdAt DateTime         @default(now())
+
+  members DepartmentMember[]
+
+  @@map("departments")
+}
+
+model DepartmentMember {
+  id           String     @id @default(cuid())
+  departmentId String
+  memberId     String
+  department   Department @relation(fields: [departmentId], references: [id])
+  member       Member     @relation(fields: [memberId], references: [id])
+  assignedAt   DateTime   @default(now())
+
+  @@unique([departmentId, memberId])
+  @@map("department_members")
+}
+
+// ─── Family & Members ─────────────────────────────────────────────────────────
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  unitId    String
+  unit      Unit     @relation(fields: [unitId], references: [id])
+  members   Member[]
+  createdAt DateTime @default(now())
+
+  @@map("families")
+}
+
+model Member {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  email        String?
+  role         MemberRole @default(RESIDENT)
+  profilePhoto String?  // S3 key
+  isActive     Boolean  @default(true)
+  familyId     String?
+  family       Family?  @relation(fields: [familyId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  departmentMemberships DepartmentMember[]
+  pollVotes             PollVote[]
+  groupMemberships      GroupMember[]
+  notifications         Notification[]
+  complaints            Complaint[]
+  visitors              Visitor[]
+
+  @@map("members")
+}
+
+// ─── Notice Board ─────────────────────────────────────────────────────────────
+model Notice {
+  id              String   @id @default(cuid())
+  title           String
+  body            String
+  postedBy        String   // member id
+  sendWhatsApp    Boolean  @default(false)
+  whatsAppSentAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("notices")
+}
+
+// ─── Polls ───────────────────────────────────────────────────────────────────
+model Poll {
+  id          String       @id @default(cuid())
+  question    String
+  createdBy   String
+  expiresAt   DateTime?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+
+  options     PollOption[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String     @id @default(cuid())
+  pollId String
+  text   String
+  poll   Poll       @relation(fields: [pollId], references: [id])
+  votes  PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  id       String     @id @default(cuid())
+  optionId String
+  memberId String
+  option   PollOption @relation(fields: [optionId], references: [id])
+  member   Member     @relation(fields: [memberId], references: [id])
+  votedAt  DateTime   @default(now())
+
+  @@unique([optionId, memberId])
+  @@map("poll_votes")
+}
+
+// ─── Groups ───────────────────────────────────────────────────────────────────
+model Group {
+  id        String        @id @default(cuid())
+  name      String
+  createdBy String
+  createdAt DateTime      @default(now())
+
+  members   GroupMember[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String @id @default(cuid())
+  groupId  String
+  memberId String
+  group    Group  @relation(fields: [groupId], references: [id])
+  member   Member @relation(fields: [memberId], references: [id])
+
+  @@unique([groupId, memberId])
+  @@map("group_members")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+model Notification {
+  id        String   @id @default(cuid())
+  memberId  String
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  member    Member   @relation(fields: [memberId], references: [id])
+
+  @@map("notifications")
+}
+
+// ─── Complaints ───────────────────────────────────────────────
+model Complaint {
+  id          String         @id @default(cuid())
+  title       String
+  description String
+  status      ComplaintStatus @default(OPEN)
+  priority    Priority       @default(MEDIUM)
+  memberId    String
+  member      Member         @relation(fields: [memberId], references: [id])
+  category    String?
+  assignedTo  String?        // memberId of staff
+  mediaUrls   String[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("complaints")
+}
+
+// ─── Visitors / Gatepass ──────────────────────────────────────
+model Visitor {
+  id            String       @id @default(cuid())
+  name          String
+  phone         String
+  purpose       String?
+  entryTime     DateTime?
+  exitTime      DateTime?
+  passCode      String       @unique
+  status        VisitorStatus @default(PENDING)
+  memberId      String       // The resident being visited
+  member        Member       @relation(fields: [memberId], references: [id])
+  vehicleNumber String?
+  createdAt     DateTime     @default(now())
+
+  @@map("visitors")
+}
+
+// ─── Events / Calendar ────────────────────────────────────────
+model Event {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime
+  visibility  EventVisibility @default(COMMUNITY)
+  sharedWithIds String[]     // IDs of members/groups if not COMMUNITY/PRIVATE
+  hasAlert    Boolean        @default(false)
+  alertTime   DateTime?
+  createdBy   String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("events")
+}
+
+enum EventVisibility {
+  COMMUNITY
+  CONTACTS
+  GROUPS
+  PRIVATE
+}
+
+// ─── Gallery ──────────────────────────────────────────────────
+model Gallery {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  mediaUrls   String[]
+  category    String?  // e.g. "Club House", "Garden", "Events"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("gallery")
+}
+
+// ─── Enums ───────────────────────────────────────────────────
+enum MemberRole {
+  APARTMENT_ADMIN
+  RESIDENT
+  CLEANING_STAFF
+  CARETAKER
+  SECURITY_STAFF
+  ACCOUNTS_STAFF
+  MAINTENANCE_STAFF
+  ADMIN_STAFF
+  STAFF
+  SERVICE_STAFF
+}
+
+enum DepartmentType {
+  RESIDENTS
+  CLEANING
+  CARETAKERS
+  SECURITY
+  ACCOUNTS
+  MAINTENANCE
+  MANAGEMENT
+}
+
+enum NotificationType {
+  NOTICE
+  COMPLAINT_UPDATE
+  VISITOR_ARRIVED
+  PAYMENT_REMINDER
+  POLL
+  CHAT
+  GENERAL
+  EVENT
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum VisitorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ENTERED
+  EXITED
+}

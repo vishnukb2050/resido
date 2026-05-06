@@ -1,0 +1,160 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: resido-redis
+    ports:
+      - '6379:6379'
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  # ─── Microservices ─────────────────────────────────────────────
+  # Note: Infrastructure (Postgres/Redis) is managed externally (AWS RDS/ElastiCache)
+  # Connection details are fetched via .env file.
+
+  api-gateway:
+    build:
+      context: ../apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: resido-api-gateway
+    env_file: ../.env
+    ports:
+      - '3000:3000'
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ../apps/auth-service
+      dockerfile: Dockerfile
+    container_name: resido-auth
+    env_file: ../.env
+    environment:
+      - PORT=3001
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  resident-service:
+    build:
+      context: ../apps/resident-service
+      dockerfile: Dockerfile
+    container_name: resido-resident
+    env_file: ../.env
+    environment:
+      - PORT=3002
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  accounting-service:
+    build:
+      context: ../apps/accounting-service
+      dockerfile: Dockerfile
+    container_name: resido-accounting
+    env_file: ../.env
+    environment:
+      - PORT=3003
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  chat-service:
+    build:
+      context: ../apps/chat-service
+      dockerfile: Dockerfile
+    container_name: resido-chat
+    env_file: ../.env
+    environment:
+      - PORT=3004
+    ports:
+      - '3004:3004'
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ../apps/notification-service
+      dockerfile: Dockerfile
+    container_name: resido-notification
+    env_file: ../.env
+    environment:
+      - PORT=3005
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  visitor-service:
+    build:
+      context: ../apps/visitor-service
+      dockerfile: Dockerfile
+    container_name: resido-visitor
+    env_file: ../.env
+    environment:
+      - PORT=3006
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  complaint-service:
+    build:
+      context: ../apps/complaint-service
+      dockerfile: Dockerfile
+    container_name: resido-complaint
+    env_file: ../.env
+    environment:
+      - PORT=3007
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  # ─── Nginx Reverse Proxy ───────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: resido-nginx
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api-gateway
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  admin-panel:
+    build:
+      context: ../web/admin
+    container_name: resido-admin
+    networks:
+      - resido-net
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  superadmin-panel:
+    build:
+      context: ../web/superadmin
+    container_name: resido-superadmin
+    networks:
+      - resido-net
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+networks:
+  resido-net:
+    driver: bridge

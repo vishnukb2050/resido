@@ -1,0 +1,55 @@
+import { Controller, Post, Get, Body, Headers, UseGuards } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { Public } from '../../common/decorators/public.decorator';
+
+@Controller('auth')
+export class AuthController {
+    constructor(private authService: AuthService) { }
+
+    @Public()
+    @Post('send-otp')
+    sendOtp(@Body() body: { phone: string }) {
+        return this.authService.sendOtp(body.phone);
+    }
+
+    @Public()
+    @Post('verify-otp')
+    verifyOtp(@Body() body: { phone: string; otp: string }) {
+        return this.authService.verifyOtp(body.phone, body.otp);
+    }
+
+    @Public()
+    @Post('login')
+    adminLogin(@Body() body: { email: string; password: string }) {
+        return this.authService.adminLogin(body.email, body.password);
+    }
+
+    @Get('workspaces')
+    getWorkspaces(@Headers('x-user-id') userId: string) {
+        return this.authService.getWorkspaces(userId);
+    }
+
+    @Post('switch-workspace')
+    switchWorkspace(
+        @Headers('x-user-id') userId: string,
+        @Body() body: { tenantId: string },
+    ) {
+        return this.authService.switchWorkspace(userId, body.tenantId);
+    }
+
+    @Public()
+    @Post('refresh')
+    refresh(@Body() body: { refreshToken: string }) {
+        return this.authService.refreshToken(body.refreshToken);
+    }
+
+    @Get('me')
+    getMe(@Headers('x-user-id') userId: string) {
+        return this.authService.getMe(userId);
+    }
+
+    @Post('sync-contacts')
+    syncContacts(@Body() body: { phones: string[] }) {
+        return this.authService.syncContacts(body.phones);
+    }
+}

@@ -1,0 +1,130 @@
+// auth-service Prisma schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUTH_DATABASE_URL")
+}
+
+// ─── Users (mobile app users) ─────────────────────────────────────────────────
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  email       String?  @unique
+  name        String?
+  role        Role     @default(RESIDENT)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceMemberships WorkspaceMembership[]
+  otpLogs              OtpLog[]
+
+  @@map("users")
+}
+
+// ─── Staff Accounts (web panel users — email-locked to one client) ─────────────
+model StaffAccount {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  password      String?    // bcrypt hashed — null until invite accepted
+  clientId      String
+  role          StaffRole
+  isActive      Boolean    @default(true)
+  inviteToken   String?    @unique
+  inviteExpiry  DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@map("staff_accounts")
+}
+
+// ─── Workspace Membership ─────────────────────────────────────────────────────
+// Links a mobile user (phone) to a tenant apartment
+model WorkspaceMembership {
+  id         String   @id @default(cuid())
+  userId     String
+  tenantId   String   // same as client.id
+  tenantName String   // Display name e.g. "Green Valley Apartments"
+  role       Role
+  memberId   String   // id in tenant's resident DB
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, tenantId])
+  @@map("workspace_memberships")
+}
+
+// ─── OTP Logs ─────────────────────────────────────────────────────────────────
+model OtpLog {
+  id        String   @id @default(cuid())
+  userId    String
+  otp       String
+  phone     String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("otp_logs")
+}
+
+// ─── Clients (Communities) ────────────────────────────────────────────────────
+// One record per community/apartment complex
+model Client {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique  // used as DB identifier
+  dbName          String    @unique  // e.g. resido_greenwood
+  s3Prefix        String    @unique  // S3 folder prefix
+  adminEmail      String    @unique  // bound to StaffAccount with APARTMENT_ADMIN
+  adminPhone      String    @unique  // mobile contact for notifications
+  caretakerEmail  String?   @unique  // bound to StaffAccount with CARETAKER
+  subAdminEmail   String?   @unique  // bound to StaffAccount with ADMIN_STAFF
+  plan            Plan      @default(BASIC)
+  isActive        Boolean   @default(true)
+  provisionedAt   DateTime?           // set when tenant DB is ready
+  createdByMobile Boolean   @default(false) // true if created from mobile app
+  createdByUserId String?              // userId of mobile user who created it
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  staffAccounts StaffAccount[]
+
+  @@map("clients")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+enum Role {
+  SUPER_ADMIN
+  APARTMENT_ADMIN
+  RESIDENT
+  CLEANING_STAFF
+  CARETAKER
+  SECURITY_STAFF
+  ACCOUNTS_STAFF
+  MAINTENANCE_STAFF
+  ADMIN_STAFF
+  STAFF
+  SERVICE_STAFF
+}
+
+enum StaffRole {
+  APARTMENT_ADMIN
+  ADMIN_STAFF
+  CARETAKER
+}
+
+enum Plan {
+  BASIC
+  STANDARD
+  PREMIUM
+}

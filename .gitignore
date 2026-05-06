@@ -1,0 +1,59 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Prisma
+/prisma/migrations/
+/prisma/generated/
+schema.prisma.backup
+
+# Docker
+.dockerignore
+
+# Mobile (React Native / Expo)
+.expo/
+android/app/build/
+ios/build/
+*.jks
+*.p12
+*.key
+*.mobileprovision
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporal
+.tmp/
+temp/

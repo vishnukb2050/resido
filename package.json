@@ -1,0 +1,14 @@
+{
+    "name": "resido",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "libs/*",
+        "web/*"
+    ],
+    "scripts": {
+        "build:all": "npm run build --workspaces",
+        "lint:all": "npm run lint --workspaces"
+    }
+}

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resido-config
+  namespace: resido-prod
+data:
+  NODE_ENV: "production"
+  APP_NAME: "Resido"
+  API_GATEWAY_PORT: "3000"
+  AUTH_SERVICE_PORT: "3001"
+  RESIDENT_SERVICE_PORT: "3002"
+  ACCOUNTING_SERVICE_PORT: "3003"
+  CHAT_SERVICE_PORT: "3004"
+  NOTIFICATION_SERVICE_PORT: "3005"
+  VISITOR_SERVICE_PORT: "3006"
+  COMPLAINT_SERVICE_PORT: "3007"
+  AUTH_SERVICE_URL: "http://auth-service:3001"
+  RESIDENT_SERVICE_URL: "http://resident-service:3002"
+  ACCOUNTING_SERVICE_URL: "http://accounting-service:3003"
+  CHAT_SERVICE_URL: "http://chat-service:3004"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:3005"
+  VISITOR_SERVICE_URL: "http://visitor-service:3006"
+  COMPLAINT_SERVICE_URL: "http://complaint-service:3007"
+  AWS_REGION: "ap-south-1"
+  AWS_S3_BUCKET: "resido-storage"
+  REDIS_PORT: "6379"

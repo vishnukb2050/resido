@@ -1,0 +1,57 @@
+// complaint-service Prisma schema (per-tenant DB)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+model Complaint {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  category    ComplaintCategory
+  status      ComplaintStatus @default(OPEN)
+  raisedBy    String          // member id
+  assignedTo  String?         // caretaker member id
+  photos      String[]        // S3 keys
+  closedAt    DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  comments    ComplaintComment[]
+
+  @@map("complaints")
+}
+
+model ComplaintComment {
+  id          String    @id @default(cuid())
+  complaintId String
+  memberId    String
+  message     String
+  createdAt   DateTime  @default(now())
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  @@map("complaint_comments")
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ComplaintCategory {
+  PLUMBING
+  ELECTRICAL
+  CLEANING
+  SECURITY
+  CARPENTRY
+  LIFT
+  COMMON_AREA
+  OTHER
+}

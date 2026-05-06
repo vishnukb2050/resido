@@ -1,0 +1,54 @@
+// accounting-service Prisma schema (per-tenant DB)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  name         String
+  type         TransactionType
+  createdAt    DateTime      @default(now())
+
+  transactions Transaction[]
+
+  @@map("categories")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  date        DateTime
+  type        TransactionType
+  amount      Float
+  description String?
+  categoryId  String
+  category    Category        @relation(fields: [categoryId], references: [id])
+  billUrl     String?         // S3 key
+  addedBy     String          // member id
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("transactions")
+}
+
+model MonthlyReport {
+  id           String   @id @default(cuid())
+  year         Int
+  month        Int      // 1-12
+  totalIncome  Float    @default(0)
+  totalExpense Float    @default(0)
+  balance      Float    @default(0)
+  generatedAt  DateTime @default(now())
+
+  @@unique([year, month])
+  @@map("monthly_reports")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}

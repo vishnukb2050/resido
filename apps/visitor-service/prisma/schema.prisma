@@ -1,0 +1,24 @@
+// visitor-service Prisma schema (per-tenant DB)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+model VisitorEntry {
+  id          String    @id @default(cuid())
+  visitorName String
+  phone       String?
+  purpose     String?
+  unitToVisit String
+  photoUrl    String?   // S3 key
+  inTime      DateTime  @default(now())
+  outTime     DateTime?
+  loggedBy    String    // security member id
+  createdAt   DateTime  @default(now())
+
+  @@map("visitor_entries")
+}

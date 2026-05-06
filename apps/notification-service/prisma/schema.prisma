@@ -1,0 +1,96 @@
+// auth-service Prisma schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUTH_DATABASE_URL")
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  email       String?  @unique
+  password    String?
+  name        String?
+  role        Role     @default(RESIDENT)
+  isActive    Boolean  @default(true)
+  fcmToken    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceMemberships WorkspaceMembership[]
+  otpLogs              OtpLog[]
+
+  @@map("users")
+}
+
+// ─── Workspace Membership ─────────────────────────────────────────────────────
+// Links a user (phone) to a tenant apartment
+model WorkspaceMembership {
+  id         String   @id @default(cuid())
+  userId     String
+  tenantId   String   // e.g. "green_valley"
+  tenantName String   // Display name e.g. "Green Valley Apartments"
+  role       Role
+  memberId   String   // id in tenant's resident DB
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, tenantId])
+  @@map("workspace_memberships")
+}
+
+// ─── OTP Logs ─────────────────────────────────────────────────────────────────
+model OtpLog {
+  id        String   @id @default(cuid())
+  userId    String
+  otp       String
+  phone     String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("otp_logs")
+}
+
+// ─── Clients (shared, for superadmin) ────────────────────────────────────────
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique  // used as DB name: resido_<slug>
+  adminEmail  String
+  adminPhone  String
+  dbName      String   @unique
+  s3Prefix    String   @unique
+  plan        Plan     @default(BASIC)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("clients")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+enum Role {
+  SUPER_ADMIN
+  APARTMENT_ADMIN
+  RESIDENT
+  CLEANING_STAFF
+  CARETAKER
+  SECURITY
+  ACCOUNTS_STAFF
+  MAINTENANCE_STAFF
+}
+
+enum Plan {
+  BASIC
+  STANDARD
+  PREMIUM
+}

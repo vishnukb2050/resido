@@ -1,0 +1,51 @@
+{
+    "expo": {
+        "name": "Resido",
+        "slug": "resido-app",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "scheme": "resido",
+        "userInterfaceStyle": "automatic",
+        "splash": {
+            "image": "./assets/icon.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#4338ca"
+        },
+        "plugins": [
+            "expo-router",
+            "expo-secure-store",
+            [
+                "expo-notifications",
+                {
+                    "color": "#6366f1"
+                }
+            ]
+        ],
+        "android": {
+            "package": "com.resido.app",
+            "permissions": [
+                "CAMERA",
+                "READ_EXTERNAL_STORAGE",
+                "WRITE_EXTERNAL_STORAGE",
+                "RECEIVE_BOOT_COMPLETED",
+                "VIBRATE"
+            ]
+        },
+        "ios": {
+            "supportsTablet": false,
+            "bundleIdentifier": "com.resido.app",
+            "infoPlist": {
+                "NSCameraUsageDescription": "Resido uses your camera to upload profile photos, visitor photos and cleaning reports.",
+                "NSPhotoLibraryUsageDescription": "Resido accesses photos to upload files and media."
+            }
+        },
+        "extra": {
+            "eas": {
+                "projectId": "your-eas-project-id"
+            },
+            "apiUrl": "https://api.residoapp.com/api",
+            "socketUrl": "https://api.residoapp.com"
+        }
+    }
+}

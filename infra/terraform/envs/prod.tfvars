@@ -1,0 +1,5 @@
+environment         = "prod"
+node_instance_type  = "c5.xlarge"
+db_instance_class   = "db.r6g.large"
+redis_node_type     = "cache.r6g.large"
+aws_region          = "ap-south-1"
