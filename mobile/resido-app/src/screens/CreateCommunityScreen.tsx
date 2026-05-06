@@ -4,7 +4,7 @@ import {
     StyleSheet, KeyboardAvoidingView, Platform, Alert, ScrollView, ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { authApi } from '../../services/api';
+import { authApi } from '../services/api';
 
 export default function CreateCommunityScreen() {
     const [name, setName] = useState('');
@@ -63,7 +63,7 @@ export default function CreateCommunityScreen() {
                             value={name}
                             onChangeText={setName}
                         />
-                    </div>
+                    </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Admin Email</Text>

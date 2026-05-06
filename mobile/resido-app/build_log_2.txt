@@ -1,0 +1,70 @@
+Starting Metro Bundler
+Android Bundling failed 8127ms node_modules/expo-router/entry.js (932 modules)
+SyntaxError: SyntaxError: /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/CreateCommunityScreen.tsx: Expected corresponding JSX closing tag for <View>. (66:20)
+
+[0m [90m 64 |[39m                             onChangeText[33m=[39m{setName}
+ [90m 65 |[39m                         [33m/[39m[33m>[39m
+[31m[1m>[22m[39m[90m 66 |[39m                     [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m    |[39m                     [31m[1m^[22m[39m
+ [90m 67 |[39m
+ [90m 68 |[39m                     [33m<[39m[33mView[39m style[33m=[39m{styles[33m.[39minputGroup}[33m>[39m
+ [90m 69 |[39m                         [33m<[39m[33mText[39m style[33m=[39m{styles[33m.[39mlabel}[33m>[39m[33mAdmin[39m [33mEmail[39m[33m<[39m[33m/[39m[33mText[39m[33m>[39m[0m
+SyntaxError: /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/CreateCommunityScreen.tsx: Expected corresponding JSX closing tag for <View>. (66:20)
+
+[0m [90m 64 |[39m                             onChangeText[33m=[39m{setName}
+ [90m 65 |[39m                         [33m/[39m[33m>[39m
+[31m[1m>[22m[39m[90m 66 |[39m                     [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m    |[39m                     [31m[1m^[22m[39m
+ [90m 67 |[39m
+ [90m 68 |[39m                     [33m<[39m[33mView[39m style[33m=[39m{styles[33m.[39minputGroup}[33m>[39m
+ [90m 69 |[39m                         [33m<[39m[33mText[39m style[33m=[39m{styles[33m.[39mlabel}[33m>[39m[33mAdmin[39m [33mEmail[39m[33m<[39m[33m/[39m[33mText[39m[33m>[39m[0m
+    at constructor (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:365:19)
+    at TypeScriptParserMixin.raise (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:6616:19)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:4739:16)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:4710:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:4710:32)
+    at TypeScriptParserMixin.jsxParseElementAt (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:4710:32)
+    at TypeScriptParserMixin.jsxParseElement (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:4761:17)
+    at TypeScriptParserMixin.parseExprAtom (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:4771:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11098:23)
+    at TypeScriptParserMixin.parseUpdate (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11083:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11063:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:9854:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10916:61)
+    at TypeScriptParserMixin.parseExprOps (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10921:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10898:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10848:21)
+    at /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:9792:39
+    at TypeScriptParserMixin.tryParse (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:6924:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:9792:18)
+    at /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10817:39
+    at TypeScriptParserMixin.allowInAnd (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12443:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10817:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12510:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11692:28)
+    at TypeScriptParserMixin.parseExprAtom (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11348:23)
+    at TypeScriptParserMixin.parseExprAtom (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:4776:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11098:23)
+    at TypeScriptParserMixin.parseUpdate (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11083:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:11063:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:9854:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10916:61)
+    at TypeScriptParserMixin.parseExprOps (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10921:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10898:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10848:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:9803:20)
+    at TypeScriptParserMixin.parseExpressionBase (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10801:23)
+    at /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10797:39
+    at TypeScriptParserMixin.allowInAnd (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12438:16)
+    at TypeScriptParserMixin.parseExpression (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:10797:17)
+    at TypeScriptParserMixin.parseReturnStatement (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:13159:28)
+    at TypeScriptParserMixin.parseStatementContent (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12815:21)
+    at TypeScriptParserMixin.parseStatementContent (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:9525:18)
+    at TypeScriptParserMixin.parseStatementLike (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12784:17)
+    at TypeScriptParserMixin.parseStatementListItem (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12764:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:13333:61)
+    at TypeScriptParserMixin.parseBlockBody (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:13326:10)
+    at TypeScriptParserMixin.parseBlock (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:13314:10)
+    at TypeScriptParserMixin.parseFunctionBody (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12117:24)
+    at TypeScriptParserMixin.parseFunctionBodyAndFinish (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:12103:10)
+    at TypeScriptParserMixin.parseFunctionBodyAndFinish (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/@babel/parser/lib/index.js:9189:18)

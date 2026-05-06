@@ -1,0 +1,35 @@
+Starting Metro Bundler
+Error: Unable to resolve module ../../services/api from /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/CreateCommunityScreen.tsx: 
+
+None of these files exist:
+  * services/api(.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.mjs|.native.mjs|.mjs|.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.cjs|.native.cjs|.cjs|.android.scss|.native.scss|.scss|.android.sass|.native.sass|.sass|.android.css|.native.css|.css)
+  * services/api
+[0m [90m  5 |[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m { authApi } [36mfrom[39m [32m'../../services/api'[39m[33m;[39m
+ [90m    |[39m                          [31m[1m^[22m[39m
+ [90m  8 |[39m
+ [90m  9 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mCreateCommunityScreen[39m() {
+ [90m 10 |[39m     [36mconst[39m [name[33m,[39m setName] [33m=[39m useState([32m''[39m)[33m;[39m[0m
+Error: Unable to resolve module ../../services/api from /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/CreateCommunityScreen.tsx: 
+
+None of these files exist:
+  * services/api(.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.mjs|.native.mjs|.mjs|.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.cjs|.native.cjs|.cjs|.android.scss|.native.scss|.scss|.android.sass|.native.sass|.sass|.android.css|.native.css|.css)
+  * services/api
+[0m [90m  5 |[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m { authApi } [36mfrom[39m [32m'../../services/api'[39m[33m;[39m
+ [90m    |[39m                          [31m[1m^[22m[39m
+ [90m  8 |[39m
+ [90m  9 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mCreateCommunityScreen[39m() {
+ [90m 10 |[39m     [36mconst[39m [name[33m,[39m setName] [33m=[39m useState([32m''[39m)[33m;[39m[0m
+    at ModuleResolver.resolveDependency (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/node-haste/DependencyGraph/ModuleResolution.js:112:15)
+    at DependencyGraph.resolveDependency (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/node-haste/DependencyGraph.js:232:43)
+    at /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/lib/transformHelpers.js:156:21
+    at resolveDependencies (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:42:25)
+    at visit (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:83:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Promise.all (index 1)
+    at visit (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
+    at async Promise.all (index 6)
+    at visit (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
