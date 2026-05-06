@@ -24,7 +24,7 @@ interface AuthState {
     phone: string | null;
     token: string | null;
     refreshToken: string | null;
-    user: { id: string; name?: string; phone: string; profilePhoto?: string; role?: string } | null;
+    user: { id: string; name?: string; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string } | null;
     workspaces: Workspace[];
     activeWorkspace: Workspace | null;
     setOtpVerified: (data: {
