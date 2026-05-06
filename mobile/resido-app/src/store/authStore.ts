@@ -24,7 +24,7 @@ interface AuthState {
     phone: string | null;
     token: string | null;
     refreshToken: string | null;
-    user: { id: string; name?: string; phone: string } | null;
+    user: { id: string; name?: string; phone: string; profilePhoto?: string; role?: string } | null;
     workspaces: Workspace[];
     activeWorkspace: Workspace | null;
     setOtpVerified: (data: {
@@ -33,6 +33,7 @@ interface AuthState {
         user: any;
         workspaces: Workspace[];
     }) => void;
+    updateUser: (user: any) => void;
     setActiveWorkspace: (ws: Workspace, token: string) => void;
     logout: () => void;
 }
@@ -54,6 +55,8 @@ export const useAuthStore = create<AuthState>((set) => ({
             // Auto-select first workspace if only one
             activeWorkspace: data.workspaces.length === 1 ? data.workspaces[0] : null,
         }),
+
+    updateUser: (user) => set({ user }),
 
     setActiveWorkspace: (ws, token) =>
         set({ activeWorkspace: ws, token }),

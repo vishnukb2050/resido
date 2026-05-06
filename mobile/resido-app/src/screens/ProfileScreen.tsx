@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { storageApi } from '../../services/storage';
-import { api } from '../../services/api';
-import { useAuthStore } from '../../store/authStore';
+import { storageApi } from '../services/storage';
+import { api } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 
 export default function ProfileScreen() {
     const { user, updateUser } = useAuthStore(); // Assuming authStore has user info
@@ -25,6 +25,7 @@ export default function ProfileScreen() {
     const uploadProfilePhoto = async (asset: ImagePicker.ImagePickerAsset) => {
         setUploading(true);
         try {
+            if (!user) return;
             const fileName = asset.fileName || `profile_${Date.now()}.jpg`;
             const contentType = asset.mimeType || 'image/jpeg';
 
