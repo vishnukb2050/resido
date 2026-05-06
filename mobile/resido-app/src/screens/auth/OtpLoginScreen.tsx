@@ -32,8 +32,8 @@ export default function OtpLoginScreen() {
     };
 
     const handleVerifyOtp = async () => {
-        if (!otp || otp.length !== 6) {
-            Alert.alert('Error', 'Enter the 6-digit OTP sent to your phone');
+        if (!otp || otp.length !== 4) {
+            Alert.alert('Error', 'Enter the 4-digit OTP sent to your phone');
             return;
         }
         setLoading(true);
@@ -89,10 +89,10 @@ export default function OtpLoginScreen() {
                         <Text style={styles.label}>Enter the OTP sent to {phone}</Text>
                         <TextInput
                             style={[styles.input, styles.otpInput]}
-                            placeholder="6-digit OTP"
+                            placeholder="4-digit OTP"
                             placeholderTextColor="#64748b"
                             keyboardType="number-pad"
-                            maxLength={6}
+                            maxLength={4}
                             value={otp}
                             onChangeText={setOtp}
                             autoFocus
@@ -119,8 +119,8 @@ const styles = StyleSheet.create({
     label: { fontSize: 14, color: '#94a3b8', marginBottom: 12, fontWeight: '600' },
     phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16 },
     countryCode: { color: '#94a3b8', paddingHorizontal: 14, fontSize: 16, fontWeight: '600', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)' },
-    input: { flex: 1, color: '#e2e8f0', padding: 14, fontSize: 16 },
-    otpInput: { backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', textAlign: 'center', letterSpacing: 8, fontSize: 22, marginBottom: 16 },
+    input: { flex: 1, color: '#ffffff', padding: 14, fontSize: 18 },
+    otpInput: { backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', textAlign: 'center', letterSpacing: 12, fontSize: 26, height: 60, marginBottom: 20 },
     btn: { backgroundColor: '#6366f1', borderRadius: 12, padding: 16, alignItems: 'center' },
     btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
     backBtn: { marginTop: 16, alignItems: 'center' },
