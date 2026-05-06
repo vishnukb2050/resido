@@ -88,15 +88,14 @@ export default function OtpLoginScreen() {
                     <>
                         <Text style={styles.label}>Enter the OTP sent to {phone}</Text>
                         <TextInput
-                            style={[styles.input, styles.otpInput]}
-                            placeholder="4-digit OTP"
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            style={styles.otpInput}
+                            placeholder="4-digit"
+                            placeholderTextColor="#94a3b8"
                             keyboardType="number-pad"
                             maxLength={4}
                             value={otp}
                             onChangeText={setOtp}
                             autoFocus
-                            selectionColor="#6366f1"
                         />
                         <TouchableOpacity style={styles.btn} onPress={handleVerifyOtp} disabled={loading}>
                             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Verify OTP</Text>}
@@ -121,7 +120,7 @@ const styles = StyleSheet.create({
     phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16 },
     countryCode: { color: '#94a3b8', paddingHorizontal: 14, fontSize: 16, fontWeight: '600', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)' },
     input: { flex: 1, color: '#ffffff', padding: 14, fontSize: 18 },
-    otpInput: { backgroundColor: '#37374a', borderRadius: 12, borderWidth: 1, borderColor: '#6366f1', textAlign: 'center', letterSpacing: 12, fontSize: 32, height: 70, marginBottom: 20, fontWeight: 'bold' },
+    otpInput: { backgroundColor: '#ffffff', borderRadius: 12, padding: 14, color: '#000000', fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 20, height: 60 },
     btn: { backgroundColor: '#6366f1', borderRadius: 12, padding: 16, alignItems: 'center' },
     btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
     backBtn: { marginTop: 16, alignItems: 'center' },
