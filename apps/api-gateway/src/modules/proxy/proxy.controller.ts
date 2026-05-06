@@ -26,9 +26,9 @@ export class ProxyController {
         
         // Determine target service based on path
         let targetUrl = '';
-        if (path.startsWith('/auth') || path.startsWith('/staff') || path.startsWith('/clients')) {
+        if (path.startsWith('/auth') || path.startsWith('/staff') || path.startsWith('/clients') || path.startsWith('/profile') || path.startsWith('/storage')) {
             targetUrl = `http://auth-service:3001${path}`;
-        } else if (path.startsWith('/members') || path.startsWith('/apartments') || path.startsWith('/storage') || path.startsWith('/community')) {
+        } else if (path.startsWith('/members') || path.startsWith('/apartments') || path.startsWith('/community')) {
             targetUrl = `http://resident-service:3002${path}`;
         } else {
             return res.status(404).json({ message: 'Service not found' });

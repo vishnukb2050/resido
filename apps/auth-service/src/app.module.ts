@@ -7,6 +7,8 @@ import { WorkspaceModule } from './modules/workspace/workspace.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { CacheModule } from './modules/cache/cache.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { ProfileModule } from './modules/profile/profile.module';
 
 @Module({
     imports: [
@@ -18,6 +20,8 @@ import { CacheModule } from './modules/cache/cache.module';
         WorkspaceModule,
         ClientsModule,
         StaffModule,
+        StorageModule,
+        ProfileModule,
     ],
 })
 export class AppModule { }
