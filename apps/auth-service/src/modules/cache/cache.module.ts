@@ -13,18 +13,11 @@ import Redis from 'ioredis';
                 const port = config.get('REDIS_PORT', 6379);
                 const password = config.get('REDIS_PASSWORD');
                 
-                const isAws = host.includes('amazonaws.com');
-                const isCluster = host.startsWith('clustercfg');
-                
-                const redisOptions: any = {};
-                if (password) redisOptions.password = password;
-                if (isAws) redisOptions.tls = {};
-
-                if (isCluster) {
-                    return new Redis.Cluster([{ host, port }], { redisOptions });
-                } else {
-                    return new Redis({ host, port, ...redisOptions });
-                }
+                return new Redis({
+                    host,
+                    port,
+                    password,
+                });
             },
             inject: [ConfigService],
         },

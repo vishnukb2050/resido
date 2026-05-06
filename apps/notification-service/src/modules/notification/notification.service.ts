@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class NotificationService implements OnModuleInit, OnModuleDestroy {
-    private redis: any;
+    private redis: Redis;
 
     constructor(
         private readonly prismaService: PrismaService,
@@ -13,22 +13,11 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     ) { }
 
     onModuleInit() {
-        const host = this.configService.get('REDIS_HOST', 'redis');
-        const port = this.configService.get('REDIS_PORT', 6379);
-        const password = this.configService.get('REDIS_PASSWORD');
-        
-        const isAws = host.includes('amazonaws.com');
-        const isCluster = host.startsWith('clustercfg');
-        
-        const redisOptions: any = {};
-        if (password) redisOptions.password = password;
-        if (isAws) redisOptions.tls = {};
-
-        if (isCluster) {
-            this.redis = new Redis.Cluster([{ host, port }], { redisOptions });
-        } else {
-            this.redis = new Redis({ host, port, ...redisOptions });
-        }
+        this.redis = new Redis({
+            host: this.configService.get('REDIS_HOST', 'redis'),
+            port: this.configService.get('REDIS_PORT', 6379),
+            password: this.configService.get('REDIS_PASSWORD'),
+        });
     }
 
     onModuleDestroy() {
