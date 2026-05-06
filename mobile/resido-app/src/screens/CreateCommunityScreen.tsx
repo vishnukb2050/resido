@@ -9,14 +9,15 @@ import { authApi } from '../services/api';
 export default function CreateCommunityScreen() {
     const [name, setName] = useState('');
     const [adminEmail, setAdminEmail] = useState('');
+    const [adminPassword, setAdminPassword] = useState('');
     const [caretakerEmail, setCaretakerEmail] = useState('');
     const [subAdminEmail, setSubAdminEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
     const handleCreate = async () => {
-        if (!name || !adminEmail) {
-            Alert.alert('Error', 'Please enter community name and admin email.');
+        if (!name || !adminEmail || !adminPassword) {
+            Alert.alert('Error', 'Please enter community name, admin email and password.');
             return;
         }
 
@@ -25,11 +26,12 @@ export default function CreateCommunityScreen() {
             await authApi.createClient({
                 name,
                 adminEmail,
+                adminPassword,
                 caretakerEmail,
                 subAdminEmail,
                 plan: 'BASIC'
             });
-            Alert.alert('Success', 'Community created successfully! Invite emails have been sent to the staff.', [
+            Alert.alert('Success', 'Community created successfully! You can now log in to the web dashboard with this email and password.', [
                 { text: 'OK', onPress: () => router.replace('/workspace-select') }
             ]);
         } catch (err: any) {
@@ -77,6 +79,19 @@ export default function CreateCommunityScreen() {
                             onChangeText={setAdminEmail}
                         />
                         <Text style={styles.hint}>Full access to the web admin panel</Text>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Admin Password</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Set a strong password"
+                            placeholderTextColor="#64748b"
+                            secureTextEntry
+                            value={adminPassword}
+                            onChangeText={setAdminPassword}
+                        />
+                        <Text style={styles.hint}>Use this to login to the web dashboard</Text>
                     </View>
 
                     <View style={styles.inputGroup}>

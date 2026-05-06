@@ -9,6 +9,7 @@ export interface CreateClientDto {
     name: string;
     adminEmail: string;
     adminPhone: string;
+    adminPassword?: string;
     caretakerEmail?: string;
     subAdminEmail?: string;
     plan?: 'BASIC' | 'STANDARD' | 'PREMIUM';
@@ -56,7 +57,7 @@ export class ClientsService {
         });
 
         // 5. Create staff accounts with invite tokens
-        await this.createStaffAccount(client.id, dto.adminEmail, 'APARTMENT_ADMIN');
+        await this.createStaffAccount(client.id, dto.adminEmail, 'APARTMENT_ADMIN', dto.adminPassword);
         if (dto.caretakerEmail) {
             await this.createStaffAccount(client.id, dto.caretakerEmail, 'CARETAKER');
         }
@@ -75,22 +76,31 @@ export class ClientsService {
         };
     }
 
-    private async createStaffAccount(clientId: string, email: string, role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF') {
+    private async createStaffAccount(clientId: string, email: string, role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF', password?: string) {
         const inviteToken = crypto.randomBytes(32).toString('hex');
         const inviteExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        let hashedPassword = null;
+        if (password) {
+            hashedPassword = await bcrypt.hash(password, 10);
+        }
 
         await this.prisma.staffAccount.create({
             data: {
                 email,
                 clientId,
                 role,
-                inviteToken,
-                inviteExpiry,
+                password: hashedPassword,
+                inviteToken: password ? null : inviteToken,
+                inviteExpiry: password ? null : inviteExpiry,
+                isActive: true, // Mark active if password is set
             },
         });
 
-        // TODO: Send invite email via notification-service
-        console.log(`Invite token for ${email}: ${inviteToken}`);
+        // Only send invite if password was NOT provided
+        if (!password) {
+            console.log(`Invite token for ${email}: ${inviteToken}`);
+        }
     }
 
     private async validateEmailsUnique(dto: CreateClientDto) {
