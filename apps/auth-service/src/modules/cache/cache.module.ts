@@ -13,22 +13,19 @@ import Redis from 'ioredis';
                 const port = parseInt(config.get('REDIS_PORT', '6379'));
                 const password = config.get('REDIS_PASSWORD');
                 
-                console.log(`[DEBUG] Redis Connection Attempt: ${host}:${port} (Password set: ${!!password})`);
+                console.log(`[DEBUG] Connecting to Redis: ${host}:${port}`);
                 
                 const client = new Redis({
                     host,
                     port,
                     password,
-                    retryStrategy: (times) => {
-                        console.log(`[DEBUG] Redis retry attempt ${times}`);
-                        return Math.min(times * 50, 2000);
-                    }
+                    connectTimeout: 10000,
+                    maxRetriesPerRequest: 3,
                 });
 
                 client.on('connect', () => console.log('[DEBUG] Redis Client Connected'));
                 client.on('ready', () => console.log('[DEBUG] Redis Client Ready'));
                 client.on('error', (err) => console.error('[DEBUG] Redis Client Error:', err.message));
-                client.on('close', () => console.log('[DEBUG] Redis Client Closed'));
 
                 return client;
             },
