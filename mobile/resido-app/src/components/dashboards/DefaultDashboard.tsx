@@ -73,6 +73,9 @@ export default function DefaultDashboard() {
                 {[
                     { icon: '📇', label: 'Contacts', bg: '#e0e7ff', route: '/contacts' },
                     { icon: '💬', label: 'Global Chat', bg: '#f3e8ff', route: '/chat-list' },
+                    { icon: '📅', label: 'Calendar', bg: '#fee2e2', route: '/calendar' },
+                    { icon: '🛠️', label: 'Services', bg: '#fef3c7', route: '/complaints' },
+                    { icon: '💼', label: 'Job Profile', bg: '#dcfce7', route: '/profile' },
                     { icon: '👤', label: 'Profile', bg: '#f1f5f9', route: '/profile' },
                 ].map((f, i) => (
                     <TouchableOpacity key={i} style={styles.featureItem} onPress={() => router.push(f.route as any)}>

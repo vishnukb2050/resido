@@ -43,9 +43,9 @@ export default function OtpLoginScreen() {
             setOtpVerified({ token: accessToken, refreshToken, user, workspaces });
 
             if (workspaces.length === 0) {
-                router.replace('/(app)/home');
+                router.replace('/');
             } else if (workspaces.length === 1) {
-                router.replace('/(app)/home');
+                router.replace('/');
             } else {
                 router.replace('/workspace-select');
             }
@@ -90,12 +90,13 @@ export default function OtpLoginScreen() {
                         <TextInput
                             style={[styles.input, styles.otpInput]}
                             placeholder="4-digit OTP"
-                            placeholderTextColor="#64748b"
+                            placeholderTextColor="rgba(255,255,255,0.4)"
                             keyboardType="number-pad"
                             maxLength={4}
                             value={otp}
                             onChangeText={setOtp}
                             autoFocus
+                            selectionColor="#6366f1"
                         />
                         <TouchableOpacity style={styles.btn} onPress={handleVerifyOtp} disabled={loading}>
                             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Verify OTP</Text>}
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16 },
     countryCode: { color: '#94a3b8', paddingHorizontal: 14, fontSize: 16, fontWeight: '600', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)' },
     input: { flex: 1, color: '#ffffff', padding: 14, fontSize: 18 },
-    otpInput: { backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', textAlign: 'center', letterSpacing: 12, fontSize: 26, height: 60, marginBottom: 20 },
+    otpInput: { backgroundColor: '#37374a', borderRadius: 12, borderWidth: 1, borderColor: '#6366f1', textAlign: 'center', letterSpacing: 12, fontSize: 32, height: 70, marginBottom: 20, fontWeight: 'bold' },
     btn: { backgroundColor: '#6366f1', borderRadius: 12, padding: 16, alignItems: 'center' },
     btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
     backBtn: { marginTop: 16, alignItems: 'center' },
