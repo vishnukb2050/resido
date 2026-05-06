@@ -17,6 +17,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
             host: this.configService.get('REDIS_HOST', 'redis'),
             port: this.configService.get('REDIS_PORT', 6379),
             password: this.configService.get('REDIS_PASSWORD'),
+            tls: {}, // Required by AWS ElastiCache
         });
     }
 

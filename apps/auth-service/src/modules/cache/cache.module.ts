@@ -19,6 +19,7 @@ import Redis from 'ioredis';
                     host,
                     port,
                     password,
+                    tls: {}, // Required by AWS ElastiCache
                     connectTimeout: 10000,
                     maxRetriesPerRequest: 3,
                 });
