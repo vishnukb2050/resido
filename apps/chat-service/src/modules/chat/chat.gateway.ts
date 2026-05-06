@@ -90,7 +90,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         const redisHost = process.env.REDIS_HOST || 'redis';
         const redisPort = parseInt(process.env.REDIS_PORT || '6379');
         const redisPassword = process.env.REDIS_PASSWORD;
-        const subscriber = new (require('ioredis'))({ host: redisHost, port: redisPort, password: redisPassword });
+        const isAws = redisHost.includes('amazonaws.com');
+        const isCluster = redisHost.startsWith('clustercfg');
+        const redisOptions: any = {};
+        if (redisPassword) redisOptions.password = redisPassword;
+        if (isAws) redisOptions.tls = {};
+
+        let subscriber;
+        if (isCluster) {
+            subscriber = new (require('ioredis')).Cluster([{ host: redisHost, port: redisPort }], { redisOptions });
+        } else {
+            subscriber = new (require('ioredis'))({ host: redisHost, port: redisPort, ...redisOptions });
+        }
 
         subscriber.subscribe('resido_notifications', (err) => {
             if (err) console.error('Failed to subscribe to notifications:', err);
