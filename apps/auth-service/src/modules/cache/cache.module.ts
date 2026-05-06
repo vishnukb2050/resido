@@ -17,6 +17,10 @@ import Redis from 'ioredis';
                     host,
                     port,
                     password,
+                    lazyConnect: false,
+                    enableReadyCheck: false,
+                    enableOfflineQueue: false, // This will prevent the hang and throw an error instead
+                    maxRetriesPerRequest: 0,
                 });
             },
             inject: [ConfigService],
