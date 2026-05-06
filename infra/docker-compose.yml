@@ -138,6 +138,8 @@ services:
   admin-panel:
     build:
       context: ../web/admin
+      args:
+        - VITE_API_URL=${VITE_API_URL}
     container_name: resido-admin
     networks:
       - resido-net
@@ -148,6 +150,8 @@ services:
   superadmin-panel:
     build:
       context: ../web/superadmin
+      args:
+        - VITE_API_URL=${VITE_API_URL}
     container_name: resido-superadmin
     networks:
       - resido-net

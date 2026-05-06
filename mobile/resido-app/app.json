@@ -44,8 +44,8 @@
             "eas": {
                 "projectId": "your-eas-project-id"
             },
-            "apiUrl": "https://api.residoapp.com/api",
-            "socketUrl": "https://api.residoapp.com"
+            "apiUrl": "https://residoapp.com/api",
+            "socketUrl": "https://residoapp.com"
         }
     }
 }

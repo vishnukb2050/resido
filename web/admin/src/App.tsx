@@ -19,7 +19,7 @@ export default function App() {
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
             
             {isAuthenticated ? (
-                <Route element={<Layout children={<div />} />}>
+                <Route element={<Layout />}>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/members" element={<StubPage title="Members" />} />

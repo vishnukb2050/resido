@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import '../index.css';
 
@@ -33,7 +33,7 @@ const MENU_ITEMS = {
     ]
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout() {
     const { role, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -70,7 +70,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </aside>
 
             <main className="main-content">
-                {children}
+                <Outlet />
             </main>
         </div>
     );
