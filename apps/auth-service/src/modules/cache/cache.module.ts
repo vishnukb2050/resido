@@ -10,18 +10,27 @@ import Redis from 'ioredis';
             provide: 'REDIS_CLIENT',
             useFactory: (config: ConfigService) => {
                 const host = config.get('REDIS_HOST', 'localhost');
-                const port = config.get('REDIS_PORT', 6379);
+                const port = parseInt(config.get('REDIS_PORT', '6379'));
                 const password = config.get('REDIS_PASSWORD');
                 
-                return new Redis({
+                console.log(`[DEBUG] Redis Connection Attempt: ${host}:${port} (Password set: ${!!password})`);
+                
+                const client = new Redis({
                     host,
                     port,
                     password,
-                    lazyConnect: false,
-                    enableReadyCheck: false,
-                    enableOfflineQueue: false, // This will prevent the hang and throw an error instead
-                    maxRetriesPerRequest: 0,
+                    retryStrategy: (times) => {
+                        console.log(`[DEBUG] Redis retry attempt ${times}`);
+                        return Math.min(times * 50, 2000);
+                    }
                 });
+
+                client.on('connect', () => console.log('[DEBUG] Redis Client Connected'));
+                client.on('ready', () => console.log('[DEBUG] Redis Client Ready'));
+                client.on('error', (err) => console.error('[DEBUG] Redis Client Error:', err.message));
+                client.on('close', () => console.log('[DEBUG] Redis Client Closed'));
+
+                return client;
             },
             inject: [ConfigService],
         },
