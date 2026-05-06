@@ -28,8 +28,8 @@ export class AuthService {
         }
         console.log(`[DEBUG] User ID: ${user.id}`);
 
-        // Generate real 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate real 4-digit OTP (matching DLT template)
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
         console.log(`[DEBUG] Generated OTP: ${otp}`);
 
         // Store in Redis with 5 min expiry (key: otp:phone)
