@@ -11,7 +11,7 @@ datasource db {
 // ─── Apartment / Building ─────────────────────────────────────────────────────
 model Apartment {
   id        String    @id @default(cuid())
-  tenantId  String    @index
+  tenantId  String
   name      String
   address   String
   city      String
@@ -22,54 +22,59 @@ model Apartment {
 
   blocks    Block[]
 
+  @@index([tenantId])
   @@map("apartments")
 }
 
 model Block {
   id          String    @id @default(cuid())
-  tenantId    String    @index
+  tenantId    String
   name        String
   apartmentId String
   apartment   Apartment @relation(fields: [apartmentId], references: [id])
   units       Unit[]
 
+  @@index([tenantId])
   @@map("blocks")
 }
 
 model Unit {
   id       String  @id @default(cuid())
-  tenantId String  @index
+  tenantId String
   number   String
   floor    Int
   blockId  String
   block    Block   @relation(fields: [blockId], references: [id])
   families Family[]
 
+  @@index([tenantId])
   @@map("units")
 }
 
 // ─── Department ───────────────────────────────────────────────────────────────
 model Department {
   id        String           @id @default(cuid())
-  tenantId  String           @index
+  tenantId  String
   name      String
   type      DepartmentType
   createdAt DateTime         @default(now())
 
   members DepartmentMember[]
 
+  @@index([tenantId])
   @@map("departments")
 }
 
 model DepartmentMember {
   id           String     @id @default(cuid())
-  tenantId     String     @index
+  tenantId     String
   departmentId String
   memberId     String
   department   Department @relation(fields: [departmentId], references: [id])
   member       Member     @relation(fields: [memberId], references: [id])
   assignedAt   DateTime   @default(now())
 
+  @@index([tenantId])
   @@unique([departmentId, memberId])
   @@map("department_members")
 }
@@ -77,19 +82,20 @@ model DepartmentMember {
 // ─── Family & Members ─────────────────────────────────────────────────────────
 model Family {
   id        String   @id @default(cuid())
-  tenantId  String   @index
+  tenantId  String
   name      String
   unitId    String
   unit      Unit     @relation(fields: [unitId], references: [id])
   members   Member[]
   createdAt DateTime @default(now())
 
+  @@index([tenantId])
   @@map("families")
 }
 
 model Member {
   id           String   @id @default(cuid())
-  tenantId     String   @index
+  tenantId     String
   name         String
   phone        String   
   email        String?
@@ -108,6 +114,7 @@ model Member {
   complaints            Complaint[]
   visitors              Visitor[]
 
+  @@index([tenantId])
   @@unique([tenantId, phone])
   @@map("members")
 }
@@ -115,7 +122,7 @@ model Member {
 // ─── Notice Board ─────────────────────────────────────────────────────────────
 model Notice {
   id              String   @id @default(cuid())
-  tenantId        String   @index
+  tenantId        String
   title           String
   body            String
   postedBy        String   // member id
@@ -124,13 +131,14 @@ model Notice {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  @@index([tenantId])
   @@map("notices")
 }
 
 // ─── Polls ───────────────────────────────────────────────────────────────────
 model Poll {
   id          String       @id @default(cuid())
-  tenantId    String       @index
+  tenantId    String
   question    String
   createdBy   String
   expiresAt   DateTime?
@@ -139,29 +147,32 @@ model Poll {
 
   options     PollOption[]
 
+  @@index([tenantId])
   @@map("polls")
 }
 
 model PollOption {
   id       String     @id @default(cuid())
-  tenantId String     @index
+  tenantId String
   pollId   String
   text     String
   poll     Poll       @relation(fields: [pollId], references: [id])
   votes    PollVote[]
 
+  @@index([tenantId])
   @@map("poll_options")
 }
 
 model PollVote {
   id       String     @id @default(cuid())
-  tenantId String     @index
+  tenantId String
   optionId String
   memberId String
   option   PollOption @relation(fields: [optionId], references: [id])
   member   Member     @relation(fields: [memberId], references: [id])
   votedAt  DateTime   @default(now())
 
+  @@index([tenantId])
   @@unique([optionId, memberId])
   @@map("poll_votes")
 }
@@ -169,24 +180,26 @@ model PollVote {
 // ─── Groups ───────────────────────────────────────────────────────────────────
 model Group {
   id        String        @id @default(cuid())
-  tenantId  String        @index
+  tenantId  String
   name      String
   createdBy String
   createdAt DateTime      @default(now())
 
   members   GroupMember[]
 
+  @@index([tenantId])
   @@map("groups")
 }
 
 model GroupMember {
   id       String @id @default(cuid())
-  tenantId String @index
+  tenantId String
   groupId  String
   memberId String
   group    Group  @relation(fields: [groupId], references: [id])
   member   Member @relation(fields: [memberId], references: [id])
 
+  @@index([tenantId])
   @@unique([groupId, memberId])
   @@map("group_members")
 }
@@ -194,7 +207,7 @@ model GroupMember {
 // ─── Notifications ────────────────────────────────────────────────────────────
 model Notification {
   id        String   @id @default(cuid())
-  tenantId  String   @index
+  tenantId  String
   memberId  String
   type      NotificationType
   title     String
@@ -203,13 +216,14 @@ model Notification {
   createdAt DateTime @default(now())
   member    Member   @relation(fields: [memberId], references: [id])
 
+  @@index([tenantId])
   @@map("notifications")
 }
 
 // ─── Complaints ───────────────────────────────────────────────
 model Complaint {
   id          String         @id @default(cuid())
-  tenantId    String         @index
+  tenantId    String
   title       String
   description String
   status      ComplaintStatus @default(OPEN)
@@ -222,13 +236,14 @@ model Complaint {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  @@index([tenantId])
   @@map("complaints")
 }
 
 // ─── Visitors / Gatepass ──────────────────────────────────────
 model Visitor {
   id            String       @id @default(cuid())
-  tenantId      String       @index
+  tenantId      String
   name          String
   phone         String
   purpose       String?
@@ -241,6 +256,7 @@ model Visitor {
   vehicleNumber String?
   createdAt     DateTime     @default(now())
 
+  @@index([tenantId])
   @@unique([tenantId, passCode])
   @@map("visitors")
 }
@@ -248,7 +264,7 @@ model Visitor {
 // ─── Events / Calendar ────────────────────────────────────────
 model Event {
   id            String         @id @default(cuid())
-  tenantId      String         @index
+  tenantId      String
   title         String
   description   String?
   location      String?
@@ -262,6 +278,7 @@ model Event {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
+  @@index([tenantId])
   @@map("events")
 }
 
@@ -275,7 +292,7 @@ enum EventVisibility {
 // ─── Gallery ──────────────────────────────────────────────────
 model Gallery {
   id          String   @id @default(cuid())
-  tenantId    String   @index
+  tenantId    String
   title       String
   description String?
   mediaUrls   String[]
@@ -283,6 +300,7 @@ model Gallery {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([tenantId])
   @@map("gallery")
 }
 

@@ -9,7 +9,7 @@ datasource db {
 
 model Blog {
   id          String   @id @default(cuid())
-  tenantId    String   @index
+  tenantId    String
   title       String
   content     String
   authorId    String   // Member ID
@@ -19,5 +19,6 @@ model Blog {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([tenantId])
   @@map("blogs")
 }
