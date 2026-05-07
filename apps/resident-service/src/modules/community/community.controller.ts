@@ -68,7 +68,22 @@ export class CommunityController {
     }
 
     @Get('gallery')
-    getGallery() {
-        return this.communityService.getGallery();
+    getGallery(@Query('folderId') folderId?: string) {
+        return this.communityService.getGallery(folderId);
+    }
+
+    @Post('gallery')
+    createGallery(@Body() data: any) {
+        return this.communityService.createGallery(data);
+    }
+
+    @Get('gallery/folders')
+    getGalleryFolders() {
+        return this.communityService.getGalleryFolders();
+    }
+
+    @Post('gallery/folders')
+    createGalleryFolder(@Body() data: any) {
+        return this.communityService.createGalleryFolder(data);
     }
 }

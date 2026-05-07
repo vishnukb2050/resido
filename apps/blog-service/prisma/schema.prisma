@@ -12,13 +12,20 @@ model Blog {
   tenantId    String
   title       String
   content     String
-  authorId    String   // Member ID
+  authorId    String   // Global User ID
   category    String?
   mediaUrls   String[]
+  mediaType   BlogMediaType @default(IMAGE)
+  tags        String[] // Array of Global User IDs
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([tenantId])
   @@map("blogs")
+}
+
+enum BlogMediaType {
+  IMAGE
+  VIDEO
 }

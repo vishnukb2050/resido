@@ -92,7 +92,41 @@ export class CommunityService {
     }
 
     // ─── Gallery ────────────────────────────────────────────────
-    async getGallery() {
-        return this.prisma.reader.gallery.findMany({ orderBy: { createdAt: 'desc' } });
+    async getGallery(folderId?: string) {
+        return this.prisma.reader.gallery.findMany({
+            where: folderId ? { folderId } : {},
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async createGallery(data: any) {
+        return this.prisma.client.gallery.create({
+            data: {
+                title: data.title,
+                description: data.description,
+                mediaUrls: data.mediaUrls,
+                category: data.category,
+                folderId: data.folderId,
+                type: data.type || 'IMAGE',
+                tenantId: '' // Will be overridden by tenant extension
+            } as any
+        });
+    }
+
+    async getGalleryFolders() {
+        return this.prisma.reader.galleryFolder.findMany({
+            include: { _count: { select: { items: true } } },
+            orderBy: { updatedAt: 'desc' }
+        });
+    }
+
+    async createGalleryFolder(data: any) {
+        return this.prisma.client.galleryFolder.create({
+            data: {
+                name: data.name,
+                description: data.description,
+                tenantId: '' // Will be overridden
+            } as any
+        });
     }
 }

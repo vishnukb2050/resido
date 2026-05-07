@@ -290,18 +290,40 @@ enum EventVisibility {
 }
 
 // ─── Gallery ──────────────────────────────────────────────────
+model GalleryFolder {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       Gallery[]
+
+  @@index([tenantId])
+  @@map("gallery_folders")
+}
+
 model Gallery {
   id          String   @id @default(cuid())
   tenantId    String
+  folderId    String?
+  folder      GalleryFolder? @relation(fields: [folderId], references: [id])
   title       String
   description String?
   mediaUrls   String[]
+  type        MediaType @default(IMAGE)
   category    String?  // e.g. "Club House", "Garden", "Events"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([tenantId])
   @@map("gallery")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }
 
 // ─── Enums ───────────────────────────────────────────────────

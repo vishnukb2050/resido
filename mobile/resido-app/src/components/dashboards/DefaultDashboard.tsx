@@ -35,25 +35,29 @@ export default function DefaultDashboard() {
         <SafeAreaView style={styles.safeArea}>
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
-                    {/* Header Row */}
+                    {/* Header Row - Matches Image 1 */}
                     <View style={styles.headerRow}>
-                        <View style={styles.brandContainer}>
-                            <Image 
-                                source={require('../../../assets/logo.png')} 
-                                style={styles.logoImage} 
-                            />
-                            <View style={{ marginLeft: 12 }}>
+                        <View style={styles.brandSide}>
+                            <View style={styles.logoContainer}>
+                                <Image 
+                                    source={require('../../../assets/logo.png')} 
+                                    style={styles.logoImage} 
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <View style={styles.brandTextContainer}>
                                 <Text style={styles.brandName}>Resido</Text>
-                                <Text style={styles.brandTagline}>Your Community Starts here</Text>
+                                <Text style={styles.brandTagline}>Your Community</Text>
+                                <Text style={styles.brandTaglineSmall}>Starts here</Text>
                             </View>
                         </View>
 
-                        {/* Announcements Card */}
-                        <TouchableOpacity style={styles.announcementCard}>
+                        {/* Announcements Card - Mini Version */}
+                        <TouchableOpacity style={styles.announcementCardMini}>
                             <View style={styles.announcementTextContent}>
                                 <Text style={styles.announcementTitle}>Announcements</Text>
-                                <Text style={styles.announcementDesc} numberOfLines={2}>
-                                    Stay updated with the latest news and important updates from your community.
+                                <Text style={styles.announcementDescMini} numberOfLines={2}>
+                                    Stay updated with the latest news and important updates...
                                 </Text>
                                 <View style={styles.viewAllRow}>
                                     <Text style={styles.viewAllText}>View all</Text>
@@ -61,7 +65,7 @@ export default function DefaultDashboard() {
                                 </View>
                             </View>
                             <View style={styles.announcementIconBox}>
-                                <Text style={{ fontSize: 40 }}>📢</Text>
+                                <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png' }} style={styles.announcementIconImg} />
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -127,14 +131,14 @@ export default function DefaultDashboard() {
                             title="Notes" 
                             subtitle="Keep your notes handy" 
                             bg="#fffbeb"
-                            onPress={() => {}}
+                            onPress={() => router.push('/notes')}
                         />
                         <FeatureCard 
                             icon="🖨️" 
                             title="Scanner" 
                             subtitle="Scan documents on the go" 
                             bg="#eff6ff"
-                            onPress={() => {}}
+                            onPress={() => router.push('/scanner')}
                         />
                         <FeatureCard 
                             icon="📁" 
@@ -155,7 +159,7 @@ export default function DefaultDashboard() {
                             title="More" 
                             subtitle="Explore more features" 
                             bg="#f8fafc"
-                            onPress={() => {}}
+                            onPress={() => router.push('/service-search')}
                         />
                     </View>
                 </View>
@@ -166,7 +170,7 @@ export default function DefaultDashboard() {
                 <NavItem icon="home" label="Home" active />
                 <NavItem icon="chatbubble-outline" label="Chat" badge={3} onPress={() => router.push('/chat-list')} />
                 <NavItem icon="people-outline" label="Contacts" onPress={() => router.push('/contacts')} />
-                <NavItem icon="newspaper-outline" label="Blog" />
+                <NavItem icon="newspaper-outline" label="Blog" onPress={() => router.push('/blog')} />
                 <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
                     <View style={styles.navProfileContainer}>
                         {user?.profilePhoto ? (
@@ -234,30 +238,54 @@ const styles = StyleSheet.create({
     guestContent: { padding: 30, alignItems: 'center', justifyContent: 'center', flex: 1 },
     content: { padding: 20, paddingBottom: 100 },
     
-    headerRow: { marginBottom: 24, marginTop: 10 },
-    brandContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    logoImage: { width: 50, height: 50 },
-    brandName: { fontSize: 26, fontWeight: '800', color: '#6366f1' },
-    brandTagline: { fontSize: 13, color: '#1e293b', marginTop: -2, fontWeight: '600' },
-    
-    announcementCard: { 
-        backgroundColor: '#f5f3ff', 
-        borderRadius: 24, 
-        padding: 20, 
+    headerRow: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        marginBottom: 32, 
+        marginTop: 10 
+    },
+    brandSide: { 
         flexDirection: 'row', 
         alignItems: 'center',
-        shadowColor: '#6366f1',
+        flex: 1
+    },
+    logoContainer: {
+        width: 65,
+        height: 65,
+        borderRadius: 32.5,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 5
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 3
+    },
+    logoImage: { width: 45, height: 45 },
+    brandTextContainer: { marginLeft: 12 },
+    brandName: { fontSize: 28, fontWeight: '900', color: '#6366f1' },
+    brandTagline: { fontSize: 13, color: '#1e293b', fontWeight: '700' },
+    brandTaglineSmall: { fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: -2 },
+    
+    announcementCardMini: { 
+        backgroundColor: '#f5f3ff', 
+        borderRadius: 20, 
+        padding: 12, 
+        flexDirection: 'row', 
+        alignItems: 'center',
+        width: '45%',
+        borderWidth: 1,
+        borderColor: 'rgba(99, 102, 241, 0.05)',
     },
     announcementTextContent: { flex: 1 },
-    announcementIconBox: { marginLeft: 15 },
-    announcementTitle: { fontSize: 15, fontWeight: '800', color: '#6366f1', marginBottom: 6 },
-    announcementDesc: { fontSize: 12, color: '#1e293b', lineHeight: 18, fontWeight: '500' },
-    viewAllRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-    viewAllText: { fontSize: 13, fontWeight: '700', color: '#6366f1', marginRight: 4 },
+    announcementIconBox: { marginLeft: 8 },
+    announcementIconImg: { width: 45, height: 45, borderRadius: 10 },
+    announcementTitle: { fontSize: 12, fontWeight: '800', color: '#6366f1', marginBottom: 2 },
+    announcementDescMini: { fontSize: 9, color: '#475569', lineHeight: 13, fontWeight: '500' },
+    viewAllRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+    viewAllText: { fontSize: 11, fontWeight: '700', color: '#6366f1', marginRight: 2 },
 
     sectionHeader: { marginBottom: 16, marginTop: 10 },
     sectionTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
