@@ -8,28 +8,28 @@ export class BlogsController {
     constructor(private blogsService: BlogsService) {}
 
     @Get()
-    listBlogs(@Req() req: any) {
-        return this.blogsService.listBlogs(req.tenantDbName);
+    listBlogs() {
+        return this.blogsService.listBlogs();
     }
 
     @Post()
     createBlog(@Req() req: any, @Body() data: any) {
         const userId = req.headers['x-user-id'] as string;
-        return this.blogsService.createBlog(req.tenantDbName, userId, data);
+        return this.blogsService.createBlog(userId, data);
     }
 
     @Get(':id')
-    getBlog(@Req() req: any, @Param('id') id: string) {
-        return this.blogsService.getBlog(req.tenantDbName, id);
+    getBlog(@Param('id') id: string) {
+        return this.blogsService.getBlog(id);
     }
 
     @Patch(':id')
-    updateBlog(@Req() req: any, @Param('id') id: string, @Body() data: any) {
-        return this.blogsService.updateBlog(req.tenantDbName, id, data);
+    updateBlog(@Param('id') id: string, @Body() data: any) {
+        return this.blogsService.updateBlog(id, data);
     }
 
     @Delete(':id')
-    deleteBlog(@Req() req: any, @Param('id') id: string) {
-        return this.blogsService.deleteBlog(req.tenantDbName, id);
+    deleteBlog(@Param('id') id: string) {
+        return this.blogsService.deleteBlog(id);
     }
 }

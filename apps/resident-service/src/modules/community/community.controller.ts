@@ -9,66 +9,66 @@ export class CommunityController {
 
     // Notice Board
     @Get('notices')
-    getNotices(@Req() req: any) {
-        return this.communityService.getNotices(req.tenantDbName);
+    getNotices() {
+        return this.communityService.getNotices();
     }
 
     @Post('notices')
-    createNotice(@Req() req: any, @Body() data: any) {
-        return this.communityService.createNotice(req.tenantDbName, data);
+    createNotice(@Body() data: any) {
+        return this.communityService.createNotice(data);
     }
 
     // Polls
     @Get('polls')
-    getPolls(@Req() req: any) {
-        return this.communityService.getPolls(req.tenantDbName);
+    getPolls() {
+        return this.communityService.getPolls();
     }
 
     @Post('polls/vote')
-    votePoll(@Req() req: any, @Body() body: { memberId: string; optionId: string }) {
-        return this.communityService.votePoll(req.tenantDbName, body.memberId, body.optionId);
+    votePoll(@Body() body: { memberId: string; optionId: string }) {
+        return this.communityService.votePoll(body.memberId, body.optionId);
     }
 
     // Complaints
     @Get('complaints')
-    getComplaints(@Req() req: any, @Query('memberId') memberId: string) {
-        return this.communityService.getComplaints(req.tenantDbName, memberId);
+    getComplaints(@Query('memberId') memberId: string) {
+        return this.communityService.getComplaints(memberId);
     }
 
     @Post('complaints')
-    createComplaint(@Req() req: any, @Body() data: any) {
-        return this.communityService.createComplaint(req.tenantDbName, data.memberId, data);
+    createComplaint(@Body() data: any) {
+        return this.communityService.createComplaint(data.memberId, data);
     }
 
     // Gatepass / Visitors
     @Get('visitors')
-    getVisitors(@Req() req: any, @Query('memberId') memberId: string) {
-        return this.communityService.getVisitors(req.tenantDbName, memberId);
+    getVisitors(@Query('memberId') memberId: string) {
+        return this.communityService.getVisitors(memberId);
     }
 
     @Post('visitors/gatepass')
-    createGatepass(@Req() req: any, @Body() data: any) {
-        return this.communityService.createGatepass(req.tenantDbName, data.memberId, data);
+    createGatepass(@Body() data: any) {
+        return this.communityService.createGatepass(data.memberId, data);
     }
 
     // Calendar / Events
     @Get('events')
-    getEvents(@Req() req: any, @Query('memberId') memberId: string) {
-        return this.communityService.getEvents(req.tenantDbName, memberId);
+    getEvents(@Query('memberId') memberId: string) {
+        return this.communityService.getEvents(memberId);
     }
 
     @Post('events')
-    createEvent(@Req() req: any, @Body() data: any) {
-        return this.communityService.createEvent(req.tenantDbName, data.memberId, data);
+    createEvent(@Body() data: any) {
+        return this.communityService.createEvent(data.memberId, data);
     }
 
     @Get('members')
-    getMembers(@Req() req: any) {
-        return this.communityService.getMembers(req.tenantDbName);
+    getMembers() {
+        return this.communityService.getMembers();
     }
 
     @Get('gallery')
-    getGallery(@Req() req: any) {
-        return this.communityService.getGallery(req.tenantDbName);
+    getGallery() {
+        return this.communityService.getGallery();
     }
 }

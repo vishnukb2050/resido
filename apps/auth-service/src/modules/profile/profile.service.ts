@@ -6,7 +6,7 @@ export class ProfileService {
     constructor(private prisma: PrismaService) {}
 
     async updateProfile(userId: string, data: any) {
-        return this.prisma.user.update({
+        return this.prisma.userClient.user.update({
             where: { id: userId },
             data: {
                 name: data.name,
@@ -18,13 +18,13 @@ export class ProfileService {
     }
 
     async getJobProfile(userId: string) {
-        return this.prisma.jobProfile.findUnique({
+        return this.prisma.userRead.jobProfile.findUnique({
             where: { userId }
         });
     }
 
     async upsertJobProfile(userId: string, data: any) {
-        return this.prisma.jobProfile.upsert({
+        return this.prisma.userClient.jobProfile.upsert({
             where: { userId },
             update: {
                 category: data.category,
@@ -53,7 +53,7 @@ export class ProfileService {
 
     async searchServices(category: string, location: string) {
         // Simple search by pincode or city or district or state
-        return this.prisma.jobProfile.findMany({
+        return this.prisma.userRead.jobProfile.findMany({
             where: {
                 category: category,
                 OR: [

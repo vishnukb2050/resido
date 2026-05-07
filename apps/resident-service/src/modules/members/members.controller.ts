@@ -8,22 +8,22 @@ export class MembersController {
     constructor(private membersService: MembersService) {}
 
     @Get()
-    listMembers(@Req() req: any) {
-        return this.membersService.listMembers(req.tenantDbName);
+    listMembers() {
+        return this.membersService.listMembers();
     }
 
     @Post()
-    createMember(@Req() req: any, @Body() data: any) {
-        return this.membersService.createMember(req.tenantDbName, data);
+    createMember(@Body() data: any) {
+        return this.membersService.createMember(data);
     }
 
     @Patch(':id/profile-photo')
-    updateProfilePhoto(@Req() req: any, @Param('id') id: string, @Body() body: { profilePhoto: string }) {
-        return this.membersService.updateProfilePhoto(req.tenantDbName, id, body.profilePhoto);
+    updateProfilePhoto(@Param('id') id: string, @Body() body: { profilePhoto: string }) {
+        return this.membersService.updateProfilePhoto(id, body.profilePhoto);
     }
 
     @Patch(':id/status')
-    updateStatus(@Req() req: any, @Param('id') id: string, @Body() body: { isActive: boolean }) {
-        return this.membersService.updateStatus(req.tenantDbName, id, body.isActive);
+    updateStatus(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+        return this.membersService.updateStatus(id, body.isActive);
     }
 }

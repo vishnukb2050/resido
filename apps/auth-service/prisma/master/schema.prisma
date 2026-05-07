@@ -14,7 +14,7 @@ model Client {
   id              String    @id @default(cuid())
   name            String
   slug            String    @unique
-  dbName          String    @unique
+  dbName          String
   s3Prefix        String    @unique
   adminEmail      String    @unique
   adminPhone      String    @unique

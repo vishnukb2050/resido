@@ -22,7 +22,7 @@ export class StaffService {
      * Returns a JWT scoped to a single clientId
      */
     async emailLogin(email: string, password: string) {
-        const staff = await this.prisma.reader.staffAccount.findUnique({
+        const staff = await this.prisma.masterRead.staffAccount.findUnique({
             where: { email },
             include: { client: { select: { id: true, name: true, slug: true, dbName: true, isActive: true } } },
         });
@@ -46,7 +46,7 @@ export class StaffService {
         if (!valid) throw new UnauthorizedException('Invalid email or password.');
 
         // Update last login
-        await this.prisma.staffAccount.update({
+        await this.prisma.masterClient.staffAccount.update({
             where: { id: staff.id },
             data: { lastLoginAt: new Date() },
         });
@@ -72,7 +72,7 @@ export class StaffService {
      * Accept invite — verify token, set password for first time
      */
     async acceptInvite(inviteToken: string, password: string) {
-        const staff = await this.prisma.staffAccount.findUnique({
+        const staff = await this.prisma.masterClient.staffAccount.findUnique({
             where: { inviteToken },
             include: { client: { select: { id: true, name: true, slug: true, dbName: true } } },
         });
@@ -84,7 +84,7 @@ export class StaffService {
 
         const hashed = await bcrypt.hash(password, 12);
 
-        const updated = await this.prisma.staffAccount.update({
+        const updated = await this.prisma.masterClient.staffAccount.update({
             where: { id: staff.id },
             data: {
                 password: hashed,
@@ -107,7 +107,7 @@ export class StaffService {
      * Validate invite token (used to pre-fill email on accept-invite page)
      */
     async validateInviteToken(inviteToken: string) {
-        const staff = await this.prisma.staffAccount.findUnique({
+        const staff = await this.prisma.masterRead.staffAccount.findUnique({
             where: { inviteToken },
             include: { client: { select: { name: true } } },
         });
@@ -128,7 +128,7 @@ export class StaffService {
      * Get staff profile + client info (for /me endpoint)
      */
     async getMe(staffId: string) {
-        const staff = await this.prisma.staffAccount.findUnique({
+        const staff = await this.prisma.masterRead.staffAccount.findUnique({
             where: { id: staffId },
             include: {
                 client: {

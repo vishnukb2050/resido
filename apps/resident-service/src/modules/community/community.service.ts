@@ -24,7 +24,10 @@ export class CommunityService {
 
     async votePoll(memberId: string, optionId: string) {
         return this.prisma.client.pollVote.create({
-            data: { memberId, optionId }
+            data: {
+                member: { connect: { id: memberId } },
+                option: { connect: { id: optionId } }
+            } as any
         });
     }
 
