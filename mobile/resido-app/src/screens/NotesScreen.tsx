@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, A
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '../store/authStore';
 
 export default function NotesScreen() {
+    const { activeWorkspace } = useAuthStore();
     const [folders, setFolders] = useState<any[]>([]);
     const [selectedFolder, setSelectedFolder] = useState<any>(null);
     const [pages, setPages] = useState<any[]>([]);
@@ -79,12 +81,13 @@ export default function NotesScreen() {
     };
 
     const handleShare = async () => {
+        if (!activeWorkspace?.tenantId) return Alert.alert('Error', 'No active workspace selected');
         try {
             await api.post('/notes/share', {
                 folderId: !currentPage ? selectedFolder.id : undefined,
                 pageId: currentPage ? currentPage.id : undefined,
                 targetType: shareTarget,
-                targetId: 'CURRENT_TENANT_ID' // In real app, get from store
+                targetId: activeWorkspace.tenantId
             });
             Alert.alert('Success', 'Shared successfully!');
             setShareModal(false);

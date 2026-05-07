@@ -26,6 +26,7 @@ model User {
   workspaceMemberships WorkspaceMembership[]
   otpLogs              OtpLog[]
   noteFolders          NoteFolder[]
+  savedScans           SavedScan[]
   jobProfile           JobProfile?
 
   @@map("users")
@@ -123,6 +124,18 @@ model NoteShare {
   page   NotePage?   @relation(fields: [pageId], references: [id])
 
   @@map("note_shares")
+}
+
+model SavedScan {
+  id        String   @id @default(cuid())
+  userId    String
+  data      String
+  type      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("saved_scans")
 }
 
 enum ShareTarget {

@@ -16,7 +16,7 @@ export default function DefaultDashboard() {
         return (
             <ScrollView style={styles.container} contentContainerStyle={styles.guestContent}>
                 <View style={styles.heroSection}>
-                    <Image source={require('../../../assets/logo.png')} style={{ width: 100, height: 100, marginBottom: 20 }} />
+                    <Image source={require('../../../assets/resido_logo.png')} style={{ width: 100, height: 100, marginBottom: 20 }} />
                     <Text style={styles.brandTitle}>Resido</Text>
                     <Text style={styles.heroSub}>Smart Living for Modern Communities</Text>
                     <Text style={styles.heroDesc}>Manage apartments, connect with residents, and access local services—all in one app.</Text>
@@ -40,7 +40,7 @@ export default function DefaultDashboard() {
                         <View style={styles.brandSide}>
                             <View style={styles.logoContainer}>
                                 <Image 
-                                    source={require('../../../assets/logo.png')} 
+                                    source={require('../../../assets/resido_logo.png')} 
                                     style={styles.logoImage} 
                                     resizeMode="contain"
                                 />

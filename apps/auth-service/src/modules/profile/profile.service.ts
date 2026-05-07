@@ -74,4 +74,17 @@ export class ProfileService {
             }
         });
     }
+
+    async saveScan(userId: string, data: string, type?: string) {
+        return this.prisma.userClient.savedScan.create({
+            data: { userId, data, type }
+        });
+    }
+
+    async getSavedScans(userId: string) {
+        return this.prisma.userRead.savedScan.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
 }

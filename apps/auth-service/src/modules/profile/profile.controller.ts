@@ -31,4 +31,16 @@ export class ProfileController {
     ) {
         return this.profileService.searchServices(category, location);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('scans')
+    async saveScan(@Req() req: any, @Body() body: { data: string, type?: string }) {
+        return this.profileService.saveScan(req.user.userId, body.data, body.type);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('scans')
+    async getSavedScans(@Req() req: any) {
+        return this.profileService.getSavedScans(req.user.userId);
+    }
 }

@@ -26,7 +26,7 @@ export class ProxyController {
         
         // Determine target service based on path
         let targetUrl = '';
-        if (path.startsWith('/auth') || path.startsWith('/staff') || path.startsWith('/clients') || path.startsWith('/profile') || path.startsWith('/storage')) {
+        if (path.startsWith('/auth') || path.startsWith('/staff') || path.startsWith('/clients') || path.startsWith('/profile') || path.startsWith('/storage') || path.startsWith('/notes')) {
             targetUrl = `http://auth-service:3001${path}`;
         } else if (path.startsWith('/members') || path.startsWith('/apartments') || path.startsWith('/community')) {
             targetUrl = `http://resident-service:3002${path}`;
@@ -53,6 +53,9 @@ export class ProxyController {
                 }
                 if (payload.sub) {
                     headers['x-user-id'] = payload.sub;
+                }
+                if (payload.tenantId) {
+                    headers['x-tenant-id'] = payload.tenantId;
                 }
             } catch (err) {
                 // Invalid token, but maybe it's a public route?
