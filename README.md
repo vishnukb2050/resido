@@ -92,17 +92,31 @@ resido/
 
 ---
 
-## 📦 Services & Ports
-
-| Service | Port | Database Target |
-| :--- | :--- | :--- |
-| **API Gateway** | 3000 | - |
-| **Auth Service** | 3001 | Master & User DBs |
-| **Resident Service** | 3002 | Core DB (Shared) |
-| **Accounting** | 3003 | Core DB (Shared) |
-| **Chat** | 3004 | Core DB (Shared) |
-| **Visitor** | 3006 | Core DB (Shared) |
 | **Blog Service** | 3008 | Core DB (Shared) |
+
+---
+
+## ✨ Recent Enhancements (May 2026)
+
+### 🎨 Mobile UI/UX Restoration
+- **Premium Dashboard**: Redesigned the top section to match high-fidelity specifications, featuring a side-by-side branding and announcement layout.
+- **Logo Integration**: Fixed asset background issues, ensuring the Resido logo blends seamlessly with the app's clean aesthetic.
+
+### 📝 Advanced Notes System
+- **Hierarchical Structure**: Refactored notes into a **Folder > Page** organization.
+- **Social Sharing**: Implemented sharing for both folders and pages, targeting **Communities**, **Groups**, or specific **Contacts**.
+
+### 🖼️ Organized Community Gallery
+- **Folder Support**: Residents can now create and manage media folders for better organization.
+- **Video Support**: The gallery now supports uploading and previewing videos alongside photos.
+
+### 📰 Social Blog Features
+- **Media-Rich Posts**: Support for both Image and Video content in community blogs.
+- **User Tagging**: Mention community members using `@tags` with automated **Real-time Notifications** for tagged individuals.
+
+### 🔍 Utility & Reliability
+- **QR Scanner**: Fully restored high-performance QR code scanning.
+- **Auto-Sync DB**: All services are now hardened with startup logic that automatically synchronizes database schemas on remote servers.
 
 ---
 
