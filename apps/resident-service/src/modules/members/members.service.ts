@@ -1,34 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
 export class MembersService {
-    constructor(private tenantPrisma: TenantPrismaService) {}
+    constructor(private prisma: PrismaService) {}
 
-    async listMembers(dbName: string) {
-        // Use Read Replica for queries
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.member.findMany();
+    async listMembers() {
+        return this.prisma.reader.member.findMany();
     }
 
-    async createMember(dbName: string, data: any) {
-        // Use Writer (Master) for mutations
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        return prisma.member.create({ data });
+    async createMember(data: any) {
+        return this.prisma.client.member.create({ data });
     }
 
-    async updateProfilePhoto(dbName: string, id: string, profilePhoto: string) {
-        // Use Writer (Master) for mutations
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        return prisma.member.update({
+    async updateProfilePhoto(id: string, profilePhoto: string) {
+        return this.prisma.client.member.update({
             where: { id },
             data: { profilePhoto },
         });
     }
 
-    async updateStatus(dbName: string, id: string, isActive: boolean) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        return prisma.member.update({
+    async updateStatus(id: string, isActive: boolean) {
+        return this.prisma.client.member.update({
             where: { id },
             data: { isActive },
         });

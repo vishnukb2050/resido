@@ -1,74 +1,65 @@
 import { Injectable } from '@nestjs/common';
-import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
 export class CommunityService {
-    constructor(private tenantPrisma: TenantPrismaService) {}
+    constructor(private prisma: PrismaService) {}
 
     // ─── Notices ────────────────────────────────────────────────
-    async getNotices(dbName: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.notice.findMany({ orderBy: { createdAt: 'desc' } });
+    async getNotices() {
+        return this.prisma.reader.notice.findMany({ orderBy: { createdAt: 'desc' } });
     }
 
-    async createNotice(dbName: string, data: any) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        return prisma.notice.create({ data });
+    async createNotice(data: any) {
+        return this.prisma.client.notice.create({ data });
     }
 
     // ─── Polls ──────────────────────────────────────────────────
-    async getPolls(dbName: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.poll.findMany({
+    async getPolls() {
+        return this.prisma.reader.poll.findMany({
             include: { options: { include: { _count: { select: { votes: true } } } } },
             orderBy: { createdAt: 'desc' }
         });
     }
 
-    async votePoll(dbName: string, memberId: string, optionId: string) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        return prisma.pollVote.create({
+    async votePoll(memberId: string, optionId: string) {
+        return this.prisma.client.pollVote.create({
             data: { memberId, optionId }
         });
     }
 
     // ─── Complaints ─────────────────────────────────────────────
-    async getComplaints(dbName: string, memberId?: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.complaint.findMany({
+    async getComplaints(memberId?: string) {
+        return this.prisma.reader.complaint.findMany({
             where: memberId ? { memberId } : {},
             orderBy: { createdAt: 'desc' }
         });
     }
 
-    async createComplaint(dbName: string, memberId: string, data: any) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        return prisma.complaint.create({
+    async createComplaint(memberId: string, data: any) {
+        return this.prisma.client.complaint.create({
             data: { ...data, memberId }
         });
     }
 
     // ─── Visitors / Gatepass ────────────────────────────────────
-    async getVisitors(dbName: string, memberId?: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.visitor.findMany({
+    async getVisitors(memberId?: string) {
+        return this.prisma.reader.visitor.findMany({
             where: memberId ? { memberId } : {},
             orderBy: { createdAt: 'desc' }
         });
     }
 
-    async createGatepass(dbName: string, memberId: string, data: any) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
+    async createGatepass(memberId: string, data: any) {
         const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        return prisma.visitor.create({
+        return this.prisma.client.visitor.create({
             data: { ...data, memberId, passCode }
         });
     }
 
     // ─── Events / Calendar ──────────────────────────────────────
-    async getEvents(dbName: string, memberId: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.event.findMany({
+    async getEvents(memberId: string) {
+        return this.prisma.reader.event.findMany({
             where: {
                 OR: [
                     { visibility: 'COMMUNITY' },
@@ -80,10 +71,9 @@ export class CommunityService {
         });
     }
 
-    async createEvent(dbName: string, memberId: string, data: any) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        const { memberId: _, ...eventData } = data; // Remove memberId from data if present
-        return prisma.event.create({
+    async createEvent(memberId: string, data: any) {
+        const { memberId: _, ...eventData } = data;
+        return this.prisma.client.event.create({
             data: { 
                 ...eventData, 
                 createdBy: memberId 
@@ -92,16 +82,14 @@ export class CommunityService {
     }
 
     // ─── Members ────────────────────────────────────────────────
-    async getMembers(dbName: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.member.findMany({
+    async getMembers() {
+        return this.prisma.reader.member.findMany({
             select: { id: true, name: true, phone: true, role: true }
         });
     }
 
     // ─── Gallery ────────────────────────────────────────────────
-    async getGallery(dbName: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
-        return prisma.gallery.findMany({ orderBy: { createdAt: 'desc' } });
+    async getGallery() {
+        return this.prisma.reader.gallery.findMany({ orderBy: { createdAt: 'desc' } });
     }
 }

@@ -4,11 +4,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("TENANT_DATABASE_URL")
+  url      = env("CORE_WRITE_URL")
 }
 
 model Blog {
   id          String   @id @default(cuid())
+  tenantId    String   @index
   title       String
   content     String
   authorId    String   // Member ID

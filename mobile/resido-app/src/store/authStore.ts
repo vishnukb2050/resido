@@ -1,4 +1,19 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import * as SecureStore from 'expo-secure-store';
+
+// Custom storage wrapper for Expo SecureStore
+const secureStorage = {
+    getItem: async (name: string): Promise<string | null> => {
+        return await SecureStore.getItemAsync(name);
+    },
+    setItem: async (name: string, value: string): Promise<void> => {
+        await SecureStore.setItemAsync(name, value);
+    },
+    removeItem: async (name: string): Promise<void> => {
+        await SecureStore.deleteItemAsync(name);
+    },
+};
 
 export type UserRole =
     | 'APARTMENT_ADMIN'
@@ -27,6 +42,7 @@ interface AuthState {
     user: { id: string; name?: string; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string } | null;
     workspaces: Workspace[];
     activeWorkspace: Workspace | null;
+    isHydrated: boolean; // Track if store has loaded from storage
     setOtpVerified: (data: {
         token: string;
         refreshToken: string;
@@ -36,38 +52,52 @@ interface AuthState {
     updateUser: (user: any) => void;
     setActiveWorkspace: (ws: Workspace, token: string) => void;
     logout: () => void;
+    setHasHydrated: (state: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-    phone: null,
-    token: null,
-    refreshToken: null,
-    user: null,
-    workspaces: [],
-    activeWorkspace: null,
-
-    setOtpVerified: (data) =>
-        set({
-            token: data.token,
-            refreshToken: data.refreshToken,
-            user: data.user,
-            workspaces: data.workspaces,
-            // Auto-select first workspace if only one
-            activeWorkspace: data.workspaces.length === 1 ? data.workspaces[0] : null,
-        }),
-
-    updateUser: (user) => set({ user }),
-
-    setActiveWorkspace: (ws, token) =>
-        set({ activeWorkspace: ws, token }),
-
-    logout: () =>
-        set({
+export const useAuthStore = create<AuthState>()(
+    persist(
+        (set) => ({
             phone: null,
             token: null,
             refreshToken: null,
             user: null,
             workspaces: [],
             activeWorkspace: null,
+            isHydrated: false,
+
+            setOtpVerified: (data) =>
+                set({
+                    token: data.token,
+                    refreshToken: data.refreshToken,
+                    user: data.user,
+                    workspaces: data.workspaces,
+                    activeWorkspace: data.workspaces.length === 1 ? data.workspaces[0] : null,
+                }),
+
+            updateUser: (user) => set({ user }),
+
+            setActiveWorkspace: (ws, token) =>
+                set({ activeWorkspace: ws, token }),
+
+            logout: () =>
+                set({
+                    phone: null,
+                    token: null,
+                    refreshToken: null,
+                    user: null,
+                    workspaces: [],
+                    activeWorkspace: null,
+                }),
+            
+            setHasHydrated: (state) => set({ isHydrated: state }),
         }),
-}));
+        {
+            name: 'resido-auth-secure-storage',
+            storage: createJSONStorage(() => secureStorage),
+            onRehydrateStorage: (state) => {
+                return () => state?.setHasHydrated(true);
+            },
+        }
+    )
+);

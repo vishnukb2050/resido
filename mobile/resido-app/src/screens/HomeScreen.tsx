@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 
 // Dashboards
@@ -10,8 +10,16 @@ import ServiceStaffDashboard from '../components/dashboards/ServiceStaffDashboar
 import DefaultDashboard from '../components/dashboards/DefaultDashboard';
 
 export default function HomeScreen() {
-    const { activeWorkspace, user } = useAuthStore();
+    const { activeWorkspace, isHydrated } = useAuthStore();
     const role = activeWorkspace?.role;
+
+    if (!isHydrated) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#6366f1" />
+            </View>
+        );
+    }
 
     if (!activeWorkspace || !role) {
         return <DefaultDashboard />;

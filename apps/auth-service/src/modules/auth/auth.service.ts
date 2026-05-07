@@ -17,72 +17,60 @@ export class AuthService {
     ) { }
 
     async sendOtp(phone: string) {
-        // Find or create user
-        let user = await this.prisma.reader.user.findUnique({ where: { phone } });
+        let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
         if (!user) {
-            user = await this.prisma.user.create({ data: { phone } });
+            user = await this.prisma.userClient.user.create({ data: { phone } });
         }
 
-        // Generate real 4-digit OTP (matching DLT template)
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
-        // Store in Redis with 5 min expiry (key: otp:phone)
         await this.redis.set(`otp:${phone}`, otp, 'EX', 300);
-
         await this.otpService.sendOtp(phone, otp);
 
         return { message: 'OTP sent successfully', phone };
     }
 
     async verifyOtp(phone: string, otp: string) {
-        const user = await this.prisma.reader.user.findUnique({ where: { phone } });
+        const user = await this.prisma.userRead.user.findUnique({ where: { phone } });
         if (!user) throw new UnauthorizedException('User not found');
 
         const cachedOtp = await this.redis.get(`otp:${phone}`);
         if (!cachedOtp || cachedOtp !== otp) {
             throw new UnauthorizedException('Invalid or expired OTP');
         }
-
-        // Cleanup OTP after verification
         await this.redis.del(`otp:${phone}`);
 
-        const memberships = await this.prisma.reader.workspaceMembership.findMany({
+        const memberships = await this.prisma.userRead.workspaceMembership.findMany({
             where: { userId: user.id, isActive: true },
         });
 
-        // Fetch dbName for each tenant
         const workspaces = await Promise.all(memberships.map(async (m) => {
-            const client = await this.prisma.reader.client.findUnique({
+            const client = await this.prisma.masterRead.client.findUnique({
                 where: { id: m.tenantId },
                 select: { dbName: true }
             });
             return {
                 ...m,
-                dbName: client?.dbName || ''
+                dbName: client?.dbName || 'resido_core'
             };
         }));
 
         const tokens = await this.generateTokens(user.id, user.phone, null, null);
-
         return { ...tokens, workspaces, user: { id: user.id, phone: user.phone, name: user.name } };
     }
 
     async adminLogin(email: string, password: string) {
-        const staff = await this.prisma.reader.staffAccount.findUnique({
+        const staff = await this.prisma.masterRead.staffAccount.findUnique({
             where: { email },
             include: { client: true }
         });
         
         if (!staff || !staff.password) throw new UnauthorizedException('Invalid credentials');
-
         const valid = await bcrypt.compare(password, staff.password);
         if (!valid) throw new UnauthorizedException('Invalid credentials');
-
         if (!staff.isActive) throw new UnauthorizedException('Account is disabled');
 
         const tokens = await this.generateTokens(staff.id, null, staff.clientId, staff.role as string);
         
-        // Include dbName in response for convenience
         return { 
             ...tokens, 
             user: { 
@@ -90,30 +78,30 @@ export class AuthService {
                 email: staff.email, 
                 role: staff.role, 
                 clientId: staff.clientId,
-                dbName: staff.client?.dbName
+                dbName: staff.client?.dbName || 'resido_core'
             } 
         };
     }
 
     async getWorkspaces(userId: string) {
-        return this.prisma.reader.workspaceMembership.findMany({
+        return this.prisma.userRead.workspaceMembership.findMany({
             where: { userId, isActive: true },
         });
     }
 
     async switchWorkspace(userId: string, tenantId: string) {
-        const membership = await this.prisma.reader.workspaceMembership.findUnique({
+        const membership = await this.prisma.userRead.workspaceMembership.findUnique({
             where: { userId_tenantId: { userId, tenantId } },
         });
         if (!membership) throw new UnauthorizedException('Access denied to this workspace');
 
-        const client = await this.prisma.reader.client.findUnique({
+        const client = await this.prisma.masterRead.client.findUnique({
             where: { id: tenantId },
             select: { dbName: true }
         });
 
         const tokens = await this.generateTokens(userId, null, tenantId, membership.role as string);
-        return { ...tokens, workspace: { ...membership, dbName: client?.dbName || '' } };
+        return { ...tokens, workspace: { ...membership, dbName: client?.dbName || 'resido_core' } };
     }
 
     async refreshToken(refreshToken: string) {
@@ -129,10 +117,8 @@ export class AuthService {
     }
 
     async syncContacts(phones: string[]) {
-        // Normalize phones (keep only digits)
         const normalized = phones.map(p => p.replace(/\D/g, ''));
-        
-        const registered = await this.prisma.reader.user.findMany({
+        const registered = await this.prisma.userRead.user.findMany({
             where: {
                 phone: { in: normalized },
                 isActive: true
@@ -143,12 +129,11 @@ export class AuthService {
                 name: true
             }
         });
-
         return registered;
     }
 
     async getMe(userId: string) {
-        return this.prisma.reader.user.findUnique({
+        return this.prisma.userRead.user.findUnique({
             where: { id: userId },
             select: { id: true, phone: true, email: true, name: true, role: true },
         });

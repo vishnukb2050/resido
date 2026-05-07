@@ -13,7 +13,13 @@ export default function OtpLoginScreen() {
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const { setOtpVerified } = useAuthStore();
+    const { setOtpVerified, user } = useAuthStore();
+
+    React.useEffect(() => {
+        if (user) {
+            router.replace('/');
+        }
+    }, [user]);
 
     const handleSendOtp = async () => {
         if (!phone || phone.length < 10) {

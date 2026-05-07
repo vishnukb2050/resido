@@ -1,16 +1,17 @@
-// resident-service Prisma schema (per-tenant DB)
+// resident-service Prisma schema (Shared Core DB)
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("TENANT_DATABASE_URL")
+  url      = env("CORE_WRITE_URL")
 }
 
 // ─── Apartment / Building ─────────────────────────────────────────────────────
 model Apartment {
   id        String    @id @default(cuid())
+  tenantId  String    @index
   name      String
   address   String
   city      String
@@ -26,6 +27,7 @@ model Apartment {
 
 model Block {
   id          String    @id @default(cuid())
+  tenantId    String    @index
   name        String
   apartmentId String
   apartment   Apartment @relation(fields: [apartmentId], references: [id])
@@ -36,6 +38,7 @@ model Block {
 
 model Unit {
   id       String  @id @default(cuid())
+  tenantId String  @index
   number   String
   floor    Int
   blockId  String
@@ -48,6 +51,7 @@ model Unit {
 // ─── Department ───────────────────────────────────────────────────────────────
 model Department {
   id        String           @id @default(cuid())
+  tenantId  String           @index
   name      String
   type      DepartmentType
   createdAt DateTime         @default(now())
@@ -59,6 +63,7 @@ model Department {
 
 model DepartmentMember {
   id           String     @id @default(cuid())
+  tenantId     String     @index
   departmentId String
   memberId     String
   department   Department @relation(fields: [departmentId], references: [id])
@@ -72,6 +77,7 @@ model DepartmentMember {
 // ─── Family & Members ─────────────────────────────────────────────────────────
 model Family {
   id        String   @id @default(cuid())
+  tenantId  String   @index
   name      String
   unitId    String
   unit      Unit     @relation(fields: [unitId], references: [id])
@@ -83,8 +89,9 @@ model Family {
 
 model Member {
   id           String   @id @default(cuid())
+  tenantId     String   @index
   name         String
-  phone        String   @unique
+  phone        String   
   email        String?
   role         MemberRole @default(RESIDENT)
   profilePhoto String?  // S3 key
@@ -101,12 +108,14 @@ model Member {
   complaints            Complaint[]
   visitors              Visitor[]
 
+  @@unique([tenantId, phone])
   @@map("members")
 }
 
 // ─── Notice Board ─────────────────────────────────────────────────────────────
 model Notice {
   id              String   @id @default(cuid())
+  tenantId        String   @index
   title           String
   body            String
   postedBy        String   // member id
@@ -121,6 +130,7 @@ model Notice {
 // ─── Polls ───────────────────────────────────────────────────────────────────
 model Poll {
   id          String       @id @default(cuid())
+  tenantId    String       @index
   question    String
   createdBy   String
   expiresAt   DateTime?
@@ -133,17 +143,19 @@ model Poll {
 }
 
 model PollOption {
-  id     String     @id @default(cuid())
-  pollId String
-  text   String
-  poll   Poll       @relation(fields: [pollId], references: [id])
-  votes  PollVote[]
+  id       String     @id @default(cuid())
+  tenantId String     @index
+  pollId   String
+  text     String
+  poll     Poll       @relation(fields: [pollId], references: [id])
+  votes    PollVote[]
 
   @@map("poll_options")
 }
 
 model PollVote {
   id       String     @id @default(cuid())
+  tenantId String     @index
   optionId String
   memberId String
   option   PollOption @relation(fields: [optionId], references: [id])
@@ -157,6 +169,7 @@ model PollVote {
 // ─── Groups ───────────────────────────────────────────────────────────────────
 model Group {
   id        String        @id @default(cuid())
+  tenantId  String        @index
   name      String
   createdBy String
   createdAt DateTime      @default(now())
@@ -168,6 +181,7 @@ model Group {
 
 model GroupMember {
   id       String @id @default(cuid())
+  tenantId String @index
   groupId  String
   memberId String
   group    Group  @relation(fields: [groupId], references: [id])
@@ -180,6 +194,7 @@ model GroupMember {
 // ─── Notifications ────────────────────────────────────────────────────────────
 model Notification {
   id        String   @id @default(cuid())
+  tenantId  String   @index
   memberId  String
   type      NotificationType
   title     String
@@ -194,6 +209,7 @@ model Notification {
 // ─── Complaints ───────────────────────────────────────────────
 model Complaint {
   id          String         @id @default(cuid())
+  tenantId    String         @index
   title       String
   description String
   status      ComplaintStatus @default(OPEN)
@@ -212,36 +228,39 @@ model Complaint {
 // ─── Visitors / Gatepass ──────────────────────────────────────
 model Visitor {
   id            String       @id @default(cuid())
+  tenantId      String       @index
   name          String
   phone         String
   purpose       String?
   entryTime     DateTime?
   exitTime      DateTime?
-  passCode      String       @unique
+  passCode      String       
   status        VisitorStatus @default(PENDING)
   memberId      String       // The resident being visited
   member        Member       @relation(fields: [memberId], references: [id])
   vehicleNumber String?
   createdAt     DateTime     @default(now())
 
+  @@unique([tenantId, passCode])
   @@map("visitors")
 }
 
 // ─── Events / Calendar ────────────────────────────────────────
 model Event {
-  id          String         @id @default(cuid())
-  title       String
-  description String?
-  location    String?
-  startDate   DateTime
-  endDate     DateTime
-  visibility  EventVisibility @default(COMMUNITY)
+  id            String         @id @default(cuid())
+  tenantId      String         @index
+  title         String
+  description   String?
+  location      String?
+  startDate     DateTime
+  endDate       DateTime
+  visibility    EventVisibility @default(COMMUNITY)
   sharedWithIds String[]     // IDs of members/groups if not COMMUNITY/PRIVATE
-  hasAlert    Boolean        @default(false)
-  alertTime   DateTime?
-  createdBy   String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  hasAlert      Boolean        @default(false)
+  alertTime     DateTime?
+  createdBy     String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@map("events")
 }
@@ -256,6 +275,7 @@ enum EventVisibility {
 // ─── Gallery ──────────────────────────────────────────────────
 model Gallery {
   id          String   @id @default(cuid())
+  tenantId    String   @index
   title       String
   description String?
   mediaUrls   String[]
@@ -288,6 +308,7 @@ enum DepartmentType {
   ACCOUNTS
   MAINTENANCE
   MANAGEMENT
+  NOT_APPLICABLE
 }
 
 enum NotificationType {

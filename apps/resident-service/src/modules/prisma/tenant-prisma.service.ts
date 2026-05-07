@@ -1,53 +1,69 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { AsyncLocalStorage } from 'async_hooks';
 
 @Injectable()
-export class TenantPrismaService implements OnModuleDestroy {
-    private writeClients: Map<string, PrismaClient> = new Map();
-    private readClients: Map<string, PrismaClient> = new Map();
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+    public client: PrismaClient;
+    public reader: PrismaClient;
+    public static als = new AsyncLocalStorage<{ tenantId: string }>();
 
-    constructor(private config: ConfigService) {}
-
-    /**
-     * Returns a Prisma client connected to the Writer endpoint (Master)
-     */
-    getWriteClient(dbName: string): PrismaClient {
-        return this.getClient(dbName, 'DB_WRITE_ENDPOINT', this.writeClients);
-    }
-
-    /**
-     * Returns a Prisma client connected to the Reader endpoint (Replica)
-     */
-    getReadClient(dbName: string): PrismaClient {
-        return this.getClient(dbName, 'DB_READ_ENDPOINT', this.readClients);
-    }
-
-    private getClient(dbName: string, configKey: string, cache: Map<string, PrismaClient>): PrismaClient {
-        if (cache.has(dbName)) {
-            return cache.get(dbName)!;
-        }
-
-        const baseUrl = this.config.get(configKey);
-        const url = new URL(baseUrl);
-        url.pathname = `/${dbName}`;
-        
-        const client = new PrismaClient({
-            datasources: {
-                db: {
-                    url: url.toString(),
-                },
-            },
+    constructor(private config: ConfigService) {
+        this.client = new PrismaClient({
+            datasources: { db: { url: config.get('CORE_WRITE_URL') } },
         });
 
-        cache.set(dbName, client);
-        return client;
+        this.reader = new PrismaClient({
+            datasources: { db: { url: config.get('CORE_READ_URL') } },
+        });
+
+        // Apply Tenant Isolation Extension
+        this.client = this.applyTenantIsolation(this.client);
+        this.reader = this.applyTenantIsolation(this.reader);
+    }
+
+    async onModuleInit() {
+        await Promise.all([this.client.$connect(), this.reader.$connect()]);
     }
 
     async onModuleDestroy() {
-        const allClients = [...this.writeClients.values(), ...this.readClients.values()];
-        for (const client of allClients) {
-            await client.$disconnect();
-        }
+        await Promise.all([this.client.$disconnect(), this.reader.$disconnect()]);
     }
+
+    private applyTenantIsolation(client: any) {
+        return client.$extends({
+            query: {
+                $allModels: {
+                    async $allOperations({ model, operation, args, query }: any) {
+                        const store = PrismaService.als.getStore();
+                        const tenantId = store?.tenantId;
+
+                        if (tenantId) {
+                            // Inject tenantId into queries
+                            if (['findMany', 'findFirst', 'count', 'aggregate', 'groupBy'].includes(operation)) {
+                                args.where = { ...args.where, tenantId };
+                            } else if (['findUnique', 'update', 'delete', 'upsert'].includes(operation)) {
+                                // For unique operations, we must include tenantId to ensure isolation
+                                if (args.where) {
+                                    args.where = { ...args.where, tenantId };
+                                }
+                            } else if (operation === 'create') {
+                                args.data = { ...args.data, tenantId };
+                            } else if (operation === 'createMany') {
+                                if (Array.isArray(args.data)) {
+                                    args.data = args.data.map((item: any) => ({ ...item, tenantId }));
+                                }
+                            }
+                        }
+                        return query(args);
+                    },
+                },
+            },
+        });
+    }
+
+    // Backward compatibility helpers (refactor callers later)
+    getWriteClient(_dbName?: string) { return this.client; }
+    getReadClient(_dbName?: string) { return this.reader; }
 }

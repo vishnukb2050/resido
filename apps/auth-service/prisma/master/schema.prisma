@@ -1,0 +1,64 @@
+// apps/auth-service/prisma/master/schema.prisma
+// Master database for system-level configuration and community registry
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/client/master"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MASTER_WRITE_URL")
+}
+
+model Client {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  dbName          String    @unique
+  s3Prefix        String    @unique
+  adminEmail      String    @unique
+  adminPhone      String    @unique
+  caretakerEmail  String?   @unique
+  subAdminEmail   String?   @unique
+  plan            Plan      @default(BASIC)
+  isActive        Boolean   @default(true)
+  provisionedAt   DateTime?
+  createdByMobile Boolean   @default(false)
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  staffAccounts StaffAccount[]
+
+  @@map("clients")
+}
+
+model StaffAccount {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  password      String?
+  clientId      String
+  role          StaffRole
+  isActive      Boolean    @default(true)
+  inviteToken   String?    @unique
+  inviteExpiry  DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@map("staff_accounts")
+}
+
+enum StaffRole {
+  APARTMENT_ADMIN
+  ADMIN_STAFF
+  CARETAKER
+}
+
+enum Plan {
+  BASIC
+  STANDARD
+  PREMIUM
+}

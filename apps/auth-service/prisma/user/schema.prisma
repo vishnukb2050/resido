@@ -1,0 +1,95 @@
+// apps/auth-service/prisma/user/schema.prisma
+// User database for global identities and mobile app users
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/client/user"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("USER_WRITE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  email       String?  @unique
+  name        String?
+  age         Int?
+  description String?
+  profilePhoto String?
+  role        Role     @default(RESIDENT)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaceMemberships WorkspaceMembership[]
+  otpLogs              OtpLog[]
+  jobProfile           JobProfile?
+
+  @@map("users")
+}
+
+model JobProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  category    String
+  description String
+  pincode     String
+  city        String
+  district    String
+  state       String
+  expertise   String
+  images      String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("job_profiles")
+}
+
+model WorkspaceMembership {
+  id         String   @id @default(cuid())
+  userId     String
+  tenantId   String
+  tenantName String
+  role       Role
+  memberId   String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, tenantId])
+  @@map("workspace_memberships")
+}
+
+model OtpLog {
+  id        String   @id @default(cuid())
+  userId    String
+  otp       String
+  phone     String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("otp_logs")
+}
+
+enum Role {
+  SUPER_ADMIN
+  APARTMENT_ADMIN
+  RESIDENT
+  CLEANING_STAFF
+  CARETAKER
+  SECURITY_STAFF
+  ACCOUNTS_STAFF
+  MAINTENANCE_STAFF
+  ADMIN_STAFF
+  STAFF
+  SERVICE_STAFF
+}

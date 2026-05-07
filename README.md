@@ -2,16 +2,20 @@
 
 Resido is a comprehensive multi-tenant SaaS platform designed for apartment complexes, gated communities, and property managers. It streamlines community engagement, facility management, accounting, and professional service discovery into a unified ecosystem.
 
-## 🏗 Architecture Overview
+## 🏗 Architecture Overview (Consolidated 3-DB Model)
 
-Resido follows a **Microservices Architecture** built with high scalability and data isolation in mind.
+Resido uses a **Consolidated Multi-Tenant Architecture** to optimize performance, cost, and maintainability.
+
+### 🗄 Database Strategy:
+1.  **Master DB (`resido_master`)**: Manages the platform registry, community billing plans, and staff account management.
+2.  **User DB (`resido_users`)**: Manages global user identity, OTP logs, and cross-community membership roles.
+3.  **Core DB (`resido_core`)**: Stores all operational community data (Complaints, Residents, Blogs, etc.) in a shared schema with strict **Tenant Isolation**.
 
 ### Key Architectural Pillars:
-- **Multi-Tenancy**: Dynamic database provisioning per community (tenant) ensures strict data isolation.
-- **Service-Oriented**: Backend divided into 8+ specialized microservices.
-- **API Gateway**: Single entry point for all frontend/mobile traffic, handling authentication and routing.
-- **Real-time Engine**: WebSocket-based communication for instant notifications and chat.
-- **Hybrid Cloud Infra**: Optimized for AWS deployment (RDS, ElastiCache, S3, EC2).
+- **Shared Tenancy**: Logical data isolation using `tenantId` ensures security while allowing massive scale on a single RDS instance.
+- **Automated Isolation**: Backend middleware automatically injects `tenantId` into every database query, preventing data leakage.
+- **Read/Write Splitting**: Every database client supports dedicated Write and Read (Replica) endpoints for horizontal scaling.
+- **Auto-Migration**: Containers automatically synchronize database schemas on startup, ensuring zero-effort deployments.
 
 ---
 
@@ -68,7 +72,7 @@ resido/
 - Docker & Docker Compose
 - PostgreSQL (Local or AWS RDS)
 
-### Installation
+### Installation & Deployment
 
 1. **Clone the repository**:
    ```bash
@@ -77,35 +81,28 @@ resido/
    ```
 
 2. **Configure Environment**:
-   Copy `.env.example` to `.env` and fill in your AWS credentials, Database URLs, and API keys.
+   Update `.env` with your `RDS_WRITE_URL` and `RDS_READ_URL`. The services will automatically derive the Master, User, and Core connection strings.
 
-3. **Deploy Infrastructure**:
+3. **Launch Platform**:
    ```bash
    cd infra
    docker compose up -d --build
    ```
-
-4. **Initialize Database**:
-   ```bash
-   cd ../apps/auth-service
-   npx prisma db push
-   ```
+   *The containers will automatically initialize the 3 databases on your RDS instance during the first startup.*
 
 ---
 
 ## 📦 Services & Ports
 
-| Service | Port | Description |
+| Service | Port | Database Target |
 | :--- | :--- | :--- |
-| **API Gateway** | 3000 | Main entry point |
-| **Auth Service** | 3001 | Auth, Tenancy, Profiles |
-| **Resident Service** | 3002 | Community Data |
-| **Accounting** | 3003 | Finance |
-| **Chat** | 3004 | WebSockets |
-| **Notification** | 3005 | Push/Email |
-| **Visitor** | 3006 | Gatepass |
-| **Complaint** | 3007 | Support Tickets |
-| **Admin Panel** | 5173 | Web UI (Vite) |
+| **API Gateway** | 3000 | - |
+| **Auth Service** | 3001 | Master & User DBs |
+| **Resident Service** | 3002 | Core DB (Shared) |
+| **Accounting** | 3003 | Core DB (Shared) |
+| **Chat** | 3004 | Core DB (Shared) |
+| **Visitor** | 3006 | Core DB (Shared) |
+| **Blog Service** | 3008 | Core DB (Shared) |
 
 ---
 

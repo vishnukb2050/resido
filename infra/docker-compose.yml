@@ -24,6 +24,10 @@ services:
     env_file: ../.env
     environment:
       - PORT=3001
+    command: >
+      sh -c "npx prisma db push --schema=prisma/master/schema.prisma --accept-data-loss && 
+             npx prisma db push --schema=prisma/user/schema.prisma --accept-data-loss && 
+             node dist/main"
     networks:
       - resido-net
     restart: unless-stopped
@@ -36,6 +40,7 @@ services:
     env_file: ../.env
     environment:
       - PORT=3002
+    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped
@@ -60,6 +65,7 @@ services:
     env_file: ../.env
     environment:
       - PORT=3004
+    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
     ports:
       - '3004:3004'
     networks:
@@ -86,6 +92,7 @@ services:
     env_file: ../.env
     environment:
       - PORT=3006
+    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped
@@ -98,6 +105,7 @@ services:
     env_file: ../.env
     environment:
       - PORT=3007
+    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped
@@ -110,6 +118,7 @@ services:
     env_file: ../.env
     environment:
       - PORT=3008
+    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped

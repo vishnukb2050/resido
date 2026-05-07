@@ -6,12 +6,25 @@ const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
 
 export const api = axios.create({ baseURL: API_URL });
 
-// Inject auth token from secure store on every request
+// Inject auth token and tenantId from secure store on every request
 api.interceptors.request.use(async (config) => {
-    const token = await SecureStore.getItemAsync('resido_token');
-    const tenantId = await SecureStore.getItemAsync('resido_tenant_id');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    if (tenantId) config.headers['x-tenant-id'] = tenantId;
+    try {
+        const authDataRaw = await SecureStore.getItemAsync('resido-auth-secure-storage');
+        if (authDataRaw) {
+            const authData = JSON.parse(authDataRaw);
+            const state = authData.state;
+            
+            if (state.token) {
+                config.headers.Authorization = `Bearer ${state.token}`;
+            }
+            
+            if (state.activeWorkspace?.tenantId) {
+                config.headers['x-tenant-id'] = state.activeWorkspace.tenantId;
+            }
+        }
+    } catch (error) {
+        console.error('Error reading auth state for interceptor:', error);
+    }
     return config;
 });
 

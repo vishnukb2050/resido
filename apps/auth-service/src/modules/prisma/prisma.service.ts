@@ -1,32 +1,46 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { PrismaClient as MasterClient } from '@prisma/client/master';
+import { PrismaClient as UserClient } from '@prisma/client/user';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-    public reader: PrismaClient;
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+    public masterClient: MasterClient;
+    public masterRead: MasterClient;
+    public userClient: UserClient;
+    public userRead: UserClient;
 
     constructor(config: ConfigService) {
-        super({
-            datasources: {
-                db: { url: config.get('DB_WRITE_ENDPOINT') },
-            },
+        this.masterClient = new MasterClient({
+            datasources: { db: { url: config.get('MASTER_WRITE_URL') } },
+        });
+        this.masterRead = new MasterClient({
+            datasources: { db: { url: config.get('MASTER_READ_URL') } },
         });
 
-        this.reader = new PrismaClient({
-            datasources: {
-                db: { url: config.get('DB_READ_ENDPOINT') },
-            },
+        this.userClient = new UserClient({
+            datasources: { db: { url: config.get('USER_WRITE_URL') } },
+        });
+        this.userRead = new UserClient({
+            datasources: { db: { url: config.get('USER_READ_URL') } },
         });
     }
 
     async onModuleInit() {
-        await this.$connect();
-        await this.reader.$connect();
+        await Promise.all([
+            this.masterClient.$connect(),
+            this.masterRead.$connect(),
+            this.userClient.$connect(),
+            this.userRead.$connect(),
+        ]);
     }
 
     async onModuleDestroy() {
-        await this.$disconnect();
-        await this.reader.$disconnect();
+        await Promise.all([
+            this.masterClient.$disconnect(),
+            this.masterRead.$disconnect(),
+            this.userClient.$disconnect(),
+            this.userRead.$disconnect(),
+        ]);
     }
 }
