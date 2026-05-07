@@ -20,13 +20,9 @@ services:
       context: ../apps/auth-service
       dockerfile: Dockerfile
     container_name: resido-auth
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3001
-      - MASTER_WRITE_URL=${MASTER_WRITE_URL}
-      - MASTER_READ_URL=${MASTER_READ_URL}
-      - USER_WRITE_URL=${USER_WRITE_URL}
-      - USER_READ_URL=${USER_READ_URL}
     command: >
       sh -c "echo 'Checking DB...' && 
              npx prisma db push --schema=prisma/master/schema.prisma --accept-data-loss && 
@@ -41,11 +37,9 @@ services:
       context: ../apps/resident-service
       dockerfile: Dockerfile
     container_name: resido-resident
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3002
-      - CORE_WRITE_URL=${CORE_WRITE_URL}
-      - CORE_READ_URL=${CORE_READ_URL}
     command: sh -c "echo 'Syncing DB...' && npx prisma db push --accept-data-loss && node dist/main"
     networks:
       - resido-net
@@ -56,7 +50,7 @@ services:
       context: ../apps/accounting-service
       dockerfile: Dockerfile
     container_name: resido-accounting
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3003
     networks:
@@ -68,7 +62,7 @@ services:
       context: ../apps/chat-service
       dockerfile: Dockerfile
     container_name: resido-chat
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3004
     command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
@@ -83,7 +77,7 @@ services:
       context: ../apps/notification-service
       dockerfile: Dockerfile
     container_name: resido-notification
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3005
     networks:
@@ -95,7 +89,7 @@ services:
       context: ../apps/visitor-service
       dockerfile: Dockerfile
     container_name: resido-visitor
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3006
     command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
@@ -108,7 +102,7 @@ services:
       context: ../apps/complaint-service
       dockerfile: Dockerfile
     container_name: resido-complaint
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3007
     command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
@@ -121,11 +115,9 @@ services:
       context: ../apps/blog-service
       dockerfile: Dockerfile
     container_name: resido-blog
-    env_file: ../.env
+    env_file: .env
     environment:
       - PORT=3008
-      - CORE_WRITE_URL=${CORE_WRITE_URL}
-      - CORE_READ_URL=${CORE_READ_URL}
     command: sh -c "echo 'Syncing DB...' && npx prisma db push --accept-data-loss && node dist/main"
     networks:
       - resido-net
