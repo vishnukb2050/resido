@@ -115,7 +115,8 @@ resido/
 - **User Tagging**: Mention community members using `@tags` with automated **Real-time Notifications** for tagged individuals.
 
 ### 🔍 Utility & Reliability
-- **QR Scanner**: Fully restored high-performance QR code scanning.
+- **QR Scanner**: Fully restored high-performance QR code scanning with a modern CameraView and a brand new **Scan History** feature to save and revisit scanned data.
+- **Backend Routing**: Hardened the API Gateway proxy logic to ensure complete multi-tenant context propagation (`x-tenant-id`), resolving folder creation errors in the Gallery and Notes modules.
 - **Auto-Sync DB**: All services are now hardened with startup logic that automatically synchronizes database schemas on remote servers.
 
 ---
