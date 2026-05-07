@@ -30,6 +30,8 @@ export class ProxyController {
             targetUrl = `http://auth-service:3001${path}`;
         } else if (path.startsWith('/members') || path.startsWith('/apartments') || path.startsWith('/community')) {
             targetUrl = `http://resident-service:3002${path}`;
+        } else if (path.startsWith('/blogs')) {
+            targetUrl = `http://blog-service:3008${path}`;
         } else {
             return res.status(404).json({ message: 'Service not found' });
         }

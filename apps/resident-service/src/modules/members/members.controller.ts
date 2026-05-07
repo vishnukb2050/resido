@@ -21,4 +21,9 @@ export class MembersController {
     updateProfilePhoto(@Req() req: any, @Param('id') id: string, @Body() body: { profilePhoto: string }) {
         return this.membersService.updateProfilePhoto(req.tenantDbName, id, body.profilePhoto);
     }
+
+    @Patch(':id/status')
+    updateStatus(@Req() req: any, @Param('id') id: string, @Body() body: { isActive: boolean }) {
+        return this.membersService.updateStatus(req.tenantDbName, id, body.isActive);
+    }
 }

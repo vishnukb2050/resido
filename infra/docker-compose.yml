@@ -102,6 +102,18 @@ services:
       - resido-net
     restart: unless-stopped
 
+  blog-service:
+    build:
+      context: ../apps/blog-service
+      dockerfile: Dockerfile
+    container_name: resido-blog
+    env_file: ../.env
+    environment:
+      - PORT=3008
+    networks:
+      - resido-net
+    restart: unless-stopped
+
   # ─── Nginx Reverse Proxy ───────────────────────────────────────
   nginx:
     image: nginx:alpine

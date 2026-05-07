@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { StorageService } from './storage.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -9,9 +9,13 @@ export class StorageController {
     @UseGuards(JwtAuthGuard)
     @Post('presigned-url')
     async getPresignedUrl(
+        @Req() req: any,
         @Body('fileName') fileName: string,
         @Body('contentType') contentType: string,
+        @Body('resourceType') resourceType: string,
     ) {
-        return this.storageService.getPresignedUrl(fileName, contentType);
+        const userId = req.user.sub;
+        const tenantId = req.user.dbName || 'global';
+        return this.storageService.getPresignedUrl(fileName, contentType, tenantId, userId, resourceType);
     }
 }

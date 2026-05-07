@@ -82,8 +82,12 @@ export class CommunityService {
 
     async createEvent(dbName: string, memberId: string, data: any) {
         const prisma = this.tenantPrisma.getWriteClient(dbName);
+        const { memberId: _, ...eventData } = data; // Remove memberId from data if present
         return prisma.event.create({
-            data: { ...data, createdBy: memberId }
+            data: { 
+                ...eventData, 
+                createdBy: memberId 
+            }
         });
     }
 

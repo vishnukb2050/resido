@@ -19,8 +19,10 @@ export class StorageService {
         this.bucketName = this.configService.get('AWS_S3_BUCKET_NAME');
     }
 
-    async getPresignedUrl(fileName: string, contentType: string) {
-        const key = `uploads/${Date.now()}_${fileName}`;
+    async getPresignedUrl(fileName: string, contentType: string, tenantId: string, userId: string, resourceType: string = 'uploads') {
+        // Structured Key: resido/<tenant-id>/<resource-type>/<user-id>/<timestamp>-<filename>
+        const key = `resido/${tenantId}/${resourceType}/${userId}/${Date.now()}_${fileName}`;
+        
         const command = new PutObjectCommand({
             Bucket: this.bucketName,
             Key: key,
@@ -29,7 +31,7 @@ export class StorageService {
 
         const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
         
-        // Final public URL (assuming bucket is public-read or using a CDN)
+        // Final public URL
         const fileUrl = `https://${this.bucketName}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`;
 
         return { uploadUrl, fileUrl, key };

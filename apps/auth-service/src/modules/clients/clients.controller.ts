@@ -8,12 +8,13 @@ import { Public } from '../../common/decorators/public.decorator';
 export class ClientsController {
     constructor(private clientsService: ClientsService) {}
 
-    // SuperAdmin or authenticated mobile user creates a community
+    // SuperAdmin, authenticated mobile user, or public landing page creates a community
+    @Public()
     @Post()
     createClient(@Body() dto: CreateClientDto, @Req() req: any) {
-        // If request comes from mobile app (RESIDENT role), attach their userId
-        if (req.user?.role === 'RESIDENT' || req.user?.role === 'APARTMENT_ADMIN') {
-            dto.createdByMobile = true;
+        // If request comes from an authenticated user (e.g. mobile app)
+        if (req.user) {
+            dto.createdByMobile = req.user.role === 'RESIDENT' || req.user.role === 'APARTMENT_ADMIN';
             dto.createdByUserId = req.user.sub;
         }
         return this.clientsService.createClient(dto);

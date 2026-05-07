@@ -25,4 +25,12 @@ export class MembersService {
             data: { profilePhoto },
         });
     }
+
+    async updateStatus(dbName: string, id: string, isActive: boolean) {
+        const prisma = this.tenantPrisma.getWriteClient(dbName);
+        return prisma.member.update({
+            where: { id },
+            data: { isActive },
+        });
+    }
 }
