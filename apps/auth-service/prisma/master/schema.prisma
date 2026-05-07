@@ -2,7 +2,7 @@
 // Master database for system-level configuration and community registry
 generator client {
   provider = "prisma-client-js"
-  output   = "../../node_modules/@prisma/client/master"
+  output   = "../../node_modules/@resido/master-client"
 }
 
 datasource db {

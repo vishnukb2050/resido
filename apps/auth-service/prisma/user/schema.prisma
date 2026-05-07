@@ -2,7 +2,7 @@
 // User database for global identities and mobile app users
 generator client {
   provider = "prisma-client-js"
-  output   = "../../node_modules/@prisma/client/user"
+  output   = "../../node_modules/@resido/user-client"
 }
 
 datasource db {
