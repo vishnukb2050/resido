@@ -19,6 +19,8 @@ model User {
   description String?
   profilePhoto String?
   role        Role     @default(RESIDENT)
+  profileName String?  @unique
+  phoneVisibility VisibilityType @default(COMMUNITY)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -28,8 +30,17 @@ model User {
   noteFolders          NoteFolder[]
   savedScans           SavedScan[]
   jobProfile           JobProfile?
+  followers            Follow[] @relation("following")
+  following            Follow[] @relation("follower")
 
   @@map("users")
+}
+
+enum VisibilityType {
+  COMMUNITY
+  GROUPS
+  CONTACTS
+  PRIVATE
 }
 
 model JobProfile {
@@ -136,6 +147,19 @@ model SavedScan {
   user User @relation(fields: [userId], references: [id])
 
   @@map("saved_scans")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("follower", fields: [followerId], references: [id])
+  following   User     @relation("following", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+  @@map("follows")
 }
 
 enum ShareTarget {

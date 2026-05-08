@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import BottomNav from '../components/BottomNav';
 
 export default function BlogScreen() {
     const [blogs, setBlogs] = useState<any[]>([]);
@@ -19,14 +20,12 @@ export default function BlogScreen() {
         try {
             const { data } = await api.get('/blogs');
             setBlogs(data);
-        } catch (error) {
-            console.error('Failed to fetch blogs', error);
+        } catch (e) {
+            console.error('Failed to fetch blogs', e);
         } finally {
             setLoading(false);
         }
     };
-
-    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#6366f1" /></View>;
 
     return (
         <View style={styles.container}>
@@ -34,59 +33,54 @@ export default function BlogScreen() {
                 <TouchableOpacity onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text style={styles.title}>Community Blog</Text>
-                <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/create-blog')}>
-                    <Ionicons name="add" size={24} color="#fff" />
+                <Text style={styles.headerTitle}>Threads</Text>
+                <TouchableOpacity>
+                    <Ionicons name="notifications-outline" size={24} color="#1e293b" />
                 </TouchableOpacity>
             </View>
 
-            <FlatList
-                data={blogs}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.list}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.blogCard} onPress={() => {}}>
-                        {item.mediaUrls?.[0] && (
-                            <Image source={{ uri: item.mediaUrls[0] }} style={styles.blogImage} />
-                        )}
-                        <View style={styles.blogInfo}>
-                            <Text style={styles.blogCategory}>{item.category || 'General'}</Text>
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <ActivityIndicator size="large" color="#6366f1" />
+                </View>
+            ) : (
+                <FlatList
+                    data={blogs}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity 
+                            style={styles.blogCard}
+                            onPress={() => router.push(`/blog/${item.id}`)}
+                        >
                             <Text style={styles.blogTitle}>{item.title}</Text>
-                            <Text style={styles.blogSnippet} numberOfLines={2}>{item.content}</Text>
-                            <View style={styles.blogMeta}>
-                                <Text style={styles.blogDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-                                <TouchableOpacity style={styles.readMore}>
-                                    <Text style={styles.readMoreText}>Read more</Text>
-                                    <Ionicons name="chevron-forward" size={12} color="#6366f1" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                )}
-                ListEmptyComponent={<Text style={styles.empty}>No blog posts yet. Be the first to post!</Text>}
-                onRefresh={fetchBlogs}
-                refreshing={loading}
-            />
+                            <Text style={styles.blogSnippet} numberOfLines={3}>
+                                {item.content}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                />
+            )}
+
+            <TouchableOpacity 
+                style={styles.fab}
+                onPress={() => router.push('/create-blog')}
+            >
+                <Ionicons name="add" size={32} color="#fff" />
+            </TouchableOpacity>
+
+            <BottomNav activeTab="Thread" />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#fff' },
-    title: { fontSize: 20, fontWeight: '800', color: '#1e293b' },
-    addBtn: { backgroundColor: '#6366f1', width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    list: { padding: 16 },
-    blogCard: { backgroundColor: '#fff', borderRadius: 20, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
-    blogImage: { width: '100%', height: 180, backgroundColor: '#f1f5f9' },
-    blogInfo: { padding: 16 },
-    blogCategory: { fontSize: 10, fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 1 },
+    container: { flex: 1, backgroundColor: '#fcfcfd' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+    listContent: { padding: 16, paddingBottom: 110 },
+    blogCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f1f5f9' },
     blogTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b', marginBottom: 8 },
-    blogSnippet: { fontSize: 14, color: '#64748b', lineHeight: 20, marginBottom: 15 },
-    blogMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f8fafc', paddingTop: 12 },
-    blogDate: { fontSize: 12, color: '#94a3b8' },
-    readMore: { flexDirection: 'row', alignItems: 'center' },
-    readMoreText: { fontSize: 13, fontWeight: '700', color: '#6366f1', marginRight: 4 },
-    empty: { textAlign: 'center', color: '#94a3b8', marginTop: 100 },
+    blogSnippet: { fontSize: 14, color: '#64748b', lineHeight: 20 },
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 64, height: 64, borderRadius: 32, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 10 },
 });

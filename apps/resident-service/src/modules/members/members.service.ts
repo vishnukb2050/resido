@@ -6,7 +6,11 @@ export class MembersService {
     constructor(private prisma: PrismaService) {}
 
     async listMembers() {
-        return this.prisma.reader.member.findMany();
+        const members = await this.prisma.reader.member.findMany();
+        return members.map(m => ({
+            ...m,
+            phone: m.phoneVisibility === 'PRIVATE' ? '*******' : m.phone
+        }));
     }
 
     async createMember(data: any) {

@@ -1,6 +1,7 @@
 // resident-service Prisma schema (Shared Core DB)
 generator client {
   provider = "prisma-client-js"
+  output   = "../../../node_modules/@resido/core-client"
 }
 
 datasource db {
@@ -96,12 +97,19 @@ model Family {
 model Member {
   id           String   @id @default(cuid())
   tenantId     String
+  userId       String?  // Global user ID from auth-service
   name         String
   phone        String   
   email        String?
   role         MemberRole @default(RESIDENT)
   profilePhoto String?  // S3 key
+  profileName  String?
+  phoneVisibility String @default("COMMUNITY")
   isActive     Boolean  @default(true)
+  occupancyType OccupancyType @default(RESIDENT)
+  address       String?
+  tenantName    String?
+  tenantPhone   String?
   familyId     String?
   family       Family?  @relation(fields: [familyId], references: [id])
   createdAt    DateTime @default(now())
@@ -382,4 +390,9 @@ enum VisitorStatus {
   REJECTED
   ENTERED
   EXITED
+}
+
+enum OccupancyType {
+  RESIDENT
+  RENTAL
 }

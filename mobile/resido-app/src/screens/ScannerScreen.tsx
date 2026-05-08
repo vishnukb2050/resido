@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { api } from '../services/api';
+import BottomNav from '../components/BottomNav';
 
 export default function ScannerScreen() {
     const [permission, requestPermission] = useCameraPermissions();
@@ -142,28 +143,29 @@ export default function ScannerScreen() {
                     )}
                 </View>
             )}
+            <BottomNav />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc', padding: 40 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#fff' },
-    headerTitle: { color: '#1e293b', fontSize: 18, fontWeight: '800' },
-    errorText: { marginTop: 20, textAlign: 'center', color: '#64748b', fontSize: 16, marginBottom: 20 },
-    primaryBtn: { backgroundColor: '#6366f1', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, marginBottom: 10 },
+    container: { flex: 1, backgroundColor: '#fcfcfd' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fcfcfd', padding: 40 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    headerTitle: { color: '#1e293b', fontSize: 18, fontWeight: '900' },
+    errorText: { marginTop: 20, textAlign: 'center', color: '#64748b', fontSize: 16, marginBottom: 20, fontWeight: '500' },
+    primaryBtn: { backgroundColor: '#6366f1', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, marginBottom: 10, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     primaryBtnText: { color: '#fff', fontWeight: '800' },
-    backBtn: { backgroundColor: '#e2e8f0', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12 },
+    backBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12 },
     backBtnText: { color: '#475569', fontWeight: '800' },
 
     tabContainer: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
     activeTab: { borderBottomColor: '#6366f1' },
-    tabText: { fontSize: 14, fontWeight: '600', color: '#94a3b8' },
+    tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
     activeTabText: { color: '#6366f1' },
 
-    cameraContainer: { flex: 1, position: 'relative' },
+    cameraContainer: { flex: 1, position: 'relative', marginBottom: 85 },
     overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
     unfocusedContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
     middleContainer: { flexDirection: 'row', height: 250 },
@@ -175,10 +177,10 @@ const styles = StyleSheet.create({
     cornerBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 40, height: 40, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: '#6366f1' },
     cornerBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 40, height: 40, borderBottomWidth: 4, borderRightWidth: 4, borderColor: '#6366f1' },
 
-    historyContainer: { flex: 1 },
-    historyCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
+    historyContainer: { flex: 1, marginBottom: 85 },
+    historyCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
     historyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    historyDate: { fontSize: 12, color: '#64748b', fontWeight: '500', marginLeft: 8 },
-    historyData: { fontSize: 15, color: '#1e293b', fontWeight: '600' },
-    emptyText: { textAlign: 'center', marginTop: 40, color: '#94a3b8', fontSize: 14, fontWeight: '500' }
+    historyDate: { fontSize: 12, color: '#64748b', fontWeight: '700', marginLeft: 8 },
+    historyData: { fontSize: 15, color: '#1e293b', fontWeight: '800' },
+    emptyText: { textAlign: 'center', marginTop: 60, color: '#94a3b8', fontSize: 15, fontWeight: '600' }
 });

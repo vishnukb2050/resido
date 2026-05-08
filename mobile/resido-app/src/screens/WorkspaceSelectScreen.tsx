@@ -19,7 +19,7 @@ const ROLE_ICONS: Record<string, string> = {
 };
 
 export default function WorkspaceSelectScreen() {
-    const { workspaces, setActiveWorkspace } = useAuthStore();
+    const { workspaces, setActiveWorkspace, token } = useAuthStore();
     const router = useRouter();
 
     const handleSelect = async (ws: any) => {
@@ -46,21 +46,41 @@ export default function WorkspaceSelectScreen() {
             >
                 <Text style={styles.createBtnText}>+ Create a Community</Text>
             </TouchableOpacity>
-            <FlatList
-                data={workspaces}
-                keyExtractor={(item) => item.tenantId}
-                contentContainerStyle={{ gap: 12, paddingBottom: 32 }}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.card} onPress={() => handleSelect(item)}>
-                        <Text style={styles.icon}>{ROLE_ICONS[item.role] || '🏠'}</Text>
-                        <View style={styles.info}>
-                            <Text style={styles.name}>{item.tenantName}</Text>
-                            <Text style={styles.role}>{item.role.replace('_', ' ')}</Text>
-                        </View>
-                        <Text style={styles.arrow}>→</Text>
-                    </TouchableOpacity>
-                )}
-            />
+
+            <View style={{ gap: 12 }}>
+                {/* Default Personal Workspace */}
+                <TouchableOpacity 
+                    style={[styles.card, { borderColor: '#6366f1', borderWidth: 1, backgroundColor: 'rgba(99,102,241,0.05)' }]} 
+                    onPress={() => {
+                        setActiveWorkspace(null as any, token!);
+                        router.replace('/(app)/home');
+                    }}
+                >
+                    <Text style={styles.icon}>👤</Text>
+                    <View style={styles.info}>
+                        <Text style={styles.name}>Resido Personal</Text>
+                        <Text style={styles.role}>Default Space</Text>
+                    </View>
+                    <Text style={styles.arrow}>→</Text>
+                </TouchableOpacity>
+
+                <FlatList
+                    data={workspaces}
+                    keyExtractor={(item) => item.tenantId}
+                    scrollEnabled={false}
+                    contentContainerStyle={{ gap: 12 }}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity style={styles.card} onPress={() => handleSelect(item)}>
+                            <Text style={styles.icon}>{ROLE_ICONS[item.role] || '🏠'}</Text>
+                            <View style={styles.info}>
+                                <Text style={styles.name}>{item.tenantName}</Text>
+                                <Text style={styles.role}>{item.role.replace('_', ' ')}</Text>
+                            </View>
+                            <Text style={styles.arrow}>→</Text>
+                        </TouchableOpacity>
+                    )}
+                />
+            </View>
         </View>
     );
 }

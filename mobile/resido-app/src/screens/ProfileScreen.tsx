@@ -9,6 +9,7 @@ import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
 
@@ -20,12 +21,15 @@ export default function ProfileScreen() {
     const [showProfileEditor, setShowProfileEditor] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [stats, setStats] = useState({ followersCount: 0, followingCount: 0 });
     
     // Form State
     const [formData, setFormData] = useState({
         name: user?.name || '',
         age: user?.age?.toString() || '',
         description: user?.description || '',
+        profileName: user?.profileName || '',
+        phoneVisibility: user?.phoneVisibility || 'COMMUNITY',
     });
 
     useEffect(() => {
@@ -34,9 +38,22 @@ export default function ProfileScreen() {
                 name: user.name || '',
                 age: user.age?.toString() || '',
                 description: user.description || '',
+                profileName: user.profileName || '',
+                phoneVisibility: user.phoneVisibility || 'COMMUNITY',
             });
         }
+        fetchStats();
     }, [user]);
+
+    const fetchStats = async () => {
+        try {
+            if (!user) return;
+            const { data } = await api.get(`/follow/stats/${user.id}`);
+            setStats(data);
+        } catch (error) {
+            console.error('Failed to fetch stats', error);
+        }
+    };
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -129,6 +146,19 @@ export default function ProfileScreen() {
                     <View style={styles.roleBadge}>
                         <Text style={styles.userRole}>{user?.role?.replace('_', ' ') || 'Resident'}</Text>
                     </View>
+
+                    {/* Stats Row */}
+                    <View style={styles.statsRow}>
+                        <TouchableOpacity style={styles.statItem} onPress={() => {}}>
+                            <Text style={styles.statNumber}>{stats.followersCount}</Text>
+                            <Text style={styles.statLabel}>Followers</Text>
+                        </TouchableOpacity>
+                        <View style={styles.statDivider} />
+                        <TouchableOpacity style={styles.statItem} onPress={() => {}}>
+                            <Text style={styles.statNumber}>{stats.followingCount}</Text>
+                            <Text style={styles.statLabel}>Following</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Menu Sections */}
@@ -194,12 +224,47 @@ export default function ProfileScreen() {
                         </View>
 
                         <View style={styles.field}>
+                            <Text style={styles.label}>Profile Name (Unique)</Text>
+                            <TextInput style={styles.input} value={formData.profileName} onChangeText={(t) => setFormData({...formData, profileName: t})} placeholder="e.g. john_resido" placeholderTextColor="#94a3b8" autoCapitalize="none" />
+                            <Text style={styles.fieldHint}>This name will be visible to others instead of your phone number.</Text>
+                        </View>
+
+                        <View style={styles.field}>
+                            <Text style={styles.label}>Phone Number Visibility</Text>
+                            <View style={styles.visibilityContainer}>
+                                {[
+                                    { id: 'COMMUNITY', label: 'Community', icon: '🏢' },
+                                    { id: 'GROUPS', label: 'Groups', icon: '👥' },
+                                    { id: 'CONTACTS', label: 'Contacts', icon: '👤' },
+                                    { id: 'PRIVATE', label: 'Private', icon: '🔒' }
+                                ].map((item) => (
+                                    <TouchableOpacity 
+                                        key={item.id} 
+                                        style={[
+                                            styles.visibilityOption, 
+                                            formData.phoneVisibility === item.id && styles.visibilityOptionActive
+                                        ]}
+                                        onPress={() => setFormData({...formData, phoneVisibility: item.id})}
+                                    >
+                                        <Text style={styles.visibilityIcon}>{item.icon}</Text>
+                                        <Text style={[
+                                            styles.visibilityLabel,
+                                            formData.phoneVisibility === item.id && styles.visibilityLabelActive
+                                        ]}>{item.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <Text style={styles.fieldHint}>Choose who can see your contact number.</Text>
+                        </View>
+
+                        <View style={styles.field}>
                             <Text style={styles.label}>Bio / Description</Text>
                             <TextInput style={[styles.input, styles.textArea]} value={formData.description} onChangeText={(t) => setFormData({...formData, description: t})} multiline numberOfLines={4} placeholder="Tell us about yourself..." placeholderTextColor="#94a3b8" />
                         </View>
                     </ScrollView>
                 </SafeAreaView>
             </Modal>
+            <BottomNav activeTab="Account" />
         </SafeAreaView>
     );
 }
@@ -215,6 +280,12 @@ const styles = StyleSheet.create({
     userName: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
     roleBadge: { backgroundColor: '#f5f3ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginTop: 8 },
     userRole: { fontSize: 12, color: '#6366f1', fontWeight: '800', textTransform: 'uppercase' },
+
+    statsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingHorizontal: 20, width: '100%', justifyContent: 'center' },
+    statItem: { alignItems: 'center', flex: 1 },
+    statNumber: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+    statLabel: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
+    statDivider: { width: 1, height: 30, backgroundColor: '#f1f5f9', marginHorizontal: 20 },
 
     section: { paddingHorizontal: 20, marginTop: 30 },
     sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 12, marginLeft: 5 },
@@ -239,4 +310,11 @@ const styles = StyleSheet.create({
     label: { fontSize: 12, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 },
     input: { backgroundColor: '#fcfcfd', borderRadius: 18, padding: 18, fontSize: 16, color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9' },
     textArea: { height: 120, textAlignVertical: 'top' },
+    fieldHint: { fontSize: 11, color: '#94a3b8', marginTop: 8, marginLeft: 4, fontWeight: '500' },
+    visibilityContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 5 },
+    visibilityOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9', minWidth: (width - 60) / 2 },
+    visibilityOptionActive: { backgroundColor: '#f5f3ff', borderColor: '#6366f1' },
+    visibilityIcon: { fontSize: 16, marginRight: 8 },
+    visibilityLabel: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+    visibilityLabelActive: { color: '#6366f1' },
 });

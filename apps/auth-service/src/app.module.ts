@@ -10,6 +10,7 @@ import { CacheModule } from './modules/cache/cache.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { NotesModule } from './modules/notes/notes.module';
+import { FollowModule } from './modules/follow/follow.module';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { NotesModule } from './modules/notes/notes.module';
         StorageModule,
         ProfileModule,
         NotesModule,
+        FollowModule,
     ],
 })
 export class AppModule { }

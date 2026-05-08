@@ -1,227 +1,224 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function CleaningDashboard() {
     const { activeWorkspace, user } = useAuthStore();
+    const router = useRouter();
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            {/* Header section matched to mockup */}
-            <View style={styles.headerRow}>
-                <View style={styles.headerLeft}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{(user?.name || 'P')[0].toUpperCase()}</Text>
-                    </View>
-                    <View style={styles.headerTitles}>
-                        <View style={styles.workspaceRow}>
-                            <Text style={styles.apartment}>{activeWorkspace?.tenantName || 'Greenwood Residency'}</Text>
-                            <Text style={styles.chevron}> ⌄</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fcfcfd' }}>
+            <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+                {/* Header Row */}
+                <View style={styles.headerRow}>
+                    <View style={styles.headerLeft}>
+                        <View style={styles.logoCircle}>
+                            <Image source={require('../../../assets/images/icon.png')} style={styles.logoMini} />
                         </View>
-                        <View style={styles.roleBadge}>
-                            <Text style={styles.roleText}>Cleaning Staff</Text>
+                        <View style={{ marginLeft: 12 }}>
+                            <Text style={styles.residoBrand}>Resido</Text>
+                            <Text style={styles.welcomeText}>Welcome, {user?.name || 'Anil'}</Text>
+                            <Text style={styles.roleSubtext}>Cleaning Staff</Text>
                         </View>
-                        <Text style={styles.greeting}>Welcome back, {user?.name?.split(' ')[0] || 'Priya'} 👋</Text>
                     </View>
-                </View>
-                <View style={styles.headerIcons}>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Text style={styles.iconText}>🔔</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Text style={styles.iconText}>💬</Text>
+                    <TouchableOpacity style={styles.headerIconBtn}>
+                        <Ionicons name="notifications-outline" size={24} color="#1e293b" />
                     </TouchableOpacity>
                 </View>
-            </View>
 
-            {/* Today's Schedule Card */}
-            <View style={styles.scheduleCard}>
-                <View style={styles.scheduleLeft}>
-                    <Text style={styles.scheduleIcon}>📅</Text>
-                    <View>
-                        <Text style={styles.scheduleTitle}>Today's Schedule</Text>
-                        <Text style={styles.scheduleSub}>2 Areas Assigned</Text>
+                {/* My Community Selector Card */}
+                <View style={styles.communityCard}>
+                    <View style={styles.commCardHeader}>
+                        <View>
+                            <Text style={styles.commCardTitle}>My Community</Text>
+                            <Text style={styles.commCardSub}>Select a community to see your tasks & updates</Text>
+                        </View>
+                        <Image source={require('../../../assets/images/icon.png')} style={styles.commBuildingImg} />
+                    </View>
+                    
+                    <TouchableOpacity style={styles.wsSelector}>
+                        <Text style={styles.wsName}>{activeWorkspace?.tenantName || 'Green Meadows'}</Text>
+                        <Ionicons name="chevron-down" size={20} color="#1e293b" />
+                    </TouchableOpacity>
+
+                    <View style={styles.roleBadgeContainer}>
+                        <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                        <Text style={styles.roleBadgeText}>You are a Cleaning Staff</Text>
                     </View>
                 </View>
-                <TouchableOpacity style={styles.viewScheduleBtn}>
-                    <Text style={styles.viewScheduleText}>📅 View Schedule</Text>
-                </TouchableOpacity>
-            </View>
 
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                    <Text style={styles.statIconBadgePurp}>📅</Text>
-                    <Text style={styles.statNumber}>18</Text>
-                    <Text style={styles.statLabel}>Cleanings</Text>
-                    <Text style={styles.statSub}>This Month</Text>
-                </View>
-                <View style={styles.statBoxMid}>
-                    <Text style={styles.statIconBadgeGreen}>✓</Text>
-                    <Text style={styles.statNumber}>16</Text>
-                    <Text style={styles.statLabel}>Completed</Text>
-                    <Text style={styles.statSub}>This Month</Text>
-                </View>
-                <View style={styles.statBoxMid}>
-                    <Text style={styles.statIconBadgeOrng}>🕒</Text>
-                    <Text style={styles.statNumber}>2</Text>
-                    <Text style={styles.statLabel}>Pending</Text>
-                    <Text style={styles.statSub}>Today</Text>
-                </View>
-                <View style={styles.statBox}>
-                    <Text style={styles.statIconBadgeBlue}>⭐</Text>
-                    <Text style={styles.statNumber}>4.8</Text>
-                    <Text style={styles.statLabel}>Rating</Text>
-                    <Text style={styles.statSub}>This Month</Text>
-                </View>
-            </View>
-
-            {/* My Cleaning Tasks */}
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>My Cleaning Tasks</Text>
-                <TouchableOpacity><Text style={styles.viewAllText}>View All</Text></TouchableOpacity>
-            </View>
-
-            <View style={styles.taskCard}>
-                <View style={styles.taskIconGreen}><Text style={{ fontSize: 20 }}>🏢</Text></View>
-                <View style={styles.taskContent}>
-                    <View style={styles.taskTitleRow}>
-                        <Text style={styles.taskTitle}>Tower A - Lobby & Corridor</Text>
-                        <Text style={styles.dailyBadge}>Daily</Text>
+                {/* Community Workplace Section */}
+                <TouchableOpacity style={styles.workplaceSection}>
+                    <View style={styles.workplaceHeader}>
+                        <View style={styles.workplaceIconBox}>
+                            <Ionicons name="business" size={24} color="#6366f1" />
+                        </View>
+                        <View style={{ marginLeft: 12, flex: 1 }}>
+                            <Text style={styles.workplaceName}>{activeWorkspace?.tenantName || 'Green Meadows'}</Text>
+                            <Text style={styles.workplaceLabel}>Community Workplace</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={24} color="#64748b" />
                     </View>
-                    <Text style={styles.taskDetail}>🕒 10 May 2024, 8:00 AM</Text>
-                    <Text style={styles.taskDetail}>📍 Ground Floor, Lobby Area</Text>
-                </View>
-                <View style={styles.statusCompleted}><Text style={styles.statusCompletedText}>Completed</Text></View>
-                <Text style={styles.arrowIcon}>›</Text>
-            </View>
 
-            <View style={styles.taskCard}>
-                <View style={styles.taskIconPurp}><Text style={{ fontSize: 20 }}>🪜</Text></View>
-                <View style={styles.taskContent}>
-                    <View style={styles.taskTitleRow}>
-                        <Text style={styles.taskTitle}>Tower A - Staircase</Text>
-                        <Text style={styles.dailyBadge}>Daily</Text>
+                    <View style={styles.taskGrid}>
+                        <TouchableOpacity style={styles.taskItem}>
+                            <View style={[styles.taskIconBox, { backgroundColor: '#f5f3ff' }]}>
+                                <Ionicons name="clipboard-outline" size={24} color="#6366f1" />
+                            </View>
+                            <Text style={styles.taskItemTitle}>Update Cleaning Register</Text>
+                            <Text style={styles.taskItemSub}>Mark daily cleaning tasks & status</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.taskItem}>
+                            <View style={[styles.taskIconBox, { backgroundColor: '#f0fdf4' }]}>
+                                <Ionicons name="images-outline" size={24} color="#10b981" />
+                            </View>
+                            <Text style={styles.taskItemTitle}>Update Photos</Text>
+                            <Text style={styles.taskItemSub}>Upload cleaning photos</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.taskItem}>
+                            <View style={[styles.taskIconBox, { backgroundColor: '#fff7ed' }]}>
+                                <Ionicons name="warning-outline" size={24} color="#f59e0b" />
+                            </View>
+                            <Text style={styles.taskItemTitle}>Raise Complaint</Text>
+                            <Text style={styles.taskItemSub}>Report issues & request support</Text>
+                        </TouchableOpacity>
                     </View>
-                    <Text style={styles.taskDetail}>🕒 10 May 2024, 10:00 AM</Text>
-                    <Text style={styles.taskDetail}>📍 Staircase 1 to 5</Text>
+                </TouchableOpacity>
+
+                {/* Restricted Banner */}
+                <View style={styles.restrictedBanner}>
+                    <View style={styles.lockIconBox}>
+                        <Ionicons name="lock-closed" size={18} color="#6366f1" />
+                    </View>
+                    <Text style={styles.restrictedText}>
+                        Other community features like Announcements, Community Chat, Noticeboard, Gallery, etc. are restricted for Cleaning Staff.
+                    </Text>
                 </View>
-                <View style={styles.statusPending}><Text style={styles.statusPendingText}>Pending</Text></View>
-                <Text style={styles.arrowIcon}>›</Text>
-            </View>
 
-            {/* Quick Actions */}
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.quickActionsGrid}>
-                <TouchableOpacity style={styles.actionBlock}>
-                    <Text style={styles.actionIconGreen}>📷</Text>
-                    <Text style={styles.actionText}>Upload Photo</Text>
-                    <Text style={styles.actionText}>of Cleaning</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBlock}>
-                    <Text style={styles.actionIconBlue}>📋</Text>
-                    <Text style={styles.actionText}>Update Cleaning</Text>
-                    <Text style={styles.actionText}>Details</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBlock}>
-                    <Text style={styles.actionIconPurp}>📝</Text>
-                    <Text style={styles.actionText}>View My</Text>
-                    <Text style={styles.actionText}>Tasks</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBlock}>
-                    <Text style={styles.actionIconOrng}>🕒</Text>
-                    <Text style={styles.actionText}>Cleaning</Text>
-                    <Text style={styles.actionText}>History</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Recent Cleaning Records */}
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Cleaning Records</Text>
-                <TouchableOpacity><Text style={styles.viewAllText}>View All</Text></TouchableOpacity>
-            </View>
-
-            <View style={styles.recordCard}>
-                <View style={styles.recordImgPlaceholder}></View>
-                <View style={styles.recordContent}>
-                    <Text style={styles.recordTitle}>Lobby & Reception Area</Text>
-                    <Text style={styles.recordDetail}>🕒 09 May 2024, 8:15 AM</Text>
-                    <Text style={styles.recordDetail}>👤 Cleaned by {user?.name?.split(' ')[0] || 'Priya'}</Text>
+                {/* Quick Access */}
+                <Text style={styles.sectionTitle}>Quick Access</Text>
+                <View style={styles.quickAccessGrid}>
+                    <QuickAccessItem icon="chatbubbles-outline" label="Global Chat" sub="Connect with residents" color="#6366f1" />
+                    <QuickAccessItem icon="calendar-outline" label="Calendar" sub="Stay updated on events" color="#ef4444" />
+                    <QuickAccessItem icon="construct-outline" label="Services" sub="Raise requests & get help" color="#3b82f6" />
+                    <QuickAccessItem icon="person-outline" label="Contacts" sub="Directory of community members" color="#2563eb" />
                 </View>
-                <View style={styles.statusCompleted}><Text style={styles.statusCompletedText}>Completed</Text></View>
-                <Text style={styles.arrowIcon}>›</Text>
-            </View>
 
-        </ScrollView>
+                {/* All Features */}
+                <Text style={styles.sectionTitle}>All Features</Text>
+                <View style={styles.featuresList}>
+                    <FeatureItem icon="print-outline" label="Scanner" sub="Scan documents on the go" color="#64748b" />
+                    <FeatureItem icon="folder-open-outline" label="Documents" sub="Access important documents" color="#f59e0b" />
+                    <FeatureItem icon="create-outline" label="Notes" sub="Keep your notes handy" color="#3b82f6" />
+                    <FeatureItem icon="settings-outline" label="Settings" sub="Manage your preferences" color="#8b5cf6" />
+                </View>
+            </ScrollView>
+
+            {/* Bottom Nav */}
+            <View style={styles.bottomNav}>
+                <NavItem icon="home" label="Home" active />
+                <NavItem icon="chatbubble-ellipses-outline" label="Chat" />
+                <NavItem icon="people-outline" label="Contacts" />
+                <NavItem icon="newspaper-outline" label="Blog" />
+                <NavItem icon="person-outline" label="Account" />
+            </View>
+        </SafeAreaView>
+    );
+}
+
+function QuickAccessItem({ icon, label, sub, color }: any) {
+    return (
+        <TouchableOpacity style={styles.qaItem}>
+            <View style={styles.qaIconContainer}>
+                <Ionicons name={icon} size={28} color={color} />
+            </View>
+            <Text style={styles.qaLabel}>{label}</Text>
+            <Text style={styles.qaSub}>{sub}</Text>
+        </TouchableOpacity>
+    );
+}
+
+function FeatureItem({ icon, label, sub, color }: any) {
+    return (
+        <TouchableOpacity style={styles.featureItem}>
+            <View style={[styles.featureIconBox, { backgroundColor: `${color}10` }]}>
+                <Ionicons name={icon} size={24} color={color} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 16 }}>
+                <Text style={styles.featureLabel}>{label}</Text>
+                <Text style={styles.featureSub}>{sub}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+        </TouchableOpacity>
+    );
+}
+
+function NavItem({ icon, label, active }: any) {
+    return (
+        <TouchableOpacity style={styles.navItem}>
+            <Ionicons name={icon} size={24} color={active ? '#6366f1' : '#94a3b8'} />
+            <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
+        </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#ffffff' },
-    content: { padding: 16, paddingTop: 50, paddingBottom: 100 },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-    avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#cbe2f1', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    avatarText: { fontSize: 20, color: '#333' },
-    headerTitles: { flex: 1 },
-    workspaceRow: { flexDirection: 'row', alignItems: 'center' },
-    apartment: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-    chevron: { fontSize: 18, color: '#1a1a1a' },
-    roleBadge: { backgroundColor: '#e6f7ef', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, marginBottom: 4 },
-    roleText: { color: '#0d945b', fontSize: 10, fontWeight: '600' },
-    greeting: { fontSize: 12, color: '#555' },
-    headerIcons: { flexDirection: 'row', gap: 10 },
-    iconButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' },
-    iconText: { fontSize: 16 },
+    container: { flex: 1 },
+    content: { padding: 20, paddingBottom: 120 },
+    
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center' },
+    logoCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
+    logoMini: { width: 28, height: 28 },
+    residoBrand: { fontSize: 28, fontWeight: '900', color: '#6366f1' },
+    welcomeText: { fontSize: 16, fontWeight: '800', color: '#1e293b', marginTop: 2 },
+    roleSubtext: { fontSize: 13, color: '#64748b' },
+    headerIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
 
-    scheduleCard: { backgroundColor: '#f0f9f4', borderRadius: 12, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    scheduleLeft: { flexDirection: 'row', alignItems: 'center' },
-    scheduleIcon: { fontSize: 24, marginRight: 12 },
-    scheduleTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
-    scheduleSub: { fontSize: 12, color: '#555' },
-    viewScheduleBtn: { backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#e6e6e6' },
-    viewScheduleText: { fontSize: 12, color: '#0d945b', fontWeight: '600' },
+    communityCard: { backgroundColor: '#f5f3ff', borderRadius: 24, padding: 20, marginBottom: 30 },
+    commCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+    commCardTitle: { fontSize: 18, fontWeight: '800', color: '#4338ca' },
+    commCardSub: { fontSize: 12, color: '#6366f1', width: '70%', marginTop: 4 },
+    commBuildingImg: { width: 50, height: 50 },
+    wsSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 15 },
+    wsName: { fontSize: 15, fontWeight: '700', color: '#1e293b' },
+    roleBadgeContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    roleBadgeText: { fontSize: 11, color: '#10b981', fontWeight: '800' },
 
-    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: '#f0f0f0' },
-    statBox: { flex: 1, alignItems: 'center' },
-    statBoxMid: { flex: 1, alignItems: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#f0f0f0' },
-    statIconBadgePurp: { fontSize: 20, marginBottom: 4 },
-    statIconBadgeGreen: { fontSize: 20, marginBottom: 4, color: '#0d945b' },
-    statIconBadgeOrng: { fontSize: 20, marginBottom: 4, color: '#e67300' },
-    statIconBadgeBlue: { fontSize: 20, marginBottom: 4, color: '#2563eb' },
-    statNumber: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-    statLabel: { fontSize: 10, color: '#555', marginTop: 2 },
-    statSub: { fontSize: 9, color: '#999' },
+    workplaceSection: { backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },
+    workplaceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+    workplaceIconBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+    workplaceName: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
+    workplaceLabel: { fontSize: 12, color: '#6366f1', fontWeight: '700' },
+    taskGrid: { gap: 12 },
+    taskItem: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, backgroundColor: '#fcfcfd', padding: 12, borderRadius: 16 },
+    taskIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    taskItemTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b', flex: 1 },
+    taskItemSub: { fontSize: 11, color: '#64748b', width: '100%', marginLeft: 56, marginTop: -15 },
 
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 10 },
-    sectionTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
-    viewAllText: { fontSize: 12, color: '#6366f1', fontWeight: '600' },
+    restrictedBanner: { backgroundColor: '#f5f3ff', padding: 16, borderRadius: 16, flexDirection: 'row', gap: 12, marginBottom: 30 },
+    lockIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+    restrictedText: { flex: 1, fontSize: 11, color: '#4338ca', fontWeight: '600', lineHeight: 16 },
 
-    taskCard: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#f0f0f0', marginBottom: 12 },
-    taskIconGreen: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#e6f7ef', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    taskIconPurp: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    taskContent: { flex: 1 },
-    taskTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-    taskTitle: { fontSize: 13, fontWeight: '600', color: '#1a1a1a', marginRight: 8 },
-    dailyBadge: { fontSize: 9, color: '#0d945b', backgroundColor: '#e6f7ef', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    taskDetail: { fontSize: 11, color: '#777', marginBottom: 2 },
-    statusCompleted: { backgroundColor: '#e6f7ef', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 8 },
-    statusCompletedText: { fontSize: 10, color: '#0d945b', fontWeight: '600' },
-    statusPending: { backgroundColor: '#fff7ed', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 8 },
-    statusPendingText: { fontSize: 10, color: '#e67300', fontWeight: '600' },
-    arrowIcon: { fontSize: 18, color: '#a0a0a0' },
+    sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 15 },
+    quickAccessGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 30 },
+    qaItem: { width: '48.5%', backgroundColor: '#fff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' },
+    qaIconContainer: { marginBottom: 12 },
+    qaLabel: { fontSize: 14, fontWeight: '800', color: '#1e293b', marginBottom: 4 },
+    qaSub: { fontSize: 9, color: '#64748b', textAlign: 'center', fontWeight: '500' },
 
-    quickActionsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, marginTop: 12 },
-    actionBlock: { width: '23%', aspectRatio: 0.9, backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', padding: 4 },
-    actionIconGreen: { fontSize: 24, color: '#0d945b', marginBottom: 8 },
-    actionIconBlue: { fontSize: 24, color: '#2563eb', marginBottom: 8 },
-    actionIconPurp: { fontSize: 24, color: '#8b5cf6', marginBottom: 8 },
-    actionIconOrng: { fontSize: 24, color: '#e67300', marginBottom: 8 },
-    actionText: { fontSize: 9, color: '#1a1a1a', textAlign: 'center', fontWeight: '500' },
+    featuresList: { gap: 12 },
+    featureItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' },
+    featureIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    featureLabel: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
+    featureSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
 
-    recordCard: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#f0f0f0', marginBottom: 12 },
-    recordImgPlaceholder: { width: 50, height: 40, borderRadius: 8, backgroundColor: '#e0e0e0', marginRight: 12 },
-    recordContent: { flex: 1 },
-    recordTitle: { fontSize: 13, fontWeight: '600', color: '#1a1a1a', marginBottom: 2 },
-    recordDetail: { fontSize: 11, color: '#777', marginBottom: 2 },
+    bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 90, backgroundColor: '#fff', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 25, borderTopWidth: 1, borderTopColor: '#f1f5f9', borderTopLeftRadius: 35, borderTopRightRadius: 35, shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.04, shadowRadius: 15, elevation: 20 },
+    navItem: { alignItems: 'center', justifyContent: 'center' },
+    navLabel: { fontSize: 11, color: '#94a3b8', marginTop: 6, fontWeight: '700' },
+    navLabelActive: { color: '#6366f1' },
 });

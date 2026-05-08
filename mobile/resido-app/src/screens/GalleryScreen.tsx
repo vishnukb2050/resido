@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, Dimensions, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, Dimensions, TouchableOpacity, Alert, Modal, TextInput, SafeAreaView } from 'react-native';
 import { api, communityApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
 
 export default function GalleryScreen() {
     const { activeWorkspace } = useAuthStore();
+    const router = useRouter();
     const [folders, setFolders] = useState<any[]>([]);
     const [selectedFolder, setSelectedFolder] = useState<any>(null);
     const [photos, setPhotos] = useState<any[]>([]);
@@ -61,7 +64,7 @@ export default function GalleryScreen() {
         if (!selectedFolder) return Alert.alert('Error', 'Please select a folder first');
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.All, // Support Videos too
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
             allowsEditing: true,
             quality: 0.8,
         });
@@ -96,33 +99,28 @@ export default function GalleryScreen() {
             setSelectedFolder(null);
             setPhotos([]);
         } else {
-            // navigation logic
+            router.back();
         }
     };
 
-    if (loading && folders.length === 0) return <ActivityIndicator style={{ flex: 1 }} color="#6366f1" />;
-
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    {selectedFolder && (
-                        <TouchableOpacity onPress={goBack} style={{ marginRight: 10 }}>
-                            <Ionicons name="arrow-back" size={24} color="#1e293b" />
-                        </TouchableOpacity>
-                    )}
-                    <View>
-                        <Text style={styles.title}>{selectedFolder ? selectedFolder.name : 'Gallery'}</Text>
-                        <Text style={styles.subTitle}>{activeWorkspace?.tenantName}</Text>
+                    <TouchableOpacity onPress={goBack} style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color="#1e293b" />
+                    </TouchableOpacity>
+                    <View style={{ marginLeft: 12 }}>
+                        <Text style={styles.headerTitle}>{selectedFolder ? selectedFolder.name : 'Gallery'}</Text>
+                        <Text style={styles.subTitle}>{activeWorkspace?.tenantName || 'My Community'}</Text>
                     </View>
                 </View>
                 <View style={{ flexDirection: 'row' }}>
-                    {!selectedFolder && (
-                        <TouchableOpacity style={[styles.actionBtn, { marginRight: 8 }]} onPress={() => setFolderModal(true)}>
+                    {!selectedFolder ? (
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => setFolderModal(true)}>
                             <Ionicons name="add" size={24} color="#fff" />
                         </TouchableOpacity>
-                    )}
-                    {selectedFolder && (
+                    ) : (
                         <TouchableOpacity style={styles.actionBtn} onPress={handleUpload} disabled={uploading}>
                             {uploading ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="cloud-upload-outline" size={24} color="#fff" />}
                         </TouchableOpacity>
@@ -130,7 +128,11 @@ export default function GalleryScreen() {
                 </View>
             </View>
 
-            {!selectedFolder ? (
+            {loading && folders.length === 0 ? (
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <ActivityIndicator size="large" color="#6366f1" />
+                </View>
+            ) : !selectedFolder ? (
                 <FlatList
                     data={folders}
                     keyExtractor={(item) => item.id}
@@ -140,7 +142,9 @@ export default function GalleryScreen() {
                         <TouchableOpacity style={styles.folderCard} onPress={() => openFolder(item)}>
                             <View style={styles.folderThumb}>
                                 <Ionicons name="folder" size={60} color="#6366f1" />
-                                <Text style={styles.itemCount}>{item._count?.items || 0}</Text>
+                                <View style={styles.itemBadge}>
+                                    <Text style={styles.itemCount}>{item._count?.items || 0}</Text>
+                                </View>
                             </View>
                             <Text style={styles.folderTitle}>{item.name}</Text>
                         </TouchableOpacity>
@@ -154,11 +158,11 @@ export default function GalleryScreen() {
                     numColumns={2}
                     contentContainerStyle={styles.list}
                     renderItem={({ item }) => (
-                        <View style={styles.card}>
+                        <View style={styles.photoCard}>
                             <Image source={{ uri: item.mediaUrls[0] }} style={styles.image} />
                             {item.type === 'VIDEO' && (
                                 <View style={styles.videoOverlay}>
-                                    <Ionicons name="play-circle" size={40} color="#fff" />
+                                    <Ionicons name="play-circle" size={44} color="#fff" />
                                 </View>
                             )}
                         </View>
@@ -170,48 +174,53 @@ export default function GalleryScreen() {
             <Modal visible={folderModal} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalLabel}>New Folder Name</Text>
+                        <Text style={styles.modalLabel}>New Folder</Text>
                         <TextInput 
                             style={styles.input} 
                             value={folderName} 
                             onChangeText={setFolderName} 
                             placeholder="e.g. Summer Event 2024" 
+                            placeholderTextColor="#94a3b8"
                         />
                         <View style={styles.modalBtns}>
                             <TouchableOpacity onPress={() => setFolderModal(false)} style={styles.cancelBtn}>
-                                <Text>Cancel</Text>
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleCreateFolder} style={styles.confirmBtn}>
-                                <Text style={{ color: '#fff', fontWeight: '700' }}>Create</Text>
+                                <Text style={styles.confirmBtnText}>Create</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
-        </View>
+            <BottomNav />
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
-    header: { padding: 20, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    actionBtn: { backgroundColor: '#6366f1', width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    title: { fontSize: 24, fontWeight: '800', color: '#1e293b' },
-    subTitle: { fontSize: 13, color: '#6366f1', fontWeight: '600', marginTop: 2 },
-    list: { padding: 10 },
-    folderCard: { width: (width - 40) / 2, margin: 5, marginBottom: 20 },
-    folderThumb: { width: '100%', height: 150, backgroundColor: '#fff', borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', position: 'relative' },
-    itemCount: { position: 'absolute', bottom: 10, right: 15, fontSize: 14, fontWeight: '800', color: '#6366f1' },
-    folderTitle: { marginTop: 10, fontSize: 16, fontWeight: '700', color: '#1e293b', textAlign: 'center' },
-    card: { width: (width - 40) / 2, margin: 5, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', elevation: 2, position: 'relative' },
-    image: { width: '100%', height: 150 },
+    safeArea: { flex: 1, backgroundColor: '#fcfcfd' },
+    header: { padding: 20, paddingTop: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    backBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+    subTitle: { fontSize: 12, color: '#6366f1', fontWeight: '800', marginTop: 2 },
+    actionBtn: { backgroundColor: '#6366f1', width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+    list: { padding: 15, paddingBottom: 110 },
+    folderCard: { width: (width - 45) / 2, margin: 7.5, marginBottom: 20 },
+    folderThumb: { width: '100%', height: 160, backgroundColor: '#fff', borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },
+    itemBadge: { position: 'absolute', bottom: 15, right: 15, backgroundColor: '#f5f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    itemCount: { fontSize: 12, fontWeight: '900', color: '#6366f1' },
+    folderTitle: { marginTop: 12, fontSize: 15, fontWeight: '800', color: '#1e293b', textAlign: 'center' },
+    photoCard: { width: (width - 45) / 2, margin: 7.5, backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9' },
+    image: { width: '100%', height: 160 },
     videoOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
-    empty: { textAlign: 'center', color: '#94a3b8', marginTop: 100, width: '100%' },
+    empty: { textAlign: 'center', color: '#94a3b8', marginTop: 100, fontSize: 15, fontWeight: '600' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-    modalContent: { backgroundColor: '#fff', borderRadius: 24, padding: 24 },
-    modalLabel: { fontSize: 16, fontWeight: '800', color: '#1e293b', marginBottom: 15 },
-    input: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, marginBottom: 20 },
-    modalBtns: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
-    cancelBtn: { marginRight: 20 },
-    confirmBtn: { backgroundColor: '#6366f1', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+    modalContent: { backgroundColor: '#fff', borderRadius: 30, padding: 25, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 },
+    modalLabel: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 20 },
+    input: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 18, fontSize: 16, color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25 },
+    modalBtns: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 15 },
+    cancelBtnText: { color: '#64748b', fontWeight: '800', fontSize: 15 },
+    confirmBtn: { backgroundColor: '#6366f1', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 14 },
+    confirmBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

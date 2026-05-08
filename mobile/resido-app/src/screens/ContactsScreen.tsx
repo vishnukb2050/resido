@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, FlatList, TouchableOpacity, StyleSheet,
-    ActivityIndicator, TextInput, Share
+    ActivityIndicator, TextInput, Share, SafeAreaView
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { authApi } from '../services/api';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import BottomNav from '../components/BottomNav';
 
 export default function ContactsScreen() {
     const [contacts, setContacts] = useState<any[]>([]);
@@ -63,66 +65,91 @@ export default function ContactsScreen() {
         c.phoneNumbers?.[0]?.number.includes(search)
     );
 
-    if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#6366f1" />;
-
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Contacts</Text>
-            <TextInput 
-                style={styles.search} 
-                placeholder="Search contacts..." 
-                placeholderTextColor="#64748b"
-                value={search}
-                onChangeText={setSearch}
-            />
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={24} color="#1e293b" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Contacts</Text>
+                <TouchableOpacity>
+                    <Ionicons name="person-add-outline" size={24} color="#6366f1" />
+                </TouchableOpacity>
+            </View>
 
-            <FlatList
-                data={filtered}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={{ padding: 20, gap: 12 }}
-                renderItem={({ item }) => (
-                    <View style={styles.card}>
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>{item.name?.[0]}</Text>
+            <View style={styles.searchContainer}>
+                <View style={styles.searchBox}>
+                    <Ionicons name="search-outline" size={20} color="#94a3b8" />
+                    <TextInput 
+                        placeholder="Search contacts..." 
+                        style={styles.searchInput}
+                        placeholderTextColor="#94a3b8"
+                        value={search}
+                        onChangeText={setSearch}
+                    />
+                </View>
+            </View>
+
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <ActivityIndicator size="large" color="#6366f1" />
+                </View>
+            ) : (
+                <FlatList
+                    data={filtered}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={({ item }) => (
+                        <View style={styles.card}>
+                            <View style={styles.avatar}>
+                                <Text style={styles.avatarText}>{item.name?.[0]}</Text>
+                            </View>
+                            <View style={styles.info}>
+                                <Text style={styles.name}>{item.name}</Text>
+                                <Text style={styles.phone}>{item.phoneNumbers?.[0]?.number}</Text>
+                            </View>
+                            {item.residoUser ? (
+                                <TouchableOpacity 
+                                    style={styles.chatBtn}
+                                    onPress={() => router.push(`/chat/new?userId=${item.residoUser.id}`)}
+                                >
+                                    <Text style={styles.btnText}>Chat</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity 
+                                    style={styles.inviteBtn}
+                                    onPress={() => handleInvite(item.phoneNumbers?.[0]?.number)}
+                                >
+                                    <Text style={styles.inviteText}>Invite</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
-                        <View style={styles.info}>
-                            <Text style={styles.name}>{item.name}</Text>
-                            <Text style={styles.phone}>{item.phoneNumbers?.[0]?.number}</Text>
-                        </View>
-                        {item.residoUser ? (
-                            <TouchableOpacity 
-                                style={styles.chatBtn}
-                                onPress={() => router.push(`/chat/new?userId=${item.residoUser.id}`)}
-                            >
-                                <Text style={styles.btnText}>Chat</Text>
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity 
-                                style={styles.inviteBtn}
-                                onPress={() => handleInvite(item.phoneNumbers?.[0]?.number)}
-                            >
-                                <Text style={styles.inviteText}>Invite</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                )}
-            />
-        </View>
+                    )}
+                    ListEmptyComponent={<Text style={styles.empty}>No contacts found</Text>}
+                />
+            )}
+            <BottomNav />
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f0f1a' },
-    title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 60, paddingHorizontal: 20, marginBottom: 16 },
-    search: { backgroundColor: '#1e1e2e', marginHorizontal: 20, borderRadius: 12, padding: 14, color: '#fff', marginBottom: 10 },
-    card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e1e2e', padding: 14, borderRadius: 16 },
-    avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#334155', alignItems: 'center', justifyContent: 'center' },
-    avatarText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    info: { flex: 1, marginLeft: 12 },
-    name: { fontSize: 15, fontWeight: '700', color: '#e2e8f0', marginBottom: 2 },
-    phone: { fontSize: 12, color: '#64748b' },
+    safeArea: { flex: 1, backgroundColor: '#fcfcfd' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+    searchContainer: { padding: 20, backgroundColor: '#fff' },
+    searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 12, height: 48, borderWidth: 1, borderColor: '#f1f5f9' },
+    searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b', fontWeight: '500' },
+    listContent: { padding: 16, paddingBottom: 110, gap: 12 },
+    card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' },
+    avatar: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+    avatarText: { color: '#1e293b', fontSize: 18, fontWeight: '800' },
+    info: { flex: 1, marginLeft: 14 },
+    name: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 2 },
+    phone: { fontSize: 12, color: '#64748b', fontWeight: '600' },
     chatBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
     inviteBtn: { borderWidth: 1, borderColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-    btnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-    inviteText: { color: '#6366f1', fontSize: 13, fontWeight: '700' },
+    btnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    inviteText: { color: '#6366f1', fontSize: 13, fontWeight: '800' },
+    empty: { textAlign: 'center', color: '#94a3b8', marginTop: 48, fontSize: 15, fontWeight: '600' },
 });

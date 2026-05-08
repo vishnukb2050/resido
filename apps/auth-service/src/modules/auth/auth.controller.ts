@@ -49,7 +49,7 @@ export class AuthController {
     }
 
     @Post('sync-contacts')
-    syncContacts(@Body() body: { phones: string[] }) {
-        return this.authService.syncContacts(body.phones);
+    syncContacts(@Headers('x-user-id') userId: string, @Body() body: { phones: string[] }) {
+        return this.authService.syncContacts(userId, body.phones);
     }
 }

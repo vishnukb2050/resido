@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaVi
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import BottomNav from '../BottomNav';
 
 const { width } = Dimensions.get('window');
 
@@ -145,14 +146,7 @@ export default function DefaultDashboard() {
                             title="Documents" 
                             subtitle="Access important documents" 
                             bg="#ecfdf5"
-                            onPress={() => {}}
-                        />
-                        <FeatureCard 
-                            icon="🖼️" 
-                            title="Gallery" 
-                            subtitle="Community photos" 
-                            bg="#f5f3ff"
-                            onPress={() => router.push('/gallery')}
+                            onPress={() => router.push('/documents')}
                         />
                         <FeatureCard 
                             icon="➕" 
@@ -165,25 +159,7 @@ export default function DefaultDashboard() {
                 </View>
             </ScrollView>
 
-            {/* Bottom Navigation */}
-            <View style={styles.bottomNav}>
-                <NavItem icon="home" label="Home" active />
-                <NavItem icon="chatbubble-outline" label="Chat" badge={3} onPress={() => router.push('/chat-list')} />
-                <NavItem icon="people-outline" label="Contacts" onPress={() => router.push('/contacts')} />
-                <NavItem icon="newspaper-outline" label="Blog" onPress={() => router.push('/blog')} />
-                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
-                    <View style={styles.navProfileContainer}>
-                        {user?.profilePhoto ? (
-                            <Image source={{ uri: user.profilePhoto }} style={styles.navAvatar} />
-                        ) : (
-                            <View style={styles.navAvatarPlaceholder}>
-                                <Ionicons name="person" size={16} color="#94a3b8" />
-                            </View>
-                        )}
-                    </View>
-                    <Text style={styles.navLabel}>Account</Text>
-                </TouchableOpacity>
-            </View>
+            <BottomNav activeTab="Home" />
         </SafeAreaView>
     );
 }

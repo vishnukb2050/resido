@@ -6,15 +6,33 @@ export class ProfileService {
     constructor(private prisma: PrismaService) {}
 
     async updateProfile(userId: string, data: any) {
-        return this.prisma.userClient.user.update({
+        const user = await this.prisma.userClient.user.update({
             where: { id: userId },
             data: {
                 name: data.name,
                 age: data.age ? parseInt(data.age) : undefined,
                 description: data.description,
                 profilePhoto: data.profilePhoto,
+                profileName: data.profileName,
+                phoneVisibility: data.phoneVisibility,
             }
         });
+
+        // Sync to resident-service members with same phone
+        if (user.phone) {
+            await this.prisma.coreClient.member.updateMany({
+                where: { phone: user.phone },
+                data: {
+                    profileName: data.profileName,
+                    phoneVisibility: data.phoneVisibility,
+                    name: data.name,
+                    profilePhoto: data.profilePhoto,
+                    userId: user.id
+                }
+            });
+        }
+
+        return user;
     }
 
     async getJobProfile(userId: string) {

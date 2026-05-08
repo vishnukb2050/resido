@@ -1,2 +1,2 @@
-import BlogScreen from '../src/screens/BlogScreen';
-export default function Page() { return <BlogScreen />; }
+import ThreadScreen from '../src/screens/ThreadScreen';
+export default ThreadScreen;

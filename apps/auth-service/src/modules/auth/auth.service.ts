@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { OtpService } from '../otp/otp.service';
+import { FollowService } from '../follow/follow.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,7 @@ export class AuthService {
         private jwt: JwtService,
         private config: ConfigService,
         private otpService: OtpService,
+        private followService: FollowService,
         @Inject('REDIS_CLIENT') private redis: Redis,
     ) { }
 
@@ -55,7 +57,17 @@ export class AuthService {
         }));
 
         const tokens = await this.generateTokens(user.id, user.phone, null, null);
-        return { ...tokens, workspaces, user: { id: user.id, phone: user.phone, name: user.name } };
+        return { 
+            ...tokens, 
+            workspaces, 
+            user: { 
+                id: user.id, 
+                phone: user.phone, 
+                name: user.name,
+                profileName: user.profileName,
+                phoneVisibility: user.phoneVisibility
+            } 
+        };
     }
 
     async adminLogin(email: string, password: string) {
@@ -116,7 +128,7 @@ export class AuthService {
         }
     }
 
-    async syncContacts(phones: string[]) {
+    async syncContacts(userId: string, phones: string[]) {
         const normalized = phones.map(p => p.replace(/\D/g, ''));
         const registered = await this.prisma.userRead.user.findMany({
             where: {
@@ -126,16 +138,38 @@ export class AuthService {
             select: {
                 id: true,
                 phone: true,
-                name: true
+                name: true,
+                profileName: true,
+                phoneVisibility: true,
+                profilePhoto: true
             }
         });
+
+        // Automatically follow registered contacts
+        if (userId) {
+            for (const contact of registered) {
+                if (contact.id !== userId) {
+                    await this.followService.followUser(userId, contact.id);
+                }
+            }
+        }
+
         return registered;
     }
 
     async getMe(userId: string) {
         return this.prisma.userRead.user.findUnique({
             where: { id: userId },
-            select: { id: true, phone: true, email: true, name: true, role: true },
+            select: { 
+                id: true, 
+                phone: true, 
+                email: true, 
+                name: true, 
+                profileName: true, 
+                phoneVisibility: true, 
+                profilePhoto: true,
+                role: true 
+            },
         });
     }
 

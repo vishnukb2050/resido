@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient as MasterClient } from '@resido/master-client';
 import { PrismaClient as UserClient } from '@resido/user-client';
+import { PrismaClient as CoreClient } from '@resido/core-client';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
@@ -9,6 +10,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     public masterRead: MasterClient;
     public userClient: UserClient;
     public userRead: UserClient;
+    public coreClient: CoreClient;
+    public coreRead: CoreClient;
 
     constructor(config: ConfigService) {
         this.masterClient = new MasterClient({
@@ -24,6 +27,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         this.userRead = new UserClient({
             datasources: { db: { url: config.get('USER_READ_URL') } },
         });
+        this.coreClient = new CoreClient({
+            datasources: { db: { url: config.get('CORE_WRITE_URL') } },
+        });
+        this.coreRead = new CoreClient({
+            datasources: { db: { url: config.get('CORE_READ_URL') } },
+        });
     }
 
     async onModuleInit() {
@@ -32,6 +41,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
             this.masterRead.$connect(),
             this.userClient.$connect(),
             this.userRead.$connect(),
+            this.coreClient.$connect(),
+            this.coreRead.$connect(),
         ]);
     }
 
@@ -41,6 +52,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
             this.masterRead.$disconnect(),
             this.userClient.$disconnect(),
             this.userRead.$disconnect(),
+            this.coreClient.$disconnect(),
+            this.coreRead.$disconnect(),
         ]);
     }
 }

@@ -4,6 +4,8 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import AcceptInvitePage from './pages/AcceptInvitePage';
 import DashboardPage from './pages/DashboardPage';
+import MembersPage from './pages/MembersPage';
+import StaffPage from './pages/StaffPage';
 
 // Stub missing pages
 const StubPage = ({ title }: { title: string }) => (
@@ -22,8 +24,9 @@ export default function App() {
                 <Route element={<Layout />}>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/members" element={<StubPage title="Members" />} />
-                    <Route path="/departments" element={<StubPage title="Departments" />} />
+                    <Route path="/members" element={<MembersPage />} />
+                    <Route path="/staff" element={<StaffPage />} />
+                    <Route path="/departments" element={<StaffPage />} />
                     <Route path="/residents" element={<StubPage title="Residents" />} />
                     <Route path="/notices" element={<StubPage title="Notice Board" />} />
                     <Route path="/polls" element={<StubPage title="Polls" />} />

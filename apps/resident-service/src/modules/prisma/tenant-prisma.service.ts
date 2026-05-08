@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@resido/core-client';
 import { ConfigService } from '@nestjs/config';
 import { AsyncLocalStorage } from 'async_hooks';
 

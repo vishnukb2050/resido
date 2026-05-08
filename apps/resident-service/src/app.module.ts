@@ -4,6 +4,7 @@ import { TenantPrismaModule } from './modules/prisma/tenant-prisma.module';
 import { MembersModule } from './modules/members/members.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { CommunityModule } from './modules/community/community.module';
+import { EventsModule } from './modules/events/events.module';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 
 @Module({
@@ -13,6 +14,7 @@ import { TenantMiddleware } from './middleware/tenant.middleware';
     MembersModule,
     StorageModule,
     CommunityModule,
+    EventsModule,
   ],
 })
 export class AppModule implements NestModule {
