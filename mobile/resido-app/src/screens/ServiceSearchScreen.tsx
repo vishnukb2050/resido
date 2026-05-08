@@ -1,225 +1,323 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-    View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, 
-    ScrollView, TextInput, FlatList, SafeAreaView, Image, Dimensions 
+    View, Text, TouchableOpacity, StyleSheet, ScrollView, 
+    TextInput, SafeAreaView, Image, Dimensions, StatusBar
 } from 'react-native';
-import { api } from '../services/api';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
-    { name: 'Plumber', icon: 'wrench', color: '#6366f1' },
-    { name: 'Electrician', icon: 'flash', color: '#f59e0b' },
-    { name: 'Cleaner', icon: 'broom', color: '#10b981' },
-    { name: 'Painter', icon: 'format-paint', color: '#ec4899' },
-    { name: 'Carpenter', icon: 'hammer', color: '#8b5cf6' },
-    { name: 'Mechanic', icon: 'cog', color: '#64748b' },
-    { name: 'Gardener', icon: 'leaf', color: '#22c55e' },
+    { id: 'all', name: 'All', icon: 'apps', color: '#6366f1' },
+    { id: '1', name: 'Plumber', icon: 'water', color: '#60a5fa' },
+    { id: '2', name: 'Electrician', icon: 'flash', color: '#fbbf24' },
+    { id: '3', name: 'Carpenter', icon: 'construct', color: '#d97706' },
+    { id: '4', name: 'Cleaner', icon: 'leaf', color: '#10b981' },
+    { id: '5', name: 'Painter', icon: 'brush', color: '#ec4899' },
+    { id: '6', name: 'More', icon: 'grid', color: '#64748b' },
+];
+
+const POPULAR_SERVICES = [
+    { id: 'p1', name: 'Plumbing', rating: '4.6', reviews: '1.2K', image: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=400', icon: 'water' },
+    { id: 'p2', name: 'Electrical Work', rating: '4.7', reviews: '1.5K', image: 'https://images.unsplash.com/photo-1621905181174-1133f4bf30e8?w=400', icon: 'flash' },
+    { id: 'p3', name: 'Carpentry', rating: '4.5', reviews: '982', image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=400', icon: 'construct' },
+    { id: 'p4', name: 'Cleaning', rating: '4.6', reviews: '1.1K', image: 'https://images.unsplash.com/photo-1581578731522-745505146317?w=400', icon: 'leaf' },
+];
+
+const TOP_PROFESSIONALS = [
+    {
+        id: '1',
+        name: 'Ramesh Kumar',
+        category: 'Plumber',
+        exp: '8 yrs exp.',
+        rating: 4.7,
+        reviews: 356,
+        price: '₹300',
+        verified: true,
+        image: 'https://images.unsplash.com/photo-1540560942872-20bb5c39d29c?w=400',
+    },
+    {
+        id: '2',
+        name: 'Suresh Yadav',
+        category: 'Electrician',
+        exp: '6 yrs exp.',
+        rating: 4.6,
+        reviews: 289,
+        price: '₹250',
+        verified: true,
+        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
+    },
+    {
+        id: '3',
+        name: 'Arjun Singh',
+        category: 'Carpenter',
+        exp: '10 yrs exp.',
+        rating: 4.8,
+        reviews: 412,
+        price: '₹400',
+        verified: true,
+        image: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400',
+    },
 ];
 
 export default function ServiceSearchScreen() {
     const router = useRouter();
-    const [query, setQuery] = useState('');
-    const [category, setCategory] = useState('Plumber');
-    const [results, setResults] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        // Initial search or featured providers
-        handleSearch();
-    }, [category]);
-
-    const handleSearch = async () => {
-        setLoading(true);
-        try {
-            // Mocking for high-fidelity demonstration
-            const mockResults = [
-                { id: '1', user: { name: 'Rajesh Kumar' }, category: 'Plumber', description: 'Expert in leak detection and bathroom fittings. 10+ years experience.', city: 'Bangalore', pincode: '560001', rating: 4.8, jobs: 124, verified: true },
-                { id: '2', user: { name: 'Amit Sharma' }, category: 'Plumber', description: 'Available 24/7 for emergency plumbing services. Certified professional.', city: 'Bangalore', pincode: '560002', rating: 4.5, jobs: 89, verified: true },
-                { id: '3', user: { name: 'Sunil Verma' }, category: 'Plumber', description: 'Affordable plumbing and maintenance for residential societies.', city: 'Bangalore', pincode: '560003', rating: 4.2, jobs: 56, verified: false },
-            ];
-            
-            // Real API call (uncomment in production)
-            // const { data } = await api.get('/profile/search', { params: { category, location: query } });
-            // setResults(data);
-            
-            setResults(mockResults);
-        } catch (error) {
-            console.error('Search error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const renderProvider = ({ item }: { item: any }) => (
-        <TouchableOpacity style={styles.card} onPress={() => router.push(`/job-profile-details/${item.id}`)}>
-            <View style={styles.cardTop}>
-                <View style={styles.avatarContainer}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{item.user.name[0]}</Text>
-                    </View>
-                    {item.verified && (
-                        <View style={styles.verifiedBadge}>
-                            <Ionicons name="checkmark-circle" size={14} color="#6366f1" />
-                        </View>
-                    )}
-                </View>
-                <View style={styles.cardInfo}>
-                    <View style={styles.nameRow}>
-                        <Text style={styles.providerName}>{item.user.name}</Text>
-                        <View style={styles.ratingRow}>
-                            <Ionicons name="star" size={14} color="#f59e0b" />
-                            <Text style={styles.ratingText}>{item.rating}</Text>
-                        </View>
-                    </View>
-                    <Text style={styles.providerCat}>{item.category} • {item.jobs} Jobs Done</Text>
-                </View>
-                <TouchableOpacity style={styles.callBtn}>
-                    <Ionicons name="call" size={20} color="#fff" />
-                </TouchableOpacity>
-            </View>
-            <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
-            <View style={styles.cardFooter}>
-                <View style={styles.locationRow}>
-                    <Ionicons name="location-outline" size={14} color="#64748b" />
-                    <Text style={styles.locationText}>{item.city}, {item.pincode}</Text>
-                </View>
-                <Text style={styles.viewProfile}>View Profile</Text>
-            </View>
-        </TouchableOpacity>
-    );
+    const [activeCat, setActiveCat] = useState('all');
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#1e293b" />
-                </TouchableOpacity>
-                <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color="#94a3b8" />
-                    <TextInput 
-                        style={styles.searchInput}
-                        placeholder="Search pincode, city..."
-                        placeholderTextColor="#94a3b8"
-                        value={query}
-                        onChangeText={setQuery}
-                        onSubmitEditing={handleSearch}
-                    />
+            <StatusBar barStyle="dark-content" />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                
+                {/* Header */}
+                <View style={styles.header}>
+                    <View>
+                        <Text style={styles.headerTitle}>Services</Text>
+                        <Text style={styles.headerSubtitle}>Find trusted professionals for your needs</Text>
+                    </View>
+                    <TouchableOpacity style={styles.notifBtn}>
+                        <Ionicons name="notifications-outline" size={26} color="#1e293b" />
+                        <View style={styles.notifBadge} />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.filterBtn}>
-                    <Ionicons name="options-outline" size={24} color="#1e293b" />
-                </TouchableOpacity>
-            </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search" size={20} color="#94a3b8" />
+                        <TextInput 
+                            placeholder="Search services, professionals or categories..." 
+                            style={styles.searchInput}
+                            placeholderTextColor="#94a3b8"
+                        />
+                        <TouchableOpacity style={styles.filterBtn}>
+                            <Ionicons name="options-outline" size={20} color="#64748b" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 {/* Categories */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Categories</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
-                        {CATEGORIES.map(cat => (
-                            <TouchableOpacity 
-                                key={cat.name} 
-                                style={[styles.catItem, category === cat.name && styles.catItemActive]}
-                                onPress={() => setCategory(cat.name)}
-                            >
-                                <View style={[styles.catIcon, { backgroundColor: `${cat.color}15` }]}>
-                                    <MaterialCommunityIcons name={cat.icon as any} size={24} color={cat.color} />
+                <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    style={styles.catScroll}
+                    contentContainerStyle={styles.catContent}
+                >
+                    {CATEGORIES.map(cat => (
+                        <TouchableOpacity 
+                            key={cat.id} 
+                            style={styles.catItem}
+                            onPress={() => setActiveCat(cat.id)}
+                        >
+                            <View style={[styles.catIcon, { backgroundColor: cat.color }, activeCat === cat.id && styles.catIconActive]}>
+                                <MaterialCommunityIcons name={cat.icon as any} size={26} color="#fff" />
+                            </View>
+                            <Text style={styles.catName}>{cat.name}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
+                {/* Verified Banner */}
+                <View style={styles.verifiedBanner}>
+                    <View style={styles.verifiedIconContainer}>
+                        <View style={styles.shieldIcon}>
+                            <Ionicons name="shield-checkmark" size={20} color="#fff" />
+                        </View>
+                    </View>
+                    <View style={styles.verifiedTextContent}>
+                        <Text style={styles.verifiedTitle}>Verified & Trusted Professionals</Text>
+                        <Text style={styles.verifiedSubtitle}>Background verified • Quality service • On-time</Text>
+                    </View>
+                    <View style={styles.verifiedBadgeContainer}>
+                        <MaterialCommunityIcons name="certificate" size={40} color="#6366f1" />
+                        <View style={styles.checkInner}>
+                            <Ionicons name="checkmark" size={14} color="#fff" />
+                        </View>
+                    </View>
+                </View>
+
+                {/* Popular Services */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Popular Services</Text>
+                    <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
+                </View>
+                <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    style={styles.popularScroll}
+                    contentContainerStyle={styles.popularContent}
+                >
+                    {POPULAR_SERVICES.map(item => (
+                        <TouchableOpacity key={item.id} style={styles.popularCard}>
+                            <Image source={{ uri: item.image }} style={styles.popularImage} />
+                            <View style={styles.popularIconOverlay}>
+                                <MaterialCommunityIcons name={item.icon as any} size={18} color="#6366f1" />
+                            </View>
+                            <View style={styles.popularInfo}>
+                                <Text style={styles.popularName}>{item.name}</Text>
+                                <View style={styles.ratingRow}>
+                                    <Ionicons name="star" size={12} color="#f59e0b" />
+                                    <Text style={styles.ratingText}>{item.rating} ({item.reviews})</Text>
                                 </View>
-                                <Text style={[styles.catText, category === cat.name && styles.catTextActive]}>{cat.name}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
+                {/* Top Professionals */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Top Professionals</Text>
+                    <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
+                </View>
+                <View style={styles.prosList}>
+                    {TOP_PROFESSIONALS.map(pro => (
+                        <TouchableOpacity key={pro.id} style={styles.proCard}>
+                            <Image source={{ uri: pro.image }} style={styles.proImage} />
+                            <View style={styles.proInfo}>
+                                <View style={styles.proNameRow}>
+                                    <Text style={styles.proName}>{pro.name}</Text>
+                                    <Ionicons name="checkmark-circle" size={16} color="#6366f1" />
+                                </View>
+                                <Text style={styles.proCat}>{pro.category} • {pro.exp}</Text>
+                                <View style={styles.proLocRow}>
+                                    <Ionicons name="location-outline" size={14} color="#64748b" />
+                                    <Text style={styles.proLocText}>Bangalore, Karnataka</Text>
+                                </View>
+                            </View>
+                            <View style={styles.proRight}>
+                                <View style={styles.proRatingRow}>
+                                    <Ionicons name="star" size={14} color="#f59e0b" />
+                                    <Text style={styles.proRatingText}>{pro.rating} <Text style={styles.proReviews}>({pro.reviews})</Text></Text>
+                                </View>
+                                <View style={styles.priceBadge}>
+                                    <Text style={styles.priceText}>Starts {pro.price}</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity style={styles.chatBtn}>
+                                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#6366f1" />
                             </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                        </TouchableOpacity>
+                    ))}
                 </View>
 
-                {/* Popular Services Promo */}
-                <View style={styles.promoSection}>
-                    <View style={styles.promoCard}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.promoTitle}>Emergency Plumbing?</Text>
-                            <Text style={styles.promoSub}>Get verified professionals at your doorstep within 30 mins.</Text>
-                            <TouchableOpacity style={styles.promoBtn}>
-                                <Text style={styles.promoBtnText}>Book Now</Text>
-                            </TouchableOpacity>
-                        </View>
-                        <MaterialCommunityIcons name="wrench-clock" size={80} color="rgba(255,255,255,0.2)" style={styles.promoIcon} />
+                {/* Feature Icons */}
+                <View style={styles.featuresRow}>
+                    <FeatureItem icon="shield-checkmark-outline" label="Verified" sub="Background verified" />
+                    <FeatureItem icon="star-outline" label="Ratings" sub="Real customer reviews" />
+                    <FeatureItem icon="shield-outline" label="Secure" sub="Safe & trusted payments" />
+                    <FeatureItem icon="headset-outline" label="Support" sub="24/7 customer support" />
+                </View>
+
+                {/* Post a Job Footer */}
+                <View style={styles.postJobCard}>
+                    <View style={styles.postJobIcon}>
+                        <Ionicons name="pricetag" size={24} color="#6366f1" />
                     </View>
-                </View>
-
-                {/* Results */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>{category} Specialists</Text>
-                        <TouchableOpacity><Text style={styles.viewAll}>View All</Text></TouchableOpacity>
+                    <View style={styles.postJobText}>
+                        <Text style={styles.postJobTitle}>Post a Job for Free</Text>
+                        <Text style={styles.postJobSubtitle}>Tell us what you need, professionals will reach out to you.</Text>
                     </View>
-
-                    {loading ? (
-                        <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
-                    ) : results.length > 0 ? (
-                        results.map(item => <View key={item.id}>{renderProvider({ item })}</View>)
-                    ) : (
-                        <View style={styles.empty}>
-                            <Ionicons name="search-outline" size={80} color="#f1f5f9" />
-                            <Text style={styles.emptyText}>No professionals found in this area</Text>
-                        </View>
-                    )}
+                    <TouchableOpacity style={styles.postJobBtn}>
+                        <Text style={styles.postJobBtnText}>Post a Job</Text>
+                    </TouchableOpacity>
                 </View>
+
+                <View style={{ height: 120 }} />
             </ScrollView>
 
-            <BottomNav />
+            <BottomNav activeTab="Home" />
         </SafeAreaView>
+    );
+}
+
+function FeatureItem({ icon, label, sub }: any) {
+    return (
+        <View style={styles.featureItem}>
+            <View style={styles.featureIconBox}>
+                <Ionicons name={icon} size={20} color="#10b981" />
+            </View>
+            <View>
+                <Text style={styles.featureLabel}>{label}</Text>
+                <Text style={styles.featureSub}>{sub}</Text>
+            </View>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fcfcfd' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#fff', gap: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
-    searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 12, height: 48, borderWidth: 1, borderColor: '#f1f5f9' },
-    searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b', fontWeight: '500' },
-    filterBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    scrollContent: { paddingBottom: 20 },
+    header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    headerTitle: { fontSize: 26, fontWeight: '900', color: '#1e293b' },
+    headerSubtitle: { fontSize: 14, color: '#64748b', marginTop: 2 },
+    notifBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    notifBadge: { position: 'absolute', top: 10, right: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fcfcfd' },
+    
+    searchContainer: { paddingHorizontal: 20, marginBottom: 20 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 56, borderRadius: 18, paddingHorizontal: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
+    searchInput: { flex: 1, marginLeft: 12, fontSize: 15, color: '#1e293b', fontWeight: '500' },
+    filterBtn: { padding: 4 },
 
-    section: { padding: 20 },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 15 },
-    viewAll: { fontSize: 13, color: '#6366f1', fontWeight: '800' },
+    catScroll: { marginBottom: 25 },
+    catContent: { paddingHorizontal: 20 },
+    catItem: { alignItems: 'center', marginRight: 20, width: 64 },
+    catIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+    catIconActive: { borderWidth: 3, borderColor: '#fff' },
+    catName: { fontSize: 12, fontWeight: '700', color: '#475569' },
 
-    catScroll: { flexDirection: 'row', marginHorizontal: -20, paddingHorizontal: 20 },
-    catItem: { alignItems: 'center', marginRight: 20, width: 70 },
-    catIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    catItemActive: { opacity: 1 },
-    catText: { fontSize: 12, color: '#64748b', fontWeight: '700' },
-    catTextActive: { color: '#1e293b', fontWeight: '800' },
+    verifiedBanner: { marginHorizontal: 20, backgroundColor: '#f5f7ff', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e0e7ff', marginBottom: 25 },
+    verifiedIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOpacity: 0.1 },
+    shieldIcon: { backgroundColor: '#6366f1', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    verifiedTextContent: { flex: 1, marginLeft: 12 },
+    verifiedTitle: { fontSize: 14, fontWeight: '800', color: '#6366f1' },
+    verifiedSubtitle: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+    verifiedBadgeContainer: { position: 'relative', width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    checkInner: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', top: 11 },
 
-    promoSection: { paddingHorizontal: 20, marginBottom: 10 },
-    promoCard: { backgroundColor: '#6366f1', borderRadius: 24, padding: 20, flexDirection: 'row', overflow: 'hidden' },
-    promoTitle: { color: '#fff', fontSize: 18, fontWeight: '900', marginBottom: 6 },
-    promoSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, lineHeight: 18, marginBottom: 15, paddingRight: 40 },
-    promoBtn: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, alignSelf: 'flex-start' },
-    promoBtnText: { color: '#6366f1', fontWeight: '800', fontSize: 13 },
-    promoIcon: { position: 'absolute', right: -10, bottom: -10 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15 },
+    sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+    viewAll: { fontSize: 13, color: '#6366f1', fontWeight: '700' },
 
-    card: { backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },
-    cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    avatarContainer: { position: 'relative' },
-    avatar: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-    avatarText: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-    verifiedBadge: { position: 'absolute', bottom: -4, right: -4, backgroundColor: '#fff', borderRadius: 10, padding: 2 },
-    cardInfo: { flex: 1, marginLeft: 14 },
-    nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    providerName: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
-    ratingRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff9eb', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 4 },
-    ratingText: { fontSize: 12, fontWeight: '800', color: '#f59e0b' },
-    providerCat: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
-    callBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
-    cardDesc: { fontSize: 13, color: '#64748b', lineHeight: 20, marginBottom: 15, fontWeight: '500' },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f8fafc', paddingTop: 12 },
-    locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    locationText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
-    viewProfile: { fontSize: 12, color: '#6366f1', fontWeight: '800' },
+    popularScroll: { marginBottom: 25 },
+    popularContent: { paddingHorizontal: 20 },
+    popularCard: { width: 150, backgroundColor: '#fff', borderRadius: 20, marginRight: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9' },
+    popularImage: { width: '100%', height: 100 },
+    popularIconOverlay: { position: 'absolute', top: 8, left: 8, backgroundColor: '#fff', padding: 6, borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.1 },
+    popularInfo: { padding: 12 },
+    popularName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+    ratingText: { fontSize: 11, color: '#64748b', marginLeft: 4, fontWeight: '600' },
 
-    empty: { alignItems: 'center', marginTop: 60 },
-    emptyText: { color: '#94a3b8', fontSize: 15, fontWeight: '600', marginTop: 10, textAlign: 'center' },
+    prosList: { paddingHorizontal: 20, marginBottom: 25 },
+    proCard: { backgroundColor: '#fff', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
+    proImage: { width: 60, height: 60, borderRadius: 30 },
+    proInfo: { flex: 1, marginLeft: 12 },
+    proNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    proName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
+    proCat: { fontSize: 12, color: '#64748b', marginTop: 1 },
+    proLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+    proLocText: { fontSize: 11, color: '#94a3b8' },
+    proRight: { alignItems: 'flex-end', marginRight: 8 },
+    proRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    proRatingText: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
+    proReviews: { color: '#94a3b8', fontWeight: '500' },
+    priceBadge: { backgroundColor: '#f5f7ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 6 },
+    priceText: { fontSize: 12, color: '#6366f1', fontWeight: '800' },
+    chatBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+
+    featuresRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 10, marginBottom: 25 },
+    featureItem: { width: '50%', flexDirection: 'row', alignItems: 'center', padding: 10, gap: 10 },
+    featureIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' },
+    featureLabel: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
+    featureSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
+
+    postJobCard: { marginHorizontal: 20, backgroundColor: '#f8fafc', borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+    postJobIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#eef2ff', alignItems: 'center', justifyContent: 'center' },
+    postJobText: { flex: 1, marginLeft: 15 },
+    postJobTitle: { fontSize: 16, fontWeight: '900', color: '#6366f1' },
+    postJobSubtitle: { fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 18 },
+    postJobBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+    postJobBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 });
