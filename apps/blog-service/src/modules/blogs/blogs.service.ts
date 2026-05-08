@@ -3,11 +3,14 @@ import { PrismaService } from '../prisma/tenant-prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
+import { StorageService } from '../storage/storage.service';
+
 @Injectable()
 export class BlogsService {
     constructor(
         private prisma: PrismaService,
-        private http: HttpService
+        private http: HttpService,
+        private storage: StorageService
     ) {}
 
     async listBlogs() {
@@ -22,6 +25,7 @@ export class BlogsService {
             data: { 
                 ...data, 
                 authorId,
+                type: data.type || 'THREAD',
                 mediaType: data.mediaType || 'IMAGE',
                 tags: data.tags || []
             }
@@ -56,5 +60,9 @@ export class BlogsService {
 
     async deleteBlog(id: string) {
         return this.prisma.client.blog.update({ where: { id }, data: { isActive: false } });
+    }
+
+    async generateUploadUrl(tenantId: string, fileName: string, contentType: string, blogType: 'THREAD' | 'FLARE', mediaType: 'IMAGE' | 'VIDEO') {
+        return this.storage.generatePresignedUrl(fileName, contentType, tenantId, blogType, mediaType);
     }
 }

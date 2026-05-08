@@ -14,6 +14,7 @@ model Blog {
   content     String
   authorId    String   // Global User ID
   category    String?
+  type        BlogType @default(THREAD)
   mediaUrls   String[]
   mediaType   BlogMediaType @default(IMAGE)
   tags        String[] // Array of Global User IDs
@@ -23,6 +24,11 @@ model Blog {
 
   @@index([tenantId])
   @@map("blogs")
+}
+
+enum BlogType {
+  THREAD
+  FLARE
 }
 
 enum BlogMediaType {

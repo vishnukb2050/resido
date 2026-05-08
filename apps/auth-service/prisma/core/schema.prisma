@@ -1,7 +1,7 @@
 // resident-service Prisma schema (Shared Core DB)
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/@resido/core-client"
+  output   = "../../node_modules/@resido/core-client"
 }
 
 datasource db {

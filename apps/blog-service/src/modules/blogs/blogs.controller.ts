@@ -12,6 +12,15 @@ export class BlogsController {
         return this.blogsService.listBlogs();
     }
 
+    @Post('upload-url')
+    async getUploadUrl(
+        @Req() req: any,
+        @Body() body: { fileName: string; contentType: string; blogType: 'THREAD' | 'FLARE'; mediaType: 'IMAGE' | 'VIDEO' }
+    ) {
+        const tenantId = req.tenantId as string;
+        return this.blogsService.generateUploadUrl(tenantId, body.fileName, body.contentType, body.blogType, body.mediaType);
+    }
+
     @Post()
     createBlog(@Req() req: any, @Body() data: any) {
         const userId = req.headers['x-user-id'] as string;

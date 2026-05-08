@@ -6,6 +6,7 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { PrismaService } from '../../modules/prisma/tenant-prisma.service';
 
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {
@@ -17,7 +18,9 @@ export class TenantInterceptor implements NestInterceptor {
             throw new BadRequestException('X-Db-Name header is missing');
         }
 
+        PrismaService.als.enterWith({ tenantId: dbName as string });
         request.tenantDbName = dbName;
+        request.tenantId = dbName;
         return next.handle();
     }
 }
