@@ -12,6 +12,7 @@ export default function CreateCommunityScreen() {
     const [adminPassword, setAdminPassword] = useState('');
     const [caretakerEmail, setCaretakerEmail] = useState('');
     const [subAdminEmail, setSubAdminEmail] = useState('');
+    const [memberPhones, setMemberPhones] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -29,6 +30,7 @@ export default function CreateCommunityScreen() {
                 adminPassword,
                 caretakerEmail,
                 subAdminEmail,
+                memberPhones: memberPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 plan: 'BASIC'
             });
             Alert.alert('Success', 'Community created successfully! You can now log in to the web dashboard with this email and password.', [
@@ -108,16 +110,17 @@ export default function CreateCommunityScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Sub-Admin Email (Optional)</Text>
+                        <Text style={styles.label}>Member Mobile Numbers (Optional)</Text>
                         <TextInput
-                            style={styles.input}
-                            placeholder="staff@example.com"
+                            style={[styles.input, { height: 100 }]}
+                            placeholder="e.g. 9645859194, 9876543210"
                             placeholderTextColor="#64748b"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={subAdminEmail}
-                            onChangeText={setSubAdminEmail}
+                            multiline
+                            numberOfLines={4}
+                            value={memberPhones}
+                            onChangeText={setMemberPhones}
                         />
+                        <Text style={styles.hint}>Comma separated 10-digit mobile numbers</Text>
                     </View>
 
                     <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={loading}>

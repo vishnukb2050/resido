@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator
+    StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image as RNImage
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authApi } from '../../services/api';
@@ -45,7 +45,22 @@ export default function OtpLoginScreen() {
         setLoading(true);
         try {
             const res = await authApi.verifyOtp(phone, otp);
-            const { accessToken, refreshToken, user, workspaces } = res.data;
+            let { accessToken, refreshToken, user, workspaces } = res.data;
+
+            // Inject mock Greenwoods community for specific test user
+            if (phone === '9645859194') {
+                const mockWorkspace = {
+                    tenantId: 'greenwoods-mock-id',
+                    tenantName: 'Greenwoods Community',
+                    role: 'RESIDENT' as any,
+                    memberId: 'mem-9645859194',
+                    dbName: 'greenwoods_db'
+                };
+                if (!workspaces.find((w: any) => w.tenantName === 'Greenwoods Community')) {
+                    workspaces = [mockWorkspace, ...workspaces];
+                }
+            }
+
             setOtpVerified({ token: accessToken, refreshToken, user, workspaces });
 
             if (workspaces.length === 0) {
@@ -68,6 +83,9 @@ export default function OtpLoginScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             <View style={styles.card}>
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                    <RNImage source={require('../../../assets/resido_logo.jpg')} style={{ width: 80, height: 80, borderRadius: 20 }} />
+                </View>
                 <Text style={styles.logo}>Resido</Text>
                 <Text style={styles.tagline}>Apartment Life, Simplified</Text>
 

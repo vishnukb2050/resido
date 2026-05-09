@@ -77,15 +77,7 @@ export default function CommunityListScreen() {
                 }
             />
 
-            <View style={styles.footer}>
-                <TouchableOpacity 
-                    style={styles.createBtn}
-                    onPress={() => router.push('/create-community')}
-                >
-                    <Ionicons name="add-circle" size={24} color="#fff" />
-                    <Text style={styles.createBtnText}>Create New Community</Text>
-                </TouchableOpacity>
-            </View>
+            {/* Footer removed as requested */}
         </SafeAreaView>
     );
 }

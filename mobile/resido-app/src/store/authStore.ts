@@ -72,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken: data.refreshToken,
                     user: data.user,
                     workspaces: data.workspaces,
-                    activeWorkspace: data.workspaces.length === 1 ? data.workspaces[0] : null,
+                    activeWorkspace: null, // Always start in Personal Space
                 }),
 
             updateUser: (user) => set({ user }),

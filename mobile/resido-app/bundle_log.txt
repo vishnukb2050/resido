@@ -1,0 +1,1 @@
+Invalid project root: /home/vishnu/socwhiz/resido/mobile/resido-app/false

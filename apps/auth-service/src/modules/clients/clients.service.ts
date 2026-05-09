@@ -14,6 +14,7 @@ export interface CreateClientDto {
     plan?: 'BASIC' | 'STANDARD' | 'PREMIUM';
     createdByMobile?: boolean;
     createdByUserId?: string;
+    memberPhones?: string[];
 }
 
 @Injectable()
@@ -72,9 +73,44 @@ export class ClientsService {
             });
         }
 
+        // Add initial members if provided
+        if (dto.memberPhones && dto.memberPhones.length > 0) {
+            for (const phone of dto.memberPhones) {
+                // Ensure user exists or create a shell user
+                let user = await this.prisma.masterRead.user.findUnique({ where: { phone } });
+                if (!user) {
+                    user = await this.prisma.masterClient.user.create({
+                        data: {
+                            phone,
+                            role: 'RESIDENT',
+                            isActive: true
+                        }
+                    });
+                }
+
+                // Add membership if not already exists
+                const existingMember = await this.prisma.masterRead.workspaceMembership.findUnique({
+                    where: { userId_tenantId: { userId: user.id, tenantId: client.id } }
+                });
+
+                if (!existingMember) {
+                    await this.prisma.userClient.workspaceMembership.create({
+                        data: {
+                            userId: user.id,
+                            tenantId: client.id,
+                            tenantName: client.name,
+                            role: 'RESIDENT',
+                            memberId: `mem-${phone.slice(-4)}`, // Placeholder memberId
+                            isActive: true
+                        }
+                    });
+                }
+            }
+        }
+
         return {
             client,
-            message: `Community "${dto.name}" created.`,
+            message: `Community "${dto.name}" created with ${dto.memberPhones?.length || 0} members.`,
         };
     }
 
