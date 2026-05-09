@@ -21,7 +21,7 @@ sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools
 cd /home/vishnu/socwhiz/resido/mobile/resido-app
 echo "Running expo prebuild..."
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 # Try setting default, but sdkmanager will use whatever is available
-npx expo prebuild --platform android --clean
+yes | npx expo prebuild --platform android --clean
 cd android
 echo "Assembling Release APK..."
 ./gradlew assembleRelease

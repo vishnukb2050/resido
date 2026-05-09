@@ -4,13 +4,13 @@
         "slug": "resido-app",
         "version": "1.0.0",
         "orientation": "portrait",
-        "icon": "./assets/icon.png",
+        "icon": "./assets/resido_logo.jpg",
         "scheme": "resido",
         "userInterfaceStyle": "automatic",
         "splash": {
-            "image": "./assets/icon.png",
+            "image": "./assets/resido_logo.jpg",
             "resizeMode": "contain",
-            "backgroundColor": "#4338ca"
+            "backgroundColor": "#ffffff"
         },
         "plugins": [
             "expo-router",

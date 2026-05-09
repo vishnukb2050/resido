@@ -52,4 +52,10 @@ export class AuthController {
     syncContacts(@Headers('x-user-id') userId: string, @Body() body: { phones: string[] }) {
         return this.authService.syncContacts(userId, body.phones);
     }
+
+    @Public()
+    @Post('sync-membership')
+    syncMembership(@Body() body: { phone: string; tenantId: string; tenantName: string; role: string }) {
+        return this.authService.syncMembership(body.phone, body.tenantId, body.tenantName, body.role);
+    }
 }

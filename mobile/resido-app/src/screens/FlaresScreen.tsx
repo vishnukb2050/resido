@@ -80,6 +80,6 @@ const styles = StyleSheet.create({
     sideActions: { alignItems: 'center', gap: 20, marginLeft: 10 },
     actionBtn: { alignItems: 'center' },
     actionText: { color: '#fff', fontSize: 12, fontWeight: '700', marginTop: 4 },
-    backBtn: { position: 'absolute', top: 60, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
+    backBtn: { position: 'absolute', top: 80, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
     addBtn: { position: 'absolute', right: 20, bottom: 250, width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 },
 });

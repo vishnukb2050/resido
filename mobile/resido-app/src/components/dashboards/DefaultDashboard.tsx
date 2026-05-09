@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,14 +9,14 @@ const { width } = Dimensions.get('window');
 
 export default function DefaultDashboard() {
     const router = useRouter();
-    const { user } = useAuthStore();
+    const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
 
     const isGuest = !user;
 
     if (isGuest) {
         return (
             <ScrollView style={styles.container} contentContainerStyle={styles.guestContent}>
-                <View style={styles.heroSection}>
+                <View style={styles.guestHero}>
                     <Image source={require('../../../assets/resido_logo.jpg')} style={{ width: 100, height: 100, marginBottom: 20 }} />
                     <Text style={styles.brandTitle}>Resido</Text>
                     <Text style={styles.heroSub}>Smart Living for Modern Communities</Text>
@@ -36,125 +36,141 @@ export default function DefaultDashboard() {
         <SafeAreaView style={styles.safeArea}>
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
-                    {/* Header Row - Matches Image 1 */}
-                    <View style={styles.headerRow}>
-                        <View style={styles.brandSide}>
-                            <View style={styles.logoContainer}>
-                                <Image 
-                                    source={require('../../../assets/resido_logo.jpg')} 
-                                    style={styles.logoImage} 
-                                    resizeMode="contain"
-                                />
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={styles.brandInfo}>
+                            <View style={styles.logoBox}>
+                                <Image source={require('../../../assets/resido_logo.jpg')} style={styles.logoMini} />
                             </View>
-                            <View style={styles.brandTextContainer}>
-                                <Text style={styles.brandName}>Resido</Text>
-                                <Text style={styles.brandTagline}>Your Community</Text>
-                                <Text style={styles.brandTaglineSmall}>Starts here</Text>
+                            <View>
+                                <Text style={styles.brandTitleText}>Resido</Text>
+                                <Text style={styles.brandTaglineText}>Your Community Starts Here</Text>
                             </View>
                         </View>
-
-                        {/* Announcements Card - Mini Version */}
-                        <TouchableOpacity style={styles.announcementCardMini}>
-                            <View style={styles.announcementTextContent}>
-                                <Text style={styles.announcementTitle}>Announcements</Text>
-                                <Text style={styles.announcementDescMini} numberOfLines={2}>
-                                    Stay updated with the latest news and important updates...
-                                </Text>
-                                <View style={styles.viewAllRow}>
-                                    <Text style={styles.viewAllText}>View all</Text>
-                                    <Ionicons name="chevron-forward" size={12} color="#6366f1" />
-                                </View>
-                            </View>
-                            <View style={styles.announcementIconBox}>
-                                <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png' }} style={styles.announcementIconImg} />
-                            </View>
-                        </TouchableOpacity>
+                        <View style={styles.headerActions}>
+                            <TouchableOpacity style={styles.iconBtn}>
+                                <Ionicons name="notifications" size={24} color="#6366f1" />
+                                <View style={styles.notifBadge} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.profileBtn}>
+                                <Image source={{ uri: 'https://i.pravatar.cc/100?u=resido' }} style={styles.profileImg} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
-                    {/* Quick Access Section */}
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Quick Access</Text>
+                    {/* Search Bar */}
+                    <View style={styles.searchSection}>
+                        <View style={styles.searchBar}>
+                            <Ionicons name="search-outline" size={20} color="#94a3b8" />
+                            <TextInput 
+                                style={styles.searchInput} 
+                                placeholder="Search users by name, flat, role..."
+                                placeholderTextColor="#94a3b8"
+                            />
+                            <TouchableOpacity>
+                                <Ionicons name="options-outline" size={20} color="#1e293b" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                    
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickAccessScroll}>
-                        <QuickAccessCard 
-                            icon="💬" 
-                            title="Global Chat" 
-                            subtitle="Connect with residents" 
+
+                    {/* Personal Space Section */}
+                    <TouchableOpacity style={styles.personalSpaceCard} onPress={() => router.push('/communities')}>
+                        <View style={styles.psIconBox}>
+                            <MaterialCommunityIcons name="office-building" size={24} color="#6366f1" />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 15 }}>
+                            <Text style={styles.psTitle}>
+                                {activeWorkspace?.tenantName || 'Personal Space'}
+                            </Text>
+                            <Text style={styles.psSub}>
+                                {workspaces.length > 0 ? `Switch between ${workspaces.length} communities` : 'Your personal dashboard'}
+                            </Text>
+                        </View>
+                        <View style={styles.psArrowBox}>
+                            <Ionicons name={workspaces.length > 1 ? "chevron-down" : "chevron-forward"} size={20} color="#1e293b" />
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Notification Stats - Horizontal Scroll */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.notifScroll}>
+                        <NotifCard 
+                            icon="clipboard-list-outline" 
+                            count={2} 
+                            title="Active Requests" 
+                            linkText="View details" 
+                            color="#6366f1"
                             bg="#f5f3ff"
-                            onPress={() => router.push('/chat-list')}
                         />
-                        <QuickAccessCard 
-                            icon="📅" 
-                            title="Calendar" 
-                            subtitle="Stay updated on events" 
-                            bg="#fff1f2"
-                            onPress={() => router.push('/calendar')}
+                        <NotifCard 
+                            icon="calendar-clock" 
+                            count={1} 
+                            title="Upcoming Event" 
+                            linkText="Today, 7:00 PM" 
+                            color="#10b981"
+                            bg="#ecfdf5"
                         />
-                        <QuickAccessCard 
-                            icon="🛠️" 
-                            title="Services" 
-                            subtitle="Raise requests & get help" 
+                        <NotifCard 
+                            icon="bullhorn-outline" 
+                            count={3} 
+                            title="New Notices" 
+                            linkText="View all" 
+                            color="#f59e0b"
                             bg="#fffbeb"
-                            onPress={() => router.push('/service-search')}
-                        />
-                        <QuickAccessCard 
-                            icon="💼" 
-                            title="Job Profile" 
-                            subtitle="Find job opportunities" 
-                            bg="#f0fdf4"
-                            onPress={() => router.push('/job-profile')}
-                        />
-                        <QuickAccessCard 
-                            icon="🏢" 
-                            title="Community" 
-                            subtitle="Create a community" 
-                            bg="#eff6ff"
-                            onPress={() => router.push('/create-community')}
                         />
                     </ScrollView>
 
-                    {/* Features Section */}
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Features</Text>
+                    {/* Social Stats */}
+                    <View style={styles.socialRow}>
+                        <TouchableOpacity style={styles.socialCard}>
+                            <Ionicons name="people" size={22} color="#6366f1" />
+                            <View style={{ marginLeft: 12 }}>
+                                <Text style={styles.socialCount}>123</Text>
+                                <Text style={styles.socialLabel}>Followers</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={14} color="#cbd5e1" style={{ marginLeft: 'auto' }} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.socialCard}>
+                            <Ionicons name="people-outline" size={22} color="#6366f1" />
+                            <View style={{ marginLeft: 12 }}>
+                                <Text style={styles.socialCount}>22</Text>
+                                <Text style={styles.socialLabel}>Following</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={14} color="#cbd5e1" style={{ marginLeft: 'auto' }} />
+                        </TouchableOpacity>
                     </View>
 
-                    <View style={styles.featuresGrid}>
-                        <FeatureCard 
-                            icon="👤" 
-                            title="Contacts" 
-                            subtitle="Directory of community residents" 
-                            bg="#eef2ff"
-                            onPress={() => router.push('/contacts')}
-                        />
-                        <FeatureCard 
-                            icon="📝" 
-                            title="Notes" 
-                            subtitle="Keep your notes handy" 
-                            bg="#fffbeb"
-                            onPress={() => router.push('/notes')}
-                        />
-                        <FeatureCard 
-                            icon="🖨️" 
-                            title="Scanner" 
-                            subtitle="Scan documents on the go" 
-                            bg="#eff6ff"
-                            onPress={() => router.push('/scanner')}
-                        />
-                        <FeatureCard 
-                            icon="📁" 
-                            title="Documents" 
-                            subtitle="Access important documents" 
-                            bg="#ecfdf5"
-                            onPress={() => router.push('/documents')}
-                        />
-                        <FeatureCard 
-                            icon="➕" 
-                            title="More" 
-                            subtitle="Explore more features" 
-                            bg="#f8fafc"
-                            onPress={() => router.push('/service-search')}
-                        />
+                    {/* Quick Access */}
+                    <View style={styles.sectionHeading}>
+                        <Text style={styles.sectionTitle}>Quick Access</Text>
+                        <TouchableOpacity style={styles.viewAllBtn}>
+                            <Text style={styles.viewAllText}>View All</Text>
+                            <Ionicons name="chevron-forward" size={14} color="#6366f1" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.quickAccessGrid}>
+                        <QACard icon="briefcase" title="Business Profile" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/business-profile')} />
+                        <QACard icon="construct" title="Services" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/service-search')} />
+                        <QACard icon="document-text" title="Notes" color="#f59e0b" bg="#fffbeb" onPress={() => router.push('/notes')} />
+                        <QACard icon="calendar" title="Calendar" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/calendar')} />
+                    </View>
+
+                    {/* All Features */}
+                    <View style={styles.sectionHeading}>
+                        <Text style={styles.sectionTitle}>All Features</Text>
+                        <TouchableOpacity style={styles.viewAllBtn}>
+                            <Text style={styles.viewAllText}>View All</Text>
+                            <Ionicons name="chevron-forward" size={14} color="#6366f1" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.featuresList}>
+                        <FullFeatureCard icon="people" title="Contacts" subtitle="Directory of community members" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/contacts')} />
+                        <FullFeatureCard icon="scan" title="Scanner" subtitle="Scan QR & documents instantly" color="#8b5cf6" bg="#f5f3ff" onPress={() => router.push('/scanner')} />
+                        <FullFeatureCard icon="folder" title="Documents" subtitle="Access important files & resources" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/documents')} />
+                        <FullFeatureCard icon="chatbubble-ellipses" title="Chat" subtitle="Connect with community members" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/chat-list')} />
+                        <FullFeatureCard icon="newspaper" title="Thread" subtitle="Community discussions & updates" color="#1e293b" bg="#f1f5f9" onPress={() => router.push('/thread')} />
+                        <FullFeatureCard icon="play-circle" title="Flares" subtitle="Watch important announcements" color="#ef4444" bg="#fef2f2" onPress={() => router.push('/flares')} />
                     </View>
                 </View>
             </ScrollView>
@@ -164,46 +180,49 @@ export default function DefaultDashboard() {
     );
 }
 
-function QuickAccessCard({ icon, title, subtitle, bg, onPress }: any) {
+function NotifCard({ icon, count, title, linkText, color, bg }: any) {
+    if (count === 0) return null;
     return (
-        <TouchableOpacity style={styles.qaCard} onPress={onPress}>
-            <View style={[styles.qaIconContainer, { backgroundColor: bg }]}>
-                <Text style={{ fontSize: 32 }}>{icon}</Text>
+        <View style={[styles.notifCard, { backgroundColor: '#fff' }]}>
+            <View style={[styles.notifIconBox, { backgroundColor: bg }]}>
+                <MaterialCommunityIcons name={icon} size={22} color={color} />
             </View>
-            <Text style={styles.qaTitle}>{title}</Text>
-            <Text style={styles.qaSubtitle}>{subtitle}</Text>
+            <View style={styles.notifContent}>
+                <Text style={styles.notifCount}>{count}</Text>
+                <Text style={styles.notifTitle}>{title}</Text>
+                <TouchableOpacity>
+                    <Text style={[styles.notifLink, { color: color }]}>{linkText}</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
+
+function QACard({ icon, title, color, bg, onPress }: any) {
+    return (
+        <TouchableOpacity style={styles.qaCardSmall} onPress={onPress}>
+            <View style={[styles.qaIconBoxSmall, { backgroundColor: bg }]}>
+                <Ionicons name={icon} size={24} color={color} />
+            </View>
+            <Text style={styles.qaTitleSmall}>{title}</Text>
+            <View style={styles.qaArrowSmall}>
+                <Ionicons name="chevron-forward" size={14} color="#94a3b8" />
+            </View>
         </TouchableOpacity>
     );
 }
 
-function FeatureCard({ icon, title, subtitle, bg, onPress }: any) {
+function FullFeatureCard({ icon, title, subtitle, color, bg, onPress }: any) {
     return (
-        <TouchableOpacity style={styles.featureCard} onPress={onPress}>
-            <View style={[styles.featureIconBox, { backgroundColor: bg }]}>
-                <Text style={{ fontSize: 24 }}>{icon}</Text>
+        <TouchableOpacity style={styles.fullFeatureCard} onPress={onPress}>
+            <View style={[styles.ffIconBox, { backgroundColor: bg }]}>
+                <Ionicons name={icon} size={22} color={color} />
             </View>
-            <View style={styles.featureTextContainer}>
-                <Text style={styles.featureTitleText}>{title}</Text>
-                <Text style={styles.featureSubtitleText} numberOfLines={1}>{subtitle}</Text>
+            <View style={styles.ffTextContent}>
+                <Text style={styles.ffTitle}>{title}</Text>
+                <Text style={styles.ffSub}>{subtitle}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={14} color="#cbd5e1" />
-        </TouchableOpacity>
-    );
-}
-
-function NavItem({ icon, label, active, badge, onPress }: any) {
-    return (
-        <TouchableOpacity style={styles.navItem} onPress={onPress}>
-            <View>
-                <Ionicons name={icon} size={24} color={active ? '#6366f1' : '#1e293b'} />
-                {badge && (
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{badge}</Text>
-                    </View>
-                )}
-            </View>
-            <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
-            {active && <View style={styles.activeBar} />}
+            <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
         </TouchableOpacity>
     );
 }
@@ -211,137 +230,64 @@ function NavItem({ icon, label, active, badge, onPress }: any) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fff' },
     container: { flex: 1, backgroundColor: '#fcfcfd' },
+    content: { paddingBottom: 120 },
+    
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#fff' },
+    brandInfo: { flexDirection: 'row', alignItems: 'center' },
+    logoBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+    logoMini: { width: 35, height: 35 },
+    brandTitleText: { fontSize: 24, fontWeight: '900', color: '#6366f1', marginLeft: 12 },
+    brandTaglineText: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginLeft: 12 },
+    
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+    iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
+    notifBadge: { position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fff' },
+    profileBtn: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9' },
+    profileImg: { width: '100%', height: '100%' },
+
+    searchSection: { paddingHorizontal: 20, marginBottom: 25 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 25, paddingHorizontal: 20, height: 54, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2, borderWidth: 1, borderColor: '#f1f5f9' },
+    searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
+
+    personalSpaceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 20, padding: 16, borderRadius: 24, marginBottom: 20, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 1 },
+    psIconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
+    psTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
+    psSub: { fontSize: 12, color: '#94a3b8', fontWeight: '500' },
+    psArrowBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
+
+    notifScroll: { paddingLeft: 20, paddingRight: 10, marginBottom: 25 },
+    notifCard: { width: 160, padding: 16, borderRadius: 24, marginRight: 15, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 5, elevation: 1 },
+    notifIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    notifContent: { flex: 1 },
+    notifCount: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+    notifTitle: { fontSize: 13, fontWeight: '700', color: '#1e293b', marginBottom: 8 },
+    notifLink: { fontSize: 11, fontWeight: '800' },
+
+    socialRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 15, marginBottom: 30 },
+    socialCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' },
+    socialCount: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+    socialLabel: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
+
+    sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 15 },
+    sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+    viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    viewAllText: { fontSize: 13, fontWeight: '700', color: '#6366f1' },
+
+    quickAccessGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 15, marginBottom: 25 },
+    qaCardSmall: { width: (width - 50) / 2, backgroundColor: '#fff', padding: 12, borderRadius: 20, margin: 5, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+    qaIconBoxSmall: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    qaTitleSmall: { fontSize: 13, fontWeight: '800', color: '#1e293b', marginLeft: 12, flex: 1 },
+    qaArrowSmall: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
+
+    featuresList: { paddingHorizontal: 20 },
+    fullFeatureCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 20, marginBottom: 10, borderWidth: 1, borderColor: '#f1f5f9' },
+    ffIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    ffTextContent: { flex: 1, marginLeft: 15 },
+    ffTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+    ffSub: { fontSize: 11, color: '#94a3b8', fontWeight: '500' },
+
     guestContent: { padding: 30, alignItems: 'center', justifyContent: 'center', flex: 1 },
-    content: { padding: 20, paddingBottom: 100 },
-    
-    headerRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        marginBottom: 32, 
-        marginTop: 10 
-    },
-    brandSide: { 
-        flexDirection: 'row', 
-        alignItems: 'center',
-        flex: 1
-    },
-    logoContainer: {
-        width: 65,
-        height: 65,
-        borderRadius: 32.5,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3
-    },
-    logoImage: { width: 45, height: 45 },
-    brandTextContainer: { marginLeft: 12 },
-    brandName: { fontSize: 28, fontWeight: '900', color: '#6366f1' },
-    brandTagline: { fontSize: 13, color: '#1e293b', fontWeight: '700' },
-    brandTaglineSmall: { fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: -2 },
-    
-    announcementCardMini: { 
-        backgroundColor: '#f5f3ff', 
-        borderRadius: 20, 
-        padding: 12, 
-        flexDirection: 'row', 
-        alignItems: 'center',
-        width: '45%',
-        borderWidth: 1,
-        borderColor: 'rgba(99, 102, 241, 0.05)',
-    },
-    announcementTextContent: { flex: 1 },
-    announcementIconBox: { marginLeft: 8 },
-    announcementIconImg: { width: 45, height: 45, borderRadius: 10 },
-    announcementTitle: { fontSize: 12, fontWeight: '800', color: '#6366f1', marginBottom: 2 },
-    announcementDescMini: { fontSize: 9, color: '#475569', lineHeight: 13, fontWeight: '500' },
-    viewAllRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-    viewAllText: { fontSize: 11, fontWeight: '700', color: '#6366f1', marginRight: 2 },
-
-    sectionHeader: { marginBottom: 16, marginTop: 10 },
-    sectionTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
-    
-    quickAccessScroll: { marginBottom: 20 },
-    qaCard: { 
-        width: width * 0.28, 
-        backgroundColor: '#fff', 
-        borderRadius: 24, 
-        padding: 12, 
-        marginRight: 12,
-        alignItems: 'center',
-        borderWidth: 1, 
-        borderColor: '#f1f5f9',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2
-    },
-    qaIconContainer: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-    qaTitle: { fontSize: 12, fontWeight: '800', color: '#1e293b', textAlign: 'center', marginBottom: 4 },
-    qaSubtitle: { fontSize: 9, color: '#64748b', textAlign: 'center', lineHeight: 12 },
-
-    featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-    featureCard: { 
-        width: '48%', 
-        backgroundColor: '#fff', 
-        borderRadius: 20, 
-        padding: 12, 
-        flexDirection: 'row', 
-        alignItems: 'center',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.03,
-        shadowRadius: 4,
-        elevation: 1
-    },
-    featureIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-    featureTextContainer: { flex: 1 },
-    featureTitleText: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
-    featureSubtitleText: { fontSize: 9, color: '#64748b', marginTop: 2 },
-
-    bottomNav: { 
-        position: 'absolute', 
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        height: 85, 
-        backgroundColor: '#fff', 
-        flexDirection: 'row', 
-        justifyContent: 'space-around', 
-        alignItems: 'center', 
-        paddingBottom: 25,
-        borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -8 },
-        shadowOpacity: 0.06,
-        shadowRadius: 15,
-        elevation: 20
-    },
-    navItem: { alignItems: 'center', justifyContent: 'center', width: 60, height: '100%' },
-    navLabel: { fontSize: 11, color: '#1e293b', marginTop: 6, fontWeight: '700' },
-    navLabelActive: { color: '#6366f1' },
-    activeBar: { position: 'absolute', bottom: -5, width: 25, height: 3, borderRadius: 2, backgroundColor: '#6366f1' },
-    
-    badge: { position: 'absolute', top: -4, right: -6, backgroundColor: '#ef4444', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-    badgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-
-    navProfileContainer: { width: 28, height: 28, borderRadius: 14, overflow: 'hidden' },
-    navAvatar: { width: '100%', height: '100%' },
-    navAvatarPlaceholder: { width: '100%', height: '100%', backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
-
-    heroSection: { marginBottom: 32, alignItems: 'center' },
+    guestHero: { alignItems: 'center', marginBottom: 30 },
     brandTitle: { fontSize: 32, fontWeight: '900', color: '#6366f1', marginBottom: 8 },
     heroSub: { fontSize: 20, fontWeight: '800', color: '#1e293b', marginBottom: 12, textAlign: 'center' },
     heroDesc: { fontSize: 15, color: '#64748b', lineHeight: 24, textAlign: 'center' },

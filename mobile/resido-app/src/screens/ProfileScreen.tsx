@@ -271,7 +271,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fcfcfd' },
-    profileHeader: { alignItems: 'center', paddingVertical: 40, backgroundColor: '#fff', borderBottomLeftRadius: 40, borderBottomRightRadius: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 15, elevation: 2 },
+    profileHeader: { alignItems: 'center', paddingVertical: 40, paddingTop: 75, backgroundColor: '#fff', borderBottomLeftRadius: 40, borderBottomRightRadius: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 15, elevation: 2 },
     photoWrapper: { position: 'relative', marginBottom: 20 },
     photoContainer: { width: 110, height: 110, borderRadius: 55, backgroundColor: '#f1f5f9', padding: 4, borderWidth: 1, borderColor: '#f1f5f9' },
     photo: { width: '100%', height: '100%', borderRadius: 55 },

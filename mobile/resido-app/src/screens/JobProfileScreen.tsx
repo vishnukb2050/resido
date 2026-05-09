@@ -348,7 +348,7 @@ function DetailItem({ icon, title, sub }: any) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fcfcfd' },
-    header: { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', backgroundColor: '#fff' },
+    header: { padding: 20, paddingTop: 65, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', backgroundColor: '#fff' },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 15 },
     backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },

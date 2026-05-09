@@ -15,7 +15,7 @@ export default function CleaningDashboard() {
                 <View style={styles.headerRow}>
                     <View style={styles.headerLeft}>
                         <View style={styles.logoCircle}>
-                            <Image source={require('../../../assets/images/icon.png')} style={styles.logoMini} />
+                            <Image source={require('../../../assets/icon.png')} style={styles.logoMini} />
                         </View>
                         <View style={{ marginLeft: 12 }}>
                             <Text style={styles.residoBrand}>Resido</Text>
@@ -35,7 +35,7 @@ export default function CleaningDashboard() {
                             <Text style={styles.commCardTitle}>My Community</Text>
                             <Text style={styles.commCardSub}>Select a community to see your tasks & updates</Text>
                         </View>
-                        <Image source={require('../../../assets/images/icon.png')} style={styles.commBuildingImg} />
+                        <Image source={require('../../../assets/icon.png')} style={styles.commBuildingImg} />
                     </View>
                     
                     <TouchableOpacity style={styles.wsSelector}>

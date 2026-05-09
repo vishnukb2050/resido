@@ -1,136 +1,234 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, FlatList, TextInput, TouchableOpacity,
-    StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator
+    StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView, Image, StatusBar
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../store/authStore';
 import { chatApi } from '../services/api';
 import dayjs from 'dayjs';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface Message {
     id: string;
     senderId: string;
+    senderName?: string;
+    senderRole?: string;
     content: string;
     type: string;
     createdAt: string;
+    reactions?: string[];
 }
 
+const MOCK_MESSAGES: Message[] = [
+    {
+        id: '1',
+        senderId: 'admin',
+        senderName: 'Admin',
+        content: 'Dear Residents,\n\nThis is to inform you that there will be a water supply interruption on May 26th from 10:00 AM to 2:00 PM due to maintenance work.\n\nThank you for your cooperation.',
+        type: 'TEXT',
+        createdAt: '2024-05-24T08:30:00Z',
+        reactions: ['😊', '🤝', '12']
+    },
+    {
+        id: '2',
+        senderId: 'me',
+        senderName: 'Neha Sharma (A-1203)',
+        content: 'Thanks for the update!',
+        type: 'TEXT',
+        createdAt: '2024-05-24T08:45:00Z'
+    },
+    {
+        id: '3',
+        senderId: 'u2',
+        senderName: 'Ramesh Kumar (B-604)',
+        content: 'Is there any precaution we need to take?',
+        type: 'TEXT',
+        createdAt: '2024-05-24T09:00:00Z'
+    },
+    {
+        id: '4',
+        senderId: 'admin',
+        senderName: 'Admin',
+        content: 'Please store enough water for your needs during this time.',
+        type: 'TEXT',
+        createdAt: '2024-05-24T09:05:00Z',
+        reactions: ['👍', '😊', '5']
+    },
+    {
+        id: '5',
+        senderId: 'u3',
+        senderName: 'Arjun Mehta (C-301)',
+        content: 'Thanks for the heads up!',
+        type: 'TEXT',
+        createdAt: '2024-05-24T09:10:00Z'
+    }
+];
+
 export default function ChatScreen({ conversationId }: { conversationId: string }) {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
     const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const socketRef = useRef<Socket | null>(null);
     const flatRef = useRef<FlatList>(null);
     const { activeWorkspace, user } = useAuthStore();
+    const router = useRouter();
 
     useEffect(() => {
-        loadMessages();
-        connectSocket();
-        return () => { socketRef.current?.disconnect(); };
+        // loadMessages();
+        // connectSocket();
+        // return () => { socketRef.current?.disconnect(); };
     }, [conversationId]);
-
-    const loadMessages = async () => {
-        try {
-            const res = await chatApi.getMessages(conversationId);
-            setMessages(res.data);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const connectSocket = () => {
-        const socketUrl = Constants.expoConfig?.extra?.socketUrl || 'http://localhost:3000';
-        // Socket.io connection with tenant auth
-        const socket = io(`${socketUrl}/chat`, {
-            auth: { 
-                tenantId: activeWorkspace?.tenantId, 
-                memberId: user?.id,
-                dbName: activeWorkspace?.dbName // Critical for multi-tenant isolation
-            },
-        });
-
-        socketRef.current = socket;
-        
-        socket.on('connect', () => {
-            console.log('Chat connected');
-            socket.emit('join_conversation', { conversationId });
-        });
-
-        socket.on('new_message', (msg: Message) => {
-            setMessages((prev) => [...prev, msg]);
-            flatRef.current?.scrollToEnd({ animated: true });
-        });
-
-        socket.on('connect_error', (err) => {
-            console.error('Socket connection error:', err);
-        });
-    };
 
     const sendMessage = () => {
         if (!input.trim()) return;
-        // Simplified payload: backend knows tenantId and senderId from the socket session
-        socketRef.current?.emit('send_message', {
-            conversationId,
+        const newMessage: Message = {
+            id: Date.now().toString(),
+            senderId: 'me',
+            senderName: user?.name || 'Me',
             content: input.trim(),
             type: 'TEXT',
-        });
+            createdAt: new Date().toISOString()
+        };
+        setMessages([...messages, newMessage]);
         setInput('');
+        setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
     };
 
     const renderMessage = ({ item }: { item: Message }) => {
-        const isMine = item.senderId === user?.id;
+        const isMine = item.senderId === 'me';
         return (
-            <View style={[styles.bubble, isMine ? styles.mine : styles.theirs]}>
-                <Text style={[styles.bubbleText, isMine ? styles.mineText : styles.theirsText]}>
-                    {item.content}
-                </Text>
-                <Text style={styles.time}>{dayjs(item.createdAt).format('HH:mm')}</Text>
+            <View style={[styles.messageWrapper, isMine ? styles.mineWrapper : styles.theirsWrapper]}>
+                {!isMine && <Text style={styles.senderName}>{item.senderName}</Text>}
+                <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
+                    <Text style={[styles.bubbleText, isMine ? styles.mineText : styles.theirsText]}>
+                        {item.content}
+                    </Text>
+                    <View style={styles.bubbleFooter}>
+                        <Text style={[styles.time, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
+                            {dayjs(item.createdAt).format('H:mm A')}
+                        </Text>
+                        {isMine && <Ionicons name="checkmark-done" size={14} color="#fff" style={{ marginLeft: 4 }} />}
+                    </View>
+                </View>
+                {item.reactions && (
+                    <View style={styles.reactionsContainer}>
+                        {item.reactions.map((r, i) => (
+                            <Text key={i} style={styles.reaction}>{r}</Text>
+                        ))}
+                    </View>
+                )}
             </View>
         );
     };
 
-    if (loading) return <ActivityIndicator style={{ flex: 1 }} color="#6366f1" />;
-
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <FlatList
-                ref={flatRef}
-                data={messages}
-                keyExtractor={(m) => m.id}
-                renderItem={renderMessage}
-                contentContainerStyle={{ padding: 16, gap: 8 }}
-                onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: false })}
-            />
-            <View style={styles.inputBar}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Type a message..."
-                    placeholderTextColor="#64748b"
-                    value={input}
-                    onChangeText={setInput}
-                    multiline
-                />
-                <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-                    <Text style={styles.sendIcon}>➤</Text>
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+            
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Ionicons name="chevron-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
+                <View style={styles.headerInfo}>
+                    <View style={styles.headerAvatar}>
+                        <Ionicons name="business" size={20} color="#6366f1" />
+                    </View>
+                    <View style={{ marginLeft: 10 }}>
+                        <Text style={styles.headerTitle}>Greenwood Residency</Text>
+                        <Text style={styles.headerSub}>Community</Text>
+                    </View>
+                </View>
+                <TouchableOpacity><Ionicons name="ellipsis-vertical" size={24} color="#1e293b" /></TouchableOpacity>
             </View>
-        </KeyboardAvoidingView>
+
+            {/* Announcements Banner */}
+            <TouchableOpacity style={styles.announcementBanner}>
+                <View style={styles.announcementIconBox}>
+                    <Ionicons name="megaphone" size={18} color="#6366f1" />
+                </View>
+                <Text style={styles.announcementText} numberOfLines={1}>
+                    Announcements: Water supply will be interrupted on May...
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#64748b" />
+            </TouchableOpacity>
+
+            <KeyboardAvoidingView 
+                style={{ flex: 1 }} 
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            >
+                <FlatList
+                    ref={flatRef}
+                    data={messages}
+                    keyExtractor={(m) => m.id}
+                    renderItem={renderMessage}
+                    contentContainerStyle={styles.listContent}
+                    ListHeaderComponent={<Text style={styles.dateDivider}>May 24, 2024</Text>}
+                />
+
+                {/* Input Bar */}
+                <View style={styles.inputBar}>
+                    <TouchableOpacity style={styles.attachBtn}>
+                        <Ionicons name="add" size={24} color="#6366f1" />
+                    </TouchableOpacity>
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Type a message..."
+                            placeholderTextColor="#94a3b8"
+                            value={input}
+                            onChangeText={setInput}
+                            multiline
+                        />
+                        <TouchableOpacity><Ionicons name="happy-outline" size={24} color="#94a3b8" /></TouchableOpacity>
+                    </View>
+                    <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
+                        <Ionicons name={input.trim() ? "send" : "mic"} size={22} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f0f1a' },
-    bubble: { maxWidth: '75%', borderRadius: 16, padding: 12 },
-    mine: { alignSelf: 'flex-end', backgroundColor: '#6366f1' },
-    theirs: { alignSelf: 'flex-start', backgroundColor: '#1e1e2e', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    bubbleText: { fontSize: 15, lineHeight: 20 },
+    container: { flex: 1, backgroundColor: '#fcfcfd' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, paddingVertical: 12, paddingTop: 65, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
+    headerAvatar: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+    headerTitle: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
+    headerSub: { fontSize: 11, color: '#64748b', fontWeight: '600' },
+
+    announcementBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f3ff', paddingHorizontal: 15, paddingVertical: 10, marginHorizontal: 20, marginTop: 15, borderRadius: 12, gap: 10 },
+    announcementIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+    announcementText: { flex: 1, fontSize: 11, color: '#4338ca', fontWeight: '600' },
+
+    listContent: { padding: 20, paddingBottom: 20 },
+    dateDivider: { textAlign: 'center', fontSize: 11, color: '#94a3b8', fontWeight: '700', marginVertical: 20 },
+
+    messageWrapper: { maxWidth: '85%', marginBottom: 15 },
+    mineWrapper: { alignSelf: 'flex-end' },
+    theirsWrapper: { alignSelf: 'flex-start' },
+    senderName: { fontSize: 11, color: '#10b981', fontWeight: '700', marginBottom: 4, marginLeft: 12 },
+    bubble: { borderRadius: 20, padding: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 5, elevation: 1 },
+    mineBubble: { backgroundColor: '#6366f1', borderBottomRightRadius: 4 },
+    theirsBubble: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#f1f5f9' },
+    bubbleText: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
     mineText: { color: '#fff' },
-    theirsText: { color: '#e2e8f0' },
-    time: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 4, alignSelf: 'flex-end' },
-    inputBar: { flexDirection: 'row', padding: 12, gap: 10, backgroundColor: '#1e1e2e', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-    input: { flex: 1, backgroundColor: '#27273a', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, color: '#e2e8f0', fontSize: 15, maxHeight: 100 },
+    theirsText: { color: '#1e293b' },
+    bubbleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 },
+    time: { fontSize: 9, color: '#94a3b8', fontWeight: '600' },
+
+    reactionsContainer: { flexDirection: 'row', backgroundColor: '#fff', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, marginTop: -8, marginLeft: 15, borderWidth: 1, borderColor: '#f1f5f9', gap: 4 },
+    reaction: { fontSize: 10 },
+
+    inputBar: { flexDirection: 'row', alignItems: 'center', padding: 15, gap: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+    attachBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
+    inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 20, paddingHorizontal: 15, borderWidth: 1, borderColor: '#f1f5f9' },
+    input: { flex: 1, fontSize: 14, color: '#1e293b', maxHeight: 100, paddingVertical: 8 },
     sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
-    sendIcon: { color: '#fff', fontSize: 16 },
 });

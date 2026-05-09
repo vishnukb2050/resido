@@ -249,7 +249,7 @@ function FeatureItem({ icon, label, sub }: any) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fcfcfd' },
     scrollContent: { paddingBottom: 20 },
-    header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    header: { padding: 20, paddingTop: 65, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     headerTitle: { fontSize: 26, fontWeight: '900', color: '#1e293b' },
     headerSubtitle: { fontSize: 14, color: '#64748b', marginTop: 2 },
     notifBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

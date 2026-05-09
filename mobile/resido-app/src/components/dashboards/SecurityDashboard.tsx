@@ -50,7 +50,7 @@ export default function SecurityDashboard() {
                         </View>
                     </View>
                     <View style={styles.commImgBox}>
-                        <Image source={require('../../../assets/images/icon.png')} style={styles.commImg} />
+                        <Image source={require('../../../assets/icon.png')} style={styles.commImg} />
                     </View>
                 </TouchableOpacity>
 

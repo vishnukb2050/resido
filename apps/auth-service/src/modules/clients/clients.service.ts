@@ -59,6 +59,19 @@ export class ClientsService {
             await this.createStaffAccount(client.id, dto.subAdminEmail, 'ADMIN_STAFF');
         }
 
+        // If created by a mobile user, automatically link them as a member/admin
+        if (dto.createdByUserId) {
+            await this.prisma.userClient.workspaceMembership.create({
+                data: {
+                    userId: dto.createdByUserId,
+                    tenantId: client.id,
+                    tenantName: client.name,
+                    role: 'APARTMENT_ADMIN',
+                    isActive: true
+                }
+            });
+        }
+
         return {
             client,
             message: `Community "${dto.name}" created.`,

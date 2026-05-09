@@ -8,6 +8,7 @@ import CleaningDashboard from '../components/dashboards/CleaningDashboard';
 import SecurityDashboard from '../components/dashboards/SecurityDashboard';
 import ServiceStaffDashboard from '../components/dashboards/ServiceStaffDashboard';
 import DefaultDashboard from '../components/dashboards/DefaultDashboard';
+import CommunityDashboard from '../components/dashboards/CommunityDashboard';
 
 export default function HomeScreen() {
     const { activeWorkspace, isHydrated } = useAuthStore();
@@ -37,8 +38,12 @@ export default function HomeScreen() {
         return <ServiceStaffDashboard />;
     }
 
-    if (['APARTMENT_ADMIN', 'RESIDENT', 'CARETAKER', 'ADMIN_STAFF', 'ACCOUNTS_STAFF'].includes(role)) {
+    if (['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF', 'ACCOUNTS_STAFF'].includes(role)) {
         return <AdminDashboard />;
+    }
+
+    if (role === 'RESIDENT') {
+        return <CommunityDashboard />;
     }
 
     return <AdminDashboard />;

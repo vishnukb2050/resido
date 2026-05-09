@@ -47,15 +47,6 @@ if (getRNMinorVersion() >= 75) {
 rootProject.name = 'Resido'
 
 dependencyResolutionManagement {
-  repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
-  repositories {
-    google()
-    mavenCentral()
-    jcenter()
-    maven {
-        url "/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/expo-camera/android/maven"
-    }
-  }
   versionCatalogs {
     reactAndroidLibs {
       from(files(new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), "../gradle/libs.versions.toml")))

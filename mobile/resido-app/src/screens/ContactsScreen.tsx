@@ -135,7 +135,7 @@ export default function ContactsScreen() {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fcfcfd' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 65, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
     searchContainer: { padding: 20, backgroundColor: '#fff' },
     searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 12, height: 48, borderWidth: 1, borderColor: '#f1f5f9' },

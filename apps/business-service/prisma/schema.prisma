@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@resido/business-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CORE_WRITE_URL")
+}
+
+model BusinessProfile {
+  id              String   @id @default(cuid())
+  userId          String   // Global user ID
+  tenantId        String?  // Linked community (optional)
+  profileType     String   @default("BUSINESS") // BUSINESS or JOB
+  businessName    String
+  category        String
+  subcategory     String?
+  customCategory  String?
+  customSubcategory String?
+  businessType    String   @default("INDIVIDUAL") // INDIVIDUAL or COMPANY
+  about           String
+  location        String?  // tower/block
+  operatingArea   String   @default("WITHIN") // WITHIN or OUTSIDE
+  experience      String?
+  pricingType     String   @default("FIXED") // FIXED or CUSTOM
+  workingDays     String[]
+  workingHours    Json?
+  responseTime    String?
+  gallery         String[] // S3 keys
+  documents       Json?    // IDs, Licenses
+  whyUs           String?
+  isActive        Boolean  @default(true)
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  services        ServiceItem[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([category])
+  @@map("business_profiles")
+}
+
+model ServiceItem {
+  id               String          @id @default(cuid())
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id])
+  name             String
+  price            Float?
+  currency         String          @default("INR")
+  
+  @@map("business_services")
+}

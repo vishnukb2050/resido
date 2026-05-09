@@ -47,7 +47,7 @@ export default function DocumentsScreen() {
                 <View style={styles.headerCard}>
                     <View style={styles.cardInfo}>
                         <View style={styles.cardIconBox}>
-                            <Image source={require('../../../assets/images/icon.png')} style={styles.cardIcon} />
+                            <Image source={require('../../assets/icon.png')} style={styles.cardIcon} />
                         </View>
                         <View style={{ flex: 1, marginLeft: 16 }}>
                             <Text style={styles.cardTitle}>All your important documents</Text>
@@ -153,7 +153,7 @@ function NavItem({ icon, label, active }: any) {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     content: { padding: 20, paddingBottom: 110 },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10, paddingTop: 65, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     topBarTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
     topBarIcons: { flexDirection: 'row', gap: 15 },
     headerCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 25, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },

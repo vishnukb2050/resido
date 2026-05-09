@@ -128,6 +128,31 @@ export class AuthService {
         }
     }
 
+    async syncMembership(phone: string, tenantId: string, tenantName: string, role: string) {
+        // 1. Ensure user exists
+        let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
+        if (!user) {
+            user = await this.prisma.userClient.user.create({ 
+                data: { phone, isActive: true } 
+            });
+        }
+
+        // 2. Create membership
+        const membership = await this.prisma.userClient.workspaceMembership.upsert({
+            where: { userId_tenantId: { userId: user.id, tenantId } },
+            update: { role, isActive: true, tenantName },
+            create: {
+                userId: user.id,
+                tenantId,
+                tenantName,
+                role,
+                isActive: true
+            }
+        });
+
+        return { user, membership };
+    }
+
     async syncContacts(userId: string, phones: string[]) {
         const normalized = phones.map(p => p.replace(/\D/g, ''));
         const registered = await this.prisma.userRead.user.findMany({

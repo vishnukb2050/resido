@@ -28,7 +28,7 @@ export default function AdminDashboard() {
                 <View style={styles.headerRow}>
                     <View style={styles.headerLeft}>
                         <View style={styles.logoCircle}>
-                            <Image source={require('../../../assets/images/icon.png')} style={styles.logoMini} />
+                            <Image source={require('../../../assets/icon.png')} style={styles.logoMini} />
                         </View>
                         <View style={{ marginLeft: 12 }}>
                             <Text style={styles.residoBrand}>Resido</Text>
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
                     <ManagementItem icon="images" label="Gallery" sub="Photos & videos management" bg="#eff6ff" icColor="#3b82f6" onPress={() => router.push('/gallery')} />
                     
                     {/* Addons: Threads & Flares */}
-                    <ManagementItem icon="newspaper" label="Threads" sub="Social feed & discussions" bg="#f5f3ff" icColor="#6366f1" onPress={() => router.push('/blog')} />
+                    <ManagementItem icon="newspaper" label="Threads" sub="Social feed & discussions" bg="#f5f3ff" icColor="#6366f1" onPress={() => router.push('/thread')} />
                     <ManagementItem icon="play-circle" label="Flares" sub="Short community videos" bg="#fff1f2" icColor="#ef4444" onPress={() => router.push('/flares')} />
                 </View>
 

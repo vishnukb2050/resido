@@ -30,7 +30,7 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
                 icon={activeTab === 'Thread' ? 'newspaper' : 'newspaper-outline'} 
                 label="Thread" 
                 active={activeTab === 'Thread'} 
-                onPress={() => router.push('/blog')} 
+                onPress={() => router.push('/thread')} 
             />
             <NavItem 
                 icon={activeTab === 'Flares' ? 'play-circle' : 'play-circle-outline'} 

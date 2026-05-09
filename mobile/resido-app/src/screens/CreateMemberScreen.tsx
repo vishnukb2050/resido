@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { residentApi } from '../services/api';
+import { residentApi, authApi } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 
 export default function CreateMemberScreen() {
     const router = useRouter();
@@ -27,8 +28,20 @@ export default function CreateMemberScreen() {
 
         setLoading(true);
         try {
-            await residentApi.createMember(formData);
-            Alert.alert('Success', 'Member added successfully');
+            // 1. Create member in resident service (tenant DB)
+            const res = await residentApi.createMember(formData);
+            
+            // 2. Sync membership in auth service (master DB) 
+            // This ensures the user sees this community in their dropdown
+            const activeWorkspace = useAuthStore.getState().activeWorkspace;
+            await authApi.syncMembership({
+                phone: formData.phone,
+                tenantId: activeWorkspace?.tenantId || '',
+                tenantName: activeWorkspace?.tenantName || '',
+                role: formData.role
+            });
+
+            Alert.alert('Success', 'Member added successfully and linked to community');
             router.back();
         } catch (error: any) {
             Alert.alert('Error', error.response?.data?.message || 'Failed to add member');

@@ -37,6 +37,8 @@ export const authApi = {
     refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
     createClient: (data: any) => api.post('/clients', data),
     syncContacts: (phones: string[]) => api.post('/auth/sync-contacts', { phones }),
+    createMember: (data: any) => api.post('/members', data),
+    syncMembership: (data: any) => api.post('/auth/sync-membership', data),
 };
 
 // Community APIs
@@ -54,17 +56,27 @@ export const communityApi = {
     getGallery: () => api.get('/community/gallery'),
 };
 
-// Resident APIs
+// Resident APIs (Proxy to resident-service via /members, /community, etc)
 export const residentApi = {
-    getMembers: () => api.get('/resident/members'),
-    getMember: (id: string) => api.get(`/resident/members/${id}`),
-    getFamilies: () => api.get('/resident/families'),
-    getNotices: () => api.get('/resident/notices'),
-    createNotice: (data: any) => api.post('/resident/notices', data),
-    getPolls: () => api.get('/resident/polls'),
-    createPoll: (data: any) => api.post('/resident/polls', data),
-    votePoll: (pollId: string, optionId: string) => api.post(`/resident/polls/${pollId}/vote`, { optionId }),
-    getGroups: () => api.get('/resident/groups'),
+    getMembers: () => api.get('/members'),
+    getMember: (id: string) => api.get(`/members/${id}`),
+    createMember: (data: any) => api.post('/members', data),
+    getFamilies: () => api.get('/members/families'), // Adjust if needed
+    getNotices: () => api.get('/community/notices'),
+    createNotice: (data: any) => api.post('/community/notices', data),
+    getPolls: () => api.get('/community/polls'),
+    createPoll: (data: any) => api.post('/community/polls', data),
+    votePoll: (pollId: string, optionId: string) => api.post(`/community/polls/${pollId}/vote`, { optionId }),
+    getGroups: () => api.get('/community/groups'),
+};
+
+// Business APIs
+export const businessApi = {
+    createProfile: (data: any) => api.post('/business/profiles', data),
+    getProfiles: (params?: any) => api.get('/business/profiles', { params }),
+    getMyProfile: () => api.get('/business/profiles/me'),
+    getProfile: (id: string) => api.get(`/business/profiles/${id}`),
+    updateProfile: (id: string, data: any) => api.patch(`/business/profiles/${id}`, data),
 };
 
 // Accounting APIs
@@ -74,13 +86,20 @@ export const accountingApi = {
     getMonthlyReport: (year: number, month: number) => api.get('/accounting/reports/monthly', { params: { year, month } }),
 };
 
+// Thread & Flare APIs (Renamed from Blog)
+export const threadApi = {
+    getThreads: () => api.get('/threads'),
+    getFlares: () => api.get('/flares'),
+    createThread: (data: any) => api.post('/threads', data),
+    createFlare: (data: any) => api.post('/flares', data),
+};
+
 // Chat APIs
 export const chatApi = {
     getConversations: () => api.get('/chat/conversations'),
     getMessages: (conversationId: string) => api.get(`/chat/conversations/${conversationId}/messages`),
     createConversation: (memberIds: string[]) => api.post('/chat/conversations', { memberIds }),
 };
-
 // Visitor APIs
 export const visitorApi = {
     createEntry: (data: any) => api.post('/visitor/entries', data),
