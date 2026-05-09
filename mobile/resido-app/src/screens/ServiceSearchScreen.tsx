@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { businessApi } from '../services/api';
+import { ActivityIndicator, Alert } from 'react-native';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
@@ -65,6 +67,34 @@ const TOP_PROFESSIONALS = [
 export default function ServiceSearchScreen() {
     const router = useRouter();
     const [activeCat, setActiveCat] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchLocation, setSearchLocation] = useState('');
+    const [profiles, setProfiles] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    React.useEffect(() => {
+        fetchProfiles();
+    }, [activeCat, searchLocation]);
+
+    const fetchProfiles = async () => {
+        setLoading(true);
+        try {
+            const params: any = {};
+            if (activeCat !== 'all') {
+                const cat = CATEGORIES.find(c => c.id === activeCat);
+                if (cat) params.category = cat.name;
+            }
+            if (searchLocation) {
+                params.location = searchLocation;
+            }
+            const { data } = await businessApi.getProfiles(params);
+            setProfiles(data);
+        } catch (error) {
+            console.error('Failed to fetch profiles', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -88,13 +118,26 @@ export default function ServiceSearchScreen() {
                     <View style={styles.searchBar}>
                         <Ionicons name="search" size={20} color="#94a3b8" />
                         <TextInput 
-                            placeholder="Search services, professionals or categories..." 
+                            placeholder="Search services or professionals..." 
                             style={styles.searchInput}
                             placeholderTextColor="#94a3b8"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
                         />
                         <TouchableOpacity style={styles.filterBtn}>
                             <Ionicons name="options-outline" size={20} color="#64748b" />
                         </TouchableOpacity>
+                    </View>
+                    
+                    <View style={[styles.searchBar, { marginTop: 12, height: 48 }]}>
+                        <Ionicons name="location" size={18} color="#6366f1" />
+                        <TextInput 
+                            placeholder="Search by area/location..." 
+                            style={styles.searchInput}
+                            placeholderTextColor="#94a3b8"
+                            value={searchLocation}
+                            onChangeText={setSearchLocation}
+                        />
                     </View>
                 </View>
 
@@ -166,41 +209,54 @@ export default function ServiceSearchScreen() {
                     ))}
                 </ScrollView>
 
-                {/* Top Professionals */}
+                {/* Top Professionals / Search Results */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Top Professionals</Text>
+                    <Text style={styles.sectionTitle}>
+                        {activeCat === 'all' && !searchLocation ? 'Top Professionals' : 'Search Results'}
+                    </Text>
                     <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
                 </View>
-                <View style={styles.prosList}>
-                    {TOP_PROFESSIONALS.map(pro => (
-                        <TouchableOpacity key={pro.id} style={styles.proCard}>
-                            <Image source={{ uri: pro.image }} style={styles.proImage} />
-                            <View style={styles.proInfo}>
-                                <View style={styles.proNameRow}>
-                                    <Text style={styles.proName}>{pro.name}</Text>
-                                    <Ionicons name="checkmark-circle" size={16} color="#6366f1" />
+
+                {loading ? (
+                    <View style={{ padding: 40, alignItems: 'center' }}>
+                        <ActivityIndicator color="#6366f1" size="large" />
+                        <Text style={{ marginTop: 12, color: '#64748b' }}>Finding best matches...</Text>
+                    </View>
+                ) : (
+                    <View style={styles.prosList}>
+                        {(profiles.length > 0 ? profiles : TOP_PROFESSIONALS).map(pro => (
+                            <TouchableOpacity 
+                                key={pro.id} 
+                                style={styles.proCard}
+                                onPress={() => router.push(`/business/${pro.id}`)}
+                            >
+                                <View style={styles.proImagePlaceholder}>
+                                    <Ionicons name="person" size={30} color="#cbd5e1" />
                                 </View>
-                                <Text style={styles.proCat}>{pro.category} • {pro.exp}</Text>
-                                <View style={styles.proLocRow}>
-                                    <Ionicons name="location-outline" size={14} color="#64748b" />
-                                    <Text style={styles.proLocText}>Bangalore, Karnataka</Text>
+                                <View style={styles.proInfo}>
+                                    <View style={styles.proNameRow}>
+                                        <Text style={styles.proName}>{pro.businessName || pro.name}</Text>
+                                        {pro.isVerified && <Ionicons name="checkmark-circle" size={16} color="#6366f1" />}
+                                    </View>
+                                    <Text style={styles.proCat}>{pro.category} • {pro.experience || 'Experienced'}</Text>
+                                    <View style={styles.proLocRow}>
+                                        <Ionicons name="location-outline" size={14} color="#64748b" />
+                                        <Text style={styles.proLocText}>{pro.location || 'Within Community'}</Text>
+                                    </View>
                                 </View>
-                            </View>
-                            <View style={styles.proRight}>
-                                <View style={styles.proRatingRow}>
-                                    <Ionicons name="star" size={14} color="#f59e0b" />
-                                    <Text style={styles.proRatingText}>{pro.rating} <Text style={styles.proReviews}>({pro.reviews})</Text></Text>
+                                <View style={styles.proRight}>
+                                    <View style={styles.proRatingRow}>
+                                        <Ionicons name="star" size={14} color="#f59e0b" />
+                                        <Text style={styles.proRatingText}>4.5 <Text style={styles.proReviews}>(24)</Text></Text>
+                                    </View>
+                                    <View style={styles.priceBadge}>
+                                        <Text style={styles.priceText}>Starts ₹{pro.services?.[0]?.price || '---'}</Text>
+                                    </View>
                                 </View>
-                                <View style={styles.priceBadge}>
-                                    <Text style={styles.priceText}>Starts {pro.price}</Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity style={styles.chatBtn}>
-                                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#6366f1" />
                             </TouchableOpacity>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                        ))}
+                    </View>
+                )}
 
                 {/* Feature Icons */}
                 <View style={styles.featuresRow}>
@@ -293,6 +349,7 @@ const styles = StyleSheet.create({
     prosList: { paddingHorizontal: 20, marginBottom: 25 },
     proCard: { backgroundColor: '#fff', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
     proImage: { width: 60, height: 60, borderRadius: 30 },
+    proImagePlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
     proInfo: { flex: 1, marginLeft: 12 },
     proNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     proName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },

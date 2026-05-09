@@ -1,2 +1,2 @@
-import CreateBlogScreen from '../src/screens/CreateBlogScreen';
-export default function Page() { return <CreateBlogScreen />; }
+import CreateThreadScreen from '../src/screens/CreateThreadScreen';
+export default function Page() { return <CreateThreadScreen />; }

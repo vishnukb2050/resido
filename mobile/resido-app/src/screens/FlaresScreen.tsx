@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { threadApi } from '../services/api';
 import BottomNav from '../components/BottomNav';
 
 const { width, height } = Dimensions.get('window');
@@ -13,12 +14,34 @@ const DUMMY_FLARES = [
 ];
 
 export default function FlaresScreen() {
+    const [flares, setFlares] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const router = useRouter();
+
+    React.useEffect(() => {
+        fetchFlares();
+    }, []);
+
+    const fetchFlares = async () => {
+        try {
+            const { data } = await threadApi.getFlares();
+            setFlares(data);
+        } catch (error) {
+            console.error('Failed to fetch flares', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
-            <FlatList
-                data={DUMMY_FLARES}
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator color="#fff" size="large" />
+                </View>
+            ) : (
+                <FlatList
+                    data={flares.length > 0 ? flares : DUMMY_FLARES}
                 keyExtractor={(item) => item.id}
                 pagingEnabled
                 showsVerticalScrollIndicator={false}
@@ -54,6 +77,7 @@ export default function FlaresScreen() {
                     </View>
                 )}
             />
+            )}
             
             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
                 <Ionicons name="arrow-back" size={24} color="#fff" />

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../services/api';
+import { threadApi, residentApi } from '../services/api';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 const CATEGORIES = ['General', 'Event', 'Alert', 'Marketplace', 'Social', 'Maintenance'];
 
-export default function CreateBlogScreen() {
+export default function CreateThreadScreen() {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('General');
@@ -37,9 +37,9 @@ export default function CreateBlogScreen() {
         setUserSearch(query);
         if (query.length < 2) return;
         try {
-            // Assuming endpoint to search community members
-            const { data } = await api.get(`/community/members?search=${query}`);
-            setSearchResults(data);
+            // Using residentApi to search community members
+            const { data } = await residentApi.getMembers(); 
+            setSearchResults(data.filter((m: any) => m.name.toLowerCase().includes(query.toLowerCase())));
         } catch (error) {
             console.error(error);
         }
@@ -67,12 +67,12 @@ export default function CreateBlogScreen() {
                 tags: tags.map(t => t.id)
             };
 
-            await api.post('/blogs', payload);
-            Alert.alert('Success', 'Blog post published!');
+            await threadApi.createThread(payload);
+            Alert.alert('Success', 'Thread post published!');
             router.back();
         } catch (error) {
             console.error(error);
-            Alert.alert('Error', 'Failed to publish blog');
+            Alert.alert('Error', 'Failed to publish thread');
         } finally {
             setLoading(false);
         }

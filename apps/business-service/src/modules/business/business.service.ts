@@ -24,11 +24,15 @@ export class BusinessService {
         });
     }
 
-    async listProfiles(tenantId?: string, category?: string) {
+    async listProfiles(tenantId?: string, category?: string, location?: string) {
         return this.prisma.businessProfile.findMany({
             where: {
                 tenantId: tenantId || undefined,
                 category: category || undefined,
+                OR: location ? [
+                    { location: { contains: location, mode: 'insensitive' } },
+                    { area: { contains: location, mode: 'insensitive' } }
+                ] : undefined,
                 isActive: true
             },
             include: { services: true },

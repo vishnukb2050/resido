@@ -17,9 +17,10 @@ export class BusinessController {
     @Get('profiles')
     listProfiles(
         @Query('tenantId') tenantId?: string,
-        @Query('category') category?: string
+        @Query('category') category?: string,
+        @Query('location') location?: string
     ) {
-        return this.businessService.listProfiles(tenantId, category);
+        return this.businessService.listProfiles(tenantId, category, location);
     }
 
     @Get('profiles/me')

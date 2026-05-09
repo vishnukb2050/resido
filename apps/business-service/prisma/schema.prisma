@@ -21,6 +21,7 @@ model BusinessProfile {
   businessType    String   @default("INDIVIDUAL") // INDIVIDUAL or COMPANY
   about           String
   location        String?  // tower/block
+  area            String?  // district/city
   operatingArea   String   @default("WITHIN") // WITHIN or OUTSIDE
   experience      String?
   pricingType     String   @default("FIXED") // FIXED or CUSTOM

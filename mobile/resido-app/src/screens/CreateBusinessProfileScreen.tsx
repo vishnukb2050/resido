@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
     Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
-    FlatList, Modal
+    FlatList, Modal, ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -43,6 +43,7 @@ export default function CreateBusinessProfileScreen() {
         businessType: 'INDIVIDUAL', // INDIVIDUAL or COMPANY
         about: '',
         location: '',
+        area: '',
         operatingArea: 'WITHIN', // WITHIN or OUTSIDE
         experience: '',
         services: [] as any[],
@@ -249,12 +250,26 @@ export default function CreateBusinessProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-                <Text style={styles.label}>Location in Community*</Text>
-                <TouchableOpacity style={styles.dropdown}>
-                    <Text style={styles.dropdownText}>Select your tower / block</Text>
-                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
-                </TouchableOpacity>
+                <Text style={styles.label}>Location in Community (Tower / Block / Flat)*</Text>
+                <TextInput 
+                    style={styles.input} 
+                    placeholder="e.g. Tower A, Flat 402" 
+                    value={formData.location}
+                    onChangeText={t => setFormData({ ...formData, location: t })}
+                />
             </View>
+
+            {formData.operatingArea === 'OUTSIDE' && (
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Business Area / District*</Text>
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="e.g. Indiranagar, Bangalore" 
+                        value={formData.area}
+                        onChangeText={t => setFormData({ ...formData, area: t })}
+                    />
+                </View>
+            )}
 
             <View style={styles.inputGroup}>
                 <Text style={styles.label}>Operating Area*</Text>

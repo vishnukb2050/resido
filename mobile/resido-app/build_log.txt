@@ -1,31 +1,27 @@
-Starting Metro Bundler
-Error: Unable to resolve module expo-contacts from /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/ContactsScreen.tsx: expo-contacts could not be found within the project or in these directories:
-  node_modules
-  ../../node_modules
-[0m [90m 4 |[39m     [33mActivityIndicator[39m[33m,[39m [33mTextInput[39m[33m,[39m [33mShare[39m
- [90m 5 |[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
-[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mContacts[39m [36mfrom[39m [32m'expo-contacts'[39m[33m;[39m
- [90m   |[39m                            [31m[1m^[22m[39m
- [90m 7 |[39m [36mimport[39m { authApi } [36mfrom[39m [32m'../services/api'[39m[33m;[39m
- [90m 8 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
- [90m 9 |[39m[0m
-Error: Unable to resolve module expo-contacts from /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/ContactsScreen.tsx: expo-contacts could not be found within the project or in these directories:
-  node_modules
-  ../../node_modules
-[0m [90m 4 |[39m     [33mActivityIndicator[39m[33m,[39m [33mTextInput[39m[33m,[39m [33mShare[39m
- [90m 5 |[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
-[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mContacts[39m [36mfrom[39m [32m'expo-contacts'[39m[33m;[39m
- [90m   |[39m                            [31m[1m^[22m[39m
- [90m 7 |[39m [36mimport[39m { authApi } [36mfrom[39m [32m'../services/api'[39m[33m;[39m
- [90m 8 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'expo-router'[39m[33m;[39m
- [90m 9 |[39m[0m
-    at ModuleResolver.resolveDependency (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/node-haste/DependencyGraph/ModuleResolution.js:139:15)
-    at DependencyGraph.resolveDependency (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/node-haste/DependencyGraph.js:232:43)
-    at /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/lib/transformHelpers.js:156:21
-    at resolveDependencies (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:42:25)
-    at visit (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:83:30)
-    at async Promise.all (index 1)
-    at visit (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
-    at async Promise.all (index 5)
-    at visit (/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
-    at async Promise.all (index 0)
+Starting Android manual build script
+ANDROID_HOME is /home/vishnu/Android/sdk/
+Accepting licenses...
+Installing platforms and build-tools...
+
+Running expo prebuild...
+Warning! Your git working tree is dirty.
+It's recommended to commit all your changes before proceeding, so you can revert the changes made by this command if necessary.
+Git status is dirty but the command will continue because the terminal is not interactive.
+- Clearing android
+✔ Cleared android code
+- Creating native directory (./android)
+✔ Created native directory
+- Updating package.json
+✔ Updated package.json | no changes
+- Running prebuild
+» android: userInterfaceStyle: Install expo-system-ui in your project to enable this feature.
+- Running prebuild
+✔ Finished prebuild
+Assembling Release APK...
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
