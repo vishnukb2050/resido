@@ -37,6 +37,9 @@ export default function AdminDashboard() {
                         </View>
                     </View>
                     <View style={styles.headerRight}>
+                        <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push('/calendar')}>
+                            <Ionicons name="calendar-outline" size={24} color="#1e293b" />
+                        </TouchableOpacity>
                         <TouchableOpacity style={styles.headerIconBtn}>
                             <Ionicons name="notifications-outline" size={24} color="#1e293b" />
                             <View style={styles.redDot}><Text style={styles.dotText}>3</Text></View>

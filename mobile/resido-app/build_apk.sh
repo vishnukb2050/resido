@@ -23,6 +23,8 @@ echo "Running expo prebuild..."
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 # Try setting default, but sdkmanager will use whatever is available
 yes | npx expo prebuild --platform android --clean
 cd android
+echo "Cleaning build..."
+./gradlew clean
 echo "Assembling Release APK..."
 ./gradlew assembleRelease
 echo "DONE! APK LOCATED AT /home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/outputs/apk/release/app-release.apk"

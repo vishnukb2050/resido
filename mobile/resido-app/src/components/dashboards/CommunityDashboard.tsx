@@ -33,11 +33,14 @@ export default function CommunityDashboard() {
                             </View>
                         </View>
                         <View style={styles.headerActions}>
+                            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/calendar')}>
+                                <Ionicons name="calendar" size={24} color="#6366f1" />
+                            </TouchableOpacity>
                             <TouchableOpacity style={styles.iconBtn}>
                                 <Ionicons name="notifications" size={24} color="#6366f1" />
                                 <View style={styles.notifBadge} />
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.profileBtn}>
+                            <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile')}>
                                 <Image source={{ uri: 'https://i.pravatar.cc/100?u=resido' }} style={styles.profileImg} />
                             </TouchableOpacity>
                         </View>
@@ -95,7 +98,7 @@ export default function CommunityDashboard() {
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qaHorizontalScroll}>
                         <QACardCircular icon="construct" title="Services" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/service-search')} />
-                        <QACardCircular icon="calendar" title="Calendar" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/calendar')} />
+                        <QACardCircular icon="wallet" title="Finance" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/finance')} />
                         <QACardCircular icon="document-text" title="Documents" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/documents')} />
                         <QACardCircular icon="briefcase" title="Business" color="#f59e0b" bg="#fffbeb" onPress={() => router.push('/business-profile')} />
                         <QACardCircular icon="people" title="Community" color="#8b5cf6" bg="#f5f3ff" onPress={() => router.push('/communities')} />
@@ -123,6 +126,7 @@ export default function CommunityDashboard() {
                         <GridFeatureCard icon="chatbubble-ellipses" title="Chat" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/chat-list')} />
                         <GridFeatureCard icon="newspaper" title="Thread" color="#1e293b" bg="#f1f5f9" onPress={() => router.push('/thread')} />
                         <GridFeatureCard icon="play-circle" title="Flares" color="#ef4444" bg="#fef2f2" onPress={() => router.push('/flares')} />
+                        <GridFeatureCard icon="calendar" title="Calendar" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/calendar')} />
                         <GridFeatureCard icon="settings" title="Settings" color="#64748b" bg="#f8fafc" onPress={() => router.push('/settings')} />
                         <GridFeatureCard icon="help-circle" title="Support" color="#0ea5e9" bg="#f0f9ff" onPress={() => router.push('/support')} />
                     </View>
@@ -187,7 +191,7 @@ const styles = StyleSheet.create({
     notifBadge: { position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fff' },
     profileBtn: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9' },
     profileImg: { width: '100%', height: '100%' },
-    communityMainCard: { backgroundColor: '#fff', marginHorizontal: 20, padding: 18, borderRadius: 32, marginBottom: 25, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.03, shadowRadius: 20, elevation: 2 },
+    communityMainCard: { backgroundColor: '#f5f6ff', padding: 20, paddingHorizontal: 25, marginBottom: 25, borderBottomWidth: 1, borderTopWidth: 1, borderColor: '#eef2ff' },
     cmHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 25 },
     cmLogoBox: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
     cmLogo: { width: 44, height: 44, borderRadius: 10 },
