@@ -59,7 +59,8 @@ export default function FlaresScreen() {
         id: f.id,
         author: f.authorName || 'User',
         title: f.title,
-        likes: Math.floor(Math.random() * 200), // Dummy likes if not in schema
+        likes: f.likesCount || 0,
+        liked: f.liked || false,
         image: f.mediaUrls?.[0] || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800'
     }));
 
@@ -99,6 +100,20 @@ export default function FlaresScreen() {
         );
     };
 
+    const handleLike = async (flareId: string) => {
+        try {
+            // Optimistic update
+            setFlares(current => current.map(f => 
+                f.id === flareId ? { ...f, likesCount: (f.likesCount || 0) + (f.liked ? -1 : 1), liked: !f.liked } : f
+            ));
+            await threadApi.toggleLike(flareId);
+        } catch (error) {
+            console.error('Failed to toggle like', error);
+            // Revert on failure
+            fetchFlares();
+        }
+    };
+
     const renderFeedItem = (item: any) => (
         <TouchableOpacity 
             key={item.id} 
@@ -118,10 +133,17 @@ export default function FlaresScreen() {
                     <Text style={styles.feedAuthor}>@{item.author}</Text>
                     <Text style={styles.feedTitle} numberOfLines={1}>{item.title}</Text>
                 </View>
-                <View style={styles.likesContainer}>
-                    <Ionicons name="heart" size={18} color="#fff" />
+                <TouchableOpacity 
+                    style={styles.likesContainer}
+                    onPress={() => handleLike(item.id)}
+                >
+                    <Ionicons 
+                        name={item.liked ? "heart" : "heart-outline"} 
+                        size={18} 
+                        color={item.liked ? "#ff3b30" : "#fff"} 
+                    />
                     <Text style={styles.likesText}>{item.likes}</Text>
-                </View>
+                </TouchableOpacity>
             </View>
         </TouchableOpacity>
     );

@@ -4,8 +4,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { threadApi } from '../services/api';
+import { io } from 'socket.io-client';
+import { threadApi, API_URL } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import CommentSheet from '../components/CommentSheet';
 
 const { width, height } = Dimensions.get('window');
 const SCREEN_HEIGHT = height;
@@ -107,17 +109,57 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
     const [status, setStatus] = useState<any>({});
     const [liked, setLiked] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [displayLikes, setDisplayLikes] = useState(flare.likesCount);
+    const [showHeart, setShowHeart] = useState(false);
+    const lastTap = useRef<number>(0);
     const video = useRef<Video>(null);
+    const [showComments, setShowComments] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { user } = useAuthStore();
+    const { user, activeWorkspace } = useAuthStore();
+    const [displayComments, setDisplayComments] = useState(flare.commentsCount);
+
+    useEffect(() => {
+        // Socket listener for live comments
+        const socket = io(`${API_URL}/chat`, {
+            auth: { 
+                tenantId: activeWorkspace?.tenantId,
+                dbName: activeWorkspace?.dbName,
+                memberId: user?.id 
+            }
+        });
+
+        socket.on('new_comment', (data) => {
+            if (data.blogId === flare.id) {
+                setDisplayComments(prev => prev + 1);
+            }
+        });
+
+        return () => { socket.disconnect(); };
+    }, [flare.id]);
 
     const toggleLike = async () => {
         try {
+            const newLiked = !liked;
+            setLiked(newLiked);
+            setDisplayLikes(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
             await threadApi.toggleLike(flare.id);
-            setLiked(!liked);
         } catch (e) {
             console.error(e);
+            setLiked(liked);
+            setDisplayLikes(flare.likesCount);
+        }
+    };
+
+    const handleDoubleTap = () => {
+        const now = Date.now();
+        const DOUBLE_PRESS_DELAY = 300;
+        if (lastTap.current && (now - lastTap.current) < DOUBLE_PRESS_DELAY) {
+            if (!liked) toggleLike();
+            setShowHeart(true);
+            setTimeout(() => setShowHeart(false), 800);
+        } else {
+            lastTap.current = now;
         }
     };
 
@@ -165,16 +207,28 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
 
     return (
         <View style={[styles.flareItem, { height: SCREEN_HEIGHT }]}>
-            <Video
-                ref={video}
-                style={styles.video}
-                source={{ uri: flare.mediaUrls[0] }}
-                useNativeControls={false}
-                resizeMode={ResizeMode.COVER}
-                isLooping
-                shouldPlay={isActive}
-                onPlaybackStatusUpdate={status => setStatus(() => status)}
-            />
+            <TouchableOpacity 
+                activeOpacity={1} 
+                style={StyleSheet.absoluteFill} 
+                onPress={handleDoubleTap}
+            >
+                <Video
+                    ref={video}
+                    style={styles.video}
+                    source={{ uri: flare.mediaUrls[0] }}
+                    useNativeControls={false}
+                    resizeMode={ResizeMode.COVER}
+                    isLooping
+                    shouldPlay={isActive}
+                    onPlaybackStatusUpdate={status => setStatus(() => status)}
+                />
+            </TouchableOpacity>
+
+            {showHeart && (
+                <View style={styles.heartOverlay}>
+                    <Ionicons name="heart" size={100} color="rgba(255, 45, 85, 0.8)" />
+                </View>
+            )}
 
             {/* Side Actions */}
             <View style={styles.sideActions}>
@@ -190,15 +244,15 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
 
                 <ActionIcon 
                     icon="heart" 
-                    label={flare.likesCount.toString()} 
+                    label={displayLikes.toString()} 
                     active={liked} 
                     activeColor="#ff2d55" 
                     onPress={toggleLike}
                 />
                 <ActionIcon 
                     icon="chatbubble-ellipses" 
-                    label={flare.commentsCount.toString()} 
-                    onPress={() => router.push(`/thread/${flare.id}`)} 
+                    label={displayComments.toString()} 
+                    onPress={() => setShowComments(true)} 
                 />
                 <ActionIcon 
                     icon="repeat" 
@@ -276,6 +330,14 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
                     </TouchableOpacity>
                 )}
             </View>
+
+            {showComments && (
+                <CommentSheet 
+                    flareId={flare.id}
+                    authorId={flare.authorId}
+                    onClose={() => setShowComments(false)}
+                />
+            )}
         </View>
     );
 }
@@ -294,6 +356,7 @@ const styles = StyleSheet.create({
     loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
     flareItem: { width: width, backgroundColor: '#000' },
     video: { ...StyleSheet.absoluteFillObject },
+    heartOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 15 },
     
     topActions: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
     backBtn: { padding: 8 },

@@ -4,9 +4,8 @@ import {
     StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView, Image, StatusBar
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
-import Constants from 'expo-constants';
 import { useAuthStore } from '../store/authStore';
-import { chatApi } from '../services/api';
+import { chatApi, API_URL } from '../services/api';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -77,28 +76,73 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     const router = useRouter();
 
     useEffect(() => {
-        // loadMessages();
-        // connectSocket();
-        // return () => { socketRef.current?.disconnect(); };
+        loadMessages();
+        connectSocket();
+        return () => { 
+            if (socketRef.current) {
+                socketRef.current.disconnect(); 
+            }
+        };
     }, [conversationId]);
 
-    const sendMessage = () => {
-        if (!input.trim()) return;
-        const newMessage: Message = {
-            id: Date.now().toString(),
-            senderId: 'me',
-            senderName: user?.name || 'Me',
+    const loadMessages = async () => {
+        if (!conversationId) return;
+        try {
+            setLoading(true);
+            const { data } = await chatApi.getMessages(conversationId);
+            setMessages(data);
+        } catch (error) {
+            console.error('Failed to load messages', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const connectSocket = () => {
+        if (!conversationId || !activeWorkspace) return;
+
+        const socket = io(`${API_URL}/chat`, {
+            auth: {
+                tenantId: activeWorkspace.tenantId,
+                dbName: activeWorkspace.dbName,
+                memberId: user?.id
+            }
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to chat socket');
+            socket.emit('join_conversation', { conversationId });
+        });
+
+        socket.on('new_message', (message: Message) => {
+            setMessages(prev => {
+                // Avoid duplicates
+                if (prev.find(m => m.id === message.id)) return prev;
+                return [...prev, message];
+            });
+            setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
+        });
+
+        socketRef.current = socket;
+    };
+
+    const sendMessage = async () => {
+        if (!input.trim() || !socketRef.current) return;
+        
+        const messageData = {
+            conversationId,
             content: input.trim(),
-            type: 'TEXT',
-            createdAt: new Date().toISOString()
+            type: 'TEXT'
         };
-        setMessages([...messages, newMessage]);
+
+        // Emit via socket for real-time delivery
+        socketRef.current.emit('send_message', messageData);
+        
         setInput('');
-        setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
     };
 
     const renderMessage = ({ item }: { item: Message }) => {
-        const isMine = item.senderId === 'me';
+        const isMine = item.senderId === user?.id;
         return (
             <View style={[styles.messageWrapper, isMine ? styles.mineWrapper : styles.theirsWrapper]}>
                 {!isMine && <Text style={styles.senderName}>{item.senderName}</Text>}
