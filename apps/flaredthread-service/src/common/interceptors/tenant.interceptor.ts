@@ -12,11 +12,7 @@ import { PrismaService } from '../../modules/prisma/tenant-prisma.service';
 export class TenantInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const request = context.switchToHttp().getRequest();
-        const dbName = request.headers['x-db-name'];
-
-        if (!dbName) {
-            throw new BadRequestException('X-Db-Name header is missing');
-        }
+        const dbName = request.headers['x-db-name'] || request.headers['x-tenant-id'] || 'global';
 
         PrismaService.als.enterWith({ tenantId: dbName as string });
         request.tenantDbName = dbName;

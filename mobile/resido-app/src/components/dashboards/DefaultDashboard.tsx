@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
+import { threadApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
 
@@ -12,6 +13,27 @@ export default function DefaultDashboard() {
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
     const [isSelectModalVisible, setIsSelectModalVisible] = React.useState(false);
     const [activeCategory, setActiveCategory] = React.useState('Electronics');
+    const [contactFlares, setContactFlares] = React.useState<any[]>([]);
+    const [loadingFlares, setLoadingFlares] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!activeWorkspace && user) {
+            fetchContactFlares();
+        }
+    }, [activeWorkspace, user]);
+
+    const fetchContactFlares = async () => {
+        try {
+            setLoadingFlares(true);
+            const { data } = await threadApi.getFlares();
+            // In a real app, filter by contacts. Here we show all recent flares in My Space mock.
+            setContactFlares(data || []);
+        } catch (error) {
+            console.error('Failed to fetch contact flares:', error);
+        } finally {
+            setLoadingFlares(false);
+        }
+    };
 
     const isGuest = !user;
 
@@ -117,17 +139,27 @@ export default function DefaultDashboard() {
                         {!activeWorkspace && (
                             <View style={styles.psStoriesSection}>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psStoriesScroll}>
+                                    {/* Create Flare Button - Always Show */}
                                     <View style={styles.psStoryItem}>
-                                        <TouchableOpacity style={[styles.psStoryCircle, { borderColor: '#94a3b8', borderStyle: 'dashed' }]}>
+                                        <TouchableOpacity 
+                                            style={[styles.psStoryCircle, { borderColor: '#94a3b8', borderStyle: 'dashed' }]}
+                                            onPress={() => router.push('/create-flare')}
+                                        >
                                             <Ionicons name="add" size={24} color="#94a3b8" />
                                         </TouchableOpacity>
                                         <Text style={styles.psStoryLabel}>My Flares</Text>
                                     </View>
-                                    <StoryItem name="Rahul" image="https://i.pravatar.cc/100?u=1" hasStory />
-                                    <StoryItem name="Anjali" image="https://i.pravatar.cc/100?u=2" hasStory />
-                                    <StoryItem name="Karthik" image="https://i.pravatar.cc/100?u=3" hasStory />
-                                    <StoryItem name="Sneha" image="https://i.pravatar.cc/100?u=4" hasStory />
-                                    <StoryItem name="Vikram" image="https://i.pravatar.cc/100?u=5" hasStory />
+
+                                    {/* Contact Flares - Conditional */}
+                                    {contactFlares.map((flare) => (
+                                        <StoryItem 
+                                            key={flare.id}
+                                            name={flare.authorName || 'User'} 
+                                            image={flare.authorAvatar || `https://i.pravatar.cc/100?u=${flare.authorId}`} 
+                                            hasStory 
+                                            onPress={() => router.push({ pathname: '/flare-player', params: { flareId: flare.id } })}
+                                        />
+                                    ))}
                                 </ScrollView>
                             </View>
                         )}
@@ -347,9 +379,9 @@ function WorkspaceCard({ label, isActive, onPress, image }: any) {
     );
 }
 
-function StoryItem({ name, image, hasStory }: any) {
+function StoryItem({ name, image, hasStory, onPress }: any) {
     return (
-        <TouchableOpacity style={styles.psStoryItem}>
+        <TouchableOpacity style={styles.psStoryItem} onPress={onPress}>
             <View style={[styles.psStoryCircle, hasStory && styles.psStoryCircleActive]}>
                 <Image source={{ uri: image }} style={styles.psStoryImg} />
             </View>
