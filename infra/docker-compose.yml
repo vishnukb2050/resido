@@ -110,11 +110,11 @@ services:
       - resido-net
     restart: unless-stopped
 
-  blog-service:
+  flaredthread-service:
     build:
-      context: ../apps/blog-service
+      context: ../apps/flaredthread-service
       dockerfile: Dockerfile
-    container_name: resido-blog
+    container_name: resido-flaredthread
     env_file: .env
     environment:
       - PORT=3008
