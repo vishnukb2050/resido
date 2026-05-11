@@ -43,7 +43,7 @@ export default function HomeScreen() {
     }
 
     if (role === 'RESIDENT') {
-        return <CommunityDashboard />;
+        return <DefaultDashboard />;
     }
 
     return <AdminDashboard />;

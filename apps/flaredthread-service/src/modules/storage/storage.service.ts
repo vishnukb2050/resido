@@ -11,37 +11,37 @@ export class StorageService {
 
     constructor(private config: ConfigService) {
         this.s3Client = new S3Client({
-            region: this.config.get('AWS_REGION', 'ap-south-1'),
+            region: this.config.get<string>('AWS_REGION') || 'auto',
             credentials: {
-                accessKeyId: this.config.get('AWS_ACCESS_KEY_ID'),
-                secretAccessKey: this.config.get('AWS_SECRET_ACCESS_KEY'),
+                accessKeyId: this.config.get<string>('AWS_ACCESS_KEY_ID'),
+                secretAccessKey: this.config.get<string>('AWS_SECRET_ACCESS_KEY'),
             },
-            endpoint: this.config.get('AWS_S3_ENDPOINT'),
+            endpoint: this.config.get<string>('AWS_S3_ENDPOINT'),
             forcePathStyle: true,
         });
-        this.bucket = this.config.get('AWS_S3_BUCKET', 'resido');
+        this.bucket = this.config.get<string>('AWS_S3_BUCKET_NAME') || this.config.get<string>('AWS_S3_BUCKET') || 'resido';
     }
 
     async generatePresignedUrl(
         fileName: string, 
         contentType: string, 
         tenantId: string, 
+        userId: string,
         blogType: 'THREAD' | 'FLARE', 
         mediaType: 'IMAGE' | 'VIDEO'
     ) {
         try {
             const fileExtension = fileName.split('.').pop();
             const uuid = uuidv4();
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
             
-            let key = `tenants/${tenantId}/blog`;
+            // Scalable Structure: tenants/tenant-id/users/user-id/blog-type/year/month/uuid.ext
+            const baseFolder = blogType === 'THREAD' ? 'threads' : 'flares';
+            const mediaFolder = mediaType === 'IMAGE' ? 'images' : 'videos';
             
-            if (blogType === 'THREAD') {
-                const folder = mediaType === 'IMAGE' ? 'images' : 'videos';
-                key += `/threads/${folder}/${uuid}.${fileExtension}`;
-            } else {
-                // Flares are always short videos
-                key += `/flares/videos/${uuid}.${fileExtension}`;
-            }
+            const key = `tenants/${tenantId}/users/${userId}/${baseFolder}/${mediaFolder}/${year}/${month}/${uuid}.${fileExtension}`;
 
             const command = new PutObjectCommand({
                 Bucket: this.bucket,

@@ -92,6 +92,11 @@ export const threadApi = {
     getFlares: () => api.get('/flares'),
     createThread: (data: any) => api.post('/threads', data),
     createFlare: (data: any) => api.post('/flares', data),
+    toggleLike: (id: string) => api.post(`/flares/${id}/like`),
+    addComment: (id: string, data: any) => api.post(`/flares/${id}/comment`, data),
+    getComments: (id: string) => api.get(`/flares/${id}/comments`),
+    reshare: (id: string) => api.post(`/flares/${id}/reshare`),
+    toggleSave: (id: string) => api.post(`/flares/${id}/save`),
 };
 
 // Chat APIs

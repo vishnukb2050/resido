@@ -14,12 +14,12 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     const isMySpace = activeWorkspace === null;
 
     const themeStyles = {
-        background: isMySpace ? '#1e1b4b' : '#fff',
-        border: isMySpace ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
-        activeIcon: isMySpace ? '#fff' : '#6366f1',
-        inactiveIcon: isMySpace ? 'rgba(255,255,255,0.4)' : '#1e293b',
-        activeLabel: isMySpace ? '#fff' : '#6366f1',
-        inactiveLabel: isMySpace ? 'rgba(255,255,255,0.4)' : '#1e293b'
+        background: isMySpace || activeTab === 'Flares' ? '#0f172a' : '#fff',
+        border: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
+        activeIcon: '#6366f1',
+        inactiveIcon: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.4)' : '#64748b',
+        activeLabel: '#6366f1',
+        inactiveLabel: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.4)' : '#64748b'
     };
 
     return (
@@ -32,36 +32,36 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
                 theme={themeStyles}
             />
             <NavItem 
+                icon={activeTab === 'Chats' ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} 
+                label="Chat" 
+                active={activeTab === 'Chats'} 
+                onPress={() => router.push('/chat-list')}
+                theme={themeStyles}
+            />
+            <NavItem 
+                icon={activeTab === 'Threads' ? 'newspaper' : 'newspaper-outline'} 
+                label="Thread" 
+                active={activeTab === 'Threads'} 
+                onPress={() => router.push('/thread')}
+                theme={themeStyles}
+            />
+            <NavItem 
                 icon={activeTab === 'Flares' ? 'play-circle' : 'play-circle-outline'} 
                 label="Flares" 
                 active={activeTab === 'Flares'} 
                 onPress={() => router.push('/flares')}
                 theme={themeStyles}
             />
-            <NavItem 
-                icon={activeTab === 'Threads' ? 'newspaper' : 'newspaper-outline'} 
-                label="Threads" 
-                active={activeTab === 'Threads'} 
-                onPress={() => router.push('/thread')}
-                theme={themeStyles}
-            />
-            <NavItem 
-                icon={activeTab === 'Chats' ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} 
-                label="Chats" 
-                active={activeTab === 'Chats'} 
-                onPress={() => router.push('/chat-list')}
-                theme={themeStyles}
-            />
             <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
                 <View style={[
                     styles.navProfileContainer, 
-                    { borderColor: isMySpace ? 'rgba(255,255,255,0.2)' : '#e2e8f0' },
+                    { borderColor: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.2)' : '#e2e8f0' },
                     activeTab === 'Account' && { borderColor: themeStyles.activeIcon, borderWidth: 2 }
                 ]}>
                     {user?.profilePhoto ? (
                         <Image source={{ uri: user.profilePhoto }} style={styles.navAvatar} />
                     ) : (
-                        <View style={[styles.navAvatarPlaceholder, isMySpace && { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                        <View style={[styles.navAvatarPlaceholder, (isMySpace || activeTab === 'Flares') && { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                             <Ionicons 
                                 name="person" 
                                 size={16} 
@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
         paddingBottom: 25, 
         borderTopWidth: 1, 
         borderTopColor: '#f1f5f9', 
-        borderTopLeftRadius: 30, 
-        borderTopRightRadius: 30, 
+        borderTopLeftRadius: 25, 
+        borderTopRightRadius: 25, 
         shadowColor: '#000', 
         shadowOffset: { width: 0, height: -8 }, 
         shadowOpacity: 0.1, 

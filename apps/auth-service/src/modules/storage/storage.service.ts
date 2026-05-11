@@ -10,11 +10,13 @@ export class StorageService {
 
     constructor(private configService: ConfigService) {
         this.s3Client = new S3Client({
-            region: this.configService.get('AWS_REGION'),
+            region: this.configService.get('AWS_REGION', 'auto'),
             credentials: {
                 accessKeyId: this.configService.get('AWS_ACCESS_KEY_ID'),
                 secretAccessKey: this.configService.get('AWS_SECRET_ACCESS_KEY'),
             },
+            endpoint: this.configService.get('AWS_S3_ENDPOINT'),
+            forcePathStyle: true,
         });
         this.bucketName = this.configService.get('AWS_S3_BUCKET_NAME');
     }
@@ -32,7 +34,8 @@ export class StorageService {
         const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
         
         // Final public URL
-        const fileUrl = `https://${this.bucketName}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`;
+        const endpoint = this.configService.get('AWS_S3_ENDPOINT', `https://${this.bucketName}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com`);
+        const fileUrl = `${endpoint}/${this.bucketName}/${key}`;
 
         return { uploadUrl, fileUrl, key };
     }

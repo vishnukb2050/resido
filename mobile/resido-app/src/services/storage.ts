@@ -1,16 +1,36 @@
 import axios from 'axios';
 import { api } from './api';
+import { Video } from 'react-native-compressor';
 
 export const storageApi = {
     /**
      * Complete upload flow:
-     * 1. Get pre-signed URL from backend
-     * 2. Upload binary to S3
-     * 3. Return the final public file URL
+     * 1. If video, compress to 720p
+     * 2. Get pre-signed URL from backend
+     * 3. Upload binary to S3
+     * 4. Return the final public file URL
      */
     uploadFile: async (fileUri: string, fileName: string, contentType: string, resourceType: string = 'uploads') => {
         try {
-            // 1. Get pre-signed URL
+            let finalUri = fileUri;
+
+            // 1. Compress video if applicable
+            if (contentType.startsWith('video/')) {
+                console.log('Compressing video to 720p...');
+                finalUri = await Video.compress(
+                    fileUri,
+                    {
+                        compressionMethod: 'auto',
+                        minimumFileSizeForCompress: 0,
+                    },
+                    (progress) => {
+                        console.log('Compression Progress: ', progress);
+                    }
+                );
+                console.log('Compression complete:', finalUri);
+            }
+
+            // 2. Get pre-signed URL
             const { data } = await api.post('/storage/presigned-url', {
                 fileName,
                 contentType,
@@ -19,7 +39,7 @@ export const storageApi = {
 
             const { uploadUrl, fileUrl } = data;
 
-            // 2. Upload to S3 directly using XHR for better RN support
+            // 3. Upload to S3 directly using XHR for better RN support
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('PUT', uploadUrl);
@@ -42,7 +62,7 @@ export const storageApi = {
                 };
                 
                 // In React Native, fetch(uri).blob() is the standard way to get a blob for XHR/fetch
-                fetch(fileUri)
+                fetch(finalUri)
                     .then(response => response.blob())
                     .then(blob => {
                         xhr.send(blob);

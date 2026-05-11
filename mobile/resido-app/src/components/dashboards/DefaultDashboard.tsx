@@ -38,120 +38,90 @@ export default function DefaultDashboard() {
         <SafeAreaView style={styles.safeArea}>
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
-                    {/* Dynamic View based on Workspace */}
-                    {!activeWorkspace ? (
-                        <View style={styles.psWrapper}>
-                            {/* Header */}
-                            <View style={styles.psHeader}>
-                                <View style={styles.psBrandInfo}>
-                                    <View style={styles.psLogoBox}>
-                                        <Ionicons name="home" size={28} color="#fff" />
-                                    </View>
-                                    <View style={{ marginLeft: 15 }}>
-                                        <Text style={styles.psBrandTitleText}>Resido</Text>
-                                        <Text style={styles.psBrandTaglineText}>Smart living starts here</Text>
-                                    </View>
+                    <View style={styles.psWrapper}>
+                        {/* Unified Header */}
+                        <View style={styles.psHeader}>
+                            <View style={styles.psBrandInfo}>
+                                <View style={styles.psLogoBox}>
+                                    <Image 
+                                        source={activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg')} 
+                                        style={styles.psWorkspaceImg} 
+                                    />
                                 </View>
-                                <View style={styles.psHeaderActions}>
-                                    <TouchableOpacity style={styles.psIconBtn}>
-                                        <Ionicons name="notifications" size={24} color="#fff" />
-                                        <View style={styles.psNotifBadge}>
-                                            <Text style={styles.psNotifCount}>3</Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.psProfileBtn} onPress={() => router.push('/profile')}>
-                                        <Image source={{ uri: 'https://i.pravatar.cc/100?u=resido' }} style={styles.psProfileImg} />
-                                    </TouchableOpacity>
+                                <View>
+                                    <Text style={styles.psBrandTitleText}>
+                                        {activeWorkspace ? (activeWorkspace as any).tenantName : "Resido"}
+                                    </Text>
+                                    <Text style={styles.psBrandTaglineText}>
+                                        {activeWorkspace ? (activeWorkspace as any).role : "Smart living starts here"}
+                                    </Text>
                                 </View>
                             </View>
-
-                            {/* Workspace Switcher Row (Notched Cards) */}
-                            <View style={styles.psWorkspaceSection}>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psWorkspaceScroll}>
-                                    <WorkspaceCard 
-                                        label="My Space" 
-                                        isActive={!activeWorkspace} 
-                                        onPress={() => setActiveWorkspace(null as any, '')} 
-                                        image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
-                                    />
-                                    {workspaces.map((ws: any) => (
-                                        <WorkspaceCard 
-                                            key={ws.tenantId}
-                                            label={ws.tenantName} 
-                                            icon="business" 
-                                            isActive={activeWorkspace?.tenantId === ws.tenantId} 
-                                            onPress={() => setActiveWorkspace(ws, '')} 
-                                            image="https://cdn-icons-png.flaticon.com/512/3062/3062634.png"
-                                        />
-                                    ))}
-                                    <WorkspaceCard 
-                                        label="Artisans" 
-                                        icon="brush" 
-                                        isActive={false} 
-                                        onPress={() => {}} 
-                                        image="https://cdn-icons-png.flaticon.com/512/1048/1048953.png"
-                                    />
-                                </ScrollView>
-                            </View>                            
-                            
-                            {/* Search Bar Section */}
-                            <View style={styles.psSearchSection}>
-                                <View style={styles.psSearchBar}>
-                                    <Ionicons name="search-outline" size={22} color="#94a3b8" />
-                                    <TextInput 
-                                        style={styles.psSearchInput} 
-                                        placeholder="Search for 'Coconut Water'..."
-                                        placeholderTextColor="#94a3b8"
-                                    />
-                                    <View style={styles.psSearchIconsRight}>
-                                        <MaterialCommunityIcons name="clipboard-text-outline" size={22} color="#64748b" />
+                            <View style={styles.psHeaderActions}>
+                                <TouchableOpacity style={styles.psIconBtn}>
+                                    <Ionicons name="notifications" size={20} color="#fff" />
+                                    <View style={styles.psNotifBadge}>
+                                        <Text style={styles.psNotifCount}>3</Text>
                                     </View>
-                                </View>
-                                <TouchableOpacity style={styles.psBookmarkBtn}>
-                                    <Ionicons name="bookmark-outline" size={22} color="#fff" />
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.psProfileBtn} onPress={() => router.push('/profile')}>
+                                    <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=resido" }} style={styles.psProfileImg} />
                                 </TouchableOpacity>
                             </View>
+                        </View>
 
-                            {/* Quick Access Bar (New) */}
-                            <View style={styles.psQuickAccessBar}>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll}>
-                                    <QuickAccessItem icon="business" label="Business" />
-                                    <QuickAccessItem icon="wallet" label="Finance" />
-                                    <QuickAccessItem icon="grid" label="Services" />
-                                    <QuickAccessItem icon="document-text" label="Notes" />
-                                    <QuickAccessItem icon="folder" label="Docs" />
-                                </ScrollView>
+                        {/* Workspace Switcher */}
+                        <View style={styles.psWorkspaceSection}>
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false} 
+                                contentContainerStyle={styles.psWorkspaceScroll}
+                            >
+                                <WorkspaceCard 
+                                    label="My Space" 
+                                    isActive={!activeWorkspace} 
+                                    onPress={() => setActiveWorkspace(null as any, '')} 
+                                    image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
+                                />
+                                {workspaces.map((ws: any) => (
+                                    <WorkspaceCard 
+                                        key={ws.tenantId} 
+                                        label={ws.tenantName} 
+                                        isActive={activeWorkspace?.tenantId === ws.tenantId} 
+                                        onPress={() => setActiveWorkspace(ws, '')} 
+                                        image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
+                                    />
+                                ))}
+                            </ScrollView>
+                        </View>
+
+                        {/* Search Section */}
+                        <View style={styles.psSearchSection}>
+                            <View style={styles.psSearchBar}>
+                                <Ionicons name="search" size={20} color="#64748b" />
+                                <TextInput 
+                                    placeholder="Search for 'Coconut Water'..." 
+                                    style={styles.psSearchInput}
+                                    placeholderTextColor="#94a3b8"
+                                />
+                                <View style={styles.psSearchIconsRight}>
+                                    <Ionicons name="clipboard-outline" size={20} color="#64748b" />
+                                </View>
                             </View>
+                            <TouchableOpacity style={styles.psBookmarkBtn}>
+                                <Ionicons name="bookmark-outline" size={22} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
 
-                            {/* Most Searched Services */}
-                            <View style={styles.psMostSearchedSection}>
-                                <Text style={styles.psSectionTitle}>Most Searched</Text>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psMostSearchedScroll}>
-                                    <MostSearchedItem icon="construct-outline" label="Plumber" />
-                                    <MostSearchedItem icon="flash-outline" label="Electrician" />
-                                    <MostSearchedItem icon="water-outline" label="Cleaning" />
-                                    <MostSearchedItem icon="shield-checkmark-outline" label="Security" />
-                                </ScrollView>
-                            </View>
-
-                            {/* Explore Categories (Larger cards) */}
-                            <View style={styles.psExploreSection}>
-                                <Text style={styles.psSectionTitle}>Explore Categories</Text>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psExploreScroll}>
-                                    <CategoryCard label="Home Maint." image="https://images.unsplash.com/photo-1581578731548-c64695ce6958?auto=format&fit=crop&q=80&w=200" />
-                                    <CategoryCard label="Personal Care" image="https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&q=80&w=200" />
-                                    <CategoryCard label="Electronics" image="https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=200" />
-                                </ScrollView>
-                            </View>
-
-                            {/* Stories Section */}
+                        {/* Flares Section */}
+                        {!activeWorkspace && (
                             <View style={styles.psStoriesSection}>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psStoriesScroll}>
                                     <View style={styles.psStoryItem}>
                                         <TouchableOpacity style={[styles.psStoryCircle, { borderColor: '#94a3b8', borderStyle: 'dashed' }]}>
                                             <Ionicons name="add" size={24} color="#94a3b8" />
                                         </TouchableOpacity>
-                                        <Text style={styles.psStoryLabel}>My Story</Text>
+                                        <Text style={styles.psStoryLabel}>My Flares</Text>
                                     </View>
                                     <StoryItem name="Rahul" image="https://i.pravatar.cc/100?u=1" hasStory />
                                     <StoryItem name="Anjali" image="https://i.pravatar.cc/100?u=2" hasStory />
@@ -160,8 +130,103 @@ export default function DefaultDashboard() {
                                     <StoryItem name="Vikram" image="https://i.pravatar.cc/100?u=5" hasStory />
                                 </ScrollView>
                             </View>
+                        )}
 
-                            {/* Stay Connected Banner */}
+                        {/* Quick Access Bar */}
+                        <View style={styles.psQuickAccessBar}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll}>
+                                {activeWorkspace ? (
+                                    <>
+                                        <QuickAccessItem icon="megaphone" label="Notices" onPress={() => router.push('/notices')} />
+                                        <QuickAccessItem icon="id-card" label="Gate Pass" onPress={() => router.push('/gate-pass')} />
+                                        <QuickAccessItem icon="chatbubbles" label="Complaints" onPress={() => router.push('/complaints')} />
+                                        <QuickAccessItem icon="build" label="Mainten." onPress={() => router.push('/maintenance')} />
+                                        <QuickAccessItem icon="people" label="Contacts" onPress={() => router.push('/contacts')} />
+                                        <QuickAccessItem icon="scan" label="Scanner" onPress={() => router.push('/scanner')} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <QuickAccessItem icon="business" label="Business" />
+                                        <QuickAccessItem icon="wallet" label="Finance" />
+                                        <QuickAccessItem icon="grid" label="Services" />
+                                        <QuickAccessItem icon="document-text" label="Notes" />
+                                        <QuickAccessItem icon="folder" label="Docs" />
+                                    </>
+                                )}
+                            </ScrollView>
+                        </View>
+
+                        {/* Community Specific Stats & Tools (Only if activeWorkspace) */}
+                        {activeWorkspace && (
+                            <>
+                                <View style={{ paddingHorizontal: 20, marginBottom: 15 }}>
+                                    <View style={styles.statsGridSmall}>
+                                        <SmallStatItem icon="people" count="128" label="Families" color="#fff" bg="rgba(255,255,255,0.1)" />
+                                        <SmallStatItem icon="business" count="4" label="Blocks" color="#fff" bg="rgba(255,255,255,0.1)" />
+                                        <SmallStatItem icon="megaphone" count="5" label="Notices" color="#fff" bg="rgba(255,255,255,0.1)" />
+                                        <SmallStatItem icon="calendar" count="3" label="Events" color="#fff" bg="rgba(255,255,255,0.1)" />
+                                    </View>
+                                </View>
+
+                                {/* Community Tools Grid */}
+                                <View style={{ paddingHorizontal: 20, marginBottom: 25 }}>
+                                    <Text style={styles.psSectionTitle}>Community Services</Text>
+                                    <View style={styles.featuresGridUnified}>
+                                        <GridFeatureCard icon="megaphone" title="Noticeboard" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/notices')} />
+                                        <GridFeatureCard icon="id-card" title="Gate Pass" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/gate-pass')} />
+                                        <GridFeatureCard icon="chatbubbles" title="Complaints" color="#fff" bg="rgba(245, 158, 11, 0.2)" onPress={() => router.push('/complaints')} />
+                                        <GridFeatureCard icon="build" title="Maintenance" color="#fff" bg="rgba(139, 92, 246, 0.2)" onPress={() => router.push('/maintenance')} />
+                                    </View>
+                                </View>
+
+                                <View style={{ paddingHorizontal: 20, marginBottom: 25 }}>
+                                    <Text style={styles.psSectionTitle}>All Features</Text>
+                                    <View style={styles.featuresGridUnified}>
+                                        <GridFeatureCard icon="people" title="Contacts" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/contacts')} />
+                                        <GridFeatureCard icon="scan" title="Scanner" color="#fff" bg="rgba(139, 92, 246, 0.2)" onPress={() => router.push('/scanner')} />
+                                        <GridFeatureCard icon="folder" title="Documents" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/documents')} />
+                                        <GridFeatureCard icon="chatbubble-ellipses" title="Chat" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/chat-list')} />
+                                        <GridFeatureCard icon="newspaper" title="Thread" color="#fff" bg="rgba(30, 41, 59, 0.2)" onPress={() => router.push('/thread')} />
+                                        <GridFeatureCard icon="play-circle" title="Flares" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/flares')} />
+                                        <GridFeatureCard icon="calendar" title="Calendar" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/calendar')} />
+                                        <GridFeatureCard icon="help-circle" title="Support" color="#fff" bg="rgba(14, 165, 233, 0.2)" onPress={() => router.push('/support')} />
+                                    </View>
+                                </View>
+                            </>
+                        )}
+
+                        {/* Most Searched Services */}
+                        <View style={styles.psMostSearchedSection}>
+                            <Text style={styles.psSectionTitle}>Most Searched</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psMostSearchedScroll}>
+                                <MostSearchedItem icon="construct-outline" label="Plumber" />
+                                <MostSearchedItem icon="flash-outline" label="Electrician" />
+                                <MostSearchedItem icon="water-outline" label="Cleaning" />
+                                <MostSearchedItem icon="shield-checkmark-outline" label="Security" />
+                            </ScrollView>
+                        </View>
+
+                        {/* Manage Business Banner (Now First) */}
+                        {!activeWorkspace && (
+                            <View style={styles.psBusinessBanner}>
+                                <View style={styles.psBannerContent}>
+                                    <View style={[styles.psBannerImage, { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }]}>
+                                        <Ionicons name="business" size={28} color="#4f46e5" />
+                                    </View>
+                                    <View style={styles.psBannerTextCol}>
+                                        <Text style={styles.psBannerTitle}>Grow Your Business</Text>
+                                        <Text style={styles.psBannerSub}>Discover local business profiles & services</Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]}>
+                                    <Text style={[styles.psBannerBtnText, { color: '#4f46e5' }]}>Manage Business</Text>
+                                    <Ionicons name="arrow-forward" size={16} color="#4f46e5" />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Community Banner (Now Second) */}
+                        {!activeWorkspace && (
                             <View style={styles.psBanner}>
                                 <View style={styles.psBannerContent}>
                                     <Image source={{ uri: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=200' }} style={styles.psBannerImage} />
@@ -175,168 +240,61 @@ export default function DefaultDashboard() {
                                     <Ionicons name="arrow-forward" size={16} color="#1e293b" />
                                 </TouchableOpacity>
                             </View>
+                        )}
 
-                            {/* Explore Business Profile Banner */}
-                            <View style={styles.psBusinessBanner}>
-                                <View style={styles.psBannerContent}>
-                                    <View style={[styles.psBannerImage, { backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }]}>
-                                        <Ionicons name="business" size={28} color="#4f46e5" />
+                        {/* Explore Services */}
+                        <View style={styles.psExploreSection}>
+                            <Text style={styles.psSectionTitle}>Explore Services</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psExploreScroll}>
+                                <CategoryCard label="Home Maintenance" image="https://images.unsplash.com/photo-1581578731548-c64695ce6958?w=400" />
+                                <CategoryCard label="Handyman" image="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400" />
+                                <CategoryCard label="Cleaning" image="https://images.unsplash.com/photo-1581578736496-512c05069a36?w=400" />
+                                <CategoryCard label="Beauty & Wellness" image="https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=400" />
+                                <CategoryCard label="Automotive Services" image="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400" />
+                                <CategoryCard label="Education & Learning" image="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400" />
+                                <CategoryCard label="Event Services" image="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400" />
+                                <CategoryCard label="Business Services" image="https://images.unsplash.com/photo-1454165833767-0275ef84c6ee?w=400" />
+                                <TouchableOpacity style={styles.psExploreMoreBtn}>
+                                    <View style={styles.psExploreMoreIcon}>
+                                        <Ionicons name="arrow-forward" size={24} color="#fff" />
                                     </View>
-                                    <View style={styles.psBannerTextCol}>
-                                        <Text style={styles.psBannerTitle}>Grow Your Business</Text>
-                                        <Text style={styles.psBannerSub}>Discover local business profiles & services</Text>
-                                    </View>
-                                </View>
-                                <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]}>
-                                    <Text style={[styles.psBannerBtnText, { color: '#4f46e5' }]}>Explore Business</Text>
-                                    <Ionicons name="arrow-forward" size={16} color="#4f46e5" />
+                                    <Text style={styles.psExploreMoreText}>More</Text>
                                 </TouchableOpacity>
-                            </View>
-                        </View>
-                    ) : (
-                        <>
-                            {/* Community Dashboard View */}
-                            <View style={styles.header}>
-                                <View style={styles.brandInfo}>
-                                    <View style={styles.logoBox}>
-                                        <Image source={require('../../../assets/resido_logo.jpg')} style={styles.logoMini} />
-                                    </View>
-                                    <View>
-                                        <Text style={styles.brandTitleText}>Resido</Text>
-                                        <Text style={styles.brandTaglineText}>Your Community Starts Here</Text>
-                                    </View>
-                                </View>
-                                <View style={styles.headerActions}>
-                                    <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/calendar')}>
-                                        <Ionicons name="calendar" size={24} color="#6366f1" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.iconBtn}>
-                                        <Ionicons name="notifications" size={24} color="#6366f1" />
-                                        <View style={styles.notifBadge} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile')}>
-                                        <Image source={{ uri: 'https://i.pravatar.cc/100?u=resido' }} style={styles.profileImg} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            <View style={styles.communityMainCard}>
-                                <TouchableOpacity style={styles.cmHeaderRow} onPress={() => setIsSelectModalVisible(true)}>
-                                    <View style={styles.cmLogoBox}>
-                                        <Image source={require('../../../assets/greenwoods_logo.jpg')} style={styles.cmLogo} />
-                                    </View>
-                                    <View style={styles.cmNameBox}>
-                                        <Text style={styles.cmName} numberOfLines={1}>{(activeWorkspace as any).tenantName}</Text>
-                                        <Text style={styles.cmRoleText}>{(activeWorkspace as any).role}</Text>
-                                    </View>
-                                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
-                                </TouchableOpacity>
-
-                                {/* Stats Grid - Small 4-Column */}
-                                <View style={styles.statsGridSmall}>
-                                    <SmallStatItem icon="people" count="128" label="Families" color="#10b981" bg="#ecfdf5" />
-                                    <SmallStatItem icon="business" count="4" label="Blocks" color="#3b82f6" bg="#eff6ff" />
-                                    <SmallStatItem icon="megaphone" count="5" label="Notices" color="#f59e0b" bg="#fffbeb" />
-                                    <SmallStatItem icon="calendar" count="3" label="Events" color="#8b5cf6" bg="#f5f3ff" />
-                                </View>
-
-                                {/* Quick Action Buttons */}
-                                <View style={styles.cmActions}>
-                                    <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/complaints')}>
-                                        <View style={[styles.actionIconBox, { backgroundColor: '#f5f3ff' }]}>
-                                            <MaterialCommunityIcons name="hand-pointing-up" size={24} color="#6366f1" />
-                                        </View>
-                                        <View style={{ flex: 1, marginLeft: 12 }}>
-                                            <Text style={styles.actionTitle}>Raise Request</Text>
-                                            <Text style={styles.actionSub}>Submit a request</Text>
-                                        </View>
-                                        <Ionicons name="chevron-forward" size={18} color="#6366f1" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/calendar')}>
-                                        <View style={[styles.actionIconBox, { backgroundColor: '#f0f9ff' }]}>
-                                            <MaterialCommunityIcons name="calendar-month" size={24} color="#0ea5e9" />
-                                        </View>
-                                        <View style={{ flex: 1, marginLeft: 12 }}>
-                                            <Text style={styles.actionTitle}>View Calendar</Text>
-                                            <Text style={styles.actionSub}>Check upcoming events</Text>
-                                        </View>
-                                        <Ionicons name="chevron-forward" size={18} color="#0ea5e9" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            {/* Quick Access */}
-                            <View style={styles.sectionHeading}>
-                                <Text style={styles.sectionTitle}>Quick Access</Text>
-                            </View>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qaHorizontalScroll}>
-                                <QACardCircular icon="construct" title="Services" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/service-search')} />
-                                <QACardCircular icon="wallet" title="Finance" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/finance')} />
-                                <QACardCircular icon="document-text" title="Documents" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/documents')} />
-                                <QACardCircular icon="briefcase" title="Business" color="#f59e0b" bg="#fffbeb" onPress={() => router.push('/business-profile')} />
-                                <QACardCircular icon="people" title="Community" color="#8b5cf6" bg="#f5f3ff" onPress={() => setIsSelectModalVisible(true)} />
                             </ScrollView>
-
-                            {/* Community Services Grid */}
-                            <View style={styles.sectionHeading}>
-                                <Text style={styles.sectionTitle}>Community Services</Text>
-                            </View>
-                            <View style={styles.featuresGrid}>
-                                <GridFeatureCard icon="megaphone-outline" title="Noticeboard" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/notices')} />
-                                <GridFeatureCard icon="id-card-outline" title="Gate Pass" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/gate-pass')} />
-                                <GridFeatureCard icon="chatbubbles-outline" title="Complaints" color="#f59e0b" bg="#fffbeb" onPress={() => router.push('/complaints')} />
-                                <GridFeatureCard icon="build-outline" title="Maintenance" color="#8b5cf6" bg="#f5f3ff" onPress={() => router.push('/maintenance')} />
-                            </View>
-
-                            {/* All Features Grid */}
-                            <View style={styles.sectionHeading}>
-                                <Text style={styles.sectionTitle}>All Features</Text>
-                            </View>
-                            <View style={styles.featuresGrid}>
-                                <GridFeatureCard icon="people" title="Contacts" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/contacts')} />
-                                <GridFeatureCard icon="scan" title="Scanner" color="#8b5cf6" bg="#f5f3ff" onPress={() => router.push('/scanner')} />
-                                <GridFeatureCard icon="folder" title="Documents" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/documents')} />
-                                <GridFeatureCard icon="chatbubble-ellipses" title="Chat" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/chat-list')} />
-                                <GridFeatureCard icon="newspaper" title="Thread" color="#1e293b" bg="#f1f5f9" onPress={() => router.push('/thread')} />
-                                <GridFeatureCard icon="play-circle" title="Flares" color="#ef4444" bg="#fef2f2" onPress={() => router.push('/flares')} />
-                                <GridFeatureCard icon="calendar" title="Calendar" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/calendar')} />
-                                <GridFeatureCard icon="settings" title="Settings" color="#64748b" bg="#f8fafc" onPress={() => router.push('/settings')} />
-                                <GridFeatureCard icon="help-circle" title="Support" color="#0ea5e9" bg="#f0f9ff" onPress={() => router.push('/support')} />
-                            </View>
-                        </>
-                    )}
-
-                    {/* Community Selection Modal */}
-                    <Modal visible={isSelectModalVisible} transparent={true} animationType="fade" onRequestClose={() => setIsSelectModalVisible(false)}>
-                        <Pressable style={styles.modalOverlay} onPress={() => setIsSelectModalVisible(false)}>
-                            <View style={styles.dropdownContainer}>
-                                <View style={styles.dropdownHeader}>
-                                    <Text style={styles.dropdownTitle}>Select Community</Text>
-                                    <TouchableOpacity onPress={() => { setIsSelectModalVisible(false); router.push('/create-community'); }}>
-                                        <Ionicons name="add-circle" size={24} color="#6366f1" />
-                                    </TouchableOpacity>
-                                </View>
-                                <FlatList
-                                    data={workspaces}
-                                    keyExtractor={item => item.tenantId}
-                                    renderItem={({ item }) => (
-                                        <TouchableOpacity 
-                                            style={styles.dropdownItem}
-                                            onPress={() => { setActiveWorkspace(item, ''); setIsSelectModalVisible(false); }}
-                                        >
-                                            <View style={styles.dropdownItemIcon}><MaterialCommunityIcons name="office-building" size={24} color="#6366f1" /></View>
-                                            <View style={{ flex: 1, marginLeft: 12 }}>
-                                                <Text style={styles.dropdownItemName}>{item.tenantName}</Text>
-                                                <Text style={styles.dropdownItemRole}>{item.role}</Text>
-                                            </View>
-                                            <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-                                        </TouchableOpacity>
-                                    )}
-                                />
-                            </View>
-                        </Pressable>
-                    </Modal>
+                        </View>
+                    </View>
                 </View>
+
+                {/* Community Selection Modal */}
+                <Modal visible={isSelectModalVisible} transparent={true} animationType="fade" onRequestClose={() => setIsSelectModalVisible(false)}>
+                    <Pressable style={styles.modalOverlay} onPress={() => setIsSelectModalVisible(false)}>
+                        <View style={styles.dropdownContainer}>
+                            <View style={styles.dropdownHeader}>
+                                <Text style={styles.dropdownTitle}>Select Community</Text>
+                                <TouchableOpacity onPress={() => { setIsSelectModalVisible(false); router.push('/create-community'); }}>
+                                    <Ionicons name="add-circle" size={24} color="#6366f1" />
+                                </TouchableOpacity>
+                            </View>
+                            <FlatList
+                                data={workspaces}
+                                keyExtractor={item => item.tenantId}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity 
+                                        style={styles.dropdownItem}
+                                        onPress={() => { setActiveWorkspace(item, ''); setIsSelectModalVisible(false); }}
+                                    >
+                                        <View style={styles.dropdownItemIcon}><MaterialCommunityIcons name="office-building" size={24} color="#6366f1" /></View>
+                                        <View style={{ flex: 1, marginLeft: 12 }}>
+                                            <Text style={styles.dropdownItemName}>{item.tenantName}</Text>
+                                            <Text style={styles.dropdownItemRole}>{item.role}</Text>
+                                        </View>
+                                        <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
+                                    </TouchableOpacity>
+                                )}
+                            />
+                        </View>
+                    </Pressable>
+                </Modal>
             </ScrollView>
             <BottomNav activeTab="Home" />
         </SafeAreaView>
@@ -465,6 +423,9 @@ const styles = StyleSheet.create({
     psExploreSection: { marginBottom: 15, paddingHorizontal: 20 },
     psSectionTitle: { fontSize: 13, fontWeight: '900', color: '#fff', marginBottom: 8, opacity: 0.9 },
     psExploreScroll: { paddingBottom: 0 },
+    psExploreMoreBtn: { width: 120, height: 70, borderRadius: 14, marginRight: 10, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    psExploreMoreIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
+    psExploreMoreText: { color: '#fff', fontSize: 10, fontWeight: '900' },
 
     psQuickAccessBar: { marginBottom: 15, paddingHorizontal: 20 },
     psQuickAccessScroll: { paddingVertical: 5 },
@@ -478,7 +439,7 @@ const styles = StyleSheet.create({
     psMostSearchedLabel: { color: '#1e293b', fontSize: 11, fontWeight: '800', marginLeft: 6 },
 
     psCategoryCard: { width: 120, height: 70, borderRadius: 14, marginRight: 10, overflow: 'hidden' },
-    psCategoryCardImg: { width: '100%', height: '100%', position: 'absolute' },
+    psCategoryCardImg: { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 },
     psCategoryCardOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 8 },
     psCategoryCardLabel: { color: '#fff', fontSize: 12, fontWeight: '900', textAlign: 'center' },
 
@@ -523,8 +484,8 @@ const styles = StyleSheet.create({
     statsGridSmall: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
     smallStatItem: { width: (width - 100) / 4, alignItems: 'center' },
     smallStatIconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    smallStatCount: { fontSize: 16, fontWeight: '900', color: '#1e293b' },
-    smallStatLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '700' },
+    smallStatCount: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    smallStatLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
     cmActions: { gap: 12 },
     actionRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 16, borderRadius: 20 },
     actionIconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
@@ -533,9 +494,10 @@ const styles = StyleSheet.create({
     sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 15 },
     sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
     featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 15, marginBottom: 30, justifyContent: 'flex-start' },
+    featuresGridUnified: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, justifyContent: 'space-between' },
     gridFeatureCard: { width: (width - 60) / 4, alignItems: 'center', marginBottom: 20 },
-    gfIconBox: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
-    gfTitle: { fontSize: 11, fontWeight: '700', color: '#475569', textAlign: 'center' },
+    gfIconBox: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    gfTitle: { fontSize: 11, fontWeight: '700', color: '#fff', textAlign: 'center', opacity: 0.8 },
     qaHorizontalScroll: { paddingLeft: 20, marginBottom: 30 },
     qaCardCircular: { alignItems: 'center', marginRight: 20, width: 70 },
     qaIconBoxCircular: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },

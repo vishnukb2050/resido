@@ -13,17 +13,65 @@ model Blog {
   title       String
   content     String
   authorId    String   // Global User ID
+  authorName  String?
+  authorAvatar String?
+  location    String?
+  isVerified  Boolean  @default(false)
   category    String?
   type        BlogType @default(THREAD)
   mediaUrls   String[]
   mediaType   BlogMediaType @default(IMAGE)
+  musicName   String?  @default("Original Audio")
   tags        String[] // Array of Global User IDs
+  
+  // Interaction Counts
+  likesCount    Int @default(0)
+  commentsCount Int @default(0)
+  resharesCount Int @default(0)
+  savesCount    Int @default(0)
+
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  comments    Comment[]
+  interactions Interaction[]
+
   @@index([tenantId])
   @@map("blogs")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id])
+  userId    String
+  userName  String
+  userAvatar String?
+  content   String
+  likesCount Int     @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([blogId])
+  @@map("blog_comments")
+}
+
+model Interaction {
+  id        String   @id @default(cuid())
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id])
+  userId    String
+  type      InteractionType
+  createdAt DateTime @default(now())
+
+  @@unique([blogId, userId, type])
+  @@map("blog_interactions")
+}
+
+enum InteractionType {
+  LIKE
+  RESHARE
+  SAVE
 }
 
 enum BlogType {

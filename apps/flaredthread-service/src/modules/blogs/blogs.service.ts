@@ -13,9 +13,12 @@ export class BlogsService {
         private storage: StorageService
     ) {}
 
-    async listBlogs() {
+    async listBlogs(type?: 'THREAD' | 'FLARE') {
         return this.prisma.reader.blog.findMany({
-            where: { isActive: true },
+            where: { 
+                isActive: true,
+                ...(type ? { type } : {})
+            },
             orderBy: { createdAt: 'desc' }
         });
     }
@@ -25,6 +28,11 @@ export class BlogsService {
             data: { 
                 ...data, 
                 authorId,
+                authorName: data.authorName,
+                authorAvatar: data.authorAvatar,
+                location: data.location,
+                isVerified: data.isVerified || false,
+                musicName: data.musicName || "Original Audio",
                 type: data.type || 'THREAD',
                 mediaType: data.mediaType || 'IMAGE',
                 tags: data.tags || []
@@ -62,7 +70,82 @@ export class BlogsService {
         return this.prisma.client.blog.update({ where: { id }, data: { isActive: false } });
     }
 
-    async generateUploadUrl(tenantId: string, fileName: string, contentType: string, blogType: 'THREAD' | 'FLARE', mediaType: 'IMAGE' | 'VIDEO') {
-        return this.storage.generatePresignedUrl(fileName, contentType, tenantId, blogType, mediaType);
+    async generateUploadUrl(tenantId: string, userId: string, fileName: string, contentType: string, blogType: 'THREAD' | 'FLARE', mediaType: 'IMAGE' | 'VIDEO') {
+        return this.storage.generatePresignedUrl(fileName, contentType, tenantId, userId, blogType, mediaType);
+    }
+
+    async toggleLike(blogId: string, userId: string) {
+        const existing = await this.prisma.reader.interaction.findUnique({
+            where: { blogId_userId_type: { blogId, userId, type: 'LIKE' } }
+        });
+
+        if (existing) {
+            await this.prisma.client.$transaction([
+                this.prisma.client.interaction.delete({ where: { id: existing.id } }),
+                this.prisma.client.blog.update({ where: { id: blogId }, data: { likesCount: { decrement: 1 } } })
+            ]);
+            return { liked: false };
+        } else {
+            await this.prisma.client.$transaction([
+                this.prisma.client.interaction.create({ data: { blogId, userId, type: 'LIKE' } }),
+                this.prisma.client.blog.update({ where: { id: blogId }, data: { likesCount: { increment: 1 } } })
+            ]);
+            return { liked: true };
+        }
+    }
+
+    async addComment(blogId: string, userId: string, data: { content: string; userName: string; userAvatar?: string }) {
+        const comment = await this.prisma.client.comment.create({
+            data: {
+                blogId,
+                userId,
+                userName: data.userName,
+                userAvatar: data.userAvatar,
+                content: data.content
+            }
+        });
+
+        await this.prisma.client.blog.update({
+            where: { id: blogId },
+            data: { commentsCount: { increment: 1 } }
+        });
+
+        return comment;
+    }
+
+    async getComments(blogId: string) {
+        return this.prisma.reader.comment.findMany({
+            where: { blogId },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async reshare(blogId: string, userId: string) {
+        await this.prisma.client.blog.update({
+            where: { id: blogId },
+            data: { resharesCount: { increment: 1 } }
+        });
+        // We could also create an interaction record here if we want to track who reshared
+        return { success: true };
+    }
+
+    async toggleSave(blogId: string, userId: string) {
+        const existing = await this.prisma.reader.interaction.findUnique({
+            where: { blogId_userId_type: { blogId, userId, type: 'SAVE' } }
+        });
+
+        if (existing) {
+            await this.prisma.client.$transaction([
+                this.prisma.client.interaction.delete({ where: { id: existing.id } }),
+                this.prisma.client.blog.update({ where: { id: blogId }, data: { savesCount: { decrement: 1 } } })
+            ]);
+            return { saved: false };
+        } else {
+            await this.prisma.client.$transaction([
+                this.prisma.client.interaction.create({ data: { blogId, userId, type: 'SAVE' } }),
+                this.prisma.client.blog.update({ where: { id: blogId }, data: { savesCount: { increment: 1 } } })
+            ]);
+            return { saved: true };
+        }
     }
 }

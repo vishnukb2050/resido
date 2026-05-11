@@ -11,13 +11,15 @@ export class StorageService {
 
     constructor(private config: ConfigService) {
         this.s3Client = new S3Client({
-            region: this.config.get('AWS_REGION'),
+            region: this.config.get('AWS_REGION', 'auto'),
             credentials: {
                 accessKeyId: this.config.get('AWS_ACCESS_KEY_ID'),
                 secretAccessKey: this.config.get('AWS_SECRET_ACCESS_KEY'),
             },
+            endpoint: this.config.get('AWS_S3_ENDPOINT'),
+            forcePathStyle: true,
         });
-        this.bucket = this.config.get('AWS_S3_BUCKET', 'resido');
+        this.bucket = this.config.get('AWS_S3_BUCKET_NAME', this.config.get('AWS_S3_BUCKET', 'resido'));
     }
 
     /**
@@ -53,7 +55,9 @@ export class StorageService {
             });
 
             const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 });
-            const fileUrl = `https://${this.bucket}.s3.${this.config.get('AWS_REGION')}.amazonaws.com/${key}`;
+            
+            const endpoint = this.config.get('AWS_S3_ENDPOINT', `https://${this.bucket}.s3.${this.config.get('AWS_REGION')}.amazonaws.com`);
+            const fileUrl = `${endpoint}/${this.bucket}/${key}`;
 
             return { uploadUrl, fileUrl, key };
         } catch (error) {

@@ -12,6 +12,16 @@ export class BlogsController {
         return this.blogsService.listBlogs();
     }
 
+    @Get('threads')
+    listThreads() {
+        return this.blogsService.listBlogs('THREAD');
+    }
+
+    @Get('flares')
+    listFlares() {
+        return this.blogsService.listBlogs('FLARE');
+    }
+
     @Post('upload-url')
     async getUploadUrl(
         @Req() req: any,
@@ -40,5 +50,34 @@ export class BlogsController {
     @Delete(':id')
     deleteBlog(@Param('id') id: string) {
         return this.blogsService.deleteBlog(id);
+    }
+
+    @Post(':id/like')
+    toggleLike(@Req() req: any, @Param('id') id: string) {
+        const userId = req.headers['x-user-id'] as string;
+        return this.blogsService.toggleLike(id, userId);
+    }
+
+    @Post(':id/comment')
+    addComment(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+        const userId = req.headers['x-user-id'] as string;
+        return this.blogsService.addComment(id, userId, body);
+    }
+
+    @Get(':id/comments')
+    getComments(@Param('id') id: string) {
+        return this.blogsService.getComments(id);
+    }
+
+    @Post(':id/reshare')
+    reshare(@Req() req: any, @Param('id') id: string) {
+        const userId = req.headers['x-user-id'] as string;
+        return this.blogsService.reshare(id, userId);
+    }
+
+    @Post(':id/save')
+    toggleSave(@Req() req: any, @Param('id') id: string) {
+        const userId = req.headers['x-user-id'] as string;
+        return this.blogsService.toggleSave(id, userId);
     }
 }
