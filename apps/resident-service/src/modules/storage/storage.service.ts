@@ -19,7 +19,7 @@ export class StorageService {
             endpoint: this.config.get('AWS_S3_ENDPOINT'),
             forcePathStyle: true,
         });
-        this.bucket = this.config.get('AWS_S3_BUCKET_NAME', this.config.get('AWS_S3_BUCKET', 'resido'));
+        this.bucket = this.config.get<string>('AWS_S3_BUCKET_NAME') || this.config.get<string>('AWS_S3_BUCKET') || 'resido';
     }
 
     /**

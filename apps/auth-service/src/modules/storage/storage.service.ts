@@ -18,7 +18,7 @@ export class StorageService {
             endpoint: this.configService.get('AWS_S3_ENDPOINT'),
             forcePathStyle: true,
         });
-        this.bucketName = this.configService.get('AWS_S3_BUCKET_NAME');
+        this.bucketName = this.configService.get<string>('AWS_S3_BUCKET_NAME') || this.configService.get<string>('AWS_S3_BUCKET') || 'resido';
     }
 
     async getPresignedUrl(fileName: string, contentType: string, tenantId: string, userId: string, resourceType: string = 'uploads') {
