@@ -33,9 +33,12 @@ export class BlogsService {
                 location: data.location,
                 isVerified: data.isVerified || false,
                 musicName: data.musicName || "Original Audio",
+                musicId: data.musicId || null,
                 type: data.type || 'THREAD',
                 mediaType: data.mediaType || 'IMAGE',
-                tags: data.tags || []
+                tags: data.tags || [],
+                hashtags: data.hashtags || [],
+                commentsEnabled: data.commentsEnabled !== undefined ? data.commentsEnabled : true
             }
         });
 
@@ -75,27 +78,27 @@ export class BlogsService {
     }
 
     async toggleLike(blogId: string, userId: string) {
-        const existing = await this.prisma.reader.interaction.findUnique({
+        const existing = await (this.prisma.reader as any).interaction.findUnique({
             where: { blogId_userId_type: { blogId, userId, type: 'LIKE' } }
         });
 
         if (existing) {
-            await this.prisma.client.$transaction([
-                this.prisma.client.interaction.delete({ where: { id: existing.id } }),
-                this.prisma.client.blog.update({ where: { id: blogId }, data: { likesCount: { decrement: 1 } } })
+            await (this.prisma.client as any).$transaction([
+                (this.prisma.client as any).interaction.delete({ where: { id: existing.id } }),
+                (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { likesCount: { decrement: 1 } } })
             ]);
             return { liked: false };
         } else {
-            await this.prisma.client.$transaction([
-                this.prisma.client.interaction.create({ data: { blogId, userId, type: 'LIKE' } }),
-                this.prisma.client.blog.update({ where: { id: blogId }, data: { likesCount: { increment: 1 } } })
+            await (this.prisma.client as any).$transaction([
+                (this.prisma.client as any).interaction.create({ data: { blogId, userId, type: 'LIKE' } }),
+                (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { likesCount: { increment: 1 } } })
             ]);
             return { liked: true };
         }
     }
 
     async addComment(blogId: string, userId: string, data: { content: string; userName: string; userAvatar?: string }) {
-        const comment = await this.prisma.client.comment.create({
+        const comment = await (this.prisma.client as any).comment.create({
             data: {
                 blogId,
                 userId,
@@ -105,7 +108,7 @@ export class BlogsService {
             }
         });
 
-        await this.prisma.client.blog.update({
+        await (this.prisma.client as any).blog.update({
             where: { id: blogId },
             data: { commentsCount: { increment: 1 } }
         });
@@ -114,14 +117,14 @@ export class BlogsService {
     }
 
     async getComments(blogId: string) {
-        return this.prisma.reader.comment.findMany({
+        return (this.prisma.reader as any).comment.findMany({
             where: { blogId },
             orderBy: { createdAt: 'desc' }
         });
     }
 
     async reshare(blogId: string, userId: string) {
-        await this.prisma.client.blog.update({
+        await (this.prisma.client as any).blog.update({
             where: { id: blogId },
             data: { resharesCount: { increment: 1 } }
         });
@@ -130,20 +133,20 @@ export class BlogsService {
     }
 
     async toggleSave(blogId: string, userId: string) {
-        const existing = await this.prisma.reader.interaction.findUnique({
+        const existing = await (this.prisma.reader as any).interaction.findUnique({
             where: { blogId_userId_type: { blogId, userId, type: 'SAVE' } }
         });
 
         if (existing) {
-            await this.prisma.client.$transaction([
-                this.prisma.client.interaction.delete({ where: { id: existing.id } }),
-                this.prisma.client.blog.update({ where: { id: blogId }, data: { savesCount: { decrement: 1 } } })
+            await (this.prisma.client as any).$transaction([
+                (this.prisma.client as any).interaction.delete({ where: { id: existing.id } }),
+                (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { savesCount: { decrement: 1 } } })
             ]);
             return { saved: false };
         } else {
-            await this.prisma.client.$transaction([
-                this.prisma.client.interaction.create({ data: { blogId, userId, type: 'SAVE' } }),
-                this.prisma.client.blog.update({ where: { id: blogId }, data: { savesCount: { increment: 1 } } })
+            await (this.prisma.client as any).$transaction([
+                (this.prisma.client as any).interaction.create({ data: { blogId, userId, type: 'SAVE' } }),
+                (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { savesCount: { increment: 1 } } })
             ]);
             return { saved: true };
         }

@@ -78,3 +78,64 @@ export const storageApi = {
         }
     }
 };
+export const uploadToR2 = async (fileUri: string, tenantId: string, blogType: 'THREAD' | 'FLARE', mediaType: 'IMAGE' | 'VIDEO') => {
+    try {
+        const fileName = fileUri.split('/').pop() || `upload_${Date.now()}`;
+        const contentType = mediaType === 'VIDEO' ? 'video/mp4' : 'image/jpeg';
+        
+        let finalUri = fileUri;
+
+        // 1. Compress video if applicable
+        if (mediaType === 'VIDEO') {
+            console.log('Compressing video to 720p...');
+            finalUri = await Video.compress(
+                fileUri,
+                {
+                    compressionMethod: 'auto',
+                    minimumFileSizeForCompress: 0,
+                }
+            );
+            console.log('Compression complete:', finalUri);
+        }
+
+        // 2. Get pre-signed URL from flaredthread-service
+        const { data } = await api.post('/threads/upload-url', {
+            fileName,
+            contentType,
+            tenantId,
+            blogType,
+            mediaType
+        });
+
+        const { uploadUrl, fileUrl } = data;
+
+        // 3. Upload to S3
+        await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', uploadUrl);
+            xhr.setRequestHeader('Content-Type', contentType);
+            
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200 || xhr.status === 201) {
+                        resolve(fileUrl);
+                    } else {
+                        reject(new Error(`S3 upload failed with status ${xhr.status}`));
+                    }
+                }
+            };
+
+            xhr.onerror = () => reject(new Error('XHR network error'));
+            
+            fetch(finalUri)
+                .then(response => response.blob())
+                .then(blob => xhr.send(blob))
+                .catch(reject);
+        });
+
+        return { fileUrl };
+    } catch (error) {
+        console.error('R2 upload failed:', error);
+        throw error;
+    }
+};

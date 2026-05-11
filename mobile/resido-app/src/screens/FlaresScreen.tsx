@@ -66,7 +66,10 @@ export default function FlaresScreen() {
     const renderRecentItem = ({ item }: any) => {
         if (item.type === 'create') {
             return (
-                <TouchableOpacity style={[styles.recentCard, styles.createCard]}>
+                <TouchableOpacity 
+                    style={[styles.recentCard, styles.createCard]}
+                    onPress={() => router.push('/create-flare')}
+                >
                     <View style={styles.createIconBg}>
                         <Ionicons name="camera-outline" size={24} color="#fff" />
                     </View>

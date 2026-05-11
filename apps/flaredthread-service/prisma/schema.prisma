@@ -22,7 +22,10 @@ model Blog {
   mediaUrls   String[]
   mediaType   BlogMediaType @default(IMAGE)
   musicName   String?  @default("Original Audio")
+  musicId     String?  // Optional reference to a music track
   tags        String[] // Array of Global User IDs
+  hashtags    String[] // Array of hashtags (without #)
+  commentsEnabled Boolean @default(true)
   
   // Interaction Counts
   likesCount    Int @default(0)
