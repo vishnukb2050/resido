@@ -18,8 +18,15 @@ api.interceptors.request.use(async (config) => {
                 config.headers.Authorization = `Bearer ${state.token}`;
             }
             
+            if (state.user?.id) {
+                config.headers['x-user-id'] = state.user.id;
+            }
+            
             if (state.activeWorkspace?.tenantId) {
                 config.headers['x-tenant-id'] = state.activeWorkspace.tenantId;
+            }
+            if (state.activeWorkspace?.dbName) {
+                config.headers['x-db-name'] = state.activeWorkspace.dbName;
             }
         }
     } catch (error) {

@@ -110,6 +110,11 @@ export default function CreateFlareScreen() {
             return;
         }
 
+        if (!user?.id) {
+            Alert.alert('Error', 'User session expired. Please log in again.');
+            return;
+        }
+
         try {
             setIsUploading(true);
             setUploadProgress(0);
