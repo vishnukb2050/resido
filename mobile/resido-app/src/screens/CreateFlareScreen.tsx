@@ -117,6 +117,7 @@ export default function CreateFlareScreen() {
             // 1. Upload Video
             const uploadResult = await uploadToR2(
                 video,
+                activeWorkspace?.tenantId || 'global',
                 'FLARE',
                 'VIDEO',
                 (progress) => setUploadProgress(progress * 0.8)
@@ -127,6 +128,7 @@ export default function CreateFlareScreen() {
             if (selectedAudio) {
                 const audioResult = await uploadToR2(
                     selectedAudio.uri,
+                    activeWorkspace?.tenantId || 'global',
                     'FLARE',
                     'VIDEO', // Use VIDEO bucket for consistent policy
                     (progress) => setUploadProgress(0.8 + (progress * 0.2))
@@ -138,8 +140,8 @@ export default function CreateFlareScreen() {
             const hashtagArray = hashtags.split(' ').filter(h => h.startsWith('#')).map(h => h.slice(1));
 
             // 4. Create Flare in DB
-            await threadApi.createBlog({
-                tenantId: activeWorkspace?.id || 'global',
+            await threadApi.createFlare({
+                tenantId: activeWorkspace?.tenantId || 'global',
                 title: title.trim() || "New Flare",
                 content: title.trim() || "Flare Content",
                 type: 'FLARE',
@@ -153,10 +155,8 @@ export default function CreateFlareScreen() {
                 hashtags: hashtagArray,
                 commentsEnabled,
                 visibility: selectedVisibilities[0] || 'PUBLIC',
-                visibilities: selectedVisibilities,
                 tags: taggedUsers,
-                location: activeWorkspace?.name || 'Community',
-                isVerified: false
+                location: activeWorkspace?.tenantName || 'Community'
             });
 
             setUploadProgress(1);

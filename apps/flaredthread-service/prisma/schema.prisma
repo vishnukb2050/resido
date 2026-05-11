@@ -27,6 +27,7 @@ model Blog {
   hashtags    String[] // Array of hashtags (without #)
   visibility  BlogVisibility @default(PUBLIC)
   targetCommunities String[] // Tenant IDs for COMMUNITY visibility
+  audioUrl    String?  // URL to custom background audio
   commentsEnabled Boolean @default(true)
   
   // Interaction Counts
