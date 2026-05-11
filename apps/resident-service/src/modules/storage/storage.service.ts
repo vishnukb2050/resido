@@ -52,7 +52,6 @@ export class StorageService {
                 Bucket: this.bucket,
                 Key: key,
                 ContentType: contentType,
-                ACL: 'public-read' as any,
             });
 
             const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 });

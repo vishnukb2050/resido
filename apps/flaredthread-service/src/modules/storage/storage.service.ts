@@ -47,7 +47,6 @@ export class StorageService {
                 Bucket: this.bucket,
                 Key: key,
                 ContentType: contentType,
-                ACL: 'public-read' as any, // Cast to any because some R2 configs might not like the enum
             });
 
             const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
