@@ -137,27 +137,24 @@ export default function CreateThreadScreen() {
                     </View>
                 </View>
 
-                {/* Visibility Section - Direct Checkboxes */}
+                {/* Visibility Section - Simplified Horizontal Row */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Share with Your Spaces</Text>
-                    <View style={styles.visibilityGrid}>
+                    <Text style={styles.sectionTitle}>Visibility</Text>
+                    <View style={styles.visibilityRow}>
                         {VISIBILITY_OPTIONS.map(opt => (
                             <TouchableOpacity 
                                 key={opt.id} 
-                                style={[styles.visibilityOption, selectedVisibilities.includes(opt.id) && styles.visibilityOptionActive]}
+                                style={[styles.visibilityPill, selectedVisibilities.includes(opt.id) && styles.visibilityPillActive]}
                                 onPress={() => toggleVisibility(opt.id)}
                             >
-                                <View style={styles.optIconContainer}>
-                                    <Ionicons name={opt.icon as any} size={22} color={selectedVisibilities.includes(opt.id) ? '#6366f1' : '#64748b'} />
-                                </View>
-                                <View style={styles.optInfo}>
-                                    <Text style={[styles.optName, selectedVisibilities.includes(opt.id) && { color: '#6366f1' }]}>{opt.name}</Text>
-                                </View>
                                 <MaterialCommunityIcons 
                                     name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
-                                    size={24} 
+                                    size={18} 
                                     color={selectedVisibilities.includes(opt.id) ? "#6366f1" : "#cbd5e1"} 
                                 />
+                                <Text style={[styles.visibilityPillText, selectedVisibilities.includes(opt.id) && styles.visibilityPillTextActive]}>
+                                    {opt.name}
+                                </Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -268,12 +265,21 @@ const styles = StyleSheet.create({
     toolbarItem: { alignItems: 'center' },
     toolbarLabel: { fontSize: 11, fontWeight: '700', color: '#64748b', marginTop: 4 },
     
-    visibilityOption: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 12, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
-    visibilityOptionActive: { backgroundColor: '#f5f3ff', borderColor: '#6366f1' },
-    optIconContainer: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-    optInfo: { flex: 1, marginLeft: 16 },
-    optName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
-    optDesc: { fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
+    visibilityRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 15 },
+    visibilityPill: { 
+        flex: 1, 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f8fafc', 
+        paddingVertical: 12, 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: '#f1f5f9' 
+    },
+    visibilityPillActive: { backgroundColor: '#f5f3ff', borderColor: '#6366f1' },
+    visibilityPillText: { marginLeft: 6, fontSize: 13, fontWeight: '700', color: '#64748b' },
+    visibilityPillTextActive: { color: '#6366f1' },
     
     communityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     communityIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
