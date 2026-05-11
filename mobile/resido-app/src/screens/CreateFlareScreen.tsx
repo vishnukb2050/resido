@@ -107,9 +107,10 @@ export default function CreateFlareScreen() {
             Alert.alert('Success', 'Your Flare has been published!', [
                 { text: 'OK', onPress: () => router.back() }
             ]);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Publish error:', error);
-            Alert.alert('Error', 'Failed to publish Flare. Please check your connection.');
+            const msg = error.message || 'Unknown error';
+            Alert.alert('Publish Failed', `Reason: ${msg}\n\nPlease check your internet and try again.`);
         } finally {
             setIsUploading(false);
         }
@@ -148,15 +149,6 @@ export default function CreateFlareScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                {/* Visibility Selection Bar */}
-                <TouchableOpacity style={styles.visibilityBar} onPress={() => setShowVisibilityModal(true)}>
-                    <Ionicons name={VISIBILITY_OPTIONS.find(o => o.id === selectedVisibilities[0])?.icon as any || 'globe-outline'} size={18} color="#6366f1" />
-                    <Text style={styles.visibilityBarText}>
-                        Share with: {selectedVisibilities.length > 1 ? `${selectedVisibilities.length} Social Circles` : VISIBILITY_OPTIONS.find(o => o.id === selectedVisibilities[0])?.name || 'Public'}
-                    </Text>
-                    <Ionicons name="chevron-down" size={18} color="#94a3b8" />
-                </TouchableOpacity>
-
                 {/* Video Preview / Selector */}
                 <TouchableOpacity style={styles.videoContainer} onPress={pickVideo}>
                     {video ? (
@@ -165,7 +157,9 @@ export default function CreateFlareScreen() {
                             {isUploading ? (
                                 <View style={styles.uploadProgressOverlay}>
                                     <CircularProgress progress={uploadProgress} size={100} strokeWidth={10} color="#fff" />
-                                    <Text style={styles.uploadProgressText}>Uploading Flare...</Text>
+                                    <Text style={styles.uploadProgressText}>
+                                        {uploadProgress < 0.2 ? 'Optimizing Video...' : 'Uploading to Community...'}
+                                    </Text>
                                 </View>
                             ) : (
                                 <View style={styles.changeOverlay}>
@@ -184,6 +178,35 @@ export default function CreateFlareScreen() {
                         </View>
                     )}
                 </TouchableOpacity>
+
+                {/* Visibility Section - Direct Checkboxes */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Ionicons name="share-social-outline" size={20} color="#6366f1" />
+                        <Text style={styles.sectionTitle}>Share with Your Spaces</Text>
+                    </View>
+                    <View style={styles.visibilityGrid}>
+                        {VISIBILITY_OPTIONS.map(opt => (
+                            <TouchableOpacity 
+                                key={opt.id} 
+                                style={[styles.visibilityOption, selectedVisibilities.includes(opt.id) && styles.visibilityOptionActive]}
+                                onPress={() => toggleVisibility(opt.id)}
+                            >
+                                <View style={styles.optIconContainer}>
+                                    <Ionicons name={opt.icon as any} size={22} color={selectedVisibilities.includes(opt.id) ? '#6366f1' : '#64748b'} />
+                                </View>
+                                <View style={styles.optInfo}>
+                                    <Text style={[styles.optName, selectedVisibilities.includes(opt.id) && { color: '#6366f1' }]}>{opt.name}</Text>
+                                </View>
+                                <MaterialCommunityIcons 
+                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
+                                    size={24} 
+                                    color={selectedVisibilities.includes(opt.id) ? "#6366f1" : "#cbd5e1"} 
+                                />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
 
                 {/* Caption Input */}
                 <View style={styles.inputSection}>
@@ -262,39 +285,6 @@ export default function CreateFlareScreen() {
                 <View style={{ height: 50 }} />
             </ScrollView>
 
-            {/* Visibility Modal */}
-            <Modal visible={showVisibilityModal} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Who can see this?</Text>
-                            <TouchableOpacity onPress={() => setShowVisibilityModal(false)}>
-                                <Text style={styles.doneBtnText}>Done</Text>
-                            </TouchableOpacity>
-                        </View>
-                        {VISIBILITY_OPTIONS.map(opt => (
-                            <TouchableOpacity 
-                                key={opt.id} 
-                                style={[styles.visibilityOption, selectedVisibilities.includes(opt.id) && styles.visibilityOptionActive]}
-                                onPress={() => toggleVisibility(opt.id)}
-                            >
-                                <View style={styles.optIconContainer}>
-                                    <Ionicons name={opt.icon as any} size={24} color={selectedVisibilities.includes(opt.id) ? '#6366f1' : '#64748b'} />
-                                </View>
-                                <View style={styles.optInfo}>
-                                    <Text style={[styles.optName, selectedVisibilities.includes(opt.id) && { color: '#6366f1' }]}>{opt.name}</Text>
-                                    <Text style={styles.optDesc}>{opt.desc}</Text>
-                                </View>
-                                <MaterialCommunityIcons 
-                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
-                                    size={24} 
-                                    color={selectedVisibilities.includes(opt.id) ? "#6366f1" : "#cbd5e1"} 
-                                />
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            </Modal>
         </KeyboardAvoidingView>
     );
 }
@@ -319,8 +309,7 @@ const styles = StyleSheet.create({
     publishText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
     scrollContent: { padding: 20 },
-    visibilityBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#f1f5f9' },
-    visibilityBarText: { flex: 1, marginLeft: 12, fontSize: 14, fontWeight: '700', color: '#1e293b' },
+    visibilityGrid: { gap: 10, marginBottom: 10 },
     
     videoContainer: { 
         width: '100%', 
@@ -417,13 +406,7 @@ const styles = StyleSheet.create({
     settingDesc: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
     divider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 18 },
 
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: '80%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    modalTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
-    doneBtnText: { color: '#6366f1', fontSize: 16, fontWeight: '800' },
-    
-    visibilityOption: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 12, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
+    visibilityOption: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
     visibilityOptionActive: { backgroundColor: '#f5f3ff', borderColor: '#6366f1' },
     optIconContainer: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
     optInfo: { flex: 1, marginLeft: 16 },

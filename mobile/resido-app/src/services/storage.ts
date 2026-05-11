@@ -91,25 +91,28 @@ export const uploadToR2 = async (
         
         let finalUri = fileUri;
 
-        // 1. Compress video if applicable
+        // 1. Optional Compression for speed
         if (mediaType === 'VIDEO') {
-            console.log('Compressing video to 720p...');
+            console.log('Checking video for compression...');
+            // In a real app, we might check file size here. For now, let's use a faster compression setting.
             finalUri = await Video.compress(
                 fileUri,
                 {
-                    compressionMethod: 'auto',
-                    minimumFileSizeForCompress: 0,
+                    compressionMethod: 'manual',
+                    bitrate: 2000000, // 2Mbps for 720p is good speed/quality balance
+                    maxSize: 1280,
+                    minimumFileSizeForCompress: 5 * 1024 * 1024, // Skip if < 5MB
                 },
                 (progress) => {
-                    // Compression is first part, say 0-30%
-                    if (onProgress) onProgress(progress * 0.3);
+                    if (onProgress) onProgress(progress * 0.2); // Compression is first 20%
                 }
             );
-            console.log('Compression complete:', finalUri);
+            console.log('Video ready for upload:', finalUri);
         }
 
-        // 2. Get pre-signed URL from flaredthread-service
-        const { data } = await api.post('/threads/upload-url', {
+        // 2. Get pre-signed URL
+        // Standardize on /blogs prefix for consistency across gateway and service
+        const { data } = await api.post('/blogs/upload-url', {
             fileName,
             contentType,
             tenantId,
@@ -119,7 +122,7 @@ export const uploadToR2 = async (
 
         const { uploadUrl, fileUrl } = data;
 
-        // 3. Upload to S3
+        // 3. Upload to S3 using XHR (Safest for binary PUT in React Native)
         await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', uploadUrl);
@@ -129,8 +132,7 @@ export const uploadToR2 = async (
                 xhr.upload.onprogress = (event) => {
                     if (event.lengthComputable) {
                         const uploadProgress = event.loaded / event.total;
-                        // Upload is second part, say 30-100%
-                        onProgress(0.3 + (uploadProgress * 0.7));
+                        onProgress(0.2 + (uploadProgress * 0.8));
                     }
                 };
             }

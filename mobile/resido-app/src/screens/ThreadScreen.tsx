@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, SafeAreaView, Dimensions, StatusBar, Share } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, SafeAreaView, Dimensions, StatusBar, Share, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { threadApi } from '../services/api';
 import { useRouter } from 'expo-router';
@@ -29,6 +29,7 @@ const FEED_TABS = [
 
 export default function ThreadScreen() {
     const [threads, setThreads] = useState<any[]>([]);
+    const [followingFlares, setFollowingFlares] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<'PUBLIC' | 'FOLLOWING' | 'MY'>('PUBLIC');
@@ -39,6 +40,9 @@ export default function ThreadScreen() {
 
     useEffect(() => {
         fetchThreads();
+        if (activeTab === 'MY') {
+            fetchFollowingFlares();
+        }
     }, [activeWorkspace, activeTab]);
 
     const fetchThreads = async () => {
@@ -46,7 +50,7 @@ export default function ThreadScreen() {
             setLoading(true);
             const { data } = await threadApi.getThreads({ 
                 feedType: activeTab,
-                followingIds: [] // TODO: Get following IDs from authStore
+                followingIds: [] 
             });
             setThreads(data || []);
         } catch (e) {
@@ -56,9 +60,18 @@ export default function ThreadScreen() {
         }
     };
 
+    const fetchFollowingFlares = async () => {
+        try {
+            const { data } = await threadApi.getFlares({ feedType: 'FOLLOWING' });
+            setFollowingFlares(data || []);
+        } catch (e) {
+            console.error('Failed to fetch following flares', e);
+        }
+    };
+
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchThreads();
+        await Promise.all([fetchThreads(), fetchFollowingFlares()]);
         setRefreshing(false);
     };
 
@@ -89,6 +102,37 @@ export default function ThreadScreen() {
         }
     };
 
+    const handleDelete = (id: string) => {
+        Alert.alert(
+            'Delete Thread',
+            'Are you sure you want to delete this post? This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Delete', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await threadApi.deleteBlog(id);
+                            setThreads(prev => prev.filter(t => t.id !== id));
+                            Alert.alert('Success', 'Thread deleted');
+                        } catch (e) {
+                            console.error(e);
+                            Alert.alert('Error', 'Failed to delete thread');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleEdit = (item: any) => {
+        router.push({
+            pathname: '/create-thread',
+            params: { editId: item.id }
+        });
+    };
+
     const renderThreadItem = ({ item }: { item: any }) => (
         <View style={styles.threadCard}>
             <View style={styles.threadHeader}>
@@ -100,9 +144,21 @@ export default function ThreadScreen() {
                     </View>
                     <Text style={styles.threadMeta}>{item.location || 'Resido Community'} • {dayjs(item.createdAt).fromNow()}</Text>
                 </View>
-                <TouchableOpacity>
-                    <Ionicons name="ellipsis-horizontal" size={20} color="#94a3b8" />
-                </TouchableOpacity>
+                {(item.authorId === user?.id || item.isAuthor) && (
+                    <TouchableOpacity onPress={() => {
+                        Alert.alert(
+                            'Post Options',
+                            'Manage your thread',
+                            [
+                                { text: 'Edit', onPress: () => handleEdit(item) },
+                                { text: 'Delete', onPress: () => handleDelete(item.id), style: 'destructive' },
+                                { text: 'Cancel', style: 'cancel' }
+                            ]
+                        );
+                    }}>
+                        <Ionicons name="ellipsis-horizontal" size={20} color="#94a3b8" />
+                    </TouchableOpacity>
+                )}
             </View>
 
             <TouchableOpacity onPress={() => router.push(`/thread/${item.id}`)}>
@@ -206,6 +262,39 @@ export default function ThreadScreen() {
                 </ScrollView>
             </View>
 
+            {/* Following Flares (Stories Style) - Only in MY/FOLLOWING tab */}
+            {(activeTab === 'MY' || activeTab === 'FOLLOWING') && (
+                <View style={styles.storiesContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesList}>
+                        <TouchableOpacity style={styles.storyItem} onPress={() => router.push('/create-flare')}>
+                            <View style={[styles.storyAvatarContainer, { borderColor: '#e2e8f0', borderStyle: 'dashed' }]}>
+                                <Image source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
+                                <View style={styles.storyAddBtn}>
+                                    <Ionicons name="add" size={12} color="#fff" />
+                                </View>
+                            </View>
+                            <Text style={styles.storyName}>Create</Text>
+                        </TouchableOpacity>
+
+                        {followingFlares.map((flare, idx) => (
+                            <TouchableOpacity 
+                                key={flare.id} 
+                                style={styles.storyItem} 
+                                onPress={() => router.push({ pathname: '/flares', params: { initialId: flare.id } })}
+                            >
+                                <View style={styles.storyAvatarContainer}>
+                                    <Image source={{ uri: flare.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
+                                    <View style={styles.flareBadge}>
+                                        <Ionicons name="play" size={8} color="#fff" />
+                                    </View>
+                                </View>
+                                <Text style={styles.storyName} numberOfLines={1}>{flare.authorName.split(' ')[0]}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
+
             {/* Thread Creator Quick Access */}
             {activeTab === 'PUBLIC' && (
                 <TouchableOpacity style={styles.quickAccess} onPress={() => router.push('/create-thread')}>
@@ -268,6 +357,48 @@ const styles = StyleSheet.create({
     quickAccess: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', marginHorizontal: 20, padding: 15, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: '#f1f5f9' },
     miniAvatar: { width: 40, height: 40, borderRadius: 20 },
     quickPlaceholder: { flex: 1, marginLeft: 15, fontSize: 15, color: '#94a3b8', fontWeight: '500' },
+
+    storiesContainer: { marginBottom: 25 },
+    storiesList: { paddingHorizontal: 20, gap: 18 },
+    storyItem: { alignItems: 'center', width: 72 },
+    storyAvatarContainer: { 
+        width: 72, 
+        height: 72, 
+        borderRadius: 36, 
+        borderWidth: 2.5, 
+        borderColor: '#6366f1', 
+        padding: 3, 
+        position: 'relative',
+        backgroundColor: '#fff'
+    },
+    storyAvatar: { width: '100%', height: '100%', borderRadius: 33 },
+    storyAddBtn: { 
+        position: 'absolute', 
+        bottom: 0, 
+        right: 0, 
+        width: 22, 
+        height: 22, 
+        borderRadius: 11, 
+        backgroundColor: '#6366f1', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: '#fff'
+    },
+    flareBadge: { 
+        position: 'absolute', 
+        bottom: -2, 
+        right: -2, 
+        width: 20, 
+        height: 20, 
+        borderRadius: 10, 
+        backgroundColor: '#ef4444', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: '#fff'
+    },
+    storyName: { fontSize: 12, fontWeight: '700', color: '#1e293b', marginTop: 8 },
 
     listContent: { paddingHorizontal: 20, paddingBottom: 100 },
     threadCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2, borderWidth: 1, borderColor: '#f1f5f9' },

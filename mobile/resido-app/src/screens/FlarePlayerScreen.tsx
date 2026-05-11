@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Image, Share } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Image, Share, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { threadApi } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 
 const { width, height } = Dimensions.get('window');
 const SCREEN_HEIGHT = height;
@@ -14,6 +15,7 @@ interface Flare {
     title: string;
     content: string;
     authorName: string;
+    authorId: string;
     authorAvatar?: string;
     location?: string;
     mediaUrls: string[];
@@ -108,6 +110,7 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
     const video = useRef<Video>(null);
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { user } = useAuthStore();
 
     const toggleLike = async () => {
         try {
@@ -127,6 +130,37 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
         } catch (e) {
             console.error(e);
         }
+    };
+
+    const handleDelete = () => {
+        Alert.alert(
+            'Delete Flare',
+            'Remove this flare forever?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Delete', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await threadApi.deleteBlog(flare.id);
+                            Alert.alert('Success', 'Flare deleted', [
+                                { text: 'OK', onPress: onBack }
+                            ]);
+                        } catch (e) {
+                            Alert.alert('Error', 'Failed to delete flare');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleEdit = () => {
+        router.push({
+            pathname: '/create-flare',
+            params: { editId: flare.id }
+        });
     };
 
     return (
@@ -226,9 +260,21 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
                 <TouchableOpacity style={styles.backBtn} onPress={onBack}>
                     <Ionicons name="chevron-back" size={28} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.moreBtn}>
-                    <Ionicons name="ellipsis-vertical" size={24} color="#fff" />
-                </TouchableOpacity>
+                {flare.authorId === user?.id && (
+                    <TouchableOpacity style={styles.moreBtn} onPress={() => {
+                        Alert.alert(
+                            'Flare Options',
+                            'Manage your flare',
+                            [
+                                { text: 'Edit', onPress: handleEdit },
+                                { text: 'Delete', onPress: handleDelete, style: 'destructive' },
+                                { text: 'Cancel', style: 'cancel' }
+                            ]
+                        );
+                    }}>
+                        <Ionicons name="ellipsis-vertical" size={24} color="#fff" />
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );

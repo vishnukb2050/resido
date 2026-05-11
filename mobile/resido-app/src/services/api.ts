@@ -100,6 +100,8 @@ export const threadApi = {
     getComments: (id: string) => api.get(`/blogs/${id}/comments`),
     reshare: (id: string) => api.post(`/blogs/${id}/reshare`),
     toggleSave: (id: string) => api.post(`/blogs/${id}/save`),
+    updateBlog: (id: string, data: any) => api.patch(`/blogs/${id}`, data),
+    deleteBlog: (id: string) => api.delete(`/blogs/${id}`),
 };
 
 // Chat APIs

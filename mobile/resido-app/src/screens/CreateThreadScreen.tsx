@@ -128,18 +128,38 @@ export default function CreateThreadScreen() {
             </View>
 
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                {/* User Info & Visibility */}
+                {/* User Info */}
                 <View style={styles.userSection}>
                     <Image source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/100' }} style={styles.userAvatar} />
                     <View style={styles.userMeta}>
                         <Text style={styles.userName}>{user?.name || 'Anonymous'}</Text>
-                        <TouchableOpacity style={styles.visibilitySelector} onPress={() => setShowVisibilityModal(true)}>
-                            <Ionicons name={VISIBILITY_OPTIONS.find(o => o.id === selectedVisibilities[0])?.icon as any || 'globe-outline'} size={14} color="#6366f1" />
-                            <Text style={styles.visibilityText}>
-                                {selectedVisibilities.length > 1 ? `${selectedVisibilities.length} Options` : VISIBILITY_OPTIONS.find(o => o.id === selectedVisibilities[0])?.name || 'Public'}
-                            </Text>
-                            <Ionicons name="chevron-down" size={14} color="#94a3b8" />
-                        </TouchableOpacity>
+                        <Text style={styles.userSubtitle}>Posting to Community</Text>
+                    </View>
+                </View>
+
+                {/* Visibility Section - Direct Checkboxes */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Share with Your Spaces</Text>
+                    <View style={styles.visibilityGrid}>
+                        {VISIBILITY_OPTIONS.map(opt => (
+                            <TouchableOpacity 
+                                key={opt.id} 
+                                style={[styles.visibilityOption, selectedVisibilities.includes(opt.id) && styles.visibilityOptionActive]}
+                                onPress={() => toggleVisibility(opt.id)}
+                            >
+                                <View style={styles.optIconContainer}>
+                                    <Ionicons name={opt.icon as any} size={22} color={selectedVisibilities.includes(opt.id) ? '#6366f1' : '#64748b'} />
+                                </View>
+                                <View style={styles.optInfo}>
+                                    <Text style={[styles.optName, selectedVisibilities.includes(opt.id) && { color: '#6366f1' }]}>{opt.name}</Text>
+                                </View>
+                                <MaterialCommunityIcons 
+                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
+                                    size={24} 
+                                    color={selectedVisibilities.includes(opt.id) ? "#6366f1" : "#cbd5e1"} 
+                                />
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </View>
 
@@ -207,39 +227,6 @@ export default function CreateThreadScreen() {
                 </View>
             </ScrollView>
 
-            {/* Visibility Modal */}
-            <Modal visible={showVisibilityModal} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Who can see this?</Text>
-                            <TouchableOpacity onPress={() => setShowVisibilityModal(false)}>
-                                <Text style={styles.doneBtnText}>Done</Text>
-                            </TouchableOpacity>
-                        </View>
-                        {VISIBILITY_OPTIONS.map(opt => (
-                            <TouchableOpacity 
-                                key={opt.id} 
-                                style={[styles.visibilityOption, selectedVisibilities.includes(opt.id) && styles.visibilityOptionActive]}
-                                onPress={() => toggleVisibility(opt.id)}
-                            >
-                                <View style={styles.optIconContainer}>
-                                    <Ionicons name={opt.icon as any} size={24} color={selectedVisibilities.includes(opt.id) ? '#6366f1' : '#64748b'} />
-                                </View>
-                                <View style={styles.optInfo}>
-                                    <Text style={[styles.optName, selectedVisibilities.includes(opt.id) && { color: '#6366f1' }]}>{opt.name}</Text>
-                                    <Text style={styles.optDesc}>{opt.desc}</Text>
-                                </View>
-                                <MaterialCommunityIcons 
-                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
-                                    size={24} 
-                                    color={selectedVisibilities.includes(opt.id) ? "#6366f1" : "#cbd5e1"} 
-                                />
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            </Modal>
         </SafeAreaView>
     );
 }
@@ -258,8 +245,10 @@ const styles = StyleSheet.create({
     userAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#f1f5f9' },
     userMeta: { marginLeft: 12 },
     userName: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
-    visibilitySelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f3ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginTop: 4 },
-    visibilityText: { fontSize: 12, fontWeight: '700', color: '#6366f1', marginHorizontal: 6 },
+    userSubtitle: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
+    
+    section: { paddingHorizontal: 20, marginBottom: 20 },
+    visibilityGrid: { gap: 8, marginTop: 12 },
     
     contentInput: { fontSize: 18, color: '#1e293b', paddingHorizontal: 20, minHeight: 150, textAlignVertical: 'top' },
     
@@ -278,11 +267,6 @@ const styles = StyleSheet.create({
     actionToolbar: { flexDirection: 'row', padding: 20, borderTopWidth: 1, borderTopColor: '#f1f5f9', gap: 20 },
     toolbarItem: { alignItems: 'center' },
     toolbarLabel: { fontSize: 11, fontWeight: '700', color: '#64748b', marginTop: 4 },
-    
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: '80%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    modalTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
     
     visibilityOption: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 12, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
     visibilityOptionActive: { backgroundColor: '#f5f3ff', borderColor: '#6366f1' },
