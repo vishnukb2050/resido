@@ -29,13 +29,24 @@ export class StorageService {
             Bucket: this.bucketName,
             Key: key,
             ContentType: contentType,
+            ACL: 'public-read' as any,
         });
 
         const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
         
-        // Final public URL
-        const endpoint = this.configService.get('AWS_S3_ENDPOINT', `https://${this.bucketName}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com`);
-        const fileUrl = `${endpoint}/${this.bucketName}/${key}`;
+        // Generate public URL
+        const endpoint = this.configService.get('AWS_S3_ENDPOINT');
+        const publicUrlBase = this.configService.get('CLOUDFLARE_R2_PUBLIC_URL');
+        let fileUrl = '';
+        
+        if (publicUrlBase) {
+            fileUrl = `${publicUrlBase.replace(/\/$/, '')}/${key}`;
+        } else if (endpoint && endpoint.includes('cloudflarestorage.com')) {
+            fileUrl = `${endpoint}/${this.bucketName}/${key}`;
+        } else {
+            const region = this.configService.get('AWS_REGION', 'ap-south-1');
+            fileUrl = `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+        }
 
         return { uploadUrl, fileUrl, key };
     }

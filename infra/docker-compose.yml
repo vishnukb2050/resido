@@ -23,6 +23,7 @@ services:
     env_file: .env
     environment:
       - PORT=3001
+      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
     command: >
       sh -c "echo 'Checking DB...' &&
              for i in 1 2 3 4 5 6 7 8 9 10; do
@@ -43,6 +44,7 @@ services:
     env_file: .env
     environment:
       - PORT=3002
+      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
     command: >
       sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
                npx prisma db push --accept-data-loss && break ||
