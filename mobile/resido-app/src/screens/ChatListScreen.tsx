@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, ScrollView, Image, StatusBar } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, ScrollView, Image, StatusBar, Alert } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { chatApi, authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import dayjs from 'dayjs';
@@ -9,10 +9,9 @@ import BottomNav from '../components/BottomNav';
 
 const CHAT_FILTERS = ['All', 'Community', 'Contacts', 'Groups'];
 
-
-
 export default function ChatListScreen() {
     const { user } = useAuthStore();
+    const { forwardContent } = useLocalSearchParams();
     const [conversations, setConversations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('All');
@@ -179,7 +178,24 @@ export default function ChatListScreen() {
                                         icon: conv.type === 'GROUP' ? 'people' : undefined,
                                         online: conv.type === 'DIRECT' // Mock online status
                                     }} 
-                                    onPress={() => router.push(`/chat/${conv.id}`)} 
+                                    onPress={() => {
+                                        if (forwardContent) {
+                                            Alert.alert('Forward', 'Forward this content to this chat?', [
+                                                { text: 'Cancel', style: 'cancel' },
+                                                { text: 'Send', onPress: async () => {
+                                                    try {
+                                                        await chatApi.sendMessage(conv.id, { content: forwardContent as string });
+                                                        Alert.alert('Success', 'Forwarded successfully!');
+                                                        router.back();
+                                                    } catch (e) {
+                                                        Alert.alert('Error', 'Failed to forward');
+                                                    }
+                                                }}
+                                            ]);
+                                        } else {
+                                            router.push(`/chat/${conv.id}`);
+                                        }
+                                    }} 
                                 />
                             ))
                         ) : (

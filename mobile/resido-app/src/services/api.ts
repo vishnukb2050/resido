@@ -88,23 +88,25 @@ export const accountingApi = {
     getMonthlyReport: (year: number, month: number) => api.get('/accounting/reports/monthly', { params: { year, month } }),
 };
 
-// Thread & Flare APIs (Renamed from Blog)
+// Thread & Flare APIs
 export const threadApi = {
-    getThreads: () => api.get('/threads'),
-    getFlares: () => api.get('/flares'),
+    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY'; followingIds?: string[] }) => api.get('/threads', { params }),
+    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY'; followingIds?: string[] }) => api.get('/flares', { params }),
+    getThread: (id: string) => api.get(`/blogs/${id}`),
     createThread: (data: any) => api.post('/threads', data),
     createFlare: (data: any) => api.post('/flares', data),
-    toggleLike: (id: string) => api.post(`/flares/${id}/like`),
-    addComment: (id: string, data: any) => api.post(`/flares/${id}/comment`, data),
-    getComments: (id: string) => api.get(`/flares/${id}/comments`),
-    reshare: (id: string) => api.post(`/flares/${id}/reshare`),
-    toggleSave: (id: string) => api.post(`/flares/${id}/save`),
+    toggleLike: (id: string) => api.post(`/blogs/${id}/like`),
+    addComment: (id: string, data: any) => api.post(`/blogs/${id}/comment`, data),
+    getComments: (id: string) => api.get(`/blogs/${id}/comments`),
+    reshare: (id: string) => api.post(`/blogs/${id}/reshare`),
+    toggleSave: (id: string) => api.post(`/blogs/${id}/save`),
 };
 
 // Chat APIs
 export const chatApi = {
     getConversations: () => api.get('/chat/conversations'),
     getMessages: (conversationId: string) => api.get(`/chat/conversations/${conversationId}/messages`),
+    sendMessage: (conversationId: string, data: { content: string }) => api.post(`/chat/conversations/${conversationId}/messages`, data),
     createConversation: (memberIds: string[]) => api.post('/chat/conversations', { memberIds }),
 };
 // Visitor APIs

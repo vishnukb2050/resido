@@ -13,12 +13,31 @@ export class BlogsService {
         private storage: StorageService
     ) {}
 
-    async listBlogs(type?: 'THREAD' | 'FLARE') {
+    async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' = 'PUBLIC', followingIds: string[] = [], tenantId?: string) {
+        const where: any = {
+            type,
+            OR: [
+                { visibility: 'PUBLIC' },
+                { authorId: userId }
+            ]
+        };
+
+        if (feedType === 'MY') {
+            where.authorId = userId;
+            delete where.OR;
+        } else if (feedType === 'FOLLOWING') {
+            where.OR = [
+                { authorId: { in: followingIds } },
+                { visibility: 'FOLLOWERS', authorId: { in: followingIds } },
+                { visibility: 'CONTACTS', authorId: { in: followingIds } }
+            ];
+        } else if (feedType === 'PUBLIC') {
+            where.visibility = 'PUBLIC';
+            delete where.OR;
+        }
+
         return this.prisma.reader.blog.findMany({
-            where: { 
-                isActive: true,
-                ...(type ? { type } : {})
-            },
+            where,
             orderBy: { createdAt: 'desc' }
         });
     }
@@ -38,6 +57,8 @@ export class BlogsService {
                 mediaType: data.mediaType || 'IMAGE',
                 tags: data.tags || [],
                 hashtags: data.hashtags || [],
+                visibility: data.visibility || 'PUBLIC',
+                targetCommunities: data.targetCommunities || [],
                 commentsEnabled: data.commentsEnabled !== undefined ? data.commentsEnabled : true
             }
         });

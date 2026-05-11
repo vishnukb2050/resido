@@ -1,25 +1,21 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Req, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Req, UseInterceptors, Query } from '@nestjs/common';
 import { BlogsService } from './blogs.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
 
-@Controller('blogs')
+@Controller(['threads', 'flares', 'blogs'])
 @UseInterceptors(TenantInterceptor)
 export class BlogsController {
     constructor(private blogsService: BlogsService) {}
 
     @Get()
-    listBlogs() {
-        return this.blogsService.listBlogs();
-    }
-
-    @Get('threads')
-    listThreads() {
-        return this.blogsService.listBlogs('THREAD');
-    }
-
-    @Get('flares')
-    listFlares() {
-        return this.blogsService.listBlogs('FLARE');
+    listBlogs(@Req() req: any, @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY', @Query('followingIds') followingIds: string) {
+        const userId = req.headers['x-user-id'] as string;
+        const tenantId = req.tenantId as string;
+        const fIds = followingIds ? followingIds.split(',') : [];
+        // Determine type from path
+        const path = req.url || '';
+        const type = path.includes('threads') ? 'THREAD' : path.includes('flares') ? 'FLARE' : undefined;
+        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId);
     }
 
     @Post('upload-url')

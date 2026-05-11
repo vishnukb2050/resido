@@ -30,7 +30,7 @@ export class ProxyController {
             targetUrl = `http://auth-service:3001${path}`;
         } else if (path.startsWith('/members') || path.startsWith('/apartments') || path.startsWith('/community')) {
             targetUrl = `http://resident-service:3002${path}`;
-        } else if (path.startsWith('/threads') || path.startsWith('/flares')) {
+        } else if (path.startsWith('/threads') || path.startsWith('/flares') || path.startsWith('/blogs')) {
             targetUrl = `http://flaredthread-service:3008${path}`;
         } else if (path.startsWith('/business')) {
             targetUrl = `http://business-service:3009${path}`;

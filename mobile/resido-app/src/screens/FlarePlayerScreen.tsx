@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Image, Share } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -107,13 +107,25 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
     const [saved, setSaved] = useState(false);
     const video = useRef<Video>(null);
     const insets = useSafeAreaInsets();
+    const router = useRouter();
 
     const toggleLike = async () => {
-        setLiked(!liked);
         try {
             await threadApi.toggleLike(flare.id);
+            setLiked(!liked);
         } catch (e) {
-            setLiked(liked);
+            console.error(e);
+        }
+    };
+
+    const handleShare = async () => {
+        try {
+            await Share.share({
+                message: `${flare.title}\n\n${flare.content}\n\nShared via Resido App`,
+                url: flare.mediaUrls[0]
+            });
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -152,7 +164,7 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
                 <ActionIcon 
                     icon="chatbubble-ellipses" 
                     label={flare.commentsCount.toString()} 
-                    onPress={() => {}} 
+                    onPress={() => router.push(`/thread/${flare.id}`)} 
                 />
                 <ActionIcon 
                     icon="repeat" 
@@ -162,7 +174,7 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
                 <ActionIcon 
                     icon="share-social" 
                     label="Share" 
-                    onPress={() => {}} 
+                    onPress={handleShare} 
                 />
                 <ActionIcon 
                     icon="bookmark" 

@@ -25,6 +25,8 @@ model Blog {
   musicId     String?  // Optional reference to a music track
   tags        String[] // Array of Global User IDs
   hashtags    String[] // Array of hashtags (without #)
+  visibility  BlogVisibility @default(PUBLIC)
+  targetCommunities String[] // Tenant IDs for COMMUNITY visibility
   commentsEnabled Boolean @default(true)
   
   // Interaction Counts
@@ -85,4 +87,10 @@ enum BlogType {
 enum BlogMediaType {
   IMAGE
   VIDEO
+}
+
+enum BlogVisibility {
+    PUBLIC
+    CONTACTS
+    FOLLOWERS
 }

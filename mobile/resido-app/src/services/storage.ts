@@ -78,7 +78,13 @@ export const storageApi = {
         }
     }
 };
-export const uploadToR2 = async (fileUri: string, tenantId: string, blogType: 'THREAD' | 'FLARE', mediaType: 'IMAGE' | 'VIDEO') => {
+export const uploadToR2 = async (
+    fileUri: string, 
+    tenantId: string, 
+    blogType: 'THREAD' | 'FLARE', 
+    mediaType: 'IMAGE' | 'VIDEO',
+    onProgress?: (progress: number) => void
+) => {
     try {
         const fileName = fileUri.split('/').pop() || `upload_${Date.now()}`;
         const contentType = mediaType === 'VIDEO' ? 'video/mp4' : 'image/jpeg';
@@ -93,6 +99,10 @@ export const uploadToR2 = async (fileUri: string, tenantId: string, blogType: 'T
                 {
                     compressionMethod: 'auto',
                     minimumFileSizeForCompress: 0,
+                },
+                (progress) => {
+                    // Compression is first part, say 0-30%
+                    if (onProgress) onProgress(progress * 0.3);
                 }
             );
             console.log('Compression complete:', finalUri);
@@ -115,6 +125,16 @@ export const uploadToR2 = async (fileUri: string, tenantId: string, blogType: 'T
             xhr.open('PUT', uploadUrl);
             xhr.setRequestHeader('Content-Type', contentType);
             
+            if (onProgress) {
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const uploadProgress = event.loaded / event.total;
+                        // Upload is second part, say 30-100%
+                        onProgress(0.3 + (uploadProgress * 0.7));
+                    }
+                };
+            }
+
             xhr.onreadystatechange = () => {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200 || xhr.status === 201) {
