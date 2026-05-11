@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Headers, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, UseGuards, Param } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -46,6 +46,11 @@ export class AuthController {
     @Get('me')
     getMe(@Headers('x-user-id') userId: string) {
         return this.authService.getMe(userId);
+    }
+
+    @Get('users/:id')
+    getUser(@Param('id') id: string) {
+        return this.authService.getMe(id); // Reusing getMe logic as it returns same fields
     }
 
     @Post('sync-contacts')

@@ -2,43 +2,72 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, ScrollView, Image, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { chatApi, authApi } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
 
 const CHAT_FILTERS = ['All', 'Community', 'Contacts', 'Groups'];
 
-const PINNED_CHATS = [
-    { id: 'p1', name: 'Greenwood Residency', sub: 'Water supply will be interrupted on...', time: '10:30 AM', unread: 3, icon: 'business' },
-    { id: 'p2', name: 'Society Announcements', sub: 'Annual maintenance update...', time: 'Yesterday', unread: 1, icon: 'megaphone' },
-];
 
-const COMMUNITY_CHATS = [
-    { id: 'c1', name: 'Greenwood Residency', sub: 'Neha: Guys, please note the parking...', time: '10:30 AM', unread: 3, icon: 'business' },
-    { id: 'c2', name: 'Tower A - Residents', sub: 'Ramesh: Thanks everyone!', time: '9:15 AM', unread: 5, icon: 'people' },
-    { id: 'c3', name: 'Club House Committee', sub: 'Meeting tomorrow at 6 PM', time: 'Yesterday', unread: 0, icon: 'home' },
-];
-
-const CONTACTS = [
-    { id: 'u1', name: 'Priya Sharma', sub: 'Great, thank you!', time: '10:20 AM', online: true },
-    { id: 'u2', name: 'Arjun Mehta', sub: "Let's connect later", time: '9:45 AM', online: true },
-    { id: 'u3', name: 'Suresh Patil', sub: 'Okay 👍', time: 'Yesterday', online: false },
-    { id: 'u4', name: 'Anita Verma', sub: 'See you then!', time: 'Yesterday', online: false },
-    { id: 'u5', name: 'Vikram Singh', sub: 'Sent a sticker', time: 'May 21', online: false },
-];
 
 export default function ChatListScreen() {
+    const { user } = useAuthStore();
     const [conversations, setConversations] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('All');
     const [search, setSearch] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [userCache, setUserCache] = useState<Record<string, any>>({});
     const router = useRouter();
 
     useEffect(() => {
-        // chatApi.getConversations().then((r) => setConversations(r.data)).finally(() => setLoading(false));
+        fetchConversations();
     }, []);
+
+    const fetchConversations = async () => {
+        try {
+            setLoading(true);
+            const { data } = await chatApi.getConversations();
+            setConversations(data || []);
+            resolveMemberNames(data || []);
+        } catch (error) {
+            console.error('Failed to fetch conversations:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const resolveMemberNames = async (convs: any[]) => {
+        const directConvs = convs.filter(c => c.type === 'DIRECT');
+        for (const conv of directConvs) {
+            const otherMemberId = conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId;
+            if (otherMemberId && !userCache[otherMemberId]) {
+                try {
+                    const { data } = await authApi.getUser(otherMemberId);
+                    setUserCache(prev => ({ ...prev, [otherMemberId]: data }));
+                } catch (e) {
+                    console.error('Failed to fetch user:', otherMemberId, e);
+                }
+            }
+        }
+    };
+
+    const getOtherMemberName = (conv: any) => {
+        const otherMemberId = conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId;
+        return userCache[otherMemberId]?.name || userCache[otherMemberId]?.phone || 'User';
+    };
+
+    const filteredConversations = conversations.filter(conv => {
+        if (search.length >= 3) return false; // Hide main list while searching users
+
+        if (activeFilter === 'All') return true;
+        if (activeFilter === 'Community') return conv.type === 'GROUP' && conv.groupId?.startsWith('comm-');
+        if (activeFilter === 'Contacts') return conv.type === 'DIRECT';
+        if (activeFilter === 'Groups') return conv.type === 'GROUP';
+        return true;
+    });
 
     const handleSearch = async (text: string) => {
         setSearch(text);
@@ -133,39 +162,34 @@ export default function ChatListScreen() {
                     ))}
                 </ScrollView>
 
-                {/* Pinned Section */}
-                <View style={styles.sectionHeader}>
-                    <Ionicons name="pin" size={14} color="#6366f1" />
-                    <Text style={styles.sectionTitle}>Pinned</Text>
-                </View>
-                {PINNED_CHATS.map(item => (
-                    <ChatItem key={item.id} item={item} onPress={() => router.push(`/chat/${item.id}`)} />
-                ))}
-
-                {/* Community Chats */}
-                <View style={[styles.sectionHeader, { marginTop: 20 }]}>
-                    <Text style={styles.sectionTitle}>Community Chats</Text>
-                    <TouchableOpacity><Text style={styles.viewAllText}>View all</Text></TouchableOpacity>
-                </View>
-                {COMMUNITY_CHATS.map(item => (
-                    <ChatItem key={item.id} item={item} onPress={() => router.push(`/chat/${item.id}`)} />
-                ))}
-
-                {/* Contacts Section */}
-                <View style={[styles.sectionHeader, { marginTop: 20 }]}>
-                    <Text style={styles.sectionTitle}>Contacts on Resido</Text>
-                    <TouchableOpacity><Text style={styles.viewAllText}>View all</Text></TouchableOpacity>
-                </View>
-                {CONTACTS.map(item => (
-                    <ChatItem key={item.id} item={item} onPress={() => router.push(`/chat/${item.id}`)} />
-                ))}
-
-                {/* Other Contacts */}
-                <View style={[styles.sectionHeader, { marginTop: 20 }]}>
-                    <Text style={styles.sectionTitle}>Other Contacts</Text>
-                </View>
-                <ChatItem item={{ id: 'o1', name: 'Rahul Kapoor', sub: 'Hey, how are you?', time: 'May 20', online: false }} onPress={() => {}} />
-                <ChatItem item={{ id: 'o2', name: 'Meera Iyer', sub: 'Let me know', time: 'May 19', online: false }} onPress={() => {}} />
+                {/* Conversations List */}
+                {loading ? (
+                    <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
+                ) : (
+                    <>
+                        {filteredConversations.length > 0 ? (
+                            filteredConversations.map(conv => (
+                                <ChatItem 
+                                    key={conv.id} 
+                                    item={{
+                                        id: conv.id,
+                                        name: conv.name || (conv.type === 'DIRECT' ? getOtherMemberName(conv) : 'Group Chat'),
+                                        sub: conv.messages?.[0]?.content || 'No messages yet',
+                                        time: conv.messages?.[0] ? dayjs(conv.messages[0].createdAt).format('hh:mm A') : '',
+                                        icon: conv.type === 'GROUP' ? 'people' : undefined,
+                                        online: conv.type === 'DIRECT' // Mock online status
+                                    }} 
+                                    onPress={() => router.push(`/chat/${conv.id}`)} 
+                                />
+                            ))
+                        ) : (
+                            <View style={styles.emptyState}>
+                                <Ionicons name="chatbubble-outline" size={48} color="#cbd5e1" />
+                                <Text style={styles.emptyText}>No conversations found in {activeFilter}</Text>
+                            </View>
+                        )}
+                    </>
+                )}
 
                 <View style={{ height: 120 }} />
             </ScrollView>
@@ -252,4 +276,6 @@ const styles = StyleSheet.create({
     avatarText: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
     noResults: { textAlign: 'center', color: '#94a3b8', fontSize: 13, paddingVertical: 10 },
     searchDivider: { height: 1, backgroundColor: '#f1f5f9', marginTop: 15, marginBottom: 5 },
+    emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 40 },
+    emptyText: { color: '#94a3b8', fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 12 },
 });

@@ -40,6 +40,7 @@ export const authApi = {
     searchUsers: (query: string) => api.get(`/profile/users/search?query=${query}`),
     createMember: (data: any) => api.post('/members', data),
     syncMembership: (data: any) => api.post('/auth/sync-membership', data),
+    getUser: (id: string) => api.get(`/auth/users/${id}`),
 };
 
 // Community APIs
