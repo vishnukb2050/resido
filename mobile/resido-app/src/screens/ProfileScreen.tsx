@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { storageApi } from '../services/storage';
 import { api } from '../services/api';
+import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -26,24 +27,49 @@ export default function ProfileScreen() {
     // Form State
     const [formData, setFormData] = useState({
         name: user?.name || '',
+        username: user?.username || user?.profileName || '',
         age: user?.age?.toString() || '',
         description: user?.description || '',
         profileName: user?.profileName || '',
+        location: user?.location || '',
         phoneVisibility: user?.phoneVisibility || 'COMMUNITY',
     });
 
     useEffect(() => {
-        if (user) {
-            setFormData({
-                name: user.name || '',
-                age: user.age?.toString() || '',
-                description: user.description || '',
-                profileName: user.profileName || '',
-                phoneVisibility: user.phoneVisibility || 'COMMUNITY',
-            });
-        }
+        fetchProfile();
         fetchStats();
-    }, [user]);
+    }, []);
+
+    const fetchProfile = async () => {
+        try {
+            const { data } = await api.get('/profile/user');
+            if (data) {
+                updateUser({ ...user, ...data });
+                setFormData({
+                    name: data.name || '',
+                    username: data.username || data.profileName || '',
+                    age: data.age?.toString() || '',
+                    description: data.description || '',
+                    profileName: data.profileName || '',
+                    location: data.location || '',
+                    phoneVisibility: data.phoneVisibility || 'COMMUNITY',
+                });
+            }
+        } catch (error) {
+            // fallback to local store values
+            if (user) {
+                setFormData({
+                    name: user.name || '',
+                    username: user.username || user.profileName || '',
+                    age: user.age?.toString() || '',
+                    description: user.description || '',
+                    profileName: user.profileName || '',
+                    location: user.location || '',
+                    phoneVisibility: user.phoneVisibility || 'COMMUNITY',
+                });
+            }
+        }
+    };
 
     const fetchStats = async () => {
         try {
@@ -87,17 +113,28 @@ export default function ProfileScreen() {
     };
 
     const handleSaveProfile = async () => {
+        if (!formData.name.trim()) {
+            Alert.alert('Validation', 'Name cannot be empty.');
+            return;
+        }
         setSaving(true);
         try {
-            const { data } = await api.put('/profile/user', {
-                ...formData,
+            const payload = {
+                name: formData.name.trim(),
+                username: formData.username.trim().toLowerCase().replace(/\s+/g, '_'),
+                profileName: formData.username.trim().toLowerCase().replace(/\s+/g, '_'),
                 age: formData.age ? parseInt(formData.age) : null,
-            });
-            updateUser(data);
+                description: formData.description,
+                location: formData.location,
+                phoneVisibility: formData.phoneVisibility,
+            };
+            const { data } = await api.put('/profile/user', payload);
+            // Merge server response with local user so all fields persist
+            updateUser({ ...user, ...data, ...payload });
             setShowProfileEditor(false);
-            Alert.alert('Success', 'Profile updated!');
+            Alert.alert('✅ Saved', 'Your profile has been updated!');
         } catch (error) {
-            Alert.alert('Error', 'Failed to update profile');
+            Alert.alert('Error', 'Failed to update profile. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -143,9 +180,21 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.userName}>{user?.name || 'Resido User'}</Text>
+                    {(user?.username || user?.profileName) && (
+                        <Text style={styles.userHandle}>@{user?.username || user?.profileName}</Text>
+                    )}
                     <View style={styles.roleBadge}>
                         <Text style={styles.userRole}>{user?.role?.replace('_', ' ') || 'Resident'}</Text>
                     </View>
+                    {user?.location ? (
+                        <View style={styles.locationRow}>
+                            <Ionicons name="location-outline" size={13} color="#94a3b8" />
+                            <Text style={styles.locationText}>{user.location}</Text>
+                        </View>
+                    ) : null}
+                    {user?.description ? (
+                        <Text style={styles.bioText} numberOfLines={2}>{user.description}</Text>
+                    ) : null}
 
                     {/* Stats Row */}
                     <View style={styles.statsRow}>
@@ -214,8 +263,25 @@ export default function ProfileScreen() {
 
                     <ScrollView style={styles.modalForm}>
                         <View style={styles.field}>
-                            <Text style={styles.label}>Full Name</Text>
+                            <Text style={styles.label}>Full Name *</Text>
                             <TextInput style={styles.input} value={formData.name} onChangeText={(t) => setFormData({...formData, name: t})} placeholder="John Doe" placeholderTextColor="#94a3b8" />
+                        </View>
+
+                        <View style={styles.field}>
+                            <Text style={styles.label}>Username</Text>
+                            <View style={styles.usernameRow}>
+                                <Text style={styles.atSign}>@</Text>
+                                <TextInput
+                                    style={[styles.input, styles.usernameInput]}
+                                    value={formData.username}
+                                    onChangeText={(t) => setFormData({...formData, username: t.toLowerCase().replace(/\s+/g, '_')})}
+                                    placeholder="your_username"
+                                    placeholderTextColor="#94a3b8"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                />
+                            </View>
+                            <Text style={styles.fieldHint}>Visible to others on Flares and posts. Use letters, numbers, underscores.</Text>
                         </View>
 
                         <View style={styles.field}>
@@ -224,9 +290,8 @@ export default function ProfileScreen() {
                         </View>
 
                         <View style={styles.field}>
-                            <Text style={styles.label}>Profile Name (Unique)</Text>
-                            <TextInput style={styles.input} value={formData.profileName} onChangeText={(t) => setFormData({...formData, profileName: t})} placeholder="e.g. john_resido" placeholderTextColor="#94a3b8" autoCapitalize="none" />
-                            <Text style={styles.fieldHint}>This name will be visible to others instead of your phone number.</Text>
+                            <Text style={styles.label}>Location</Text>
+                            <TextInput style={styles.input} value={formData.location} onChangeText={(t) => setFormData({...formData, location: t})} placeholder="e.g. Kochi, Kerala" placeholderTextColor="#94a3b8" />
                         </View>
 
                         <View style={styles.field}>
@@ -281,11 +346,18 @@ const styles = StyleSheet.create({
     roleBadge: { backgroundColor: '#f5f3ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginTop: 8 },
     userRole: { fontSize: 12, color: '#6366f1', fontWeight: '800', textTransform: 'uppercase' },
 
+    userHandle: { fontSize: 14, color: '#6366f1', fontWeight: '700', marginTop: 2 },
+    locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+    locationText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
+    bioText: { fontSize: 13, color: '#64748b', marginTop: 8, paddingHorizontal: 30, textAlign: 'center', lineHeight: 18 },
     statsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 24, paddingHorizontal: 20, width: '100%', justifyContent: 'center' },
     statItem: { alignItems: 'center', flex: 1 },
     statNumber: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
     statLabel: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
     statDivider: { width: 1, height: 30, backgroundColor: '#f1f5f9', marginHorizontal: 20 },
+    usernameRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fcfcfd', borderRadius: 18, borderWidth: 1, borderColor: '#f1f5f9' },
+    atSign: { paddingLeft: 18, fontSize: 18, color: '#6366f1', fontWeight: '900' },
+    usernameInput: { flex: 1, borderWidth: 0, borderRadius: 0, backgroundColor: 'transparent' },
 
     section: { paddingHorizontal: 20, marginTop: 30 },
     sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 12, marginLeft: 5 },

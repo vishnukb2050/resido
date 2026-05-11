@@ -39,7 +39,7 @@ interface AuthState {
     phone: string | null;
     token: string | null;
     refreshToken: string | null;
-    user: { id: string; name?: string; profileName?: string; phoneVisibility?: string; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string } | null;
+    user: { id: string; name?: string; username?: string; profileName?: string; phoneVisibility?: string; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string; location?: string } | null;
     workspaces: Workspace[];
     activeWorkspace: Workspace | null;
     isHydrated: boolean; // Track if store has loaded from storage

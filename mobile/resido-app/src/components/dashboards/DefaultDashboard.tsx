@@ -139,27 +139,45 @@ export default function DefaultDashboard() {
                         {!activeWorkspace && (
                             <View style={styles.psStoriesSection}>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psStoriesScroll}>
-                                    {/* Create Flare Button - Always Show */}
-                                    <View style={styles.psStoryItem}>
-                                        <TouchableOpacity 
-                                            style={[styles.psStoryCircle, { borderColor: '#94a3b8', borderStyle: 'dashed' }]}
-                                            onPress={() => router.push('/create-flare')}
-                                        >
-                                            <Ionicons name="add" size={24} color="#94a3b8" />
-                                        </TouchableOpacity>
-                                        <Text style={styles.psStoryLabel}>My Flares</Text>
-                                    </View>
+                                    {/* My Flares – show own avatar */}
+                                    <TouchableOpacity
+                                        style={styles.psStoryItem}
+                                        onPress={() => router.push('/create-flare')}
+                                    >
+                                        <View style={[styles.psStoryCircle, { borderColor: '#6366f1', borderWidth: 2.5 }]}>
+                                            {user?.profilePhoto ? (
+                                                <Image source={{ uri: user.profilePhoto }} style={styles.psStoryImg} />
+                                            ) : (
+                                                <View style={[styles.psStoryImg, { backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' }]}>
+                                                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>
+                                                        {(user?.name || 'R')[0].toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                            <View style={styles.psStoryAddBadge}>
+                                                <Ionicons name="add" size={12} color="#fff" />
+                                            </View>
+                                        </View>
+                                        <Text style={styles.psStoryLabel} numberOfLines={1}>
+                                            {user?.username ? `@${user.username}` : (user?.name?.split(' ')[0] || 'My Flares')}
+                                        </Text>
+                                    </TouchableOpacity>
 
-                                    {/* Contact Flares - Conditional */}
-                                    {contactFlares.map((flare) => (
-                                        <StoryItem 
-                                            key={flare.id}
-                                            name={flare.authorName || 'User'} 
-                                            image={flare.authorAvatar || `https://i.pravatar.cc/100?u=${flare.authorId}`} 
-                                            hasStory 
-                                            onPress={() => router.push({ pathname: '/flare-player', params: { flareId: flare.id } })}
-                                        />
-                                    ))}
+                                    {/* Contact Flares */}
+                                    {contactFlares.map((flare) => {
+                                        const displayName = flare.authorName || 'User';
+                                        const avatarUri = flare.authorAvatar
+                                            || (flare.authorId ? `https://i.pravatar.cc/100?u=${flare.authorId}` : null);
+                                        return (
+                                            <StoryItem
+                                                key={flare.id}
+                                                name={displayName}
+                                                image={avatarUri}
+                                                hasStory
+                                                onPress={() => router.push({ pathname: '/flare-player', params: { initialId: flare.id } })}
+                                            />
+                                        );
+                                    })}
                                 </ScrollView>
                             </View>
                         )}
@@ -480,7 +498,8 @@ const styles = StyleSheet.create({
     psStoryItem: { alignItems: 'center', marginRight: 15, width: 75 },
     psStoryCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', padding: 2, justifyContent: 'center', alignItems: 'center' },
     psStoryCircleActive: { borderColor: '#6366f1' },
-    psStoryImg: { width: '100%', height: '100%', borderRadius: 31 },
+    psStoryImg: { width: 58, height: 58, borderRadius: 29 },
+    psStoryAddBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0f0f1a' },
     psStoryLabel: { color: '#fff', fontSize: 11, fontWeight: '700', marginTop: 4, textAlign: 'center' },
 
     psBanner: { marginHorizontal: 20, backgroundColor: '#2e2b85', borderRadius: 20, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
