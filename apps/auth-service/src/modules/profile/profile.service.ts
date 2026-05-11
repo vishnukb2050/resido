@@ -105,4 +105,27 @@ export class ProfileService {
             orderBy: { createdAt: 'desc' }
         });
     }
+
+    async searchUsers(query: string) {
+        if (!query || query.length < 3) return [];
+
+        return this.prisma.userRead.user.findMany({
+            where: {
+                OR: [
+                    { name: { contains: query, mode: 'insensitive' } },
+                    { phone: { contains: query } },
+                    { profileName: { contains: query, mode: 'insensitive' } }
+                ],
+                isActive: true
+            },
+            select: {
+                id: true,
+                name: true,
+                phone: true,
+                profileName: true,
+                profilePhoto: true
+            },
+            take: 20
+        });
+    }
 }

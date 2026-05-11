@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, ScrollView, Image, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
-import { chatApi } from '../services/api';
+import { chatApi, authApi } from '../services/api';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
@@ -31,11 +31,31 @@ export default function ChatListScreen() {
     const [conversations, setConversations] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [activeFilter, setActiveFilter] = useState('All');
+    const [search, setSearch] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
         // chatApi.getConversations().then((r) => setConversations(r.data)).finally(() => setLoading(false));
     }, []);
+
+    const handleSearch = async (text: string) => {
+        setSearch(text);
+        if (text.length >= 3) {
+            setIsSearching(true);
+            try {
+                const { data } = await authApi.searchUsers(text);
+                setSearchResults(data);
+            } catch (error) {
+                console.error('Search failed', error);
+            } finally {
+                setIsSearching(false);
+            }
+        } else {
+            setSearchResults([]);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -46,8 +66,8 @@ export default function ChatListScreen() {
                     <Ionicons name="arrow-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Chat</Text>
-                <TouchableOpacity>
-                    <Ionicons name="add-circle" size={28} color="#6366f1" />
+                <TouchableOpacity onPress={() => router.push('/contacts')}>
+                    <Ionicons name="person-add-outline" size={24} color="#6366f1" />
                 </TouchableOpacity>
             </View>
 
@@ -57,12 +77,43 @@ export default function ChatListScreen() {
                     <View style={styles.searchBox}>
                         <Ionicons name="search-outline" size={20} color="#94a3b8" />
                         <TextInput 
-                            placeholder="Search chats..." 
+                            placeholder="Search name or number..." 
                             style={styles.searchInput}
                             placeholderTextColor="#94a3b8"
+                            value={search}
+                            onChangeText={handleSearch}
                         />
+                        {isSearching && <ActivityIndicator size="small" color="#6366f1" />}
                     </View>
                 </View>
+
+                {/* Search Results */}
+                {search.length >= 3 && (
+                    <View style={styles.searchResultsContainer}>
+                        <Text style={styles.resultsTitle}>Search Results</Text>
+                        {searchResults.length > 0 ? (
+                            searchResults.map(user => (
+                                <TouchableOpacity 
+                                    key={user.id} 
+                                    style={styles.searchItem}
+                                    onPress={() => router.push(`/chat/new?userId=${user.id}`)}
+                                >
+                                    <View style={styles.userAvatar}>
+                                        <Text style={styles.avatarText}>{user.name?.[0] || '?'}</Text>
+                                    </View>
+                                    <View style={styles.userInfo}>
+                                        <Text style={styles.userName}>{user.name || 'Anonymous'}</Text>
+                                        <Text style={styles.userPhone}>{user.phone}</Text>
+                                    </View>
+                                    <Ionicons name="chatbubble-ellipses-outline" size={20} color="#6366f1" />
+                                </TouchableOpacity>
+                            ))
+                        ) : !isSearching ? (
+                            <Text style={styles.noResults}>No users found</Text>
+                        ) : null}
+                        <View style={styles.searchDivider} />
+                    </View>
+                )}
 
                 {/* Filters */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer} contentContainerStyle={styles.filtersContent}>
@@ -119,7 +170,7 @@ export default function ChatListScreen() {
                 <View style={{ height: 120 }} />
             </ScrollView>
 
-            <BottomNav activeTab="Chat" />
+            <BottomNav activeTab="Chats" />
         </SafeAreaView>
     );
 }
@@ -190,4 +241,15 @@ const styles = StyleSheet.create({
     chatSub: { fontSize: 13, color: '#64748b', fontWeight: '500', flex: 1 },
     unreadBadge: { backgroundColor: '#6366f1', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8 },
     unreadText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+    
+    // Search Styles
+    searchResultsContainer: { paddingHorizontal: 20, marginTop: 10, paddingBottom: 10 },
+    resultsTitle: { fontSize: 12, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 15 },
+    searchItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 16, marginBottom: 8, borderWidth: 1, borderColor: '#f1f5f9' },
+    userInfo: { flex: 1, marginLeft: 12 },
+    userName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+    userPhone: { fontSize: 11, color: '#64748b', fontWeight: '600' },
+    avatarText: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
+    noResults: { textAlign: 'center', color: '#94a3b8', fontSize: 13, paddingVertical: 10 },
+    searchDivider: { height: 1, backgroundColor: '#f1f5f9', marginTop: 15, marginBottom: 5 },
 });

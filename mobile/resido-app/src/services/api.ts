@@ -37,6 +37,7 @@ export const authApi = {
     refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
     createClient: (data: any) => api.post('/clients', data),
     syncContacts: (phones: string[]) => api.post('/auth/sync-contacts', { phones }),
+    searchUsers: (query: string) => api.get(`/profile/users/search?query=${query}`),
     createMember: (data: any) => api.post('/members', data),
     syncMembership: (data: any) => api.post('/auth/sync-membership', data),
 };

@@ -43,4 +43,10 @@ export class ProfileController {
     async getSavedScans(@Req() req: any) {
         return this.profileService.getSavedScans(req.user.userId);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('users/search')
+    async searchUsers(@Query('query') query: string) {
+        return this.profileService.searchUsers(query);
+    }
 }

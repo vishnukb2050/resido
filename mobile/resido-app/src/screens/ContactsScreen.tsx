@@ -60,6 +60,26 @@ export default function ContactsScreen() {
         }
     };
 
+    const [globalResults, setGlobalResults] = useState<any[]>([]);
+    const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+
+    const handleSearch = async (text: string) => {
+        setSearch(text);
+        if (text.length >= 3) {
+            setIsSearchingGlobal(true);
+            try {
+                const { data } = await authApi.searchUsers(text);
+                setGlobalResults(data);
+            } catch (error) {
+                console.error('Global search failed', error);
+            } finally {
+                setIsSearchingGlobal(false);
+            }
+        } else {
+            setGlobalResults([]);
+        }
+    };
+
     const filtered = contacts.filter(c => 
         c.name.toLowerCase().includes(search.toLowerCase()) || 
         c.phoneNumbers?.[0]?.number.includes(search)
@@ -81,12 +101,13 @@ export default function ContactsScreen() {
                 <View style={styles.searchBox}>
                     <Ionicons name="search-outline" size={20} color="#94a3b8" />
                     <TextInput 
-                        placeholder="Search contacts..." 
+                        placeholder="Search name or number..." 
                         style={styles.searchInput}
                         placeholderTextColor="#94a3b8"
                         value={search}
-                        onChangeText={setSearch}
+                        onChangeText={handleSearch}
                     />
+                    {isSearchingGlobal && <ActivityIndicator size="small" color="#6366f1" />}
                 </View>
             </View>
 
@@ -96,35 +117,41 @@ export default function ContactsScreen() {
                 </View>
             ) : (
                 <FlatList
-                    data={filtered}
-                    keyExtractor={(item) => item.id}
+                    data={search.length >= 3 ? [...filtered, ...globalResults.filter(g => !filtered.some(f => f.residoUser?.id === g.id))] : filtered}
+                    keyExtractor={(item) => item.id || item.phone}
                     contentContainerStyle={styles.listContent}
-                    renderItem={({ item }) => (
-                        <View style={styles.card}>
-                            <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>{item.name?.[0]}</Text>
+                    renderItem={({ item }) => {
+                        const isGlobal = !item.name && item.phone;
+                        const residoUser = item.residoUser || (isGlobal ? item : null);
+                        
+                        return (
+                            <View style={styles.card}>
+                                <View style={styles.avatar}>
+                                    <Text style={styles.avatarText}>{(item.name || residoUser?.name || '?')[0]}</Text>
+                                </View>
+                                <View style={styles.info}>
+                                    <Text style={styles.name}>{item.name || residoUser?.name || 'Resido User'}</Text>
+                                    <Text style={styles.phone}>{item.phoneNumbers?.[0]?.number || residoUser?.phone}</Text>
+                                    {isGlobal && <Text style={styles.globalBadge}>Global Search Result</Text>}
+                                </View>
+                                {residoUser ? (
+                                    <TouchableOpacity 
+                                        style={styles.chatBtn}
+                                        onPress={() => router.push(`/chat/new?userId=${residoUser.id}`)}
+                                    >
+                                        <Text style={styles.btnText}>Chat</Text>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <TouchableOpacity 
+                                        style={styles.inviteBtn}
+                                        onPress={() => handleInvite(item.phoneNumbers?.[0]?.number)}
+                                    >
+                                        <Text style={styles.inviteText}>Invite</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
-                            <View style={styles.info}>
-                                <Text style={styles.name}>{item.name}</Text>
-                                <Text style={styles.phone}>{item.phoneNumbers?.[0]?.number}</Text>
-                            </View>
-                            {item.residoUser ? (
-                                <TouchableOpacity 
-                                    style={styles.chatBtn}
-                                    onPress={() => router.push(`/chat/new?userId=${item.residoUser.id}`)}
-                                >
-                                    <Text style={styles.btnText}>Chat</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <TouchableOpacity 
-                                    style={styles.inviteBtn}
-                                    onPress={() => handleInvite(item.phoneNumbers?.[0]?.number)}
-                                >
-                                    <Text style={styles.inviteText}>Invite</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    )}
+                        );
+                    }}
                     ListEmptyComponent={<Text style={styles.empty}>No contacts found</Text>}
                 />
             )}
@@ -152,4 +179,5 @@ const styles = StyleSheet.create({
     btnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
     inviteText: { color: '#6366f1', fontSize: 13, fontWeight: '800' },
     empty: { textAlign: 'center', color: '#94a3b8', marginTop: 48, fontSize: 15, fontWeight: '600' },
+    globalBadge: { fontSize: 10, color: '#6366f1', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' },
 });
