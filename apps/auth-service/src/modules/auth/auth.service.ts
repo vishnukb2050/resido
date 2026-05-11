@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { OtpService } from '../otp/otp.service';
 import { FollowService } from '../follow/follow.service';
+import { Role } from '@resido/user-client';
 
 @Injectable()
 export class AuthService {
@@ -140,12 +141,13 @@ export class AuthService {
         // 2. Create membership
         const membership = await this.prisma.userClient.workspaceMembership.upsert({
             where: { userId_tenantId: { userId: user.id, tenantId } },
-            update: { role, isActive: true, tenantName },
+            update: { role: role as Role, isActive: true, tenantName },
             create: {
-                userId: user.id,
+                user: { connect: { id: user.id } },
                 tenantId,
                 tenantName,
-                role,
+                role: role as Role,
+                memberId: `mem-${phone.slice(-4)}`,
                 isActive: true
             }
         });

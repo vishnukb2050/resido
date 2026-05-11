@@ -23,11 +23,11 @@ export class ProfileService {
             await this.prisma.coreClient.member.updateMany({
                 where: { phone: user.phone },
                 data: {
-                    profileName: data.profileName,
-                    phoneVisibility: data.phoneVisibility,
-                    name: data.name,
-                    profilePhoto: data.profilePhoto,
-                    userId: user.id
+                    profileName: user.profileName,
+                    phoneVisibility: user.phoneVisibility,
+                    name: user.name,
+                    profilePhoto: user.profilePhoto,
+                    // userId is often not updatable via updateMany in some Prisma versions/configs
                 }
             });
         }

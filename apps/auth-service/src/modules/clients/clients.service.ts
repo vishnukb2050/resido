@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
+import { Role } from '@resido/user-client';
 
 export interface CreateClientDto {
     name: string;
@@ -67,7 +68,8 @@ export class ClientsService {
                     userId: dto.createdByUserId,
                     tenantId: client.id,
                     tenantName: client.name,
-                    role: 'APARTMENT_ADMIN',
+                    role: 'APARTMENT_ADMIN' as Role,
+                    memberId: 'admin-001',
                     isActive: true
                 }
             });
@@ -77,19 +79,19 @@ export class ClientsService {
         if (dto.memberPhones && dto.memberPhones.length > 0) {
             for (const phone of dto.memberPhones) {
                 // Ensure user exists or create a shell user
-                let user = await this.prisma.masterRead.user.findUnique({ where: { phone } });
+                let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
                 if (!user) {
-                    user = await this.prisma.masterClient.user.create({
+                    user = await this.prisma.userClient.user.create({
                         data: {
                             phone,
-                            role: 'RESIDENT',
+                            role: 'RESIDENT' as Role,
                             isActive: true
                         }
                     });
                 }
 
                 // Add membership if not already exists
-                const existingMember = await this.prisma.masterRead.workspaceMembership.findUnique({
+                const existingMember = await this.prisma.userRead.workspaceMembership.findUnique({
                     where: { userId_tenantId: { userId: user.id, tenantId: client.id } }
                 });
 
@@ -99,7 +101,7 @@ export class ClientsService {
                             userId: user.id,
                             tenantId: client.id,
                             tenantName: client.name,
-                            role: 'RESIDENT',
+                            role: 'RESIDENT' as Role,
                             memberId: `mem-${phone.slice(-4)}`, // Placeholder memberId
                             isActive: true
                         }
