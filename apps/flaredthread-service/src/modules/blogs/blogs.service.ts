@@ -99,8 +99,8 @@ export class BlogsService {
     }
 
     async toggleLike(blogId: string, userId: string) {
-        const existing = await (this.prisma.reader as any).interaction.findUnique({
-            where: { blogId_userId_type: { blogId, userId, type: 'LIKE' } }
+        const existing = await (this.prisma.reader as any).interaction.findFirst({
+            where: { blogId, userId, type: 'LIKE' }
         });
 
         if (existing) {
@@ -154,8 +154,8 @@ export class BlogsService {
     }
 
     async toggleSave(blogId: string, userId: string) {
-        const existing = await (this.prisma.reader as any).interaction.findUnique({
-            where: { blogId_userId_type: { blogId, userId, type: 'SAVE' } }
+        const existing = await (this.prisma.reader as any).interaction.findFirst({
+            where: { blogId, userId, type: 'SAVE' }
         });
 
         if (existing) {

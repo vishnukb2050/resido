@@ -221,6 +221,10 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
                     isLooping
                     shouldPlay={isActive}
                     onPlaybackStatusUpdate={status => setStatus(() => status)}
+                    onError={(error) => {
+                        console.error('Video load error:', error);
+                        // Optional: show a small toast or alert for debugging
+                    }}
                 />
             </TouchableOpacity>
 

@@ -47,18 +47,25 @@ export class StorageService {
                 Bucket: this.bucket,
                 Key: key,
                 ContentType: contentType,
+                ACL: 'public-read' as any, // Cast to any because some R2 configs might not like the enum
             });
 
             const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
             
             // Generate public URL
             const endpoint = this.config.get('AWS_S3_ENDPOINT');
+            const publicUrlBase = this.config.get('CLOUDFLARE_R2_PUBLIC_URL');
             let fileUrl = '';
             
-            if (endpoint && endpoint.includes('cloudflarestorage.com')) {
-                // For R2, the public URL is often the bucket name as a subdomain or just the endpoint/bucket/key
+            if (publicUrlBase) {
+                // Best way: Use a dedicated public URL (e.g. custom domain or r2.dev)
+                fileUrl = `${publicUrlBase.replace(/\/$/, '')}/${key}`;
+            } else if (endpoint && endpoint.includes('cloudflarestorage.com')) {
+                // Fallback for R2 if no public URL is provided - attempt to construct it
+                // Note: Direct R2 endpoints are usually private, so this might still need a custom domain
                 fileUrl = `${endpoint}/${this.bucket}/${key}`;
             } else {
+                // AWS S3 Standard
                 const region = this.config.get('AWS_REGION', 'ap-south-1');
                 fileUrl = `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
             }

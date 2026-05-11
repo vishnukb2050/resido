@@ -24,9 +24,12 @@ services:
     environment:
       - PORT=3001
     command: >
-      sh -c "echo 'Checking DB...' && 
-             npx prisma db push --schema=prisma/master/schema.prisma --accept-data-loss && 
-             npx prisma db push --schema=prisma/user/schema.prisma --accept-data-loss && 
+      sh -c "echo 'Checking DB...' &&
+             for i in 1 2 3 4 5 6 7 8 9 10; do
+               npx prisma db push --schema=prisma/master/schema.prisma --accept-data-loss &&
+               npx prisma db push --schema=prisma/user/schema.prisma --accept-data-loss &&
+               break || (echo 'DB not ready, retrying in 3s...' && sleep 3);
+             done &&
              node dist/main"
     networks:
       - resido-net
@@ -40,7 +43,11 @@ services:
     env_file: .env
     environment:
       - PORT=3002
-    command: sh -c "echo 'Syncing DB...' && npx prisma db push --accept-data-loss && node dist/main"
+    command: >
+      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
+               npx prisma db push --accept-data-loss && break ||
+               (echo 'DB not ready, retrying...' && sleep 3);
+             done && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped
@@ -65,7 +72,11 @@ services:
     env_file: .env
     environment:
       - PORT=3004
-    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
+    command: >
+      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
+               npx prisma db push --accept-data-loss && break ||
+               (echo 'DB not ready, retrying...' && sleep 3);
+             done && node dist/main"
     ports:
       - '3004:3004'
     networks:
@@ -92,7 +103,11 @@ services:
     env_file: .env
     environment:
       - PORT=3006
-    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
+    command: >
+      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
+               npx prisma db push --accept-data-loss && break ||
+               (echo 'DB not ready, retrying...' && sleep 3);
+             done && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped
@@ -105,7 +120,11 @@ services:
     env_file: .env
     environment:
       - PORT=3007
-    command: sh -c "npx prisma db push --accept-data-loss && node dist/main"
+    command: >
+      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
+               npx prisma db push --accept-data-loss && break ||
+               (echo 'DB not ready, retrying...' && sleep 3);
+             done && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped
@@ -118,7 +137,12 @@ services:
     env_file: .env
     environment:
       - PORT=3008
-    command: sh -c "echo 'Syncing DB...' && npx prisma db push --accept-data-loss && node dist/main"
+      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
+    command: >
+      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
+               npx prisma db push --accept-data-loss && break ||
+               (echo 'DB not ready, retrying...' && sleep 3);
+             done && node dist/main"
     networks:
       - resido-net
     restart: unless-stopped

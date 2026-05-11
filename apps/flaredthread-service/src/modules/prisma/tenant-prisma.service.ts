@@ -41,7 +41,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
                         if (tenantId) {
                             if (['findMany', 'findFirst', 'count', 'aggregate', 'groupBy'].includes(operation)) {
                                 args.where = { ...args.where, tenantId };
-                            } else if (['findUnique', 'update', 'delete', 'upsert'].includes(operation)) {
+                            } else if (operation === 'findUnique') {
+                                // findUnique only allows unique fields. Adding tenantId makes it non-unique for Prisma.
+                                // Convert to findFirst to allow the extra filter.
+                                operation = 'findFirst';
+                                args.where = { ...args.where, tenantId };
+                            } else if (['update', 'delete', 'upsert'].includes(operation)) {
                                 if (args.where) {
                                     args.where = { ...args.where, tenantId };
                                 }

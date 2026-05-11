@@ -43,12 +43,14 @@ model Blog {
   comments    Comment[]
   interactions Interaction[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@map("blogs")
 }
 
 model Comment {
   id        String   @id @default(cuid())
+  tenantId  String   @default("global")
   blogId    String
   blog      Blog     @relation(fields: [blogId], references: [id])
   userId    String
@@ -58,19 +60,24 @@ model Comment {
   likesCount Int     @default(0)
   createdAt DateTime @default(now())
 
+  @@unique([id, tenantId])
   @@index([blogId])
+  @@index([tenantId])
   @@map("blog_comments")
 }
 
 model Interaction {
   id        String   @id @default(cuid())
+  tenantId  String   @default("global")
   blogId    String
   blog      Blog     @relation(fields: [blogId], references: [id])
   userId    String
   type      InteractionType
   createdAt DateTime @default(now())
 
-  @@unique([blogId, userId, type])
+  @@unique([id, tenantId])
+  @@unique([blogId, userId, type, tenantId])
+  @@index([tenantId])
   @@map("blog_interactions")
 }
 
