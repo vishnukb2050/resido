@@ -2,6 +2,7 @@
     "name": "@resido/auth-service",
     "version": "1.0.0",
     "scripts": {
+        "prebuild": "prisma generate && prisma generate --schema=prisma/master/schema.prisma && prisma generate --schema=prisma/user/schema.prisma && prisma generate --schema=prisma/core/schema.prisma",
         "build": "nest build",
         "start": "node dist/main",
         "start:dev": "nest start --watch",
