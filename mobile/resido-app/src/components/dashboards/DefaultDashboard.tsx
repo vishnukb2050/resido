@@ -197,10 +197,10 @@ export default function DefaultDashboard() {
                                 ) : (
                                     <>
                                         <QuickAccessItem icon="business" label="Business" onPress={() => router.push('/business-profiles')} />
-                                        <QuickAccessItem icon="wallet" label="Finance" />
-                                        <QuickAccessItem icon="grid" label="Services" />
-                                        <QuickAccessItem icon="document-text" label="Notes" />
-                                        <QuickAccessItem icon="folder" label="Docs" />
+                                        <QuickAccessItem icon="wallet" label="Finance" onPress={() => router.push('/finance')} />
+                                        <QuickAccessItem icon="grid" label="Services" onPress={() => router.push('/service-search')} />
+                                        <QuickAccessItem icon="document-text" label="Notes" onPress={() => router.push('/notes')} />
+                                        <QuickAccessItem icon="folder" label="Docs" onPress={() => router.push('/documents')} />
                                     </>
                                 )}
                             </ScrollView>
