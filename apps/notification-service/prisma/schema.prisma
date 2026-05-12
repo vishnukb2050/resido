@@ -1,6 +1,7 @@
 // auth-service Prisma schema
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/@resido/notification-client"
 }
 
 datasource db {

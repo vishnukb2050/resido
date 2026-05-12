@@ -1,6 +1,7 @@
 // accounting-service Prisma schema (per-tenant DB)
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/@resido/accounting-client"
 }
 
 datasource db {

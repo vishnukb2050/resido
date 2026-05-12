@@ -1,6 +1,7 @@
 // visitor-service Prisma schema (per-tenant DB)
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/@resido/visitor-client"
 }
 
 datasource db {
