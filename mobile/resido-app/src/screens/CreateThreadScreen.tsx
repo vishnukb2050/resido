@@ -102,7 +102,10 @@ export default function CreateThreadScreen() {
 
             await threadApi.createThread(payload);
             Alert.alert('Success', 'Thread published!');
-            router.back();
+            router.replace({ 
+                pathname: '/thread', 
+                params: { refresh: Date.now().toString() } 
+            });
         } catch (error) {
             console.error(error);
             Alert.alert('Error', 'Failed to publish thread');

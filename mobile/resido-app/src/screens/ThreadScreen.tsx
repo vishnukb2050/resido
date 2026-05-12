@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, SafeAreaView, Dimensions, StatusBar, Share, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { threadApi, authApi } from '../services/api';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../store/authStore';
@@ -40,6 +40,7 @@ export default function ThreadScreen() {
     const [activeCategory, setActiveCategory] = useState('all');
     
     const router = useRouter();
+    const { refresh } = useLocalSearchParams();
     const { user, activeWorkspace } = useAuthStore();
 
     const [followingIds, setFollowingIds] = useState<string[]>([]);
@@ -49,7 +50,7 @@ export default function ThreadScreen() {
         if (activeTab === 'MY' || activeTab === 'FOLLOWING') {
             fetchFollowingFlares();
         }
-    }, [activeWorkspace, activeTab, activeCategory]);
+    }, [activeWorkspace, activeTab, activeCategory, refresh]);
 
     const fetchInitialData = async () => {
         try {
@@ -165,6 +166,10 @@ export default function ThreadScreen() {
                 authorName: user?.name || "Anonymous", 
                 authorAvatar: user?.profilePhoto 
             });
+            setThreads(prev => prev.map(t => t.id === id ? { 
+                ...t, 
+                resharesCount: (t.resharesCount || 0) + 1 
+            } : t));
             Alert.alert('Success', 'Thread reshared to your profile!');
             if (activeTab === 'RESHARE') fetchInitialData();
         } catch (e) {

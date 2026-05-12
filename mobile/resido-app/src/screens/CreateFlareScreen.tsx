@@ -166,7 +166,13 @@ export default function CreateFlareScreen() {
 
             setUploadProgress(1);
             Alert.alert('Success', 'Your Flare has been published!', [
-                { text: 'OK', onPress: () => router.back() }
+                { 
+                    text: 'OK', 
+                    onPress: () => router.replace({ 
+                        pathname: '/flares', 
+                        params: { refresh: Date.now().toString() } 
+                    }) 
+                }
             ]);
         } catch (error: any) {
             console.error('Publish error:', error);
@@ -212,7 +218,7 @@ export default function CreateFlareScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Video Selection Card */}
                 <TouchableOpacity 
-                    style={[styles.videoCard, video && styles.videoCardActive]} 
+                    style={[styles.videoCard, video ? styles.videoCardActive : null]} 
                     onPress={pickVideo}
                 >
                     {video ? (

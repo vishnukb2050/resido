@@ -78,11 +78,21 @@ export default function FlarePlayerScreen() {
                 const idx = fetchedFlares.findIndex((f: any) => f.id === initialId);
                 if (idx !== -1) setActiveIndex(idx);
             }
-        } catch (error) {
-            console.error('Failed to fetch flares for feed', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleToggleSave = (id: string, saved: boolean) => {
+        setFlares(prev => prev.map(f => f.id === id ? { ...f, saved } : f));
+    };
+
+    const handleToggleLike = (id: string, liked: boolean, likesCount: number) => {
+        setFlares(prev => prev.map(f => f.id === id ? { ...f, liked, likesCount } : f));
+    };
+
+    const handleToggleReshare = (id: string, resharesCount: number) => {
+        setFlares(prev => prev.map(f => f.id === id ? { ...f, resharesCount } : f));
     };
 
     const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -101,6 +111,9 @@ export default function FlarePlayerScreen() {
                     setActiveIndex(activeIndex + 1);
                 }
             }}
+            onToggleSave={handleToggleSave}
+            onToggleLike={handleToggleLike}
+            onToggleReshare={handleToggleReshare}
         />
     );
 
@@ -139,7 +152,7 @@ export default function FlarePlayerScreen() {
     );
 }
 
-function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void }) {
+function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLike, onToggleReshare }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void, onToggleSave: (id: string, saved: boolean) => void, onToggleLike: (id: string, liked: boolean, count: number) => void, onToggleReshare: (id: string, count: number) => void }) {
     const [status, setStatus] = useState<any>({});
     const [liked, setLiked] = useState(flare.liked || false);
     const [saved, setSaved] = useState(flare.saved || false);
@@ -152,6 +165,7 @@ function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
     const [displayComments, setDisplayComments] = useState(flare.commentsCount);
+    const [displayReshares, setDisplayReshares] = useState(flare.resharesCount || 0);
 
     useEffect(() => {
         // Socket listener for live comments
@@ -175,13 +189,15 @@ function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive
     const toggleLike = async () => {
         try {
             const newLiked = !liked;
+            const newCount = newLiked ? displayLikes + 1 : Math.max(0, displayLikes - 1);
             setLiked(newLiked);
-            setDisplayLikes((prev: number) => newLiked ? prev + 1 : Math.max(0, prev - 1));
+            setDisplayLikes(newCount);
             await threadApi.toggleLike(flare.id);
+            onToggleLike(flare.id, newLiked, newCount);
         } catch (e) {
             console.error(e);
             setLiked(liked);
-            setDisplayLikes(flare.likesCount);
+            setDisplayLikes(displayLikes);
         }
     };
 
@@ -241,13 +257,17 @@ function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive
 
     const handleReshare = async () => {
         try {
+            const newCount = (displayReshares || 0) + 1;
+            setDisplayReshares(newCount);
             await threadApi.reshare(flare.id, {
                 authorName: user?.name || "Anonymous",
                 authorAvatar: user?.profilePhoto
             });
+            onToggleReshare(flare.id, newCount);
             Alert.alert('Success', 'Flare reshared to your profile!');
         } catch (e) {
             console.error(e);
+            setDisplayReshares(displayReshares);
             Alert.alert('Error', 'Failed to reshare flare');
         }
     };
@@ -257,6 +277,7 @@ function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive
             const newSaved = !saved;
             setSaved(newSaved);
             await threadApi.toggleSave(flare.id);
+            onToggleSave(flare.id, newSaved);
         } catch (e) {
             console.error(e);
             setSaved(saved);
@@ -334,7 +355,7 @@ function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive
                 />
                 <ActionIcon 
                     icon="repeat" 
-                    label={(flare.resharesCount || 0).toString()} 
+                    label={displayReshares.toString()} 
                     onPress={handleReshare} 
                 />
                 <ActionIcon 

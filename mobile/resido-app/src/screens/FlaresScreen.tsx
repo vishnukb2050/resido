@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, SafeAreaView, ScrollView, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { threadApi, authApi } from '../services/api';
 import BottomNav from '../components/BottomNav';
 
@@ -24,11 +24,12 @@ export default function FlaresScreen() {
     const [flares, setFlares] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const { refresh } = useLocalSearchParams();
     const router = useRouter();
 
     useEffect(() => {
         fetchInitialData();
-    }, [activeTab]);
+    }, [activeTab, refresh]);
 
     const fetchInitialData = async () => {
         try {
