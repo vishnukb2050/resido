@@ -48,6 +48,9 @@ export const authApi = {
     createMember: (data: any) => api.post('/members', data),
     syncMembership: (data: any) => api.post('/auth/sync-membership', data),
     getUser: (id: string) => api.get(`/auth/users/${id}`),
+    toggleFollow: (id: string, isFollowing: boolean) => isFollowing ? api.delete(`/profile/follow/${id}`) : api.post(`/profile/follow/${id}`),
+    getFollowing: () => api.get('/profile/following'),
+    updateProfile: (data: any) => api.put('/profile/user', data),
 };
 
 // Community APIs
@@ -97,8 +100,14 @@ export const accountingApi = {
 
 // Thread & Flare APIs
 export const threadApi = {
-    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY'; followingIds?: string[] }) => api.get('/threads', { params }),
-    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY'; followingIds?: string[] }) => api.get('/flares', { params }),
+    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE'; followingIds?: string[] }) => {
+        const p = { ...params, followingIds: params?.followingIds?.join(',') };
+        return api.get('/threads', { params: p });
+    },
+    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE'; followingIds?: string[] }) => {
+        const p = { ...params, followingIds: params?.followingIds?.join(',') };
+        return api.get('/flares', { params: p });
+    },
     getThread: (id: string) => api.get(`/blogs/${id}`),
     createThread: (data: any) => api.post('/threads', data),
     createFlare: (data: any) => api.post('/flares', data),
@@ -107,6 +116,7 @@ export const threadApi = {
     getComments: (id: string) => api.get(`/blogs/${id}/comments`),
     reshare: (id: string) => api.post(`/blogs/${id}/reshare`),
     toggleSave: (id: string) => api.post(`/blogs/${id}/save`),
+    votePoll: (pollId: string, optionId: string) => api.post(`/polls/${pollId}/vote`, { optionId }),
     updateBlog: (id: string, data: any) => api.patch(`/blogs/${id}`, data),
     deleteBlog: (id: string) => api.delete(`/blogs/${id}`),
 };

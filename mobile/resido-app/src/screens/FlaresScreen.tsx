@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, 
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { threadApi } from '../services/api';
+import { threadApi, authApi } from '../services/api';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
@@ -14,9 +14,12 @@ const TABS = [
     { id: 'following', label: 'Following', icon: 'account-outline' },
     { id: 'public', label: 'Public', icon: 'earth' },
     { id: 'myflares', label: 'My Flares', icon: 'play-box-outline' },
+    { id: 'saved', label: 'Saved', icon: 'bookmark-outline' },
+    { id: 'reshared', label: 'Reshared', icon: 'repeat' },
 ];
 
 export default function FlaresScreen() {
+    const [followingIds, setFollowingIds] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState('foryou');
     const [flares, setFlares] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -24,14 +27,56 @@ export default function FlaresScreen() {
     const router = useRouter();
 
     useEffect(() => {
-        fetchFlares();
-    }, []);
+        fetchInitialData();
+    }, [activeTab]);
 
-    const fetchFlares = async () => {
+    const fetchInitialData = async () => {
         try {
             setLoading(true);
-            const { data } = await threadApi.getFlares();
-            setFlares(data);
+            
+            // 1. Fetch Following IDs (if not already fetched or every time tab changes)
+            let currentFollowing: string[] = followingIds;
+            if (activeTab === 'following' || activeTab === 'foryou') {
+                const { data: followList } = await authApi.getFollowing();
+                currentFollowing = followList || [];
+                setFollowingIds(currentFollowing);
+            }
+
+            // 2. Fetch Flares based on tab
+            let apiFeedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC';
+            if (activeTab === 'following') apiFeedType = 'FOLLOWING';
+            if (activeTab === 'myflares') apiFeedType = 'MY';
+            if (activeTab === 'saved') apiFeedType = 'SAVED';
+            if (activeTab === 'reshared') apiFeedType = 'RESHARE';
+            
+            const { data } = await threadApi.getFlares({ 
+                feedType: apiFeedType,
+                followingIds: currentFollowing 
+            });
+
+            // 3. For You Priority Logic (Client-side refinement)
+            if (activeTab === 'foryou') {
+                // For You includes Following + Public
+                const { data: publicFlares } = await threadApi.getFlares({ feedType: 'PUBLIC' });
+                
+                // Combine and Prioritize
+                const combined = [...data, ...publicFlares];
+                // Deduplicate by ID
+                const uniqueFlares = Array.from(new Map(combined.map(f => [f.id, f])).values());
+                
+                // Sort: Following first, then others
+                const sorted = uniqueFlares.sort((a, b) => {
+                    const aIsFollowing = currentFollowing.includes(a.authorId);
+                    const bIsFollowing = currentFollowing.includes(b.authorId);
+                    if (aIsFollowing && !bIsFollowing) return -1;
+                    if (!aIsFollowing && bIsFollowing) return 1;
+                    // Then by date
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                });
+                setFlares(sorted);
+            } else {
+                setFlares(data);
+            }
         } catch (error) {
             console.error('Failed to fetch flares', error);
         } finally {
@@ -41,22 +86,34 @@ export default function FlaresScreen() {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchFlares();
+        await fetchInitialData();
         setRefreshing(false);
     };
 
     const recentFlares = [
         { id: 'create', type: 'create' },
-        ...flares.slice(0, 5).map((f: any) => ({
-            id: f.id,
-            name: f.authorName || 'User', // Fallback if name not joined
-            time: 'Just now', // Could use moment/dayjs
-            image: f.mediaUrls?.[0] || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400',
-            avatar: `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg`
-        }))
+        ...Object.values(flares.reduce((acc: any, flare: any) => {
+            const authorId = flare.authorId || flare.createdBy;
+            if (!acc[authorId]) {
+                acc[authorId] = {
+                    id: flare.id,
+                    authorId: authorId,
+                    name: flare.authorName || 'Resident',
+                    time: 'Just now',
+                    image: flare.mediaUrls?.[0],
+                    avatar: flare.authorAvatar || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg`,
+                    count: 1,
+                    allIds: [flare.id]
+                };
+            } else {
+                acc[authorId].count += 1;
+                acc[authorId].allIds.push(flare.id);
+            }
+            return acc;
+        }, {})).slice(0, 10)
     ];
 
-    const forYouFlares = flares.map((f: any) => ({
+    const gridFlares = flares.map((f: any) => ({
         id: f.id,
         author: f.authorName || 'User',
         title: f.title,
@@ -80,27 +137,50 @@ export default function FlaresScreen() {
             );
         }
 
+        const hasMultiple = item.count > 1;
+
         return (
             <TouchableOpacity 
-                style={styles.recentCard}
+                style={[
+                    styles.recentCard,
+                    hasMultiple && styles.groupedCard
+                ]}
                 onPress={() => router.push({
                     pathname: '/flare-player',
-                    params: { initialId: item.id }
+                    params: { 
+                        initialId: item.id,
+                        feedType: activeTab === 'myflares' ? 'MY' : activeTab.toUpperCase(),
+                        followingIds: followingIds.join(',')
+                    }
                 })}
             >
                 <Video
                     source={{ uri: item.image }}
                     style={styles.recentBg}
                     resizeMode={ResizeMode.COVER}
-                    shouldPlay
+                    shouldPlay={false}
                     isMuted
-                    isLooping
                     useNativeControls={false}
                 />
                 <View style={styles.recentGradient} />
-                <View style={styles.recentAvatarContainer}>
+                
+                {/* Border for multiple flares */}
+                {hasMultiple && <View style={styles.stackBorder} />}
+
+                <View style={[
+                    styles.recentAvatarContainer,
+                    hasMultiple && styles.groupedAvatarContainer
+                ]}>
                     <Image source={{ uri: item.avatar }} style={styles.recentAvatar} />
                 </View>
+
+                {/* Flare Count Badge */}
+                {hasMultiple && (
+                    <View style={styles.countBadge}>
+                        <Text style={styles.countText}>{item.count}</Text>
+                    </View>
+                )}
+
                 <View style={styles.recentInfo}>
                     <Text style={styles.recentName}>{item.name}</Text>
                     <Text style={styles.recentTime}>{item.time}</Text>
@@ -119,7 +199,7 @@ export default function FlaresScreen() {
         } catch (error) {
             console.error('Failed to toggle like', error);
             // Revert on failure
-            fetchFlares();
+            fetchInitialData();
         }
     };
 
@@ -129,7 +209,11 @@ export default function FlaresScreen() {
             style={styles.feedCard}
             onPress={() => router.push({
                 pathname: '/flare-player',
-                params: { initialId: item.id }
+                params: { 
+                    initialId: item.id,
+                    feedType: activeTab === 'myflares' ? 'MY' : activeTab.toUpperCase(),
+                    followingIds: followingIds.join(',')
+                }
             })}
         >
             <Video
@@ -226,22 +310,28 @@ export default function FlaresScreen() {
                         data={recentFlares}
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={(item: any) => item.id}
                         renderItem={renderRecentItem}
                         contentContainerStyle={styles.recentList}
                     />
 
                     {/* For You Grid */}
-                    <Text style={styles.sectionTitleGrid}>For You</Text>
+                    <Text style={styles.sectionTitleGrid}>
+                        {activeTab === 'foryou' ? 'For You' : 
+                         activeTab === 'following' ? 'Following' : 
+                         activeTab === 'public' ? 'Public' : 
+                         activeTab === 'saved' ? 'Saved Flares' : 
+                         activeTab === 'reshared' ? 'Reshared Flares' : 'My Flares'}
+                    </Text>
                     
                     {flares.length === 0 ? (
                         <View style={styles.emptyContainer}>
                             <Ionicons name="videocam-outline" size={48} color="rgba(255,255,255,0.2)" />
-                            <Text style={styles.emptyText}>No flares found. Be the first to create one!</Text>
+                            <Text style={styles.emptyText}>No flares found in this section.</Text>
                         </View>
                     ) : (
                         <View style={styles.gridContainer}>
-                            {forYouFlares.map(item => renderFeedItem(item))}
+                            {gridFlares.map((item: any) => renderFeedItem(item))}
                         </View>
                     )}
                     
@@ -287,6 +377,13 @@ const styles = StyleSheet.create({
     recentInfo: { position: 'absolute', bottom: 12, left: 12 },
     recentName: { color: '#fff', fontSize: 13, fontWeight: '800' },
     recentTime: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 1 },
+
+    // Grouped Flare Styles
+    groupedCard: { borderWidth: 2, borderColor: '#5856d6' },
+    stackBorder: { position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 14 },
+    groupedAvatarContainer: { borderColor: '#fff' },
+    countBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: '#5856d6', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+    countText: { color: '#fff', fontSize: 11, fontWeight: '900' },
 
     sectionTitleGrid: { fontSize: 20, fontWeight: '800', color: '#fff', paddingHorizontal: 20, marginTop: 35, marginBottom: 15 },
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 18, justifyContent: 'space-between' },

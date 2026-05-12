@@ -59,7 +59,7 @@ export default function ProfileScreen() {
                     <View style={styles.profileTop}>
                         <View style={styles.avatarWrapper}>
                             <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=john" }} style={styles.largeAvatar} />
-                            <TouchableOpacity style={styles.editAvatarBtn}>
+                            <TouchableOpacity style={styles.editAvatarBtn} onPress={() => router.push('/edit-profile')}>
                                 <MaterialCommunityIcons name="pencil" size={14} color="#fff" />
                             </TouchableOpacity>
                         </View>
@@ -72,7 +72,7 @@ export default function ProfileScreen() {
                             </View>
                             <Text style={styles.memberSince}>Member since Jan 2024</Text>
                         </View>
-                        <TouchableOpacity style={styles.viewProfileBtn}>
+                        <TouchableOpacity style={styles.viewProfileBtn} onPress={() => router.push('/edit-profile')}>
                             <Ionicons name="person-outline" size={16} color="#fff" />
                             <Text style={styles.viewProfileText}>View Profile</Text>
                         </TouchableOpacity>

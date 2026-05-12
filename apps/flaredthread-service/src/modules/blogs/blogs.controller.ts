@@ -8,7 +8,7 @@ export class BlogsController {
     constructor(private blogsService: BlogsService) {}
 
     @Get()
-    listBlogs(@Req() req: any, @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY', @Query('followingIds') followingIds: string) {
+    listBlogs(@Req() req: any, @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE', @Query('followingIds') followingIds: string) {
         const userId = req.headers['x-user-id'] as string;
         const tenantId = req.tenantId as string;
         const fIds = followingIds ? followingIds.split(',') : [];
@@ -72,7 +72,15 @@ export class BlogsController {
     @Post(':id/reshare')
     reshare(@Req() req: any, @Param('id') id: string) {
         const userId = req.headers['x-user-id'] as string;
-        return this.blogsService.reshare(id, userId);
+        const tenantId = req.tenantId as string;
+        return this.blogsService.reshareBlog(id, userId, tenantId);
+    }
+
+    @Post('polls/:id/vote')
+    votePoll(@Req() req: any, @Param('id') pollId: string, @Body() body: { optionId: string }) {
+        const userId = req.headers['x-user-id'] as string;
+        const tenantId = req.tenantId as string;
+        return this.blogsService.votePoll(pollId, body.optionId, userId, tenantId);
     }
 
     @Post(':id/save')

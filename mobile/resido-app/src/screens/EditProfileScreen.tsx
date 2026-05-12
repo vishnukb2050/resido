@@ -8,6 +8,9 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import * as ImagePicker from 'expo-image-picker';
+import { authApi } from '../services/api';
+import { storageApi } from '../services/storage';
+import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
 
@@ -45,12 +48,34 @@ export default function EditProfileScreen() {
     const handleSave = async () => {
         setLoading(true);
         try {
-            // In a real app, call authApi.updateProfile(formData)
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            let photoUrl = formData.profilePhoto;
+            
+            // Check if photo is a local file that needs uploading
+            if (photoUrl && (photoUrl.startsWith('file://') || photoUrl.startsWith('content://') || !photoUrl.startsWith('http'))) {
+                const fileName = `profile_${user?.id}_${Date.now()}.jpg`;
+                // Using generic storage upload for profile photos
+                photoUrl = await storageApi.uploadFile(photoUrl, fileName, 'image/jpeg', 'profiles') as string;
+            }
+
+            const payload = {
+                name: formData.name,
+                username: formData.username,
+                email: formData.email,
+                phone: formData.phone,
+                description: formData.bio,
+                profilePhoto: photoUrl
+            };
+
+            const { data: updatedUser } = await authApi.updateProfile(payload);
+            
+            // Update global state so changes reflect everywhere immediately
+            updateUser(updatedUser);
+            
             Alert.alert('Success', 'Profile updated successfully! ✨');
             router.back();
         } catch (error) {
-            Alert.alert('Error', 'Failed to update profile');
+            console.error('Profile update failed:', error);
+            Alert.alert('Error', 'Failed to update profile. Please check your connection.');
         } finally {
             setLoading(false);
         }

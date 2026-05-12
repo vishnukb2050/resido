@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, UseGuards, Req, Param, Delete } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -48,5 +48,23 @@ export class ProfileController {
     @Get('users/search')
     async searchUsers(@Query('query') query: string) {
         return this.profileService.searchUsers(query);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('follow/:id')
+    async follow(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.followUser(req.user.userId, id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete('follow/:id')
+    async unfollow(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.unfollowUser(req.user.userId, id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('following')
+    async getFollowing(@Req() req: any) {
+        return this.profileService.getFollowing(req.user.userId);
     }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -13,10 +13,9 @@ export class BlogsService {
         private storage: StorageService
     ) {}
 
-    async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' = 'PUBLIC', followingIds: string[] = [], tenantId?: string) {
+    async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC', followingIds: string[] = [], tenantId?: string) {
         const where: any = {
             isActive: true,
-            tenantId, // Strict tenant isolation
         };
 
         if (type) where.type = type;
@@ -25,16 +24,42 @@ export class BlogsService {
             where.authorId = userId;
         } else if (feedType === 'FOLLOWING') {
             where.authorId = { in: followingIds };
-            // Optional: Include public flares from non-following? 
-            // Usually FOLLOWING tab is strict.
+            // Enforce visibility: only show what the author intended for followers/contacts
+            where.visibility = { in: ['PUBLIC', 'FOLLOWERS', 'CONTACTS'] };
+        } else if (feedType === 'SAVED') {
+            where.interactions = {
+                some: {
+                    userId,
+                    type: 'SAVE'
+                }
+            };
+        } else if (feedType === 'RESHARE') {
+            where.authorId = userId;
+            where.parentId = { not: null };
         } else {
-            // PUBLIC feed
+            // PUBLIC feed - Global visibility
             where.visibility = 'PUBLIC';
         }
 
         const blogs = await this.prisma.reader.blog.findMany({
             where,
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            include: {
+                poll: {
+                    include: {
+                        options: {
+                            include: {
+                                _count: {
+                                    select: { votes: true }
+                                }
+                            }
+                        },
+                        votes: userId ? {
+                            where: { userId }
+                        } : false
+                    }
+                }
+            }
         });
 
         if (!userId) return blogs;
@@ -59,11 +84,32 @@ export class BlogsService {
     }
 
     async createBlog(authorId: string, data: any, tenantId: string) {
+        let pollId = undefined;
+        
+        if (data.poll) {
+            const poll = await this.prisma.client.poll.create({
+                data: {
+                    tenantId,
+                    question: data.poll.question,
+                    expiresAt: new Date(Date.now() + (data.poll.durationDays || 7) * 24 * 60 * 60 * 1000),
+                    options: {
+                        create: data.poll.options.map((opt: string) => ({
+                            tenantId,
+                            text: opt
+                        }))
+                    }
+                }
+            });
+            pollId = poll.id;
+        }
+
         const blog = await this.prisma.client.blog.create({
             data: { 
                 ...data, 
+                poll: undefined, // Remove poll object from spread
                 authorId,
                 tenantId, // Explicitly save tenantId
+                pollId,
                 authorName: data.authorName,
                 authorAvatar: data.authorAvatar,
                 location: data.location,
@@ -100,7 +146,42 @@ export class BlogsService {
     }
 
     async getBlog(id: string) {
-        return this.prisma.reader.blog.findUnique({ where: { id } });
+        return this.prisma.reader.blog.findUnique({ 
+            where: { id },
+            include: {
+                poll: {
+                    include: {
+                        options: {
+                            include: {
+                                _count: {
+                                    select: { votes: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async votePoll(pollId: string, optionId: string, userId: string, tenantId: string) {
+        // Check if already voted
+        const existing = await (this.prisma.reader as any).pollVote.findFirst({
+            where: { pollId, userId, tenantId }
+        });
+
+        if (existing) {
+            throw new Error('Already voted in this poll');
+        }
+
+        return (this.prisma.client as any).pollVote.create({
+            data: {
+                pollId,
+                optionId,
+                userId,
+                tenantId
+            }
+        });
     }
 
     async updateBlog(id: string, data: any) {
@@ -189,5 +270,35 @@ export class BlogsService {
             ]);
             return { saved: true };
         }
+    }
+
+    async reshareBlog(blogId: string, userId: string, tenantId: string) {
+        const original = await (this.prisma.reader as any).blog.findUnique({
+            where: { id: blogId }
+        });
+
+        if (!original) throw new NotFoundException('Original flare not found');
+
+        // Logic: if public -> public, else followers/contacts
+        let visibility = original.visibility;
+        if (visibility !== 'PUBLIC') {
+            // User requested: "else need to reshare to the user followers and contacts"
+            // We use FOLLOWERS as the primary visibility if not public
+            visibility = 'FOLLOWERS'; 
+        }
+
+        return (this.prisma.client as any).blog.create({
+            data: {
+                title: original.title,
+                content: original.content,
+                type: original.type,
+                visibility: visibility as any,
+                mediaUrls: original.mediaUrls,
+                authorId: userId,
+                tenantId: tenantId,
+                parentId: blogId,
+                isActive: true
+            }
+        });
     }
 }

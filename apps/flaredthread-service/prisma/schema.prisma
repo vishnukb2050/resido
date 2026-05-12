@@ -41,12 +41,57 @@ model Blog {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  pollId      String?
+  poll        Poll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
+
   comments    Comment[]
   interactions Interaction[]
 
   @@unique([id, tenantId])
   @@index([tenantId])
   @@map("blogs")
+}
+
+model Poll {
+  id          String   @id @default(cuid())
+  tenantId    String   @default("global")
+  question    String
+  options     PollOption[]
+  votes       PollVote[]
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  blogs       Blog[]
+
+  @@unique([id, tenantId])
+  @@map("polls")
+}
+
+model PollOption {
+  id          String   @id @default(cuid())
+  pollId      String
+  tenantId    String   @default("global")
+  poll        Poll     @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  text        String
+  votes       PollVote[]
+
+  @@unique([id, tenantId])
+  @@map("poll_options")
+}
+
+model PollVote {
+  id          String   @id @default(cuid())
+  pollId      String
+  optionId    String
+  userId      String
+  tenantId    String   @default("global")
+  
+  poll        Poll       @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  option      PollOption @relation(fields: [optionId, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@unique([pollId, userId, tenantId])
+  @@map("poll_votes")
 }
 
 model Comment {

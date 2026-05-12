@@ -35,20 +35,24 @@ export default function CreateThreadScreen() {
     const [selectedVisibilities, setSelectedVisibilities] = useState<string[]>(['PUBLIC']);
     const [loading, setLoading] = useState(false);
     const [showVisibilityModal, setShowVisibilityModal] = useState(false);
+    const [showPollBuilder, setShowPollBuilder] = useState(false);
+    const [pollQuestion, setPollQuestion] = useState('');
+    const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+    const [pollDuration, setPollDuration] = useState(7);
 
     const router = useRouter();
 
     const pickMedia = async (type: 'image' | 'video') => {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: type === 'image' ? ImagePicker.MediaTypeOptions.Images : ImagePicker.MediaTypeOptions.Videos,
-            allowsMultipleSelection: type === 'image',
+            allowsMultipleSelection: true,
             quality: 0.8,
         });
 
         if (!result.canceled) {
             const newMedia = result.assets.map(asset => ({
                 uri: asset.uri,
-                type: asset.type?.toUpperCase() === 'VIDEO' ? 'VIDEO' : 'IMAGE',
+                type: asset.type?.toUpperCase() === 'VIDEO' || asset.duration ? 'VIDEO' : 'IMAGE',
                 mimeType: asset.mimeType || (type === 'image' ? 'image/jpeg' : 'video/mp4')
             }));
             setMediaList([...mediaList, ...newMedia]);
@@ -88,8 +92,12 @@ export default function CreateThreadScreen() {
                 mediaType: mediaList.length > 0 ? mediaList[0].type : 'IMAGE',
                 visibility: selectedVisibilities[0], // Using primary for backend simple enum
                 visibilities: selectedVisibilities, // Extra info
-                authorName: user?.name,
                 authorAvatar: user?.profilePhoto,
+                poll: showPollBuilder && pollQuestion && pollOptions.filter(o => o).length >= 2 ? {
+                    question: pollQuestion,
+                    options: pollOptions.filter(o => o),
+                    durationDays: pollDuration
+                } : undefined
             };
 
             await threadApi.createThread(payload);
@@ -161,14 +169,17 @@ export default function CreateThreadScreen() {
                 </View>
 
                 {/* Content Area */}
-                <TextInput 
-                    style={styles.contentInput} 
-                    placeholder="What's on your mind?" 
-                    value={content}
-                    onChangeText={setContent}
-                    multiline
-                    placeholderTextColor="#94a3b8"
-                />
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Your Thoughts</Text>
+                    <TextInput 
+                        style={styles.contentInput} 
+                        placeholder="Share your story or thoughts with the community..." 
+                        value={content}
+                        onChangeText={setContent}
+                        multiline
+                        placeholderTextColor="#94a3b8"
+                    />
+                </View>
 
                 {/* Media Preview */}
                 {mediaList.length > 0 && (
@@ -187,6 +198,86 @@ export default function CreateThreadScreen() {
                             </View>
                         ))}
                     </ScrollView>
+                )}
+
+                {/* Poll Builder */}
+                {showPollBuilder && (
+                    <View style={styles.pollBuilder}>
+                        <View style={styles.pollHeader}>
+                            <Text style={styles.sectionTitle}>Create a Poll</Text>
+                            <TouchableOpacity onPress={() => setShowPollBuilder(false)}>
+                                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.pollInputGroup}>
+                            <Text style={styles.inputLabel}>Your question *</Text>
+                            <TextInput 
+                                style={styles.pollQuestionInput}
+                                placeholder="Add question"
+                                value={pollQuestion}
+                                onChangeText={setPollQuestion}
+                                maxLength={140}
+                                multiline
+                            />
+                            <Text style={styles.charCount}>{pollQuestion.length}/140</Text>
+                        </View>
+
+                        {pollOptions.map((opt, idx) => (
+                            <View key={idx} style={styles.pollInputGroup}>
+                                <View style={styles.optionHeader}>
+                                    <Text style={styles.inputLabel}>Option {idx + 1} *</Text>
+                                    {pollOptions.length > 2 && (
+                                        <TouchableOpacity onPress={() => setPollOptions(prev => prev.filter((_, i) => i !== idx))}>
+                                            <Ionicons name="remove-circle-outline" size={18} color="#94a3b8" />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                                <TextInput 
+                                    style={styles.pollOptionInput}
+                                    placeholder="Add option"
+                                    value={opt}
+                                    onChangeText={(text) => {
+                                        const newOpts = [...pollOptions];
+                                        newOpts[idx] = text;
+                                        setPollOptions(newOpts);
+                                    }}
+                                    maxLength={30}
+                                />
+                                <Text style={styles.charCount}>{opt.length}/30</Text>
+                            </View>
+                        ))}
+
+                        {pollOptions.length < 4 && (
+                            <TouchableOpacity 
+                                style={styles.addOptionBtn}
+                                onPress={() => setPollOptions([...pollOptions, ''])}
+                            >
+                                <Ionicons name="add" size={18} color="#6366f1" />
+                                <Text style={styles.addOptionText}>Add option</Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <View style={styles.pollInputGroup}>
+                            <Text style={styles.inputLabel}>Poll duration</Text>
+                            <View style={styles.durationPicker}>
+                                <Text style={styles.durationText}>{pollDuration} days</Text>
+                                <View style={styles.durationOptions}>
+                                    {[1, 3, 7, 14].map(d => (
+                                        <TouchableOpacity 
+                                            key={d} 
+                                            style={[styles.durationPill, pollDuration === d && styles.durationPillActive]}
+                                            onPress={() => setPollDuration(d)}
+                                        >
+                                            <Text style={[styles.durationPillText, pollDuration === d && styles.durationPillTextActive]}>{d}d</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        </View>
+
+                        <Text style={styles.pollNote}>We don't allow requests for political opinions, medical information or other sensitive data.</Text>
+                    </View>
                 )}
 
                 {/* Categories */}
@@ -212,6 +303,10 @@ export default function CreateThreadScreen() {
                     <TouchableOpacity style={styles.toolbarItem} onPress={() => pickMedia('video')}>
                         <Ionicons name="videocam-outline" size={24} color="#f59e0b" />
                         <Text style={styles.toolbarLabel}>Video</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.toolbarItem} onPress={() => setShowPollBuilder(true)}>
+                        <Ionicons name="stats-chart-outline" size={24} color="#6366f1" />
+                        <Text style={styles.toolbarLabel}>Poll</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.toolbarItem}>
                         <Ionicons name="at-outline" size={24} color="#10b981" />
@@ -286,4 +381,24 @@ const styles = StyleSheet.create({
     communityName: { flex: 1, marginLeft: 14, fontSize: 15, fontWeight: '700', color: '#1e293b' },
     doneBtnText: { color: '#6366f1', fontSize: 16, fontWeight: '800' },
     emptyText: { textAlign: 'center', color: '#94a3b8', marginVertical: 30 },
+
+    pollBuilder: { backgroundColor: '#f8fafc', marginHorizontal: 20, padding: 20, borderRadius: 20, marginBottom: 30, borderWidth: 1, borderColor: '#e2e8f0' },
+    pollHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+    pollInputGroup: { marginBottom: 15 },
+    inputLabel: { fontSize: 13, fontWeight: '800', color: '#64748b', marginBottom: 8 },
+    pollQuestionInput: { backgroundColor: '#fff', borderRadius: 12, padding: 15, fontSize: 15, color: '#1e293b', borderWidth: 1, borderColor: '#e2e8f0', minHeight: 80, textAlignVertical: 'top' },
+    pollOptionInput: { backgroundColor: '#fff', borderRadius: 12, padding: 15, fontSize: 14, color: '#1e293b', borderWidth: 1, borderColor: '#e2e8f0' },
+    charCount: { textAlign: 'right', fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: '600' },
+    optionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    addOptionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', paddingVertical: 12, borderRadius: 12, marginBottom: 20, borderStyle: 'dashed', borderWidth: 1, borderColor: '#6366f1' },
+    addOptionText: { color: '#6366f1', fontSize: 14, fontWeight: '800', marginLeft: 8 },
+    pollNote: { fontSize: 12, color: '#94a3b8', textAlign: 'center', lineHeight: 18, marginTop: 10 },
+    
+    durationPicker: { backgroundColor: '#fff', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#e2e8f0' },
+    durationText: { fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 10 },
+    durationOptions: { flexDirection: 'row', gap: 10 },
+    durationPill: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
+    durationPillActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+    durationPillText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
+    durationPillTextActive: { color: '#fff' },
 });

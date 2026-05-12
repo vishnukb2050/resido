@@ -128,4 +128,27 @@ export class ProfileService {
             take: 20
         });
     }
+
+    async followUser(followerId: string, followingId: string) {
+        if (followerId === followingId) return;
+        return this.prisma.userClient.follow.upsert({
+            where: { followerId_followingId: { followerId, followingId } },
+            create: { followerId, followingId },
+            update: {}
+        });
+    }
+
+    async unfollowUser(followerId: string, followingId: string) {
+        return this.prisma.userClient.follow.deleteMany({
+            where: { followerId, followingId }
+        });
+    }
+
+    async getFollowing(userId: string) {
+        const follows = await this.prisma.userRead.follow.findMany({
+            where: { followerId: userId },
+            select: { followingId: true }
+        });
+        return follows.map(f => f.followingId);
+    }
 }

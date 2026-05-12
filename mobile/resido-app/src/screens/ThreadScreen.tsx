@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, SafeAreaView, Dimensions, StatusBar, Share, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { threadApi } from '../services/api';
 import { useRouter } from 'expo-router';
+import { threadApi, authApi } from '../services/api';
+import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../store/authStore';
 import BottomNav from '../components/BottomNav';
 import dayjs from 'dayjs';
@@ -22,9 +23,12 @@ const CATEGORIES = [
 ];
 
 const FEED_TABS = [
-    { id: 'PUBLIC', name: 'Explore' },
+    { id: 'FORYOU', name: 'For You' },
     { id: 'FOLLOWING', name: 'Following' },
+    { id: 'PUBLIC', name: 'Public' },
     { id: 'MY', name: 'My Space' },
+    { id: 'RESHARE', name: 'Reshared' },
+    { id: 'SAVED', name: 'Saved' },
 ];
 
 export default function ThreadScreen() {
@@ -32,27 +36,55 @@ export default function ThreadScreen() {
     const [followingFlares, setFollowingFlares] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'PUBLIC' | 'FOLLOWING' | 'MY'>('PUBLIC');
+    const [activeTab, setActiveTab] = useState<'FORYOU' | 'FOLLOWING' | 'PUBLIC' | 'MY' | 'RESHARE' | 'SAVED'>('FORYOU');
     const [activeCategory, setActiveCategory] = useState('all');
     
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
 
+    const [followingIds, setFollowingIds] = useState<string[]>([]);
+
     useEffect(() => {
-        fetchThreads();
-        if (activeTab === 'MY') {
+        fetchInitialData();
+        if (activeTab === 'MY' || activeTab === 'FOLLOWING') {
             fetchFollowingFlares();
         }
     }, [activeWorkspace, activeTab]);
 
-    const fetchThreads = async () => {
+    const fetchInitialData = async () => {
         try {
             setLoading(true);
+            
+            // 1. Fetch Following IDs
+            let currentFollowing: string[] = followingIds;
+            if (activeTab === 'FOLLOWING' || activeTab === 'FORYOU') {
+                const { data: followList } = await authApi.getFollowing();
+                currentFollowing = followList || [];
+                setFollowingIds(currentFollowing);
+            }
+
+            // 2. Fetch Threads
             const { data } = await threadApi.getThreads({ 
-                feedType: activeTab,
-                followingIds: [] 
+                feedType: activeTab as any,
+                followingIds: currentFollowing 
             });
-            setThreads(data || []);
+
+            // 3. For You Priority Logic
+            if (activeTab === 'FORYOU') {
+                const { data: publicThreads } = await threadApi.getThreads({ feedType: 'PUBLIC' });
+                const combined = [...data, ...publicThreads];
+                const unique = Array.from(new Map(combined.map(t => [t.id, t])).values());
+                unique.sort((a, b) => {
+                    const aIsFollowing = currentFollowing.includes(a.authorId);
+                    const bIsFollowing = currentFollowing.includes(b.authorId);
+                    if (aIsFollowing && !bIsFollowing) return -1;
+                    if (!aIsFollowing && bIsFollowing) return 1;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                });
+                setThreads(unique);
+            } else {
+                setThreads(data || []);
+            }
         } catch (e) {
             console.error('Failed to fetch threads', e);
         } finally {
@@ -71,7 +103,7 @@ export default function ThreadScreen() {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await Promise.all([fetchThreads(), fetchFollowingFlares()]);
+        await Promise.all([fetchInitialData(), fetchFollowingFlares()]);
         setRefreshing(false);
     };
 
@@ -126,6 +158,39 @@ export default function ThreadScreen() {
         );
     };
 
+    const handleReshare = async (id: string) => {
+        try {
+            await threadApi.reshare(id);
+            Alert.alert('Success', 'Thread reshared to your profile!');
+            if (activeTab === 'RESHARE') fetchInitialData();
+        } catch (e) {
+            console.error(e);
+            Alert.alert('Error', 'Failed to reshare thread');
+        }
+    };
+
+    const handleSave = async (id: string) => {
+        try {
+            const { data } = await threadApi.toggleSave(id);
+            Alert.alert('Success', data.saved ? 'Thread saved to your collection!' : 'Thread removed from saved');
+            if (activeTab === 'SAVED') fetchInitialData();
+            // Optional: Update local state to show saved icon
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleVote = async (pollId: string, optionId: string) => {
+        try {
+            await threadApi.votePoll(pollId, optionId);
+            // Instant refresh or optimistic update
+            fetchInitialData();
+        } catch (e) {
+            console.error(e);
+            Alert.alert('Error', 'Failed to submit vote');
+        }
+    };
+
     const handleEdit = (item: any) => {
         router.push({
             pathname: '/create-thread',
@@ -163,17 +228,87 @@ export default function ThreadScreen() {
 
             <TouchableOpacity onPress={() => router.push(`/thread/${item.id}`)}>
                 <Text style={styles.threadTitle}>{item.title}</Text>
-                <Text style={styles.threadContent} numberOfLines={4}>{item.content}</Text>
+                <Text style={styles.threadContent}>{item.content}</Text>
             </TouchableOpacity>
 
             {item.mediaUrls && item.mediaUrls.length > 0 && (
-                <View style={styles.mediaContainer}>
-                    <Image source={{ uri: item.mediaUrls[0] }} style={styles.mainMedia} />
+                <View style={styles.mediaCarouselContainer}>
+                    <ScrollView 
+                        horizontal 
+                        pagingEnabled 
+                        showsHorizontalScrollIndicator={false}
+                        onScroll={(e) => {
+                            const offset = e.nativeEvent.contentOffset.x;
+                            // Could add indicator logic here
+                        }}
+                    >
+                        {item.mediaUrls.map((url: string, idx: number) => (
+                            <View key={idx} style={styles.carouselItem}>
+                                {url.toLowerCase().endsWith('.mp4') || url.includes('video') ? (
+                                    <Video
+                                        source={{ uri: url }}
+                                        style={styles.carouselMedia}
+                                        resizeMode={ResizeMode.COVER}
+                                        shouldPlay={false}
+                                        isMuted
+                                        useNativeControls={false}
+                                    />
+                                ) : (
+                                    <Image source={{ uri: url }} style={styles.carouselMedia} />
+                                )}
+                            </View>
+                        ))}
+                    </ScrollView>
                     {item.mediaUrls.length > 1 && (
-                        <View style={styles.mediaBadge}>
-                            <Text style={styles.mediaBadgeText}>+{item.mediaUrls.length - 1}</Text>
+                        <View style={styles.mediaCounter}>
+                            <Text style={styles.mediaCounterText}>1/{item.mediaUrls.length}</Text>
                         </View>
                     )}
+                </View>
+            )}
+
+            {/* Poll Display */}
+            {item.poll && (
+                <View style={styles.pollContainer}>
+                    <Text style={styles.pollQuestion}>{item.poll.question}</Text>
+                    
+                    {item.poll.options.map((opt: any) => {
+                        const totalVotes = item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
+                        const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
+                        const hasVoted = item.poll.votes && item.poll.votes.length > 0;
+                        const isSelected = hasVoted && item.poll.votes[0].optionId === opt.id;
+                        const isExpired = new Date(item.poll.expiresAt) < new Date();
+
+                        if (hasVoted || isExpired) {
+                            return (
+                                <View key={opt.id} style={styles.resultItem}>
+                                    <View style={styles.resultLabelRow}>
+                                        <Text style={[styles.resultText, isSelected && styles.selectedResultText]}>{opt.text}</Text>
+                                        <Text style={styles.resultPercentage}>{percentage}%</Text>
+                                    </View>
+                                    <View style={styles.progressBg}>
+                                        <View style={[styles.progressFill, { width: `${percentage}%` }, isSelected && { backgroundColor: '#6366f1' }]} />
+                                    </View>
+                                </View>
+                            );
+                        }
+
+                        return (
+                            <TouchableOpacity 
+                                key={opt.id} 
+                                style={styles.pollOptionBtn}
+                                onPress={() => handleVote(item.poll.id, opt.id)}
+                            >
+                                <Text style={styles.pollOptionText}>{opt.text}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+
+                    <View style={styles.pollFooter}>
+                        <Text style={styles.pollMeta}>
+                            {item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0)} votes • {dayjs(item.poll.expiresAt).fromNow(true)} left
+                        </Text>
+                    </View>
                 </View>
             )}
 
@@ -197,12 +332,12 @@ export default function ThreadScreen() {
                     <Ionicons name="chatbubble-outline" size={18} color="#64748b" />
                     <Text style={styles.interactionText}>{item.commentsCount || 0}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.interactionBtn}>
+                <TouchableOpacity style={styles.interactionBtn} onPress={() => handleReshare(item.id)}>
                     <Ionicons name="repeat-outline" size={20} color="#64748b" />
                     <Text style={styles.interactionText}>{item.resharesCount || 0}</Text>
                 </TouchableOpacity>
                 <View style={{ flex: 1 }} />
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => handleSave(item.id)}>
                     <Ionicons name="bookmark-outline" size={20} color="#64748b" />
                 </TouchableOpacity>
             </View>
@@ -429,4 +564,25 @@ const styles = StyleSheet.create({
     emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 40 },
     emptyTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', marginTop: 20 },
     emptySub: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 8, lineHeight: 20 },
+
+    mediaCarouselContainer: { width: '100%', height: 250, borderRadius: 20, overflow: 'hidden', marginBottom: 15, position: 'relative', backgroundColor: '#f1f5f9' },
+    carouselItem: { width: width - 80, height: 250 },
+    carouselMedia: { width: '100%', height: '100%' },
+    mediaCounter: { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+    mediaCounterText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+
+    pollContainer: { backgroundColor: '#f8fafc', borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: '#f1f5f9' },
+    pollQuestion: { fontSize: 16, fontWeight: '800', color: '#1e293b', marginBottom: 15, lineHeight: 22 },
+    pollOptionBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 15, marginBottom: 10, alignItems: 'center' },
+    pollOptionText: { fontSize: 14, fontWeight: '700', color: '#6366f1' },
+    pollFooter: { marginTop: 10 },
+    pollMeta: { fontSize: 11, color: '#94a3b8', fontWeight: '700' },
+    
+    resultItem: { marginBottom: 12 },
+    resultLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    resultText: { fontSize: 14, fontWeight: '600', color: '#64748b' },
+    selectedResultText: { color: '#1e293b', fontWeight: '800' },
+    resultPercentage: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+    progressBg: { height: 8, backgroundColor: '#e2e8f0', borderRadius: 4, overflow: 'hidden' },
+    progressFill: { height: '100%', backgroundColor: '#cbd5e1', borderRadius: 4 },
 });

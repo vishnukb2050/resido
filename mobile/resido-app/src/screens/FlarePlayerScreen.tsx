@@ -29,7 +29,7 @@ interface Flare {
 }
 
 export default function FlarePlayerScreen() {
-    const { initialId } = useLocalSearchParams();
+    const { initialId, feedType, followingIds } = useLocalSearchParams();
     const [flares, setFlares] = useState<Flare[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -37,16 +37,45 @@ export default function FlarePlayerScreen() {
 
     useEffect(() => {
         fetchFlares();
-    }, []);
+    }, [feedType, initialId]);
 
     const fetchFlares = async () => {
         try {
             setLoading(true);
-            const { data } = await threadApi.getFlares();
-            setFlares(data);
+            const fIds = typeof followingIds === 'string' ? followingIds.split(',') : [];
+            const type = (feedType as string) || 'PUBLIC';
+            
+            let fetchedFlares: any[] = [];
+            
+            if (type === 'FORYOU') {
+                // Combine Following + Public with Priority
+                const { data: followingFlares } = await threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: fIds });
+                const { data: publicFlares } = await threadApi.getFlares({ feedType: 'PUBLIC' });
+                
+                const combined = [...followingFlares, ...publicFlares];
+                // Deduplicate
+                fetchedFlares = Array.from(new Map(combined.map(f => [f.id, f])).values());
+                
+                // Sort: Following first, then by date
+                fetchedFlares.sort((a, b) => {
+                    const aIsFollowing = fIds.includes(a.authorId);
+                    const bIsFollowing = fIds.includes(b.authorId);
+                    if (aIsFollowing && !bIsFollowing) return -1;
+                    if (!aIsFollowing && bIsFollowing) return 1;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                });
+            } else {
+                const { data } = await threadApi.getFlares({ 
+                    feedType: type as any, 
+                    followingIds: fIds 
+                });
+                fetchedFlares = data;
+            }
+
+            setFlares(fetchedFlares);
             
             if (initialId) {
-                const idx = data.findIndex((f: any) => f.id === initialId);
+                const idx = fetchedFlares.findIndex((f: any) => f.id === initialId);
                 if (idx !== -1) setActiveIndex(idx);
             }
         } catch (error) {
@@ -67,6 +96,11 @@ export default function FlarePlayerScreen() {
             flare={item} 
             isActive={index === activeIndex} 
             onBack={() => router.back()}
+            onFinish={() => {
+                if (activeIndex < flares.length - 1) {
+                    setActiveIndex(activeIndex + 1);
+                }
+            }}
         />
     );
 
@@ -105,7 +139,7 @@ export default function FlarePlayerScreen() {
     );
 }
 
-function FlareItem({ flare, isActive, onBack }: { flare: any, isActive: boolean, onBack: () => void }) {
+function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void }) {
     const [status, setStatus] = useState<any>({});
     const [liked, setLiked] = useState(flare.liked || false);
     const [saved, setSaved] = useState(false);
@@ -205,6 +239,16 @@ function FlareItem({ flare, isActive, onBack }: { flare: any, isActive: boolean,
         });
     };
 
+    const handleReshare = async () => {
+        try {
+            await threadApi.reshare(flare.id);
+            Alert.alert('Success', 'Flare reshared to your profile!');
+        } catch (e) {
+            console.error(e);
+            Alert.alert('Error', 'Failed to reshare flare');
+        }
+    };
+
     return (
         <View style={[styles.flareItem, { height: SCREEN_HEIGHT }]}>
             <TouchableOpacity 
@@ -220,10 +264,15 @@ function FlareItem({ flare, isActive, onBack }: { flare: any, isActive: boolean,
                     resizeMode={ResizeMode.COVER}
                     isLooping
                     shouldPlay={isActive}
-                    onPlaybackStatusUpdate={status => setStatus(() => status)}
+                    onPlaybackStatusUpdate={status => {
+                        setStatus(() => status);
+                        // Correctly handle status types
+                        if (status.isLoaded && status.didJustFinish && !status.isLooping) {
+                            onFinish();
+                        }
+                    }}
                     onError={(error) => {
                         console.error('Video load error:', error);
-                        // Optional: show a small toast or alert for debugging
                     }}
                 />
             </TouchableOpacity>
@@ -271,8 +320,8 @@ function FlareItem({ flare, isActive, onBack }: { flare: any, isActive: boolean,
                 />
                 <ActionIcon 
                     icon="repeat" 
-                    label={flare.resharesCount.toString()} 
-                    onPress={() => {}} 
+                    label={(flare.resharesCount || 0).toString()} 
+                    onPress={handleReshare} 
                 />
                 <ActionIcon 
                     icon="share-social" 
