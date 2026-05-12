@@ -21,18 +21,8 @@ services:
       dockerfile: Dockerfile
     container_name: resido-auth
     env_file: .env
-    environment:
-      - PORT=3001
-      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
-    command: >
-      sh -c "echo 'Syncing DB...' &&
-             for i in 1 2 3 4 5 6 7 8 9 10; do
-               if npx prisma db push --schema=prisma/master/schema.prisma --accept-data-loss && npx prisma db push --schema=prisma/user/schema.prisma --accept-data-loss; then
-                 echo 'DB sync successful' && node dist/main && exit 0
-               fi
-               echo 'DB not ready, retrying...' && sleep 3
-             done
-             echo 'Failed to sync DB' && exit 1"
+    ports:
+      - '3001:3001'
     networks:
       - resido-net
     restart: unless-stopped
@@ -43,17 +33,8 @@ services:
       dockerfile: Dockerfile
     container_name: resido-resident
     env_file: .env
-    environment:
-      - PORT=3002
-      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
-    command: >
-      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
-               if npx prisma db push --accept-data-loss; then
-                 node dist/main && exit 0
-               fi
-               echo 'DB not ready, retrying...' && sleep 3
-             done
-             exit 1"
+    ports:
+      - '3002:3002'
     networks:
       - resido-net
     restart: unless-stopped
@@ -64,16 +45,8 @@ services:
       dockerfile: Dockerfile
     container_name: resido-accounting
     env_file: .env
-    environment:
-      - PORT=3003
-    command: >
-      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
-               if npx prisma db push --accept-data-loss; then
-                 node dist/main && exit 0
-               fi
-               echo 'DB not ready, retrying...' && sleep 3
-             done
-             exit 1"
+    ports:
+      - '3003:3003'
     networks:
       - resido-net
     restart: unless-stopped
@@ -84,13 +57,6 @@ services:
       dockerfile: Dockerfile
     container_name: resido-chat
     env_file: .env
-    environment:
-      - PORT=3004
-    command: >
-      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
-               npx prisma db push --accept-data-loss && break ||
-               (echo 'DB not ready, retrying...' && sleep 3);
-             done && node dist/main"
     ports:
       - '3004:3004'
     networks:
@@ -103,25 +69,8 @@ services:
       dockerfile: Dockerfile
     container_name: resido-notification
     env_file: .env
-    environment:
-      - PORT=3005
-    networks:
-      - resido-net
-    restart: unless-stopped
-
-  visitor-service:
-    build:
-      context: ../apps/visitor-service
-      dockerfile: Dockerfile
-    container_name: resido-visitor
-    env_file: .env
-    environment:
-      - PORT=3006
-    command: >
-      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
-               npx prisma db push --accept-data-loss && break ||
-               (echo 'DB not ready, retrying...' && sleep 3);
-             done && node dist/main"
+    ports:
+      - '3005:3005'
     networks:
       - resido-net
     restart: unless-stopped
@@ -132,16 +81,20 @@ services:
       dockerfile: Dockerfile
     container_name: resido-complaint
     env_file: .env
-    environment:
-      - PORT=3007
-    command: >
-      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
-               if npx prisma db push --accept-data-loss; then
-                 node dist/main && exit 0
-               fi
-               echo 'DB not ready, retrying...' && sleep 3
-             done
-             exit 1"
+    ports:
+      - '3006:3006'
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  visitor-service:
+    build:
+      context: ../apps/visitor-service
+      dockerfile: Dockerfile
+    container_name: resido-visitor
+    env_file: .env
+    ports:
+      - '3007:3007'
     networks:
       - resido-net
     restart: unless-stopped
@@ -152,20 +105,8 @@ services:
       dockerfile: Dockerfile
     container_name: resido-flaredthread
     env_file: .env
-    environment:
-      - PORT=3008
-      - DATABASE_URL=${CORE_WRITE_URL}
-      - CORE_WRITE_URL=${CORE_WRITE_URL}
-      - CORE_READ_URL=${CORE_READ_URL}
-      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
-    command: >
-      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
-               if npx prisma db push --accept-data-loss; then
-                 node dist/main && exit 0
-               fi
-               echo 'DB not ready, retrying...' && sleep 3
-             done
-             exit 1"
+    ports:
+      - '3008:3008'
     networks:
       - resido-net
     restart: unless-stopped
