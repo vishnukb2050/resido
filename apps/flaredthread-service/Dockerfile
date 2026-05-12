@@ -15,4 +15,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 3008
-CMD ["node", "dist/main"]
+CMD sh -c "npx prisma db push --accept-data-loss && node dist/main"
