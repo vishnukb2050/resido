@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@resido/notification-client';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()

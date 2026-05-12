@@ -1,6 +1,7 @@
 // chat-service Prisma schema (per-tenant DB)
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/@resido/chat-client"
 }
 
 datasource db {
