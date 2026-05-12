@@ -162,19 +162,26 @@ export default function ThreadScreen() {
 
     const handleReshare = async (id: string) => {
         try {
+            const thread = threads.find(t => t.id === id);
+            const newReshared = !thread?.reshared;
+            const newCount = newReshared ? (thread?.resharesCount || 0) + 1 : Math.max(0, (thread?.resharesCount || 0) - 1);
+            
+            setThreads(prev => prev.map(t => t.id === id ? { 
+                ...t, 
+                reshared: newReshared,
+                resharesCount: newCount
+            } : t));
+
             await threadApi.reshare(id, { 
                 authorName: user?.name || "Anonymous", 
                 authorAvatar: user?.profilePhoto 
             });
-            setThreads(prev => prev.map(t => t.id === id ? { 
-                ...t, 
-                resharesCount: (t.resharesCount || 0) + 1 
-            } : t));
-            Alert.alert('Success', 'Thread reshared to your profile!');
+            
+            Alert.alert('Success', newReshared ? 'Thread reshared to your profile!' : 'Thread removed from your profile!');
             if (activeTab === 'RESHARE') fetchInitialData();
         } catch (e) {
             console.error(e);
-            Alert.alert('Error', 'Failed to reshare thread');
+            Alert.alert('Error', 'Failed to update reshare status');
         }
     };
 
@@ -341,12 +348,12 @@ export default function ThreadScreen() {
                     <Text style={styles.interactionText}>{item.commentsCount || 0}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.interactionBtn} onPress={() => handleReshare(item.id)}>
-                    <Ionicons name="repeat-outline" size={20} color="#64748b" />
-                    <Text style={styles.interactionText}>{item.resharesCount || 0}</Text>
+                    <Ionicons name={item.reshared ? "repeat" : "repeat-outline"} size={20} color={item.reshared ? "#fbbf24" : "#64748b"} />
+                    <Text style={[styles.interactionText, item.reshared && { color: '#fbbf24' }]}>{item.resharesCount || 0}</Text>
                 </TouchableOpacity>
                 <View style={{ flex: 1 }} />
                 <TouchableOpacity onPress={() => handleSave(item.id)}>
-                    <Ionicons name={item.saved ? "bookmark" : "bookmark-outline"} size={20} color={item.saved ? "#6366f1" : "#64748b"} />
+                    <Ionicons name={item.saved ? "bookmark" : "bookmark-outline"} size={20} color={item.saved ? "#fbbf24" : "#64748b"} />
                 </TouchableOpacity>
             </View>
         </View>

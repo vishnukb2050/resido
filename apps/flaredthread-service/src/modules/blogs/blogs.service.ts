@@ -72,18 +72,20 @@ export class BlogsService {
             where: {
                 blogId: { in: blogIds },
                 userId: userId,
-                type: { in: ['LIKE', 'SAVE'] },
+                type: { in: ['LIKE', 'SAVE', 'RESHARE'] },
                 tenantId // Ensure interaction is for this tenant
             }
         });
 
         const likedBlogIds = new Set(interactions.filter((i: any) => i.type === 'LIKE').map((i: any) => i.blogId));
         const savedBlogIds = new Set(interactions.filter((i: any) => i.type === 'SAVE').map((i: any) => i.blogId));
+        const resharedBlogIds = new Set(interactions.filter((i: any) => i.type === 'RESHARE').map((i: any) => i.blogId));
 
         return blogs.map(blog => ({
             ...blog,
             liked: likedBlogIds.has(blog.id),
-            saved: savedBlogIds.has(blog.id)
+            saved: savedBlogIds.has(blog.id),
+            reshared: resharedBlogIds.has(blog.id)
         }));
     }
 
@@ -290,55 +292,76 @@ export class BlogsService {
 
         if (!original) throw new NotFoundException('Original flare not found');
 
-        // Logic: if public -> public, else followers/contacts
-        let visibility = original.visibility;
-        if (visibility !== 'PUBLIC') {
-            visibility = 'FOLLOWERS'; 
-        }
-
-        // 1. Create the reshared blog post
-        const reshare = await (this.prisma.client as any).blog.create({
-            data: {
-                title: original.title,
-                content: original.content,
-                type: original.type,
-                visibility: visibility as any,
-                mediaUrls: original.mediaUrls,
-                mediaType: original.mediaType,
-                category: original.category,
-                authorId: userId,
-                tenantId: tenantId,
-                authorName: userData?.authorName || "Anonymous",
-                authorAvatar: userData?.authorAvatar,
+        // Check if already reshared by this user
+        const existing = await (this.prisma.reader as any).blog.findFirst({
+            where: {
                 parentId: blogId,
-                isActive: true,
-                musicName: original.musicName,
-                musicId: original.musicId,
-                location: original.location
+                authorId: userId,
+                tenantId: tenantId
             }
         });
 
-        // 2. Track the interaction on the original blog
-        try {
-            await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.create({
-                    data: {
+        if (existing) {
+            // UN-RESHARE: Delete the reshare, delete interaction, and decrement count
+            await Promise.all([
+                (this.prisma.client as any).blog.delete({ where: { id: existing.id } }),
+                (this.prisma.client as any).interaction.deleteMany({
+                    where: {
                         blogId: blogId,
                         userId: userId,
-                        type: 'RESHARE',
-                        tenantId: original.tenantId // Anchored to original blog's tenant
+                        type: 'RESHARE'
                     }
                 }),
-                (this.prisma.client as any).blog.update({
-                    where: { id: blogId, __ignoreTenant: true } as any, // Use bypass for update too
-                    data: { resharesCount: { increment: 1 } }
+                (this.prisma.client as any).blog.update({ 
+                    where: { id: blogId, __ignoreTenant: true }, 
+                    data: { resharesCount: { decrement: 1 } } 
                 })
             ]);
-        } catch (e) {
-            console.error('Failed to track reshare interaction', e);
-            // Don't fail the whole reshare if interaction tracking fails
-        }
+            return { reshared: false };
+        } else {
+            // 1. Create the reshared blog post
+            const reshare = await (this.prisma.client as any).blog.create({
+                data: {
+                    title: original.title,
+                    content: original.content,
+                    type: original.type,
+                    visibility: 'PUBLIC', // Reshares are typically public in this context
+                    mediaUrls: original.mediaUrls,
+                    mediaType: original.mediaType,
+                    category: original.category,
+                    authorId: userId,
+                    tenantId: tenantId,
+                    authorName: userData?.authorName || "Anonymous",
+                    authorAvatar: userData?.authorAvatar,
+                    parentId: blogId,
+                    isActive: true,
+                    musicName: original.musicName,
+                    musicId: original.musicId,
+                    location: original.location
+                }
+            });
 
-        return reshare;
+            // 2. Track interaction and increment count
+            try {
+                await (this.prisma.client as any).$transaction([
+                    (this.prisma.client as any).interaction.create({
+                        data: {
+                            blogId: blogId,
+                            userId: userId,
+                            type: 'RESHARE',
+                            tenantId: original.tenantId
+                        }
+                    }),
+                    (this.prisma.client as any).blog.update({
+                        where: { id: blogId, __ignoreTenant: true },
+                        data: { resharesCount: { increment: 1 } }
+                    })
+                ]);
+            } catch (e) {
+                console.error('Failed to track reshare interaction', e);
+            }
+
+            return { reshared: true, reshare };
+        }
     }
 }

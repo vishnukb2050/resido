@@ -91,8 +91,8 @@ export default function FlarePlayerScreen() {
         setFlares(prev => prev.map(f => f.id === id ? { ...f, liked, likesCount } : f));
     };
 
-    const handleToggleReshare = (id: string, resharesCount: number) => {
-        setFlares(prev => prev.map(f => f.id === id ? { ...f, resharesCount } : f));
+    const handleToggleReshare = (id: string, reshared: boolean, resharesCount: number) => {
+        setFlares(prev => prev.map(f => f.id === id ? { ...f, reshared, resharesCount } : f));
     };
 
     const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -152,10 +152,11 @@ export default function FlarePlayerScreen() {
     );
 }
 
-function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLike, onToggleReshare }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void, onToggleSave: (id: string, saved: boolean) => void, onToggleLike: (id: string, liked: boolean, count: number) => void, onToggleReshare: (id: string, count: number) => void }) {
+function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLike, onToggleReshare }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void, onToggleSave: (id: string, saved: boolean) => void, onToggleLike: (id: string, liked: boolean, count: number) => void, onToggleReshare: (id: string, reshared: boolean, count: number) => void }) {
     const [status, setStatus] = useState<any>({});
     const [liked, setLiked] = useState(flare.liked || false);
     const [saved, setSaved] = useState(flare.saved || false);
+    const [reshared, setReshared] = useState(flare.reshared || false);
     const [displayLikes, setDisplayLikes] = useState(flare.likesCount || 0);
     const [showHeart, setShowHeart] = useState(false);
     const lastTap = useRef<number>(0);
@@ -257,18 +258,23 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
 
     const handleReshare = async () => {
         try {
-            const newCount = (displayReshares || 0) + 1;
+            const newReshared = !reshared;
+            const newCount = newReshared ? (displayReshares || 0) + 1 : Math.max(0, (displayReshares || 0) - 1);
+            setReshared(newReshared);
             setDisplayReshares(newCount);
+            
             await threadApi.reshare(flare.id, {
                 authorName: user?.name || "Anonymous",
                 authorAvatar: user?.profilePhoto
             });
-            onToggleReshare(flare.id, newCount);
-            Alert.alert('Success', 'Flare reshared to your profile!');
+            
+            onToggleReshare(flare.id, newReshared, newCount);
+            Alert.alert('Success', newReshared ? 'Flare reshared to your profile!' : 'Flare removed from your profile!');
         } catch (e) {
             console.error(e);
+            setReshared(reshared);
             setDisplayReshares(displayReshares);
-            Alert.alert('Error', 'Failed to reshare flare');
+            Alert.alert('Error', 'Failed to update reshare status');
         }
     };
 
@@ -356,6 +362,8 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                 <ActionIcon 
                     icon="repeat" 
                     label={displayReshares.toString()} 
+                    active={reshared}
+                    activeColor="#ffcc00"
                     onPress={handleReshare} 
                 />
                 <ActionIcon 
