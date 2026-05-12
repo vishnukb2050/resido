@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient as MasterClient } from '@resido/master-client';
 import { PrismaClient as UserClient } from '@resido/user-client';
-import { PrismaClient as CoreClient } from '@resido/core-client';
+import { PrismaClient as CoreClient } from '@resido/resident-client';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {

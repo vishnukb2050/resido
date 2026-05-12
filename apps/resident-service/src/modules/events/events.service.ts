@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
-import { EventVisibility } from '@resido/core-client';
+import { EventVisibility } from '@resido/resident-client';
 
 @Injectable()
 export class EventsService {

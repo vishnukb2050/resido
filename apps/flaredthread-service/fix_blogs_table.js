@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@resido/resident-client');
 const prisma = new PrismaClient({
   datasources: {
     db: {
