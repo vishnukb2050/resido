@@ -16,21 +16,29 @@ model BusinessProfile {
   businessName    String
   category        String
   subcategory     String?
-  customCategory  String?
-  customSubcategory String?
   businessType    String   @default("INDIVIDUAL") // INDIVIDUAL or COMPANY
   about           String
-  location        String?  // tower/block
-  area            String?  // district/city
-  operatingArea   String   @default("WITHIN") // WITHIN or OUTSIDE
+  logo            String?  // S3 Key for Logo
   experience      String?
-  pricingType     String   @default("FIXED") // FIXED or CUSTOM
-  workingDays     String[]
+  
+  // Contact Info
+  phone           String?
+  email           String?
+  website         String?
   workingHours    Json?
-  responseTime    String?
-  gallery         String[] // S3 keys
-  documents       Json?    // IDs, Licenses
-  whyUs           String?
+  
+  // Social Links
+  instagram       String?
+  linkedin        String?
+
+  // Location
+  location        String?  // block/unit
+  area            String?  // city/area
+  fullAddress     String?
+  latitude        Float?
+  longitude       Float?
+  serviceAreaType String?  // AT_LOCATION, CUSTOMER_LOCATION, SPECIFIC_AREAS
+
   isActive        Boolean  @default(true)
   isVerified      Boolean  @default(false)
   createdAt       DateTime @default(now())
@@ -45,12 +53,15 @@ model BusinessProfile {
 }
 
 model ServiceItem {
-  id               String          @id @default(cuid())
+  id                String          @id @default(cuid())
   businessProfileId String
   businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id])
-  name             String
-  price            Float?
-  currency         String          @default("INR")
+  name              String
+  description       String?
+  pricingType       String          @default("FIXED") // FIXED, STARTING, CONTACT
+  price             Float?
+  responseTime      String?
+  isEmergency       Boolean         @default(false)
   
   @@map("business_services")
 }

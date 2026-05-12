@@ -196,7 +196,7 @@ export default function DefaultDashboard() {
                                     </>
                                 ) : (
                                     <>
-                                        <QuickAccessItem icon="business" label="Business" />
+                                        <QuickAccessItem icon="business" label="Business" onPress={() => router.push('/business-profiles')} />
                                         <QuickAccessItem icon="wallet" label="Finance" />
                                         <QuickAccessItem icon="grid" label="Services" />
                                         <QuickAccessItem icon="document-text" label="Notes" />
@@ -268,7 +268,10 @@ export default function DefaultDashboard() {
                                         <Text style={styles.psBannerSub}>Discover local business profiles & services</Text>
                                     </View>
                                 </View>
-                                <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]}>
+                                <TouchableOpacity 
+                                    style={[styles.psBannerBtn, { backgroundColor: '#fff' }]}
+                                    onPress={() => router.push('/business-profiles')}
+                                >
                                     <Text style={[styles.psBannerBtnText, { color: '#4f46e5' }]}>Manage Business</Text>
                                     <Ionicons name="arrow-forward" size={16} color="#4f46e5" />
                                 </TouchableOpacity>
@@ -285,7 +288,10 @@ export default function DefaultDashboard() {
                                         <Text style={styles.psBannerSub}>Join your community discussions and events</Text>
                                     </View>
                                 </View>
-                                <TouchableOpacity style={styles.psBannerBtn}>
+                                <TouchableOpacity 
+                                    style={styles.psBannerBtn}
+                                    onPress={() => router.push('/explore-community')}
+                                >
                                     <Text style={styles.psBannerBtnText}>Explore Community</Text>
                                     <Ionicons name="arrow-forward" size={16} color="#1e293b" />
                                 </TouchableOpacity>
@@ -352,9 +358,9 @@ export default function DefaultDashboard() {
 }
 
 // Sub-components
-function QuickAccessItem({ icon, label }: any) {
+function QuickAccessItem({ icon, label, onPress }: any) {
     return (
-        <TouchableOpacity style={styles.psQuickAccessItem}>
+        <TouchableOpacity style={styles.psQuickAccessItem} onPress={onPress}>
             <View style={styles.psQuickAccessIconBox}>
                 <Ionicons name={icon} size={24} color="#6366f1" />
             </View>

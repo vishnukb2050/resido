@@ -121,6 +121,14 @@ model Member {
   notifications         Notification[]
   complaints            Complaint[]
   visitors              Visitor[]
+  ownedFolders          DocFolder[]    @relation("OwnedFolders")
+  ownedFiles            DocFile[]      @relation("OwnedFiles")
+  docPermissions        DocPermission[]
+  ownedNoteFolders      NoteFolder[]   @relation("OwnedNoteFolders")
+  ownedNotes            Note[]         @relation("OwnedNotes")
+  notePermissions       NotePermission[]
+  financeTransactions   FinanceTransaction[]
+  financeBudgets        FinanceBudget[]
 
   @@index([tenantId])
   @@unique([tenantId, phone])
@@ -193,7 +201,9 @@ model Group {
   createdBy String
   createdAt DateTime      @default(now())
 
-  members   GroupMember[]
+  members         GroupMember[]
+  docPermissions  DocPermission[]
+  notePermissions NotePermission[]
 
   @@index([tenantId])
   @@map("groups")
@@ -334,6 +344,190 @@ enum MediaType {
   VIDEO
 }
 
+// ─── Document Management ──────────────────────────────────────
+model DocFolder {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedFolders", fields: [ownerId], references: [id])
+  isPrivate   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files       DocFile[]
+  permissions DocPermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("doc_folders")
+}
+
+model DocFile {
+  id          String   @id @default(cuid())
+  tenantId    String
+  folderId    String?
+  folder      DocFolder? @relation(fields: [folderId], references: [id])
+  name        String
+  description String?
+  fileUrl     String   // S3 URL
+  fileType    String   // PDF, WORD, EXCEL, etc.
+  fileSize    String
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedFiles", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions DocPermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("doc_files")
+}
+
+model DocPermission {
+  id          String   @id @default(cuid())
+  tenantId    String
+  fileId      String?
+  file        DocFile? @relation(fields: [fileId], references: [id])
+  folderId    String?
+  folder      DocFolder? @relation(fields: [folderId], references: [id])
+  memberId    String?
+  member      Member?  @relation(fields: [memberId], references: [id])
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  accessLevel AccessLevel @default(VIEWER)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("doc_permissions")
+}
+
+enum AccessLevel {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+// ─── Note Management ──────────────────────────────────────────
+model NoteFolder {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedNoteFolders", fields: [ownerId], references: [id])
+  isPrivate   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  notes       Note[]
+  permissions NotePermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("note_folders")
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  tenantId    String
+  folderId    String?
+  folder      NoteFolder? @relation(fields: [folderId], references: [id])
+  title       String
+  body        String   @db.Text
+  bgColor     String   @default("#ffffff")
+  isPinned    Boolean  @default(false)
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedNotes", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions NotePermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("notes")
+}
+
+model NotePermission {
+  id          String   @id @default(cuid())
+  tenantId    String
+  noteId      String?
+  note        Note?    @relation(fields: [noteId], references: [id])
+  folderId    String?
+  folder      NoteFolder? @relation(fields: [folderId], references: [id])
+  memberId    String?
+  member      Member?  @relation(fields: [memberId], references: [id])
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  accessLevel AccessLevel @default(VIEWER)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("note_permissions")
+}
+
+// ─── Finance Management ───────────────────────────────────────
+model FinanceTransaction {
+  id            String          @id @default(cuid())
+  tenantId      String
+  memberId      String
+  member        Member          @relation(fields: [memberId], references: [id])
+  amount        Float
+  type          TransactionType @default(EXPENSE)
+  categoryId    String
+  category      FinanceCategory @relation(fields: [categoryId], references: [id])
+  date          DateTime        @default(now())
+  paymentMethod String          @default("CASH") // UPI, CARD, CASH
+  description   String?
+  billUrl       String?         // S3 URL
+  tags          String[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([tenantId, memberId])
+  @@map("finance_transactions")
+}
+
+model FinanceCategory {
+  id        String          @id @default(cuid())
+  tenantId  String
+  name      String
+  icon      String?
+  color     String?
+  type      TransactionType @default(EXPENSE)
+  createdAt DateTime        @default(now())
+
+  transactions FinanceTransaction[]
+  budgets      FinanceBudget[]
+
+  @@index([tenantId])
+  @@map("finance_categories")
+}
+
+model FinanceBudget {
+  id         String          @id @default(cuid())
+  tenantId   String
+  memberId   String
+  member     Member          @relation(fields: [memberId], references: [id])
+  categoryId String
+  category   FinanceCategory @relation(fields: [categoryId], references: [id])
+  amount     Float           // Budget limit
+  month      Int             // 1-12
+  year       Int
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([tenantId, memberId])
+  @@unique([memberId, categoryId, month, year])
+  @@map("finance_budgets")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
 // ─── Enums ───────────────────────────────────────────────────
 enum MemberRole {
   APARTMENT_ADMIN
@@ -346,6 +540,8 @@ enum MemberRole {
   ADMIN_STAFF
   STAFF
   SERVICE_STAFF
+  ACCOUNTS
+  NOT_APPLICABLE
 }
 
 enum DepartmentType {

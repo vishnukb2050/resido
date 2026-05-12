@@ -83,7 +83,7 @@ export const residentApi = {
 export const businessApi = {
     createProfile: (data: any) => api.post('/business/profiles', data),
     getProfiles: (params?: any) => api.get('/business/profiles', { params }),
-    getMyProfile: () => api.get('/business/profiles/me'),
+    getMyProfiles: () => api.get('/business/profiles/my'),
     getProfile: (id: string) => api.get(`/business/profiles/${id}`),
     updateProfile: (id: string, data: any) => api.patch(`/business/profiles/${id}`, data),
 };

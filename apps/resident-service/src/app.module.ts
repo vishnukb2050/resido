@@ -7,6 +7,10 @@ import { CommunityModule } from './modules/community/community.module';
 import { EventsModule } from './modules/events/events.module';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 
+import { DocumentsModule } from './modules/documents/documents.module';
+import { NotesModule } from './modules/notes/notes.module';
+import { FinanceModule } from './modules/finance/finance.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -15,6 +19,9 @@ import { TenantMiddleware } from './middleware/tenant.middleware';
     StorageModule,
     CommunityModule,
     EventsModule,
+    DocumentsModule,
+    NotesModule,
+    FinanceModule,
   ],
 })
 export class AppModule implements NestModule {

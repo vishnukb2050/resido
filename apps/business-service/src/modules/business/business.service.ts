@@ -16,7 +16,11 @@ export class BusinessService {
                 services: {
                     create: services?.map((s: any) => ({
                         name: s.name,
-                        price: parseFloat(s.price?.replace(/,/g, '') || '0')
+                        description: s.description,
+                        pricingType: s.pricingType,
+                        price: typeof s.price === 'number' ? s.price : parseFloat(s.price?.toString().replace(/,/g, '') || '0'),
+                        responseTime: s.responseTime,
+                        isEmergency: s.isEmergency || false
                     }))
                 }
             },
@@ -40,10 +44,11 @@ export class BusinessService {
         });
     }
 
-    async getProfileByUserId(userId: string) {
-        return this.prisma.businessProfile.findFirst({
+    async getProfilesByUserId(userId: string) {
+        return this.prisma.businessProfile.findMany({
             where: { userId },
-            include: { services: true }
+            include: { services: true },
+            orderBy: { createdAt: 'desc' }
         });
     }
 
@@ -67,7 +72,11 @@ export class BusinessService {
                     services: {
                         create: services.map((s: any) => ({
                             name: s.name,
-                            price: parseFloat(s.price?.replace(/,/g, '') || '0')
+                            description: s.description,
+                            pricingType: s.pricingType,
+                            price: typeof s.price === 'number' ? s.price : parseFloat(s.price?.toString().replace(/,/g, '') || '0'),
+                            responseTime: s.responseTime,
+                            isEmergency: s.isEmergency || false
                         }))
                     }
                 },

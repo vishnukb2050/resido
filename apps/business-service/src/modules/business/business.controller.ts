@@ -23,9 +23,9 @@ export class BusinessController {
         return this.businessService.listProfiles(tenantId, category, location);
     }
 
-    @Get('profiles/me')
-    getMyProfile(@Headers('x-user-id') userId: string) {
-        return this.businessService.getProfileByUserId(userId);
+    @Get('profiles/my')
+    getMyProfiles(@Headers('x-user-id') userId: string) {
+        return this.businessService.getProfilesByUserId(userId);
     }
 
     @Get('profiles/:id')

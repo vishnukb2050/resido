@@ -1,198 +1,164 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, SafeAreaView, FlatList } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+    View, Text, StyleSheet, TouchableOpacity, ScrollView,
+    TextInput, SafeAreaView, StatusBar, Dimensions, Image,
+    FlatList
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
 
-const QUICK_ACTIONS = [
-    { id: '1', label: 'Upload Document', sub: 'Add new file', icon: 'cloud-upload-outline', color: '#10b981', bg: '#f0fdf4' },
-    { id: '2', label: 'New Folder', sub: 'Create folder', icon: 'folder-outline', color: '#6366f1', bg: '#f5f3ff' },
-    { id: '3', label: 'Shared with me', sub: 'View shared docs', icon: 'people-outline', color: '#3b82f6', bg: '#eff6ff' },
-    { id: '4', label: 'Community Docs', sub: 'Community files', icon: 'business-outline', color: '#f59e0b', bg: '#fff7ed' },
-];
+const { width } = Dimensions.get('window');
 
 const FOLDERS = [
-    { id: '1', name: 'Bills & Receipts', files: 12, time: 'Today', icon: 'folder', color: '#f59e0b' },
-    { id: '2', name: 'ID Proofs', files: 8, time: 'Yesterday', icon: 'folder', color: '#6366f1' },
-    { id: '3', name: 'Maintenance', files: 15, time: 'Jul 14, 2025', icon: 'folder', color: '#10b981' },
-    { id: '4', name: 'Lease Documents', files: 6, time: 'Jul 10, 2025', icon: 'folder', color: '#3b82f6' },
+    { id: '1', name: 'Personal', count: 12, date: 'Today, 10:30 AM', color: '#f59e0b', icon: 'folder-person' },
+    { id: '2', name: 'Work', count: 28, date: 'Yesterday, 4:20 PM', color: '#10b981', icon: 'folder-briefcase' },
+    { id: '3', name: 'Finance', count: 15, date: 'May 12, 2025', color: '#3b82f6', icon: 'folder-pound' },
+    { id: '4', name: 'Education', count: 9, date: 'May 10, 2025', color: '#8b5cf6', icon: 'folder-open' },
+    { id: '5', name: 'Health', count: 6, date: 'May 8, 2025', color: '#ef4444', icon: 'folder-heart' },
+    { id: '6', name: 'Others', count: 4, date: 'May 5, 2025', color: '#64748b', icon: 'folder' },
 ];
 
-const RECENT_DOCS = [
-    { id: '1', name: 'Electricity Bill - July 2025', folder: 'Bills & Receipts', size: '1.2 MB', time: 'Today, 5:30 PM', type: 'PDF', color: '#ef4444' },
-    { id: '2', name: 'Rental Agreement', folder: 'Lease Documents', size: '2.4 MB', time: 'Jul 14, 2025', type: 'DOC', color: '#3b82f6' },
-    { id: '3', name: 'Maintenance Charges', folder: 'Maintenance', size: '950 KB', time: 'Jul 12, 2025', type: 'XLS', color: '#10b981' },
+const SHARED = [
+    { id: 's1', name: 'Team Resources', count: 8, sharedBy: 'Aman', color: '#6366f1' },
+    { id: 's2', name: 'Family Documents', count: 5, sharedBy: 'Priya', color: '#ec4899' },
 ];
 
 export default function DocumentsScreen() {
-    const [activeTab, setActiveTab] = useState('My Documents');
     const router = useRouter();
+    const [activeTab, setActiveTab] = useState('Folders');
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fcfcfd' }}>
-            {/* Custom Header Bar */}
-            <View style={styles.topBar}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="#1e293b" />
-                </TouchableOpacity>
-                <Text style={styles.topBarTitle}>Documents</Text>
-                <View style={styles.topBarIcons}>
-                    <TouchableOpacity><Ionicons name="search-outline" size={24} color="#1e293b" /></TouchableOpacity>
-                    <TouchableOpacity><Ionicons name="ellipsis-vertical" size={24} color="#1e293b" /></TouchableOpacity>
-                </View>
-            </View>
-
-            <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-                {/* Header Card */}
-                <View style={styles.headerCard}>
-                    <View style={styles.cardInfo}>
-                        <View style={styles.cardIconBox}>
-                            <Image source={require('../../assets/icon.png')} style={styles.cardIcon} />
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" />
+            
+            {/* Header */}
+            <View style={styles.header}>
+                <View style={styles.headerTop}>
+                    <View style={styles.headerTitleRow}>
+                        <View style={styles.logoBox}>
+                            <MaterialCommunityIcons name="folder-multiple" size={24} color="#fff" />
                         </View>
-                        <View style={{ flex: 1, marginLeft: 16 }}>
-                            <Text style={styles.cardTitle}>All your important documents</Text>
-                            <Text style={styles.cardSub}>Organize, access and share documents easily and securely.</Text>
+                        <View style={{ marginLeft: 12 }}>
+                            <Text style={styles.headerTitle}>Docs</Text>
+                            <Text style={styles.headerSub}>All your documents in one place</Text>
                         </View>
-                        <TouchableOpacity style={styles.uploadBtn}>
-                            <Ionicons name="add" size={20} color="#fff" />
-                            <Text style={styles.uploadBtnText}>Upload</Text>
-                        </TouchableOpacity>
                     </View>
-                </View>
-
-                {/* Quick Actions */}
-                <Text style={styles.sectionTitle}>Quick Actions</Text>
-                <View style={styles.quickGrid}>
-                    {QUICK_ACTIONS.map(action => (
-                        <TouchableOpacity key={action.id} style={styles.quickItem}>
-                            <View style={[styles.quickIconBox, { backgroundColor: action.bg }]}>
-                                <Ionicons name={action.icon as any} size={24} color={action.color} />
-                            </View>
-                            <Text style={styles.quickLabel}>{action.label}</Text>
-                            <Text style={styles.quickSub}>{action.sub}</Text>
-                        </TouchableOpacity>
-                    ))}
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity style={styles.iconBtn}><Ionicons name="search" size={22} color="#fff" /></TouchableOpacity>
+                        <TouchableOpacity style={styles.iconBtn}><MaterialCommunityIcons name="folder-plus-outline" size={22} color="#fff" onPress={() => router.push('/create-folder')} /></TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Tabs */}
                 <View style={styles.tabContainer}>
-                    {['My Documents', 'Shared with me', 'Community Documents'].map(tab => (
+                    <TouchableOpacity 
+                        style={[styles.tab, activeTab === 'Folders' && styles.activeTab]} 
+                        onPress={() => setActiveTab('Folders')}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'Folders' && styles.activeTabText]}>Folders</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.tab, activeTab === 'Documents' && styles.activeTab]} 
+                        onPress={() => setActiveTab('Documents')}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'Documents' && styles.activeTabText]}>Documents</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+                {/* My Folders Section */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>My Folders</Text>
+                        <TouchableOpacity style={styles.sortBtn}>
+                            <Text style={styles.sortText}>Name</Text>
+                            <MaterialCommunityIcons name="menu" size={16} color="#64748b" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {FOLDERS.map((folder) => (
                         <TouchableOpacity 
-                            key={tab} 
-                            onPress={() => setActiveTab(tab)} 
-                            style={[styles.tab, activeTab === tab && styles.tabActive]}
+                            key={folder.id} 
+                            style={styles.folderCard}
+                            onPress={() => router.push({ pathname: '/folder-view', params: { name: folder.name, count: folder.count } })}
                         >
-                            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
-                {/* Folders Section */}
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Folders</Text>
-                </View>
-                <View style={styles.folderList}>
-                    {FOLDERS.map(folder => (
-                        <TouchableOpacity key={folder.id} style={styles.folderItem}>
-                            <View style={[styles.folderIconBox, { backgroundColor: `${folder.color}10` }]}>
-                                <Ionicons name={folder.icon as any} size={24} color={folder.color} />
+                            <View style={[styles.folderIconBox, { backgroundColor: folder.color }]}>
+                                <MaterialCommunityIcons name={folder.icon as any} size={24} color="#fff" />
                             </View>
-                            <View style={{ flex: 1, marginLeft: 12 }}>
+                            <View style={styles.folderInfo}>
                                 <Text style={styles.folderName}>{folder.name}</Text>
-                                <Text style={styles.folderStats}>{folder.files} files • Updated {folder.time}</Text>
+                                <Text style={styles.folderSub}>{folder.count} Documents</Text>
                             </View>
-                            <View style={{ alignItems: 'flex-end' }}>
-                                <Text style={styles.listTime}>{folder.time}</Text>
-                                <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#94a3b8" /></TouchableOpacity>
+                            <View style={styles.folderRight}>
+                                <Text style={styles.folderDate}>{folder.date}</Text>
+                                <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
                             </View>
                         </TouchableOpacity>
                     ))}
-                    <TouchableOpacity style={styles.viewAllBtn}>
-                        <Text style={styles.viewAllBtnText}>View all folders</Text>
-                        <Ionicons name="chevron-forward" size={16} color="#6366f1" />
-                    </TouchableOpacity>
                 </View>
 
-                {/* Recent Documents */}
-                <Text style={styles.sectionTitle}>Recent Documents</Text>
-                {RECENT_DOCS.map(doc => (
-                    <TouchableOpacity key={doc.id} style={styles.recentDocItem}>
-                        <View style={[styles.docTypeBadge, { backgroundColor: `${doc.color}10` }]}>
-                            <Text style={[styles.docTypeText, { color: doc.color }]}>{doc.type}</Text>
-                        </View>
-                        <View style={{ flex: 1, marginLeft: 12 }}>
-                            <Text style={styles.docName}>{doc.name}</Text>
-                            <Text style={styles.docSub}>{doc.folder} • {doc.size}</Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={styles.docTime}>{doc.time}</Text>
-                            <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#94a3b8" /></TouchableOpacity>
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                {/* Shared with Me Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Shared with Me</Text>
+                    {SHARED.map((item) => (
+                        <TouchableOpacity key={item.id} style={styles.folderCard}>
+                            <View style={[styles.folderIconBox, { backgroundColor: item.color }]}>
+                                <MaterialCommunityIcons name="account-group" size={24} color="#fff" />
+                            </View>
+                            <View style={styles.folderInfo}>
+                                <Text style={styles.folderName}>{item.name}</Text>
+                                <Text style={styles.folderSub}>{item.count} Documents</Text>
+                                <Text style={styles.sharedBy}>Shared by {item.sharedBy}</Text>
+                            </View>
+                            <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
+                        </TouchableOpacity>
+                    ))}
+                </View>
             </ScrollView>
 
-            <TouchableOpacity style={styles.fab}>
+            {/* FAB */}
+            <TouchableOpacity style={styles.fab} onPress={() => router.push('/create-folder')}>
                 <Ionicons name="add" size={32} color="#fff" />
             </TouchableOpacity>
 
-            <BottomNav />
+            <BottomNav activeTab="Home" />
         </SafeAreaView>
     );
 }
 
-function NavItem({ icon, label, active }: any) {
-    return (
-        <TouchableOpacity style={styles.navItem}>
-            <Ionicons name={icon} size={24} color={active ? '#6366f1' : '#94a3b8'} />
-            <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
-        </TouchableOpacity>
-    );
-}
-
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    content: { padding: 20, paddingBottom: 110 },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10, paddingTop: 65, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    topBarTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
-    topBarIcons: { flexDirection: 'row', gap: 15 },
-    headerCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 25, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },
-    cardInfo: { flexDirection: 'row', alignItems: 'center' },
-    cardIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
-    cardIcon: { width: 36, height: 36 },
-    cardTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
-    cardSub: { fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 16 },
-    uploadBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    uploadBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-    sectionTitle: { fontSize: 15, fontWeight: '900', color: '#1e293b', marginBottom: 15 },
-    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 25 },
-    quickItem: { width: '48.5%', backgroundColor: '#fff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' },
-    quickIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-    quickLabel: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
-    quickSub: { fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
-    tabContainer: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', marginBottom: 25 },
-    tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-    tabActive: { borderBottomWidth: 2, borderBottomColor: '#6366f1' },
-    tabText: { fontSize: 12, fontWeight: '700', color: '#94a3b8' },
-    tabTextActive: { color: '#6366f1' },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    folderList: { gap: 12, marginBottom: 30 },
-    folderItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' },
-    folderIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    folderName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
-    folderStats: { fontSize: 11, color: '#64748b', marginTop: 4 },
-    listTime: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginBottom: 4 },
-    viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-    viewAllBtnText: { fontSize: 13, fontWeight: '700', color: '#6366f1' },
-    recentDocItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 12 },
-    docTypeBadge: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    docTypeText: { fontSize: 10, fontWeight: '900' },
-    docName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
-    docSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
-    docTime: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginBottom: 4 },
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 64, height: 64, borderRadius: 32, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 10 },
-    bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 85, backgroundColor: '#fff', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 20, borderTopWidth: 1, borderTopColor: '#f1f5f9', borderTopLeftRadius: 30, borderTopRightRadius: 30, shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.04, shadowRadius: 15, elevation: 20 },
-    navItem: { alignItems: 'center', justifyContent: 'center' },
-    navLabel: { fontSize: 10, color: '#94a3b8', marginTop: 4, fontWeight: '700' },
-    navLabelActive: { color: '#6366f1' },
+    container: { flex: 1, backgroundColor: '#0f172a' },
+    header: { padding: 20, paddingTop: 30, backgroundColor: '#0f172a' },
+    headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25 },
+    headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
+    logoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
+    headerSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    
+    tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4 },
+    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
+    activeTab: { backgroundColor: '#6366f1' },
+    tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
+    activeTabText: { color: '#fff' },
+
+    section: { paddingHorizontal: 20, marginTop: 24 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#6366f1' },
+    sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    sortText: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+
+    folderCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    folderIconBox: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    folderInfo: { flex: 1, marginLeft: 16 },
+    folderName: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    folderSub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
+    sharedBy: { fontSize: 11, color: '#6366f1', marginTop: 2, fontWeight: '700' },
+    folderRight: { alignItems: 'flex-end', gap: 8 },
+    folderDate: { fontSize: 11, color: '#64748b' },
+
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
 });
