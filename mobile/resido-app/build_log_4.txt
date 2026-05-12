@@ -1,0 +1,1064 @@
+Starting Android manual build script
+ANDROID_HOME is /home/vishnu/Android/sdk/
+Accepting licenses...
+Installing platforms and build-tools...
+
+Running expo prebuild...
+Warning! Your git working tree is dirty.
+It's recommended to commit all your changes before proceeding, so you can revert the changes made by this command if necessary.
+Git status is dirty but the command will continue because the terminal is not interactive.
+- Clearing android
+✔ Cleared android code
+- Creating native directory (./android)
+✔ Created native directory
+- Updating package.json
+✔ Updated package.json | no changes
+- Running prebuild
+» android: userInterfaceStyle: Install expo-system-ui in your project to enable this feature.
+- Running prebuild
+✔ Finished prebuild
+Cleaning build...
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-application[0m (5.9.1)
+  - [32mexpo-asset[0m (10.0.10)
+  - [32mexpo-av[0m (14.0.7)
+  - [32mexpo-camera[0m (15.0.16)
+  - [32mexpo-constants[0m (16.0.2)
+  - [32mexpo-contacts[0m (13.0.5)
+  - [32mexpo-document-picker[0m (12.0.2)
+  - [32mexpo-file-system[0m (17.0.1)
+  - [32mexpo-font[0m (12.0.10)
+  - [32mexpo-image-loader[0m (4.7.0)
+  - [32mexpo-image-picker[0m (15.1.0)
+  - [32mexpo-keep-awake[0m (13.0.2)
+  - [32mexpo-modules-core[0m (1.12.26)
+  - [32mexpo-notifications[0m (0.28.19)
+  - [32mexpo-secure-store[0m (13.0.2)
+  - [32mexpo-splash-screen[0m (0.27.7)
+
+
+> Configure project :react-native-reanimated
+Android gradle plugin: 8.2.1
+Gradle: 8.8
+
+> Task :app:clean UP-TO-DATE
+> Task :expo:clean
+> Task :expo-application:clean
+> Task :expo-asset:clean
+
+> Task :expo-av:externalNativeBuildCleanDebug
+Clean expo-av-armeabi-v7a
+Clean expo-av-arm64-v8a
+Clean expo-av-x86
+Clean expo-av-x86_64
+
+> Task :expo-av:externalNativeBuildCleanRelease
+Clean expo-av-armeabi-v7a
+Clean expo-av-arm64-v8a
+Clean expo-av-x86
+Clean expo-av-x86_64
+
+> Task :expo-av:clean
+> Task :expo-camera:clean
+> Task :expo-constants:clean
+> Task :expo-contacts:clean
+> Task :expo-document-picker:clean
+> Task :expo-file-system:clean
+> Task :expo-font:clean
+> Task :expo-image-loader:clean
+> Task :expo-image-picker:clean
+> Task :expo-keep-awake:clean
+
+> Task :expo-modules-core:externalNativeBuildCleanDebug
+Clean expo-modules-core-armeabi-v7a
+Clean expo-modules-core-arm64-v8a
+Clean expo-modules-core-x86
+Clean expo-modules-core-x86_64
+
+> Task :expo-modules-core:externalNativeBuildCleanRelease
+Clean expo-modules-core-armeabi-v7a
+Clean expo-modules-core-arm64-v8a
+Clean expo-modules-core-x86
+Clean expo-modules-core-x86_64
+
+> Task :expo-modules-core:clean
+> Task :expo-notifications:clean
+> Task :expo-secure-store:clean
+> Task :expo-splash-screen:clean
+> Task :react-native-compressor:clean
+> Task :react-native-gesture-handler:clean
+> Task :react-native-image-picker:clean
+> Task :react-native-reanimated:cleanCmakeCache
+> Task :react-native-reanimated:externalNativeBuildCleanDebug
+> Task :react-native-reanimated:externalNativeBuildCleanRelease
+> Task :react-native-reanimated:clean
+> Task :react-native-safe-area-context:clean
+
+> Task :react-native-screens:externalNativeBuildCleanDebug
+Clean rnscreens-armeabi-v7a
+Clean rnscreens-arm64-v8a
+Clean rnscreens-x86
+Clean rnscreens-x86_64
+
+> Task :react-native-screens:externalNativeBuildCleanRelease
+Clean rnscreens-armeabi-v7a
+Clean rnscreens-arm64-v8a
+Clean rnscreens-x86
+Clean rnscreens-x86_64
+
+> Task :react-native-screens:clean
+> Task :react-native-svg:clean
+> Task :react-native-vector-icons:clean
+
+BUILD SUCCESSFUL in 22s
+45 actionable tasks: 36 executed, 9 up-to-date
+Assembling Release APK...
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-application[0m (5.9.1)
+  - [32mexpo-asset[0m (10.0.10)
+  - [32mexpo-av[0m (14.0.7)
+  - [32mexpo-camera[0m (15.0.16)
+  - [32mexpo-constants[0m (16.0.2)
+  - [32mexpo-contacts[0m (13.0.5)
+  - [32mexpo-document-picker[0m (12.0.2)
+  - [32mexpo-file-system[0m (17.0.1)
+  - [32mexpo-font[0m (12.0.10)
+  - [32mexpo-image-loader[0m (4.7.0)
+  - [32mexpo-image-picker[0m (15.1.0)
+  - [32mexpo-keep-awake[0m (13.0.2)
+  - [32mexpo-modules-core[0m (1.12.26)
+  - [32mexpo-notifications[0m (0.28.19)
+  - [32mexpo-secure-store[0m (13.0.2)
+  - [32mexpo-splash-screen[0m (0.27.7)
+
+
+> Configure project :react-native-reanimated
+Android gradle plugin: 8.2.1
+Gradle: 8.8
+WARNING: We recommend using a newer Android Gradle plugin to use compileSdk = 35
+
+This Android Gradle plugin (8.2.1) was tested up to compileSdk = 34.
+
+You are strongly encouraged to update your project to use a newer
+Android Gradle plugin that has been tested with compileSdk = 35.
+
+If you are already using the latest version of the Android Gradle plugin,
+you may need to wait until a newer version with support for compileSdk = 35 is available.
+
+To suppress this warning, add/update
+    android.suppressUnsupportedCompileSdk=35
+to this project's gradle.properties.
+
+> Task :app:buildKotlinToolingMetadata
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generatePackageList
+> Task :app:preBuild
+> Task :app:preReleaseBuild
+> Task :app:generateReleaseBuildConfig
+> Task :expo:generateExpoModulesPackageListTask
+> Task :expo:preBuild
+> Task :expo:preReleaseBuild
+> Task :expo-application:preBuild UP-TO-DATE
+> Task :expo-application:preReleaseBuild UP-TO-DATE
+> Task :expo:writeReleaseAarMetadata
+> Task :expo-asset:preBuild UP-TO-DATE
+> Task :expo-asset:preReleaseBuild UP-TO-DATE
+> Task :expo-application:writeReleaseAarMetadata
+> Task :expo-av:preBuild UP-TO-DATE
+> Task :expo-asset:writeReleaseAarMetadata
+> Task :expo-av:preReleaseBuild UP-TO-DATE
+> Task :expo-camera:preBuild UP-TO-DATE
+> Task :expo-camera:preReleaseBuild UP-TO-DATE
+> Task :expo-av:writeReleaseAarMetadata
+> Task :expo-camera:writeReleaseAarMetadata
+
+> Task :expo-constants:createExpoConfig
+The NODE_ENV environment variable is required but was not specified. Ensure the project is bundled with Expo CLI or NODE_ENV is set.
+Proceeding without mode-specific .env
+
+> Task :expo-constants:preBuild
+> Task :expo-constants:preReleaseBuild
+> Task :expo-contacts:preBuild UP-TO-DATE
+> Task :expo-contacts:preReleaseBuild UP-TO-DATE
+> Task :expo-constants:writeReleaseAarMetadata
+> Task :expo-document-picker:preBuild UP-TO-DATE
+> Task :expo-document-picker:preReleaseBuild UP-TO-DATE
+> Task :expo-contacts:writeReleaseAarMetadata
+> Task :expo-file-system:preBuild UP-TO-DATE
+> Task :expo-file-system:preReleaseBuild UP-TO-DATE
+> Task :expo-document-picker:writeReleaseAarMetadata
+> Task :expo-font:preBuild UP-TO-DATE
+> Task :expo-font:preReleaseBuild UP-TO-DATE
+> Task :expo-file-system:writeReleaseAarMetadata
+> Task :expo-image-loader:preBuild UP-TO-DATE
+> Task :expo-image-loader:preReleaseBuild UP-TO-DATE
+> Task :expo-font:writeReleaseAarMetadata
+> Task :expo-image-loader:writeReleaseAarMetadata
+> Task :expo-image-picker:preBuild UP-TO-DATE
+> Task :expo-image-picker:preReleaseBuild UP-TO-DATE
+> Task :expo-image-picker:writeReleaseAarMetadata
+> Task :expo-keep-awake:preBuild UP-TO-DATE
+> Task :expo-keep-awake:preReleaseBuild UP-TO-DATE
+> Task :expo-modules-core:preBuild UP-TO-DATE
+> Task :expo-modules-core:preReleaseBuild UP-TO-DATE
+> Task :expo-keep-awake:writeReleaseAarMetadata
+> Task :expo-notifications:preBuild UP-TO-DATE
+> Task :expo-notifications:preReleaseBuild UP-TO-DATE
+> Task :expo-modules-core:writeReleaseAarMetadata
+> Task :expo-notifications:writeReleaseAarMetadata
+> Task :expo-secure-store:preBuild UP-TO-DATE
+> Task :expo-secure-store:preReleaseBuild UP-TO-DATE
+> Task :expo-splash-screen:preBuild UP-TO-DATE
+> Task :expo-splash-screen:preReleaseBuild UP-TO-DATE
+> Task :expo-secure-store:writeReleaseAarMetadata
+> Task :expo-splash-screen:writeReleaseAarMetadata
+> Task :react-native-compressor:preBuild UP-TO-DATE
+> Task :react-native-compressor:preReleaseBuild UP-TO-DATE
+> Task :react-native-gesture-handler:preBuild UP-TO-DATE
+> Task :react-native-gesture-handler:preReleaseBuild UP-TO-DATE
+> Task :react-native-compressor:writeReleaseAarMetadata
+> Task :react-native-image-picker:preBuild UP-TO-DATE
+> Task :react-native-image-picker:preReleaseBuild UP-TO-DATE
+> Task :react-native-gesture-handler:writeReleaseAarMetadata
+> Task :react-native-reanimated:assertLatestReactNativeWithNewArchitectureTask SKIPPED
+> Task :react-native-reanimated:assertMinimalReactNativeVersionTask SKIPPED
+> Task :react-native-image-picker:writeReleaseAarMetadata
+> Task :react-native-reanimated:prepareHeadersForPrefab
+> Task :react-native-reanimated:preBuild
+> Task :react-native-reanimated:preReleaseBuild
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+> Task :react-native-safe-area-context:preReleaseBuild UP-TO-DATE
+> Task :react-native-reanimated:writeReleaseAarMetadata
+> Task :react-native-screens:preBuild UP-TO-DATE
+> Task :react-native-screens:preReleaseBuild UP-TO-DATE
+> Task :react-native-safe-area-context:writeReleaseAarMetadata
+> Task :react-native-screens:writeReleaseAarMetadata
+> Task :react-native-svg:preBuild UP-TO-DATE
+> Task :react-native-svg:preReleaseBuild UP-TO-DATE
+> Task :react-native-vector-icons:preBuild UP-TO-DATE
+> Task :react-native-svg:writeReleaseAarMetadata
+> Task :react-native-vector-icons:preReleaseBuild UP-TO-DATE
+> Task :react-native-vector-icons:writeReleaseAarMetadata
+> Task :app:checkReleaseAarMetadata
+
+> Task :app:createBundleReleaseJsAndAssets
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Android Bundled 15078ms node_modules/expo-router/entry.js (1182 modules)
+Writing bundle output to: /home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle
+Writing sourcemap output to: /home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/intermediates/sourcemaps/react/release/index.android.bundle.packager.map
+Copying 32 asset files
+Done writing bundle output
+Done writing sourcemap output
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:767:63: warning: Direct call to eval(), but lexical scope is not supported.
+...typeof expo === "undefined" ? eval("require") : function (moduleId) {
+                                 ^~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:848:24: warning: the variable "URL" was not declared in function "_fetch"
+        props[0] = new URL(props[0], window.location?.origin).toString();
+                       ^~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:870:42: warning: the variable "fetch" was not declared in anonymous function " 23#"
+      value: wrapFetchWithWindowLocation(fetch)
+                                         ^~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:1647:20: warning: the variable "Promise" was not declared in function "promiseMethodWrapper"
+        return new Promise(function (resolve, reject) {
+                   ^~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:2027:18: warning: the variable "DebuggerInternal" was not declared in function "__shouldPauseOnThrow"
+          typeof DebuggerInternal !== 'undefined' &&
+                 ^~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:4654:5: warning: the variable "setImmediate" was not declared in function "handleResolved"
+    setImmediate(function () {
+    ^~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:6124:9: warning: the variable "setTimeout" was not declared in anonymous function " 220#"
+        setTimeout(function () {
+        ^~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:8997:5: warning: the variable "Headers" was not declared in anonymous function " 295#"
+    Headers,
+    ^~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:8998:5: warning: the variable "Request" was not declared in anonymous function " 295#"
+    Request,
+    ^~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:8999:5: warning: the variable "Response" was not declared in anonymous function " 295#"
+    Response
+    ^~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9156:24: warning: the variable "FileReader" was not declared in function "readBlobAsArrayBuffer"
+      var reader = new FileReader();
+                       ^~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9207:36: warning: the variable "Blob" was not declared in anonymous function " 306#"
+        } else if (support.blob && Blob.prototype.isPrototypeOf(body)) {
+                                   ^~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9209:40: warning: the variable "FormData" was not declared in anonymous function " 306#"
+        } else if (support.formData && FormData.prototype.isPrototypeOf(body)) {
+                                       ^~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9211:44: warning: the variable "URLSearchParams" was not declared in anonymous function " 306#"
+...e if (support.searchParams && URLSearchParams.prototype.isPrototypeOf(body...
+                                 ^~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9330:26: warning: the variable "AbortController" was not declared in anonymous function " 312#"
+          var ctrl = new AbortController();
+                         ^~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9464:23: warning: the variable "XMLHttpRequest" was not declared in anonymous function " 316#"
+        var xhr = new XMLHttpRequest();
+                      ^~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:9009:71: warning: the variable "self" was not declared in anonymous function " 298#"
+...undefined' && globalThis || typeof self !== 'undefined' && self ||
+                                      ^~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:20534:31: warning: the variable "nativeFabricUIManager" was not declared in anonymous function " 627#"
+  var _nativeFabricUIManage = nativeFabricUIManager,
+                              ^~~~~~~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:20562:21: warning: the variable "clearTimeout" was not declared in anonymous function " 627#"
+    cancelTimeout = clearTimeout;
+                    ^~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:25192:30: warning: the variable "__REACT_DEVTOOLS_GLOBAL_HOOK__" was not declared in anonymous function " 627#"
+  if ("undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__) {
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:25307:27: warning: the variable "performance" was not declared in anonymous function " 658#"
+  if ("object" === typeof performance && "function" === typeof performance.no...
+                          ^~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:25330:26: warning: the variable "navigator" was not declared in anonymous function " 658#"
+  "undefined" !== typeof navigator && undefined !== navigator.scheduling && u...
+                         ^~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:25440:37: warning: the variable "MessageChannel" was not declared in anonymous function " 658#"
+  };else if ("undefined" !== typeof MessageChannel) {
+                                    ^~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:25455:34: warning: the variable "nativeRuntimeScheduler" was not declared in anonymous function " 658#"
+... = "undefined" !== typeof nativeRuntimeScheduler ? nativeRuntimeScheduler....
+                             ^~~~~~~~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:38749:34: warning: the variable "requestAnimationFrame" was not declared in function "start 9#"
+...    this._animationFrame = requestAnimationFrame(this.onUpdate.bind(this));
+                              ^~~~~~~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:62403:38: warning: the variable "document" was not declared in anonymous function " 1737#"
+...r useClientLayoutEffect = typeof document !== 'undefined' || typeof naviga...
+                                    ^~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:73655:11: warning: the variable "cancelAnimationFrame" was not declared in function "cleanup"
+          cancelAnimationFrame(this.splashScreenAnimationFrame);
+          ^~~~~~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:109464:18: warning: the variable "localStorage" was not declared in function "getStorage"
+          return localStorage;
+                 ^~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:113534:76: warning: the variable "Buffer" was not declared in function "convertValue"
+... 'function' ? new Blob([value]) : Buffer.from(value);
+                                     ^~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:112831:21: warning: the variable "queueMicrotask" was not declared in anonymous function " 3013#"
+  var asap = typeof queueMicrotask !== 'undefined' ? queueMicrotask.bind(_glo...
+                    ^~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:113827:19: warning: the variable "WorkerGlobalScope" was not declared in anonymous function " 3055#"
+    return typeof WorkerGlobalScope !== 'undefined' &&
+                  ^~~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:114532:47: warning: the variable "btoa" was not declared in function "resolveConfig"
+...rs.set('Authorization', 'Basic ' + btoa((auth.username || '') + ':' + (aut...
+                                      ^~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:114861:16: warning: the variable "ReadableStream" was not declared in function "trackStream"
+    return new ReadableStream({
+               ^~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:119609:25: warning: the variable "location" was not declared in function "url"
+    loc = loc || typeof location !== "undefined" && location;
+                        ^~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:119793:35: warning: the variable "addEventListener" was not declared in anonymous function " 3242#"
+... withEventListeners = typeof addEventListener === "function" && typeof rem...
+                                ^~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:119793:77: warning: the variable "removeEventListener" was not declared in anonymous function " 3242#"
+...er === "function" && typeof removeEventListener === "function";
+                               ^~~~~~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:120834:16: warning: the variable "attachEvent" was not declared in anonymous function " 3265#"
+    if (typeof attachEvent === "function") {
+               ^~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:121358:16: warning: the variable "TransformStream" was not declared in function "createPacketEncoderStream"
+    return new TransformStream({
+               ^~~~~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:121414:26: warning: the variable "TextDecoder" was not declared in function "createPacketDecoderStream"
+      TEXT_DECODER = new TextDecoder();
+                         ^~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:121538:28: warning: the variable "TextEncoder" was not declared in anonymous function " 3297#"
+        TEXT_ENCODER = new TextEncoder();
+                           ^~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:122870:33: warning: the variable "WebTransport" was not declared in function "doOpen 2#"
+          this._transport = new WebTransport(this.createUri("https"), this.op...
+                                ^~~~~~~~~~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:125111:158: warning: the variable "File" was not declared in function "isBinary"
+...| withNativeFile && obj instanceof File;
+                                      ^~~~
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle:160952:16: warning: the variable "SharedArrayBuffer" was not declared in function "from 2#"
+    if (typeof SharedArrayBuffer !== 'undefined' && (isInstance(value, Shared...
+               ^~~~~~~~~~~~~~~~~
+
+> Task :app:generateReleaseResValues
+> Task :expo:generateReleaseResValues
+> Task :expo:generateReleaseResources
+> Task :expo:packageReleaseResources
+> Task :expo-application:generateReleaseResValues
+> Task :expo-application:generateReleaseResources
+> Task :expo-application:packageReleaseResources
+> Task :expo-asset:generateReleaseResValues
+> Task :expo-asset:generateReleaseResources
+> Task :expo-asset:packageReleaseResources
+> Task :expo-av:generateReleaseResValues
+> Task :expo-av:generateReleaseResources
+> Task :expo-av:packageReleaseResources
+> Task :expo-camera:generateReleaseResValues
+> Task :expo-camera:generateReleaseResources
+> Task :expo-camera:packageReleaseResources
+> Task :expo-constants:generateReleaseResValues
+> Task :expo-constants:generateReleaseResources
+> Task :expo-constants:packageReleaseResources
+> Task :expo-contacts:generateReleaseResValues
+> Task :expo-contacts:generateReleaseResources
+> Task :expo-contacts:packageReleaseResources
+> Task :expo-document-picker:generateReleaseResValues
+> Task :expo-document-picker:generateReleaseResources
+> Task :expo-document-picker:packageReleaseResources
+> Task :expo-file-system:generateReleaseResValues
+> Task :expo-file-system:generateReleaseResources
+> Task :expo-file-system:packageReleaseResources
+> Task :expo-font:generateReleaseResValues
+> Task :expo-font:generateReleaseResources
+> Task :expo-font:packageReleaseResources
+> Task :expo-image-loader:generateReleaseResValues
+> Task :expo-image-loader:generateReleaseResources
+> Task :expo-image-loader:packageReleaseResources
+> Task :expo-image-picker:generateReleaseResValues
+> Task :expo-image-picker:generateReleaseResources
+> Task :expo-image-picker:packageReleaseResources
+> Task :expo-keep-awake:generateReleaseResValues
+> Task :expo-keep-awake:generateReleaseResources
+> Task :expo-keep-awake:packageReleaseResources
+> Task :expo-modules-core:generateReleaseResValues
+> Task :expo-modules-core:generateReleaseResources
+> Task :expo-modules-core:packageReleaseResources
+> Task :expo-notifications:generateReleaseResValues
+> Task :expo-notifications:generateReleaseResources
+> Task :expo-notifications:packageReleaseResources
+> Task :expo-secure-store:generateReleaseResValues
+> Task :expo-secure-store:generateReleaseResources
+> Task :expo-secure-store:packageReleaseResources
+> Task :expo-splash-screen:generateReleaseResValues
+> Task :expo-splash-screen:generateReleaseResources
+> Task :expo-splash-screen:packageReleaseResources
+> Task :react-native-compressor:generateReleaseResValues
+> Task :react-native-compressor:generateReleaseResources
+> Task :react-native-compressor:packageReleaseResources
+> Task :react-native-gesture-handler:generateReleaseResValues
+> Task :react-native-gesture-handler:generateReleaseResources
+> Task :react-native-gesture-handler:packageReleaseResources
+> Task :react-native-image-picker:generateReleaseResValues
+> Task :react-native-image-picker:generateReleaseResources
+> Task :react-native-image-picker:packageReleaseResources
+> Task :react-native-reanimated:generateReleaseResValues
+> Task :react-native-reanimated:generateReleaseResources
+> Task :react-native-reanimated:packageReleaseResources
+> Task :react-native-safe-area-context:generateReleaseResValues
+> Task :react-native-safe-area-context:generateReleaseResources
+> Task :react-native-safe-area-context:packageReleaseResources
+> Task :react-native-screens:generateReleaseResValues
+> Task :react-native-screens:generateReleaseResources
+> Task :react-native-screens:packageReleaseResources
+> Task :react-native-svg:generateReleaseResValues
+> Task :react-native-svg:generateReleaseResources
+> Task :react-native-svg:packageReleaseResources
+> Task :react-native-vector-icons:generateReleaseResValues
+> Task :react-native-vector-icons:generateReleaseResources
+> Task :react-native-vector-icons:packageReleaseResources
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:packageReleaseResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :expo:extractDeepLinksRelease
+> Task :app:parseReleaseLocalResources
+> Task :expo-application:extractDeepLinksRelease
+> Task :expo:processReleaseManifest
+> Task :expo-asset:extractDeepLinksRelease
+> Task :expo-application:processReleaseManifest
+> Task :expo-av:extractDeepLinksRelease
+> Task :expo-asset:processReleaseManifest
+> Task :expo-camera:extractDeepLinksRelease
+> Task :expo-av:processReleaseManifest
+> Task :expo-constants:extractDeepLinksRelease
+> Task :expo-camera:processReleaseManifest
+> Task :expo-contacts:extractDeepLinksRelease
+> Task :expo-constants:processReleaseManifest
+> Task :expo-document-picker:extractDeepLinksRelease
+> Task :expo-contacts:processReleaseManifest
+> Task :expo-document-picker:processReleaseManifest
+> Task :expo-file-system:extractDeepLinksRelease
+> Task :expo-font:extractDeepLinksRelease
+
+> Task :expo-file-system:processReleaseManifest
+/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/expo-file-system/android/src/main/AndroidManifest.xml:6:9-8:20 Warning:
+	provider#expo.modules.filesystem.FileSystemFileProvider@android:authorities was tagged at AndroidManifest.xml:6 to replace other declarations but no other declaration present
+
+> Task :expo-image-loader:extractDeepLinksRelease
+> Task :expo-font:processReleaseManifest
+> Task :expo-image-picker:extractDeepLinksRelease
+> Task :expo-image-loader:processReleaseManifest
+> Task :expo-image-picker:processReleaseManifest
+> Task :expo-keep-awake:extractDeepLinksRelease
+> Task :expo-modules-core:extractDeepLinksRelease
+> Task :expo-keep-awake:processReleaseManifest
+> Task :expo-notifications:extractDeepLinksRelease
+
+> Task :expo-modules-core:processReleaseManifest
+/home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/expo-modules-core/android/src/main/AndroidManifest.xml:8:9-11:45 Warning:
+	meta-data#com.facebook.soloader.enabled@android:value was tagged at AndroidManifest.xml:8 to replace other declarations but no other declaration present
+
+> Task :expo-secure-store:extractDeepLinksRelease
+> Task :expo-notifications:processReleaseManifest
+> Task :expo-secure-store:processReleaseManifest
+> Task :expo-splash-screen:extractDeepLinksRelease
+> Task :react-native-compressor:extractDeepLinksRelease
+> Task :expo-splash-screen:processReleaseManifest
+> Task :react-native-gesture-handler:extractDeepLinksRelease
+> Task :react-native-compressor:processReleaseManifest
+> Task :react-native-image-picker:extractDeepLinksRelease
+
+> Task :react-native-gesture-handler:processReleaseManifest
+package="com.swmansion.gesturehandler" found in source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-gesture-handler/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.swmansion.gesturehandler" from the source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-gesture-handler/android/src/main/AndroidManifest.xml.
+
+> Task :react-native-reanimated:extractDeepLinksRelease
+
+> Task :react-native-image-picker:processReleaseManifest
+package="com.imagepicker" found in source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-image-picker/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.imagepicker" from the source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-image-picker/android/src/main/AndroidManifest.xml.
+
+> Task :react-native-reanimated:processReleaseManifest
+package="com.swmansion.reanimated" found in source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-reanimated/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.swmansion.reanimated" from the source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-reanimated/android/src/main/AndroidManifest.xml.
+
+> Task :react-native-safe-area-context:extractDeepLinksRelease
+> Task :react-native-screens:extractDeepLinksRelease
+
+> Task :react-native-safe-area-context:processReleaseManifest
+package="com.th3rdwave.safeareacontext" found in source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-safe-area-context/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.th3rdwave.safeareacontext" from the source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-safe-area-context/android/src/main/AndroidManifest.xml.
+
+> Task :react-native-screens:processReleaseManifest
+package="com.swmansion.rnscreens" found in source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.swmansion.rnscreens" from the source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/AndroidManifest.xml.
+
+> Task :react-native-svg:extractDeepLinksRelease
+> Task :react-native-vector-icons:extractDeepLinksRelease
+
+> Task :react-native-svg:processReleaseManifest
+package="com.horcrux.svg" found in source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-svg/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.horcrux.svg" from the source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-svg/android/src/main/AndroidManifest.xml.
+
+> Task :react-native-vector-icons:processReleaseManifest
+package="com.oblador.vectoricons" found in source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-vector-icons/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.oblador.vectoricons" from the source AndroidManifest.xml: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-vector-icons/android/src/main/AndroidManifest.xml.
+
+> Task :expo:compileReleaseLibraryResources
+
+> Task :app:processReleaseMainManifest
+/home/vishnu/socwhiz/resido/mobile/resido-app/android/app/src/main/AndroidManifest.xml Warning:
+	provider#expo.modules.filesystem.FileSystemFileProvider@android:authorities was tagged at AndroidManifest.xml:0 to replace other declarations but no other declaration present
+
+> Task :app:processReleaseManifest
+> Task :expo:parseReleaseLocalResources
+> Task :expo-application:compileReleaseLibraryResources
+> Task :expo:generateReleaseRFile
+> Task :expo-asset:compileReleaseLibraryResources
+> Task :expo-application:parseReleaseLocalResources
+> Task :expo-application:generateReleaseRFile
+> Task :expo-asset:parseReleaseLocalResources
+> Task :expo-asset:generateReleaseRFile
+> Task :expo-av:parseReleaseLocalResources
+> Task :expo-av:compileReleaseLibraryResources
+> Task :expo-camera:compileReleaseLibraryResources
+> Task :expo-av:generateReleaseRFile
+> Task :expo-camera:parseReleaseLocalResources
+> Task :expo-constants:compileReleaseLibraryResources
+> Task :expo-camera:generateReleaseRFile
+> Task :expo-constants:parseReleaseLocalResources
+> Task :expo-contacts:compileReleaseLibraryResources
+> Task :expo-constants:generateReleaseRFile
+> Task :expo-contacts:parseReleaseLocalResources
+> Task :expo-document-picker:compileReleaseLibraryResources
+> Task :expo-contacts:generateReleaseRFile
+> Task :expo-document-picker:parseReleaseLocalResources
+> Task :expo-file-system:compileReleaseLibraryResources
+> Task :expo-document-picker:generateReleaseRFile
+> Task :expo-file-system:parseReleaseLocalResources
+> Task :expo-font:compileReleaseLibraryResources
+> Task :expo-file-system:generateReleaseRFile
+> Task :expo-font:parseReleaseLocalResources
+> Task :expo-image-loader:compileReleaseLibraryResources
+> Task :expo-font:generateReleaseRFile
+> Task :expo-image-loader:parseReleaseLocalResources
+> Task :expo-image-picker:compileReleaseLibraryResources
+> Task :expo-image-loader:generateReleaseRFile
+> Task :expo-image-picker:parseReleaseLocalResources
+> Task :expo-keep-awake:compileReleaseLibraryResources
+> Task :expo-image-picker:generateReleaseRFile
+> Task :expo-keep-awake:parseReleaseLocalResources
+> Task :expo-modules-core:compileReleaseLibraryResources
+> Task :expo-keep-awake:generateReleaseRFile
+> Task :expo-modules-core:parseReleaseLocalResources
+> Task :expo-notifications:compileReleaseLibraryResources
+> Task :expo-modules-core:generateReleaseRFile
+> Task :expo-notifications:parseReleaseLocalResources
+> Task :expo-secure-store:compileReleaseLibraryResources
+> Task :expo-notifications:generateReleaseRFile
+> Task :expo-secure-store:parseReleaseLocalResources
+> Task :expo-splash-screen:compileReleaseLibraryResources
+> Task :expo-secure-store:generateReleaseRFile
+> Task :expo-splash-screen:parseReleaseLocalResources
+> Task :react-native-compressor:compileReleaseLibraryResources
+> Task :expo-splash-screen:generateReleaseRFile
+> Task :react-native-compressor:parseReleaseLocalResources
+> Task :react-native-gesture-handler:compileReleaseLibraryResources
+> Task :react-native-compressor:generateReleaseRFile
+> Task :react-native-gesture-handler:parseReleaseLocalResources
+> Task :react-native-image-picker:compileReleaseLibraryResources
+> Task :react-native-gesture-handler:generateReleaseRFile
+> Task :react-native-image-picker:parseReleaseLocalResources
+> Task :react-native-reanimated:compileReleaseLibraryResources
+> Task :react-native-reanimated:parseReleaseLocalResources
+> Task :react-native-image-picker:generateReleaseRFile
+> Task :react-native-reanimated:generateReleaseRFile
+> Task :react-native-safe-area-context:compileReleaseLibraryResources
+> Task :react-native-safe-area-context:parseReleaseLocalResources
+> Task :react-native-screens:compileReleaseLibraryResources
+> Task :react-native-safe-area-context:generateReleaseRFile
+> Task :react-native-screens:parseReleaseLocalResources
+> Task :react-native-svg:compileReleaseLibraryResources
+> Task :react-native-svg:parseReleaseLocalResources
+> Task :react-native-screens:generateReleaseRFile
+> Task :react-native-svg:generateReleaseRFile
+> Task :react-native-vector-icons:compileReleaseLibraryResources
+> Task :expo:checkKotlinGradlePluginConfigurationErrors
+> Task :react-native-vector-icons:parseReleaseLocalResources
+> Task :expo:generateReleaseBuildConfig
+> Task :expo-application:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-application:generateReleaseBuildConfig
+> Task :react-native-vector-icons:generateReleaseRFile
+> Task :expo-modules-core:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-modules-core:generateReleaseBuildConfig
+> Task :expo-modules-core:javaPreCompileRelease
+> Task :expo-application:javaPreCompileRelease
+> Task :expo-asset:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-asset:generateReleaseBuildConfig
+> Task :expo-asset:javaPreCompileRelease
+> Task :expo-av:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-av:generateReleaseBuildConfig
+> Task :expo-camera:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-av:javaPreCompileRelease
+> Task :expo-camera:generateReleaseBuildConfig
+> Task :expo-constants:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-camera:javaPreCompileRelease
+> Task :expo-constants:generateReleaseBuildConfig
+> Task :expo-contacts:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-constants:javaPreCompileRelease
+> Task :expo-contacts:generateReleaseBuildConfig
+> Task :expo-contacts:javaPreCompileRelease
+> Task :expo-document-picker:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-document-picker:generateReleaseBuildConfig
+> Task :expo-document-picker:javaPreCompileRelease
+> Task :expo-file-system:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-file-system:generateReleaseBuildConfig
+> Task :expo-file-system:javaPreCompileRelease
+> Task :expo-font:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-font:generateReleaseBuildConfig
+> Task :expo-image-loader:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-font:javaPreCompileRelease
+> Task :expo-image-loader:generateReleaseBuildConfig
+> Task :expo-image-picker:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-image-loader:javaPreCompileRelease
+> Task :expo-image-picker:generateReleaseBuildConfig
+> Task :expo-keep-awake:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-image-picker:javaPreCompileRelease
+> Task :expo-keep-awake:generateReleaseBuildConfig
+> Task :expo-notifications:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-keep-awake:javaPreCompileRelease
+> Task :expo-notifications:generateReleaseBuildConfig
+> Task :expo-notifications:javaPreCompileRelease
+> Task :expo-secure-store:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-secure-store:generateReleaseBuildConfig
+> Task :expo-secure-store:javaPreCompileRelease
+> Task :expo-splash-screen:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-splash-screen:generateReleaseBuildConfig
+> Task :expo-splash-screen:javaPreCompileRelease
+> Task :react-native-compressor:checkKotlinGradlePluginConfigurationErrors
+> Task :expo:javaPreCompileRelease
+> Task :react-native-compressor:generateReleaseBuildConfig
+> Task :react-native-gesture-handler:checkKotlinGradlePluginConfigurationErrors
+> Task :react-native-compressor:javaPreCompileRelease
+> Task :react-native-gesture-handler:generateReleaseBuildConfig
+> Task :react-native-reanimated:generateReleaseBuildConfig
+> Task :react-native-reanimated:packageNdkLibs NO-SOURCE
+> Task :react-native-reanimated:javaPreCompileRelease
+> Task :react-native-gesture-handler:javaPreCompileRelease
+
+> Task :react-native-reanimated:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :react-native-image-picker:generateReleaseBuildConfig
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors
+> Task :react-native-reanimated:bundleLibCompileToJarRelease
+> Task :react-native-image-picker:javaPreCompileRelease
+> Task :react-native-safe-area-context:generateReleaseBuildConfig
+> Task :app:mergeReleaseResources
+
+> Task :react-native-image-picker:compileReleaseJavaWithJavac
+Note: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-image-picker/android/src/main/java/com/imagepicker/ImagePickerPackage.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:processReleaseManifestForPackage
+> Task :react-native-image-picker:bundleLibCompileToJarRelease
+> Task :react-native-screens:checkKotlinGradlePluginConfigurationErrors
+> Task :react-native-safe-area-context:javaPreCompileRelease
+> Task :react-native-screens:generateReleaseBuildConfig
+> Task :react-native-screens:javaPreCompileRelease
+> Task :react-native-svg:generateReleaseBuildConfig
+> Task :react-native-svg:javaPreCompileRelease
+
+> Task :react-native-svg:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :react-native-vector-icons:generateReleaseBuildConfig
+> Task :react-native-svg:bundleLibCompileToJarRelease
+> Task :react-native-vector-icons:javaPreCompileRelease
+> Task :app:javaPreCompileRelease
+
+> Task :react-native-vector-icons:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :react-native-vector-icons:bundleLibCompileToJarRelease
+> Task :app:extractProguardFiles
+> Task :expo:mergeReleaseJniLibFolders
+> Task :expo:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo:extractDeepLinksForAarRelease
+> Task :expo:mergeReleaseShaders
+> Task :expo:compileReleaseShaders NO-SOURCE
+> Task :expo:generateReleaseAssets UP-TO-DATE
+> Task :expo:packageReleaseAssets
+> Task :expo:prepareLintJarForPublish
+> Task :expo:prepareReleaseArtProfile
+> Task :expo-application:mergeReleaseJniLibFolders
+> Task :expo-application:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-application:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-application:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-application:extractDeepLinksForAarRelease
+> Task :expo-application:mergeReleaseShaders
+> Task :expo-application:compileReleaseShaders NO-SOURCE
+> Task :expo-application:generateReleaseAssets UP-TO-DATE
+> Task :expo-application:packageReleaseAssets
+> Task :expo-application:prepareReleaseArtProfile
+> Task :expo-application:prepareLintJarForPublish
+> Task :expo-asset:mergeReleaseJniLibFolders
+> Task :expo-asset:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-asset:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-asset:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-asset:extractDeepLinksForAarRelease
+> Task :expo-asset:mergeReleaseShaders
+> Task :expo-asset:compileReleaseShaders NO-SOURCE
+> Task :expo-asset:generateReleaseAssets UP-TO-DATE
+> Task :expo-asset:packageReleaseAssets
+> Task :expo-asset:prepareLintJarForPublish
+> Task :expo-asset:prepareReleaseArtProfile
+> Task :expo-av:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :app:processReleaseResources
+
+> Task :react-native-safe-area-context:compileReleaseKotlin
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaContextPackage.kt:27:11 'constructor ReactModuleInfo(String!, String!, Boolean, Boolean, Boolean, Boolean, Boolean)' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaContextPackage.kt:33:27 'hasConstants: Boolean' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaView.kt:59:23 'getter for uiImplementation: UIImplementation!' is deprecated. Deprecated in Java
+
+> Task :expo-av:buildCMakeRelWithDebInfo[arm64-v8a]
+
+> Task :react-native-safe-area-context:compileReleaseJavaWithJavac
+Note: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-safe-area-context/android/src/paper/java/com/th3rdwave/safeareacontext/NativeSafeAreaContextSpec.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :react-native-safe-area-context:bundleLibCompileToJarRelease
+> Task :expo-av:configureCMakeRelWithDebInfo[armeabi-v7a]
+
+> Task :react-native-compressor:compileReleaseKotlin
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioCompressor.kt:142:42 Unnecessary non-null assertion (!!) on a non-null receiver of type Int
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioCompressor.kt:154:46 Unnecessary non-null assertion (!!) on a non-null receiver of type Int
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioCompressor.kt:169:23 Variable 'bytesRead' initializer is redundant
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioCompressor.kt:187:34 Variable 'bytesEncoded' initializer is redundant
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioCompressor.kt:209:34 Variable 'bytesEncoded' initializer is redundant
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioCompressor.kt:247:28 Type mismatch: inferred type is String? but String was expected
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioCompressor.kt:253:26 Type mismatch: inferred type is String? but String was expected
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Audio/AudioExtractor.kt:79:22 Variable 'trackIndex' initializer is redundant
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/CompressorModule.kt:150:61 This cast can never succeed
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/CompressorModule.kt:159:15 'reject(String!): Unit' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/CompressorPackage.kt:22:50 'constructor ReactModuleInfo(String!, String!, Boolean, Boolean, Boolean, Boolean, Boolean)' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:25:13 Name shadowed: filePath
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:26:35 Type mismatch: inferred type is String? but String was expected
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:28:39 'toURL(): URL!' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:157:29 Type mismatch: inferred type is String? but String was expected
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:162:33 Type mismatch: inferred type is String? but String was expected
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:177:13 Name shadowed: imagePath
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:207:17 'inDither: Boolean' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:208:17 'inPurgeable: Boolean' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:209:17 'inInputShareable: Boolean' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageCompressor.kt:230:13 Condition 'bmp != null' is always 'true'
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageMain.kt:20:9 Name shadowed: imagePath
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageMain.kt:38:9 Name shadowed: filePath
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Image/ImageMain.kt:44:23 Type mismatch: inferred type is String? but String was expected
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/MediaCache.kt:19:13 Name shadowed: imagePath
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/RealPathUtil.kt:57:28 Variable 'column_index' initializer is redundant
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/RealPathUtil.kt:103:40 Variable 'contentUri' initializer is redundant
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/RealPathUtil.kt:164:9 Unreachable code
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/RealPathUtil.kt:180:28 Unnecessary non-null assertion (!!) on a non-null receiver of type Cursor
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/RealPathUtil.kt:185:5 The value 'File(dir, UUID.randomUUID().toString())' assigned to 'var dir: File! defined in com.reactnativecompressor.Utils.RealPathUtil.copyFileToLocalStorage' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/Uploader.kt:37:5 Parameter 'reactContext' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/UploaderHelper.kt:106:56 Unchecked cast: HashMap<String!, Any!>? to Map<String, String>
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/UploaderHelper.kt:116:62 Unchecked cast: HashMap<String!, Any!>? to Map<String, String>
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/Utils.kt:95:17 Unnecessary non-null assertion (!!) on a non-null receiver of type HttpURLConnection
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/Utils.kt:106:13 Name shadowed: fileUrl
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/Utils.kt:126:9 Name shadowed: filePath
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/createVideoThumbnail.kt:64:115 Unchecked cast: HashMap<String!, Any!> to Map<String, String>
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Utils/createVideoThumbnail.kt:108:15 Condition 'thumbnailDirFile != null' is always 'true'
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/AutoVideoCompression.kt:19:29 Type mismatch: inferred type is String? but String was expected
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressor/VideoCompressorClass.kt:72:16 Unnecessary safe call on a non-null receiver of type File
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressor/compressor/Compressor.kt:95:9 Variable 'height' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressor/compressor/Compressor.kt:96:9 Variable 'width' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressor/compressor/Compressor.kt:135:15 Unnecessary non-null assertion (!!) on a non-null receiver of type Int
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressor/compressor/Compressor.kt:136:16 Unnecessary non-null assertion (!!) on a non-null receiver of type Int
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt:52:49 Parameter 'options' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt:61:23 'constructor Handler()' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt:67:51 Parameter 'options' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt:67:74 Parameter 'reactContext' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoMain.kt:21:13 Name shadowed: fileUrl
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoMain.kt:60:9 Name shadowed: filePath
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoMain.kt:67:23 Type mismatch: inferred type is String? but String was expected
+
+> Task :react-native-screens:compileReleaseKotlin
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/RNScreensPackage.kt:42:47 'constructor ReactModuleInfo(String!, String!, Boolean, Boolean, Boolean, Boolean, Boolean)' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainer.kt:30:53 'FrameCallback' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainer.kt:30:98 'FrameCallback' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:65:27 'setter for targetElevation: Float' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:128:27 'setter for targetElevation: Float' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfig.kt:86:34 'getter for systemWindowInsetTop: Int' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfig.kt:231:37 'setColorFilter(Int, PorterDuff.Mode): Unit' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenViewManager.kt:47:42 'setStateWrapper(StateWrapper!): Unit' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:135:47 'replaceSystemWindowInsets(Int, Int, Int, Int): WindowInsetsCompat' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:136:51 'getter for systemWindowInsetLeft: Int' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:138:51 'getter for systemWindowInsetRight: Int' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:139:51 'getter for systemWindowInsetBottom: Int' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:100:22 Parameter 'view' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarManager.kt:100:43 Parameter 'placeholder' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/SearchBarView.kt:147:43 Parameter 'flag' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/events/HeaderHeightChangeEvent.kt:6:44 'RCTEventEmitter' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/paper/java/com/swmansion/rnscreens/FabricEnabledViewGroup.kt:5:37 'FabricViewStateManager' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/paper/java/com/swmansion/rnscreens/FabricEnabledViewGroup.kt:9:48 'FabricViewStateManager' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/paper/java/com/swmansion/rnscreens/FabricEnabledViewGroup.kt:11:42 Parameter 'width' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/paper/java/com/swmansion/rnscreens/FabricEnabledViewGroup.kt:11:54 Parameter 'height' is never used
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/paper/java/com/swmansion/rnscreens/FabricEnabledViewGroup.kt:11:67 Parameter 'headerHeight' is never used
+
+> Task :react-native-gesture-handler:compileReleaseKotlin
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/RNGestureHandlerPackage.kt:69:42 'constructor ReactModuleInfo(String!, String!, Boolean, Boolean, Boolean, Boolean, Boolean)' is deprecated. Deprecated in Java
+w: file:///home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/core/FlingGestureHandler.kt:25:26 Parameter 'event' is never used
+
+> Task :expo-av:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-compressor:compileReleaseJavaWithJavac
+> Task :react-native-compressor:bundleLibCompileToJarRelease
+> Task :react-native-gesture-handler:compileReleaseJavaWithJavac
+> Task :react-native-gesture-handler:bundleLibCompileToJarRelease
+
+> Task :react-native-screens:compileReleaseJavaWithJavac
+Note: /home/vishnu/socwhiz/resido/mobile/resido-app/node_modules/react-native-screens/android/src/paper/java/com/swmansion/rnscreens/NativeScreensModuleSpec.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :react-native-screens:bundleLibCompileToJarRelease
+> Task :expo-av:configureCMakeRelWithDebInfo[x86]
+> Task :expo-av:buildCMakeRelWithDebInfo[x86]
+> Task :expo-av:configureCMakeRelWithDebInfo[x86_64]
+> Task :expo-av:buildCMakeRelWithDebInfo[x86_64]
+> Task :expo-av:mergeReleaseJniLibFolders
+> Task :expo-av:extractDeepLinksForAarRelease
+> Task :expo-av:mergeReleaseShaders
+> Task :expo-av:compileReleaseShaders NO-SOURCE
+> Task :expo-av:generateReleaseAssets UP-TO-DATE
+> Task :expo-av:mergeReleaseNativeLibs
+> Task :expo-av:packageReleaseAssets
+> Task :expo-av:prepareLintJarForPublish
+> Task :expo-av:prepareReleaseArtProfile
+> Task :expo-camera:mergeReleaseJniLibFolders
+> Task :expo-camera:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-camera:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-camera:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-camera:extractDeepLinksForAarRelease
+> Task :expo-camera:mergeReleaseShaders
+> Task :expo-camera:compileReleaseShaders NO-SOURCE
+> Task :expo-camera:generateReleaseAssets UP-TO-DATE
+> Task :expo-av:stripReleaseDebugSymbols
+> Task :expo-camera:packageReleaseAssets
+> Task :expo-av:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-camera:prepareLintJarForPublish
+> Task :expo-camera:prepareReleaseArtProfile
+> Task :expo-constants:mergeReleaseJniLibFolders
+> Task :expo-constants:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-constants:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-constants:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-constants:extractDeepLinksForAarRelease
+> Task :expo-constants:mergeReleaseShaders
+> Task :expo-constants:compileReleaseShaders NO-SOURCE
+> Task :expo-constants:generateReleaseAssets UP-TO-DATE
+> Task :expo-constants:packageReleaseAssets
+> Task :expo-constants:prepareLintJarForPublish
+> Task :expo-constants:prepareReleaseArtProfile
+> Task :expo-contacts:mergeReleaseJniLibFolders
+> Task :expo-contacts:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-contacts:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-contacts:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-contacts:extractDeepLinksForAarRelease
+> Task :expo-contacts:mergeReleaseShaders
+> Task :expo-contacts:compileReleaseShaders NO-SOURCE
+> Task :expo-contacts:generateReleaseAssets UP-TO-DATE
+> Task :expo-contacts:packageReleaseAssets
+> Task :expo-contacts:prepareLintJarForPublish
+> Task :expo-contacts:prepareReleaseArtProfile
+> Task :expo-document-picker:mergeReleaseJniLibFolders
+> Task :expo-document-picker:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-document-picker:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-document-picker:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-document-picker:extractDeepLinksForAarRelease
+> Task :expo-document-picker:mergeReleaseShaders
+> Task :expo-document-picker:compileReleaseShaders NO-SOURCE
+> Task :expo-document-picker:generateReleaseAssets UP-TO-DATE
+> Task :expo-document-picker:packageReleaseAssets
+> Task :expo-document-picker:prepareLintJarForPublish
+> Task :expo-document-picker:prepareReleaseArtProfile
+> Task :expo-file-system:mergeReleaseJniLibFolders
+> Task :expo-file-system:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-file-system:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-file-system:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-file-system:extractDeepLinksForAarRelease
+> Task :expo-file-system:mergeReleaseShaders
+> Task :expo-file-system:compileReleaseShaders NO-SOURCE
+> Task :expo-file-system:generateReleaseAssets UP-TO-DATE
+> Task :expo-file-system:packageReleaseAssets
+> Task :expo-file-system:prepareLintJarForPublish
+> Task :expo-file-system:prepareReleaseArtProfile
+> Task :expo-font:mergeReleaseJniLibFolders
+> Task :expo-font:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-font:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-font:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-font:extractDeepLinksForAarRelease
+> Task :expo-font:mergeReleaseShaders
+> Task :expo-font:compileReleaseShaders NO-SOURCE
+> Task :expo-font:generateReleaseAssets UP-TO-DATE
+> Task :expo-font:packageReleaseAssets
+> Task :expo-font:prepareLintJarForPublish
+> Task :expo-font:prepareReleaseArtProfile
+> Task :expo-image-loader:mergeReleaseJniLibFolders
+> Task :expo-image-loader:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-image-loader:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-image-loader:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-image-loader:extractDeepLinksForAarRelease
+> Task :expo-image-loader:mergeReleaseShaders
+> Task :expo-image-loader:compileReleaseShaders NO-SOURCE
+> Task :expo-image-loader:generateReleaseAssets UP-TO-DATE
+> Task :expo-image-loader:packageReleaseAssets
+> Task :expo-image-loader:prepareLintJarForPublish
+> Task :expo-image-loader:prepareReleaseArtProfile
+> Task :expo-image-picker:mergeReleaseJniLibFolders
+> Task :expo-image-picker:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-image-picker:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-image-picker:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-image-picker:extractDeepLinksForAarRelease
+> Task :expo-image-picker:mergeReleaseShaders
+> Task :expo-image-picker:compileReleaseShaders NO-SOURCE
+> Task :expo-image-picker:generateReleaseAssets UP-TO-DATE
+> Task :expo-image-picker:packageReleaseAssets
+> Task :expo-image-picker:prepareLintJarForPublish
+> Task :expo-image-picker:prepareReleaseArtProfile
+> Task :expo-keep-awake:mergeReleaseJniLibFolders
+> Task :expo-keep-awake:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-keep-awake:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-keep-awake:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-keep-awake:extractDeepLinksForAarRelease
+> Task :expo-keep-awake:mergeReleaseShaders
+> Task :expo-keep-awake:compileReleaseShaders NO-SOURCE
+> Task :expo-keep-awake:generateReleaseAssets UP-TO-DATE
+> Task :expo-keep-awake:packageReleaseAssets
+> Task :expo-keep-awake:prepareLintJarForPublish
+> Task :expo-keep-awake:prepareReleaseArtProfile
+> Task :expo-notifications:mergeReleaseJniLibFolders
+> Task :expo-notifications:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-notifications:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-notifications:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-notifications:extractDeepLinksForAarRelease
+> Task :expo-notifications:mergeReleaseShaders
+> Task :expo-notifications:compileReleaseShaders NO-SOURCE
+> Task :expo-notifications:generateReleaseAssets UP-TO-DATE
+> Task :expo-notifications:packageReleaseAssets
+> Task :expo-notifications:prepareLintJarForPublish
+> Task :expo-notifications:prepareReleaseArtProfile
+> Task :expo-secure-store:mergeReleaseJniLibFolders
+> Task :expo-secure-store:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-secure-store:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-secure-store:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-secure-store:extractDeepLinksForAarRelease
+> Task :expo-secure-store:mergeReleaseShaders
+> Task :expo-secure-store:compileReleaseShaders NO-SOURCE
+> Task :expo-secure-store:generateReleaseAssets UP-TO-DATE
+> Task :expo-secure-store:packageReleaseAssets
+> Task :expo-secure-store:prepareLintJarForPublish
+> Task :expo-secure-store:prepareReleaseArtProfile
+> Task :expo-splash-screen:mergeReleaseJniLibFolders
+> Task :expo-splash-screen:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-splash-screen:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-splash-screen:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-splash-screen:extractDeepLinksForAarRelease
+> Task :expo-splash-screen:mergeReleaseShaders
+> Task :expo-splash-screen:compileReleaseShaders NO-SOURCE
+> Task :expo-splash-screen:generateReleaseAssets UP-TO-DATE
+> Task :expo-splash-screen:packageReleaseAssets
+> Task :expo-splash-screen:prepareLintJarForPublish
+> Task :expo-splash-screen:prepareReleaseArtProfile
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[arm64-v8a]
