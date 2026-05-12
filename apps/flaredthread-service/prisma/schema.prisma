@@ -52,7 +52,7 @@ model Comment {
   id        String   @id @default(cuid())
   tenantId  String   @default("global")
   blogId    String
-  blog      Blog     @relation(fields: [blogId], references: [id])
+  blog      Blog     @relation(fields: [blogId, tenantId], references: [id, tenantId])
   userId    String
   userName  String
   userAvatar String?
@@ -61,7 +61,7 @@ model Comment {
   createdAt DateTime @default(now())
 
   @@unique([id, tenantId])
-  @@index([blogId])
+  @@index([blogId, tenantId])
   @@index([tenantId])
   @@map("blog_comments")
 }
@@ -70,7 +70,7 @@ model Interaction {
   id        String   @id @default(cuid())
   tenantId  String   @default("global")
   blogId    String
-  blog      Blog     @relation(fields: [blogId], references: [id])
+  blog      Blog     @relation(fields: [blogId, tenantId], references: [id, tenantId])
   userId    String
   type      InteractionType
   createdAt DateTime @default(now())

@@ -146,15 +146,10 @@ services:
     env_file: .env
     environment:
       - PORT=3008
+      - DATABASE_URL=${DATABASE_URL}
+      - CORE_WRITE_URL=${DATABASE_URL}
+      - CORE_READ_URL=${DATABASE_URL}
       - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
-    command: >
-      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
-               if npx prisma db push --accept-data-loss; then
-                 node dist/main && exit 0
-               fi
-               echo 'DB not ready, retrying...' && sleep 3
-             done
-             exit 1"
     networks:
       - resido-net
     restart: unless-stopped
