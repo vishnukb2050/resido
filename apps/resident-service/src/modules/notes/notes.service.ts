@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
 export class NotesService {
-    constructor(private prisma: TenantPrismaService) {}
+    constructor(private prisma: PrismaService) {}
 
     async getMyFolders(memberId: string, tenantId: string) {
         return this.prisma.client.noteFolder.findMany({
