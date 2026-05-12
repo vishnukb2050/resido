@@ -2,7 +2,6 @@
   "name": "@resido/visitor-service",
   "version": "1.0.0",
   "scripts": {
-    "prebuild": "prisma generate",
     "build": "nest build",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
