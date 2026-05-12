@@ -20,16 +20,28 @@ export class AuthService {
     ) { }
 
     async sendOtp(phone: string) {
-        let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
-        if (!user) {
-            user = await this.prisma.userClient.user.create({ data: { phone } });
+        try {
+            console.log(`[DEBUG] Attempting to send OTP to: ${phone}`);
+            let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
+            if (!user) {
+                console.log(`[DEBUG] User not found, creating new user for: ${phone}`);
+                user = await this.prisma.userClient.user.create({ data: { phone } });
+            }
+
+            const otp = Math.floor(1000 + Math.random() * 9000).toString();
+            console.log(`[DEBUG] Generated OTP for ${phone}: ${otp}`);
+            
+            await this.redis.set(`otp:${phone}`, otp, 'EX', 300);
+            console.log(`[DEBUG] OTP cached in Redis for: ${phone}`);
+            
+            await this.otpService.sendOtp(phone, otp);
+            console.log(`[DEBUG] OTP service call successful for: ${phone}`);
+
+            return { message: 'OTP sent successfully', phone };
+        } catch (error) {
+            console.error(`[ERROR] Failed to send OTP for ${phone}:`, error);
+            throw error;
         }
-
-        const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        await this.redis.set(`otp:${phone}`, otp, 'EX', 300);
-        await this.otpService.sendOtp(phone, otp);
-
-        return { message: 'OTP sent successfully', phone };
     }
 
     async verifyOtp(phone: string, otp: string) {

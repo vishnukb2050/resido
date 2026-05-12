@@ -23,24 +23,33 @@ export class OtpService {
     }
 
     private async sendViaMSG91(phone: string, otp: string): Promise<void> {
-        const authKey = this.config.get('MSG91_AUTH_KEY');
-        const templateId = this.config.get('MSG91_TEMPLATE_ID');
-        
-        // Ensure 91 prefix if not present
-        const mobile = phone.startsWith('91') ? phone : `91${phone}`;
+        try {
+            const authKey = this.config.get('MSG91_AUTH_KEY');
+            const templateId = this.config.get('MSG91_TEMPLATE_ID');
+            
+            // Ensure 91 prefix if not present
+            const mobile = phone.startsWith('91') ? phone : `91${phone}`;
 
-        await firstValueFrom(
-            this.http.post(
-                'https://control.msg91.com/api/v5/otp',
-                { 
-                    template_id: templateId, 
-                    mobile: mobile, 
-                    otp: otp,
-                    var1: 'Resido' 
-                },
-                { headers: { authkey: authKey } },
-            ),
-        );
+            console.log(`[DEBUG] Sending MSG91 OTP to ${mobile} with template ${templateId}`);
+
+            const response = await firstValueFrom(
+                this.http.post(
+                    'https://control.msg91.com/api/v5/otp',
+                    { 
+                        template_id: templateId, 
+                        mobile: mobile, 
+                        otp: otp,
+                        var1: 'Resido' 
+                    },
+                    { headers: { authkey: authKey } },
+                ),
+            );
+
+            console.log(`[DEBUG] MSG91 Response:`, response.data);
+        } catch (error) {
+            console.error(`[ERROR] MSG91 API Failure:`, error.response?.data || error.message);
+            throw error;
+        }
     }
 
     private async sendViaTwilio(phone: string, otp: string): Promise<void> {
