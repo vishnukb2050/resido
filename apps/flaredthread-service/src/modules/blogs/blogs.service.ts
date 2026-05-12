@@ -36,10 +36,29 @@ export class BlogsService {
             delete where.OR;
         }
 
-        return this.prisma.reader.blog.findMany({
+        const blogs = await this.prisma.reader.blog.findMany({
             where,
             orderBy: { createdAt: 'desc' }
         });
+
+        if (!userId) return blogs;
+
+        // Fetch user's interactions (likes) for these blogs
+        const blogIds = blogs.map(b => b.id);
+        const interactions = await (this.prisma.reader as any).interaction.findMany({
+            where: {
+                blogId: { in: blogIds },
+                userId: userId,
+                type: 'LIKE'
+            }
+        });
+
+        const likedBlogIds = new Set(interactions.map((i: any) => i.blogId));
+
+        return blogs.map(blog => ({
+            ...blog,
+            liked: likedBlogIds.has(blog.id)
+        }));
     }
 
     async createBlog(authorId: string, data: any) {

@@ -105,11 +105,11 @@ export default function FlarePlayerScreen() {
     );
 }
 
-function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolean, onBack: () => void }) {
+function FlareItem({ flare, isActive, onBack }: { flare: any, isActive: boolean, onBack: () => void }) {
     const [status, setStatus] = useState<any>({});
-    const [liked, setLiked] = useState(false);
+    const [liked, setLiked] = useState(flare.liked || false);
     const [saved, setSaved] = useState(false);
-    const [displayLikes, setDisplayLikes] = useState(flare.likesCount);
+    const [displayLikes, setDisplayLikes] = useState(flare.likesCount || 0);
     const [showHeart, setShowHeart] = useState(false);
     const lastTap = useRef<number>(0);
     const video = useRef<Video>(null);
@@ -131,7 +131,7 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
 
         socket.on('new_comment', (data) => {
             if (data.blogId === flare.id) {
-                setDisplayComments(prev => prev + 1);
+                setDisplayComments((prev: number) => prev + 1);
             }
         });
 
@@ -142,7 +142,7 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
         try {
             const newLiked = !liked;
             setLiked(newLiked);
-            setDisplayLikes(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
+            setDisplayLikes((prev: number) => newLiked ? prev + 1 : Math.max(0, prev - 1));
             await threadApi.toggleLike(flare.id);
         } catch (e) {
             console.error(e);
@@ -236,7 +236,18 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
 
             {/* Side Actions */}
             <View style={styles.sideActions}>
-                <View style={styles.avatarContainer}>
+                <TouchableOpacity 
+                    style={styles.avatarContainer}
+                    onPress={() => router.push({
+                        pathname: '/member-profile',
+                        params: { 
+                            userId: flare.authorId,
+                            name: flare.authorName,
+                            profileName: flare.authorName,
+                            profilePhoto: flare.authorAvatar
+                        }
+                    })}
+                >
                     <Image 
                         source={{ uri: flare.authorAvatar || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg` }} 
                         style={styles.authorAvatar} 
@@ -244,7 +255,7 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
                     <TouchableOpacity style={styles.plusBtn}>
                         <Ionicons name="add" size={14} color="#fff" />
                     </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
 
                 <ActionIcon 
                     icon="heart" 
@@ -286,10 +297,21 @@ function FlareItem({ flare, isActive, onBack }: { flare: Flare, isActive: boolea
                     </View>
                 </View>
                 
-                <View style={styles.authorInfo}>
+                <TouchableOpacity 
+                    style={styles.authorInfo}
+                    onPress={() => router.push({
+                        pathname: '/member-profile',
+                        params: { 
+                            userId: flare.authorId,
+                            name: flare.authorName,
+                            profileName: flare.authorName,
+                            profilePhoto: flare.authorAvatar
+                        }
+                    })}
+                >
                     <Text style={styles.username}>@{flare.authorName}</Text>
                     {flare.isVerified && <MaterialCommunityIcons name="check-decagram" size={18} color="#6366f1" style={styles.verified} />}
-                </View>
+                </TouchableOpacity>
                 
                 <Text style={styles.locationText}>{flare.location || 'Greenwood Residency'}</Text>
                 <Text style={styles.timeText}>2h ago • 🌐</Text>
