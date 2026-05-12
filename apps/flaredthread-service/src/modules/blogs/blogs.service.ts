@@ -13,12 +13,13 @@ export class BlogsService {
         private storage: StorageService
     ) {}
 
-    async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC', followingIds: string[] = [], tenantId?: string) {
+    async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC', followingIds: string[] = [], tenantId?: string, category?: string) {
         const where: any = {
             isActive: true,
         };
 
         if (type) where.type = type;
+        if (category) where.category = category;
 
         if (feedType === 'MY') {
             where.authorId = userId;
@@ -105,18 +106,19 @@ export class BlogsService {
 
         const blog = await this.prisma.client.blog.create({
             data: { 
-                ...data, 
-                poll: undefined, // Remove poll object from spread
+                title: data.title || (data.content ? data.content.substring(0, 50) : "Untitled"),
+                content: data.content || "",
                 authorId,
-                tenantId, // Explicitly save tenantId
+                tenantId,
                 pollId,
-                authorName: data.authorName,
+                authorName: data.authorName || "Anonymous",
                 authorAvatar: data.authorAvatar,
                 location: data.location,
                 isVerified: data.isVerified || false,
                 musicName: data.musicName || "Original Audio",
                 musicId: data.musicId || null,
                 type: data.type || 'THREAD',
+                mediaUrls: data.mediaUrls || [],
                 mediaType: data.mediaType || 'IMAGE',
                 tags: data.tags || [],
                 hashtags: data.hashtags || [],

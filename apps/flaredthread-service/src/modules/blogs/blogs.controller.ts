@@ -8,14 +8,19 @@ export class BlogsController {
     constructor(private blogsService: BlogsService) {}
 
     @Get()
-    listBlogs(@Req() req: any, @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE', @Query('followingIds') followingIds: string) {
+    listBlogs(
+        @Req() req: any, 
+        @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE', 
+        @Query('followingIds') followingIds: string,
+        @Query('category') category?: string
+    ) {
         const userId = req.headers['x-user-id'] as string;
         const tenantId = req.tenantId as string;
         const fIds = followingIds ? followingIds.split(',') : [];
         // Determine type from path
         const path = req.url || '';
         const type = path.includes('threads') ? 'THREAD' : path.includes('flares') ? 'FLARE' : undefined;
-        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId);
+        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId, category);
     }
 
     @Post('upload-url')

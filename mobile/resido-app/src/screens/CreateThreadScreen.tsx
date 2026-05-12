@@ -170,7 +170,16 @@ export default function CreateThreadScreen() {
 
                 {/* Content Area */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Your Thoughts</Text>
+                    <Text style={styles.sectionTitle}>Title</Text>
+                    <TextInput 
+                        style={styles.titleInput} 
+                        placeholder="Give your thread a catchy title..." 
+                        value={title}
+                        onChangeText={setTitle}
+                        placeholderTextColor="#94a3b8"
+                    />
+
+                    <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Your Thoughts</Text>
                     <TextInput 
                         style={styles.contentInput} 
                         placeholder="Share your story or thoughts with the community..." 
@@ -326,7 +335,7 @@ export default function CreateThreadScreen() {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fff' },
     container: { flex: 1 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 45, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     closeBtn: { padding: 4 },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     publishBtn: { backgroundColor: '#6366f1', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
@@ -342,7 +351,22 @@ const styles = StyleSheet.create({
     section: { paddingHorizontal: 20, marginBottom: 20 },
     visibilityGrid: { gap: 8, marginTop: 12 },
     
-    contentInput: { fontSize: 18, color: '#1e293b', paddingHorizontal: 20, minHeight: 150, textAlignVertical: 'top' },
+    titleInput: { 
+        fontSize: 22, 
+        fontWeight: '900', 
+        color: '#1e293b', 
+        paddingHorizontal: 20, 
+        paddingVertical: 10,
+        marginBottom: 5 
+    },
+    contentInput: { 
+        fontSize: 18, 
+        color: '#475569', 
+        paddingHorizontal: 20, 
+        minHeight: 150, 
+        textAlignVertical: 'top',
+        lineHeight: 26 
+    },
     
     mediaScroll: { paddingLeft: 20, marginBottom: 20 },
     mediaItem: { width: 120, height: 160, borderRadius: 16, overflow: 'hidden', marginRight: 12, position: 'relative', backgroundColor: '#f1f5f9' },
@@ -350,7 +374,7 @@ const styles = StyleSheet.create({
     removeMediaBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
     videoBadge: { position: 'absolute', bottom: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.5)', padding: 4, borderRadius: 4 },
     
-    sectionTitle: { fontSize: 14, fontWeight: '800', color: '#94a3b8', marginHorizontal: 20, marginBottom: 12, textTransform: 'uppercase' },
+    sectionTitle: { fontSize: 13, fontWeight: '900', color: '#94a3b8', marginHorizontal: 20, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
     catScroll: { marginBottom: 30 },
     catContent: { paddingHorizontal: 20, gap: 10 },
     catPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },

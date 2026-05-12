@@ -346,8 +346,8 @@ export default function FlaresScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#000' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 15 },
-    headerTitle: { fontSize: 32, fontWeight: '900', color: '#fff' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 15 },
+    headerTitle: { fontSize: 32, fontWeight: '900', color: '#fff', marginTop: 5 },
     headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     iconBtn: { padding: 5 },

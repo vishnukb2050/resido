@@ -49,7 +49,7 @@ export default function ThreadScreen() {
         if (activeTab === 'MY' || activeTab === 'FOLLOWING') {
             fetchFollowingFlares();
         }
-    }, [activeWorkspace, activeTab]);
+    }, [activeWorkspace, activeTab, activeCategory]);
 
     const fetchInitialData = async () => {
         try {
@@ -66,7 +66,8 @@ export default function ThreadScreen() {
             // 2. Fetch Threads
             const { data } = await threadApi.getThreads({ 
                 feedType: activeTab as any,
-                followingIds: currentFollowing 
+                followingIds: currentFollowing,
+                category: activeCategory !== 'all' ? activeCategory : undefined
             });
 
             // 3. For You Priority Logic
@@ -462,15 +463,22 @@ export default function ThreadScreen() {
             )}
 
             <BottomNav activeTab="Threads" />
+
+            <TouchableOpacity 
+                style={styles.fab} 
+                onPress={() => router.push('/create-thread')}
+            >
+                <Ionicons name="add" size={32} color="#fff" />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fff' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 10 },
     welcomeText: { fontSize: 13, fontWeight: '600', color: '#94a3b8' },
-    headerTitle: { fontSize: 28, fontWeight: '900', color: '#1e293b', marginTop: -4 },
+    headerTitle: { fontSize: 28, fontWeight: '900', color: '#1e293b', marginTop: 4 },
     headerActions: { flexDirection: 'row', alignItems: 'center' },
     headerIcon: { marginRight: 15 },
     createBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
@@ -585,4 +593,21 @@ const styles = StyleSheet.create({
     resultPercentage: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
     progressBg: { height: 8, backgroundColor: '#e2e8f0', borderRadius: 4, overflow: 'hidden' },
     progressFill: { height: '100%', backgroundColor: '#cbd5e1', borderRadius: 4 },
+
+    fab: {
+        position: 'absolute',
+        bottom: 100, // Above bottom nav
+        right: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#6366f1',
+        alignItems: 'center',
+        justifyContent: 'center',
+        elevation: 8,
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+    },
 });

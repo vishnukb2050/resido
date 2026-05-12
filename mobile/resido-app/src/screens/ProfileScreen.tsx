@@ -213,7 +213,7 @@ const MenuItem = ({ icon, label, sublabel, onPress, labelColor = "#fff" }: any) 
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 30 },
+    header: { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50 },
     headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff' },
     headerSub: { fontSize: 13, color: '#94a3b8', marginTop: 4 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },

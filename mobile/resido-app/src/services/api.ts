@@ -100,11 +100,11 @@ export const accountingApi = {
 
 // Thread & Flare APIs
 export const threadApi = {
-    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE'; followingIds?: string[] }) => {
+    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string }) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/threads', { params: p });
     },
-    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE'; followingIds?: string[] }) => {
+    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string }) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/flares', { params: p });
     },
