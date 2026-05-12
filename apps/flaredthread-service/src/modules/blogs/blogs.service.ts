@@ -15,25 +15,21 @@ export class BlogsService {
 
     async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' = 'PUBLIC', followingIds: string[] = [], tenantId?: string) {
         const where: any = {
-            type,
-            OR: [
-                { visibility: 'PUBLIC' },
-                { authorId: userId }
-            ]
+            isActive: true,
+            tenantId, // Strict tenant isolation
         };
+
+        if (type) where.type = type;
 
         if (feedType === 'MY') {
             where.authorId = userId;
-            delete where.OR;
         } else if (feedType === 'FOLLOWING') {
-            where.OR = [
-                { authorId: { in: followingIds } },
-                { visibility: 'FOLLOWERS', authorId: { in: followingIds } },
-                { visibility: 'CONTACTS', authorId: { in: followingIds } }
-            ];
-        } else if (feedType === 'PUBLIC') {
+            where.authorId = { in: followingIds };
+            // Optional: Include public flares from non-following? 
+            // Usually FOLLOWING tab is strict.
+        } else {
+            // PUBLIC feed
             where.visibility = 'PUBLIC';
-            delete where.OR;
         }
 
         const blogs = await this.prisma.reader.blog.findMany({
@@ -49,7 +45,8 @@ export class BlogsService {
             where: {
                 blogId: { in: blogIds },
                 userId: userId,
-                type: 'LIKE'
+                type: 'LIKE',
+                tenantId // Ensure interaction is for this tenant
             }
         });
 
@@ -61,11 +58,12 @@ export class BlogsService {
         }));
     }
 
-    async createBlog(authorId: string, data: any) {
+    async createBlog(authorId: string, data: any, tenantId: string) {
         const blog = await this.prisma.client.blog.create({
             data: { 
                 ...data, 
                 authorId,
+                tenantId, // Explicitly save tenantId
                 authorName: data.authorName,
                 authorAvatar: data.authorAvatar,
                 location: data.location,
@@ -117,9 +115,9 @@ export class BlogsService {
         return this.storage.generatePresignedUrl(fileName, contentType, tenantId, userId, blogType, mediaType);
     }
 
-    async toggleLike(blogId: string, userId: string) {
+    async toggleLike(blogId: string, userId: string, tenantId: string) {
         const existing = await (this.prisma.reader as any).interaction.findFirst({
-            where: { blogId, userId, type: 'LIKE' }
+            where: { blogId, userId, type: 'LIKE', tenantId }
         });
 
         if (existing) {
@@ -130,21 +128,22 @@ export class BlogsService {
             return { liked: false };
         } else {
             await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.create({ data: { blogId, userId, type: 'LIKE' } }),
+                (this.prisma.client as any).interaction.create({ data: { blogId, userId, type: 'LIKE', tenantId } }),
                 (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { likesCount: { increment: 1 } } })
             ]);
             return { liked: true };
         }
     }
 
-    async addComment(blogId: string, userId: string, data: { content: string; userName: string; userAvatar?: string }) {
+    async addComment(blogId: string, userId: string, data: { content: string; userName: string; userAvatar?: string }, tenantId: string) {
         const comment = await (this.prisma.client as any).comment.create({
             data: {
                 blogId,
                 userId,
                 userName: data.userName,
                 userAvatar: data.userAvatar,
-                content: data.content
+                content: data.content,
+                tenantId
             }
         });
 

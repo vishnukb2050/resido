@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, SafeAreaView, ScrollView, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { threadApi } from '../services/api';
@@ -87,7 +88,15 @@ export default function FlaresScreen() {
                     params: { initialId: item.id }
                 })}
             >
-                <Image source={{ uri: item.image }} style={styles.recentBg} />
+                <Video
+                    source={{ uri: item.image }}
+                    style={styles.recentBg}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay
+                    isMuted
+                    isLooping
+                    useNativeControls={false}
+                />
                 <View style={styles.recentGradient} />
                 <View style={styles.recentAvatarContainer}>
                     <Image source={{ uri: item.avatar }} style={styles.recentAvatar} />
@@ -123,7 +132,15 @@ export default function FlaresScreen() {
                 params: { initialId: item.id }
             })}
         >
-            <Image source={{ uri: item.image }} style={styles.feedImage} />
+            <Video
+                source={{ uri: item.image }}
+                style={styles.feedImage}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay
+                isMuted
+                isLooping
+                useNativeControls={false}
+            />
             <View style={styles.feedGradient} />
             <View style={styles.playIconOverlay}>
                 <Ionicons name="play" size={16} color="#fff" />
