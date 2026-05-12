@@ -142,7 +142,7 @@ export default function FlarePlayerScreen() {
 function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void }) {
     const [status, setStatus] = useState<any>({});
     const [liked, setLiked] = useState(flare.liked || false);
-    const [saved, setSaved] = useState(false);
+    const [saved, setSaved] = useState(flare.saved || false);
     const [displayLikes, setDisplayLikes] = useState(flare.likesCount || 0);
     const [showHeart, setShowHeart] = useState(false);
     const lastTap = useRef<number>(0);
@@ -241,11 +241,25 @@ function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive
 
     const handleReshare = async () => {
         try {
-            await threadApi.reshare(flare.id);
+            await threadApi.reshare(flare.id, {
+                authorName: user?.name || "Anonymous",
+                authorAvatar: user?.profilePhoto
+            });
             Alert.alert('Success', 'Flare reshared to your profile!');
         } catch (e) {
             console.error(e);
             Alert.alert('Error', 'Failed to reshare flare');
+        }
+    };
+
+    const toggleSave = async () => {
+        try {
+            const newSaved = !saved;
+            setSaved(newSaved);
+            await threadApi.toggleSave(flare.id);
+        } catch (e) {
+            console.error(e);
+            setSaved(saved);
         }
     };
 
@@ -333,7 +347,7 @@ function FlareItem({ flare, isActive, onBack, onFinish }: { flare: any, isActive
                     label="Save" 
                     active={saved} 
                     activeColor="#ffcc00" 
-                    onPress={() => setSaved(!saved)}
+                    onPress={toggleSave}
                 />
             </View>
 

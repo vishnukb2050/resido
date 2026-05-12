@@ -28,6 +28,7 @@ export class BlogsService {
             // Enforce visibility: only show what the author intended for followers/contacts
             where.visibility = { in: ['PUBLIC', 'FOLLOWERS', 'CONTACTS'] };
         } else if (feedType === 'SAVED') {
+            where.__ignoreTenant = true;
             where.interactions = {
                 some: {
                     userId,
@@ -71,16 +72,18 @@ export class BlogsService {
             where: {
                 blogId: { in: blogIds },
                 userId: userId,
-                type: 'LIKE',
+                type: { in: ['LIKE', 'SAVE'] },
                 tenantId // Ensure interaction is for this tenant
             }
         });
 
-        const likedBlogIds = new Set(interactions.map((i: any) => i.blogId));
+        const likedBlogIds = new Set(interactions.filter((i: any) => i.type === 'LIKE').map((i: any) => i.blogId));
+        const savedBlogIds = new Set(interactions.filter((i: any) => i.type === 'SAVE').map((i: any) => i.blogId));
 
         return blogs.map(blog => ({
             ...blog,
-            liked: likedBlogIds.has(blog.id)
+            liked: likedBlogIds.has(blog.id),
+            saved: savedBlogIds.has(blog.id)
         }));
     }
 
@@ -254,29 +257,35 @@ export class BlogsService {
         return { success: true };
     }
 
-    async toggleSave(blogId: string, userId: string) {
+    async toggleSave(blogId: string, userId: string, tenantId: string) {
         const existing = await (this.prisma.reader as any).interaction.findFirst({
-            where: { blogId, userId, type: 'SAVE' }
+            where: { blogId, userId, type: 'SAVE', tenantId }
         });
 
         if (existing) {
             await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.delete({ where: { id: existing.id } }),
+                (this.prisma.client as any).interaction.delete({ 
+                    where: { 
+                        id_tenantId: { id: existing.id, tenantId } 
+                    } 
+                }),
                 (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { savesCount: { decrement: 1 } } })
             ]);
             return { saved: false };
         } else {
             await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.create({ data: { blogId, userId, type: 'SAVE' } }),
+                (this.prisma.client as any).interaction.create({ 
+                    data: { blogId, userId, type: 'SAVE', tenantId } 
+                }),
                 (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { savesCount: { increment: 1 } } })
             ]);
             return { saved: true };
         }
     }
 
-    async reshareBlog(blogId: string, userId: string, tenantId: string) {
-        const original = await (this.prisma.reader as any).blog.findUnique({
-            where: { id: blogId }
+    async reshareBlog(blogId: string, userId: string, tenantId: string, userData?: any) {
+        const original = await (this.prisma.reader as any).blog.findFirst({
+            where: { id: blogId, __ignoreTenant: true }
         });
 
         if (!original) throw new NotFoundException('Original flare not found');
@@ -284,23 +293,52 @@ export class BlogsService {
         // Logic: if public -> public, else followers/contacts
         let visibility = original.visibility;
         if (visibility !== 'PUBLIC') {
-            // User requested: "else need to reshare to the user followers and contacts"
-            // We use FOLLOWERS as the primary visibility if not public
             visibility = 'FOLLOWERS'; 
         }
 
-        return (this.prisma.client as any).blog.create({
+        // 1. Create the reshared blog post
+        const reshare = await (this.prisma.client as any).blog.create({
             data: {
                 title: original.title,
                 content: original.content,
                 type: original.type,
                 visibility: visibility as any,
                 mediaUrls: original.mediaUrls,
+                mediaType: original.mediaType,
+                category: original.category,
                 authorId: userId,
                 tenantId: tenantId,
+                authorName: userData?.authorName || "Anonymous",
+                authorAvatar: userData?.authorAvatar,
                 parentId: blogId,
-                isActive: true
+                isActive: true,
+                musicName: original.musicName,
+                musicId: original.musicId,
+                location: original.location
             }
         });
+
+        // 2. Track the interaction on the original blog
+        try {
+            await (this.prisma.client as any).$transaction([
+                (this.prisma.client as any).interaction.create({
+                    data: {
+                        blogId: blogId,
+                        userId: userId,
+                        type: 'RESHARE',
+                        tenantId: original.tenantId // Anchored to original blog's tenant
+                    }
+                }),
+                (this.prisma.client as any).blog.update({
+                    where: { id: blogId, __ignoreTenant: true } as any, // Use bypass for update too
+                    data: { resharesCount: { increment: 1 } }
+                })
+            ]);
+        } catch (e) {
+            console.error('Failed to track reshare interaction', e);
+            // Don't fail the whole reshare if interaction tracking fails
+        }
+
+        return reshare;
     }
 }

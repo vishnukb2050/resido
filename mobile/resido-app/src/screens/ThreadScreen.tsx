@@ -161,7 +161,10 @@ export default function ThreadScreen() {
 
     const handleReshare = async (id: string) => {
         try {
-            await threadApi.reshare(id);
+            await threadApi.reshare(id, { 
+                authorName: user?.name || "Anonymous", 
+                authorAvatar: user?.profilePhoto 
+            });
             Alert.alert('Success', 'Thread reshared to your profile!');
             if (activeTab === 'RESHARE') fetchInitialData();
         } catch (e) {
@@ -173,9 +176,8 @@ export default function ThreadScreen() {
     const handleSave = async (id: string) => {
         try {
             const { data } = await threadApi.toggleSave(id);
-            Alert.alert('Success', data.saved ? 'Thread saved to your collection!' : 'Thread removed from saved');
+            setThreads(prev => prev.map(t => t.id === id ? { ...t, saved: data.saved } : t));
             if (activeTab === 'SAVED') fetchInitialData();
-            // Optional: Update local state to show saved icon
         } catch (e) {
             console.error(e);
         }
@@ -339,7 +341,7 @@ export default function ThreadScreen() {
                 </TouchableOpacity>
                 <View style={{ flex: 1 }} />
                 <TouchableOpacity onPress={() => handleSave(item.id)}>
-                    <Ionicons name="bookmark-outline" size={20} color="#64748b" />
+                    <Ionicons name={item.saved ? "bookmark" : "bookmark-outline"} size={20} color={item.saved ? "#6366f1" : "#64748b"} />
                 </TouchableOpacity>
             </View>
         </View>

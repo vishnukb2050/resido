@@ -75,10 +75,10 @@ export class BlogsController {
     }
 
     @Post(':id/reshare')
-    reshare(@Req() req: any, @Param('id') id: string) {
+    reshare(@Req() req: any, @Param('id') id: string, @Body() userData: any) {
         const userId = req.headers['x-user-id'] as string;
         const tenantId = req.tenantId as string;
-        return this.blogsService.reshareBlog(id, userId, tenantId);
+        return this.blogsService.reshareBlog(id, userId, tenantId, userData);
     }
 
     @Post('polls/:id/vote')
@@ -91,6 +91,7 @@ export class BlogsController {
     @Post(':id/save')
     toggleSave(@Req() req: any, @Param('id') id: string) {
         const userId = req.headers['x-user-id'] as string;
-        return this.blogsService.toggleSave(id, userId);
+        const tenantId = req.tenantId as string;
+        return this.blogsService.toggleSave(id, userId, tenantId);
     }
 }
