@@ -18,7 +18,8 @@ async function bootstrap() {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.enableCors();
 
-    const port = process.env.PORT || 3001;
+    // Prioritize 3001 to avoid the global PORT=3000 conflict in the .env
+    const port = process.env.AUTH_PORT || 3001;
     await app.listen(port);
     console.log(`Auth Service running on port ${port}`);
 }
