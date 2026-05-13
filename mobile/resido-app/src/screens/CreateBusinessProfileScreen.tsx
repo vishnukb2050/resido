@@ -540,24 +540,27 @@ export default function CreateBusinessProfileScreen() {
                 <MapView
                     style={StyleSheet.absoluteFill}
                     provider={PROVIDER_DEFAULT}
-                    initialRegion={{
+                    region={{
                         latitude: formData.latitude || 20.5937,
                         longitude: formData.longitude || 78.9629,
-                        latitudeDelta: 0.1,
-                        longitudeDelta: 0.1,
+                        latitudeDelta: 0.05,
+                        longitudeDelta: 0.05,
                     }}
                     onPress={(e: any) => {
                         const { latitude, longitude } = e.nativeEvent.coordinate;
                         setFormData({ ...formData, latitude, longitude });
                     }}
                 >
-                    <UrlTile
-                        urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        shouldReplaceMapContent={true}
-                    />
                     {formData.latitude !== 0 && formData.latitude !== null && (
                         <>
-                            <Marker coordinate={{ latitude: formData.latitude, longitude: formData.longitude }} />
+                            <Marker 
+                                draggable
+                                coordinate={{ latitude: formData.latitude, longitude: formData.longitude }} 
+                                onDragEnd={(e: any) => {
+                                    const { latitude, longitude } = e.nativeEvent.coordinate;
+                                    setFormData({ ...formData, latitude, longitude });
+                                }}
+                            />
                             <Circle 
                                 center={{ latitude: formData.latitude, longitude: formData.longitude }}
                                 radius={formData.serviceRadiusKm * 1000}
@@ -567,6 +570,32 @@ export default function CreateBusinessProfileScreen() {
                         </>
                     )}
                 </MapView>
+                
+                {/* Map Controls */}
+                <View style={styles.mapControls}>
+                    <TouchableOpacity 
+                        style={styles.mapControlBtn} 
+                        onPress={async () => {
+                            try {
+                                const { status } = await Location.requestForegroundPermissionsAsync();
+                                if (status !== 'granted') {
+                                    Alert.alert('Permission Denied', 'Please enable location permissions to use this feature.');
+                                    return;
+                                }
+                                const loc = await Location.getCurrentPositionAsync({});
+                                setFormData({ 
+                                    ...formData, 
+                                    latitude: loc.coords.latitude, 
+                                    longitude: loc.coords.longitude 
+                                });
+                            } catch (error) {
+                                Alert.alert('Error', 'Could not get current location.');
+                            }
+                        }}
+                    >
+                        <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#6366f1" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View style={styles.inputGroup}>
@@ -984,7 +1013,8 @@ const styles = StyleSheet.create({
     mapImage: { width: '100%', height: '100%' },
     mapOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
     mapCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(99, 102, 241, 0.1)', position: 'absolute' },
-    mapControls: { position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 8, padding: 4 },
+    mapControls: { position: 'absolute', right: 12, top: 12, backgroundColor: '#fff', borderRadius: 8, padding: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 },
+    mapControlBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     zoomBtn: { padding: 8, alignItems: 'center' },
     zoomLine: { height: 1, backgroundColor: '#f1f5f9' },
 

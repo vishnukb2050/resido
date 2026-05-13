@@ -12,14 +12,14 @@ import Redis from 'ioredis';
                 const host = config.get('REDIS_HOST', 'localhost');
                 const port = parseInt(config.get('REDIS_PORT', '6379'));
                 const password = config.get('REDIS_PASSWORD');
+                const redisTls = config.get('REDIS_TLS') === 'true';
                 
                 console.log(`[DEBUG] Connecting to Redis: ${host}:${port}`);
-                
                 const client = new Redis({
                     host,
                     port,
                     password,
-                    tls: {}, // Required by AWS ElastiCache
+                    ...(redisTls ? { tls: {} } : {}), // Only use TLS if configured
                     connectTimeout: 10000,
                     maxRetriesPerRequest: 3,
                 });

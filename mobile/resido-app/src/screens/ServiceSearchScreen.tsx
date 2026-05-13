@@ -333,17 +333,13 @@ export default function ServiceSearchScreen() {
                         <MapView
                             style={styles.map}
                             provider={PROVIDER_DEFAULT}
-                            initialRegion={{
+                            region={{
                                 latitude: userLocation?.latitude || 20.5937,
                                 longitude: userLocation?.longitude || 78.9629,
-                                latitudeDelta: 0.1,
-                                longitudeDelta: 0.1,
+                                latitudeDelta: 0.05,
+                                longitudeDelta: 0.05,
                             }}
                         >
-                            <UrlTile
-                                urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                shouldReplaceMapContent={true}
-                            />
                             {userLocation && (
                                 <Circle 
                                     center={{ latitude: userLocation.latitude, longitude: userLocation.longitude }}

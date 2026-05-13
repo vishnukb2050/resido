@@ -1,6 +1,6 @@
 services:
   # ─── Microservices ─────────────────────────────────────────────
-  # Note: Infrastructure (Postgres/Redis) is managed externally (AWS RDS/ElastiCache)
+  # Note: PostgreSQL is managed externally (AWS RDS)
   # Connection details are fetched via .env file.
 
   api-gateway:

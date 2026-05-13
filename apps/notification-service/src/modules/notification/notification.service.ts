@@ -13,11 +13,12 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     ) { }
 
     onModuleInit() {
+        const redisTls = this.configService.get('REDIS_TLS') === 'true';
         this.redis = new Redis({
             host: this.configService.get('REDIS_HOST', 'redis'),
             port: this.configService.get('REDIS_PORT', 6379),
             password: this.configService.get('REDIS_PASSWORD'),
-            tls: {}, // Required by AWS ElastiCache
+            ...(redisTls ? { tls: {} } : {}),
         });
     }
 
