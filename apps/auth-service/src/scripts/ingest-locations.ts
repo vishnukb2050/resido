@@ -1,4 +1,4 @@
-import { PrismaClient } from '@resido/user-client';
+import { PrismaClient } from '@resido/geo-client';
 import axios from 'axios';
 
 const prisma = new PrismaClient();
