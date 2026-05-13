@@ -8,6 +8,7 @@ COPY . .
 RUN npx prisma generate --schema=prisma/master/schema.prisma
 RUN npx prisma generate --schema=prisma/user/schema.prisma
 RUN npx prisma generate --schema=prisma/core/schema.prisma
+RUN npx prisma generate --schema=prisma/geo/schema.prisma
 RUN npm run build
 
 FROM node:20-alpine AS runner

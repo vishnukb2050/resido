@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaClient as MasterClient } from '@resido/master-client';
 import { PrismaClient as UserClient } from '@resido/user-client';
 import { PrismaClient as CoreClient } from '@resido/resident-client';
+import { PrismaClient as GeoClient } from '@resido/geo-client';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
@@ -12,6 +13,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     public userRead: UserClient;
     public coreClient: CoreClient;
     public coreRead: CoreClient;
+    public geoClient: GeoClient;
+    public geoRead: GeoClient;
 
     constructor(config: ConfigService) {
         this.masterClient = new MasterClient({
@@ -33,6 +36,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         this.coreRead = new CoreClient({
             datasources: { db: { url: config.get('CORE_READ_URL') } },
         });
+        this.geoClient = new GeoClient({
+            datasources: { db: { url: config.get('GEO_WRITE_URL') } },
+        });
+        this.geoRead = new GeoClient({
+            datasources: { db: { url: config.get('GEO_READ_URL') } },
+        });
     }
 
     async onModuleInit() {
@@ -43,6 +52,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
             this.userRead.$connect(),
             this.coreClient.$connect(),
             this.coreRead.$connect(),
+            this.geoClient.$connect(),
+            this.geoRead.$connect(),
         ]);
     }
 
@@ -54,6 +65,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
             this.userRead.$disconnect(),
             this.coreClient.$disconnect(),
             this.coreRead.$disconnect(),
+            this.geoClient.$disconnect(),
+            this.geoRead.$disconnect(),
         ]);
     }
 }

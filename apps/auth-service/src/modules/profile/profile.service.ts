@@ -19,7 +19,7 @@ export class ProfileService implements OnModuleInit {
     }
 
     private async seedLocations() {
-        const count = await this.prisma.userRead.locationMaster.count();
+        const count = await this.prisma.geoRead.locationMaster.count();
         if (count > 0) {
             this.logger.log('📍 Location database already populated.');
             return;
@@ -53,7 +53,7 @@ export class ProfileService implements OnModuleInit {
                     };
                 });
 
-                await this.prisma.userClient.locationMaster.createMany({
+                await this.prisma.geoClient.locationMaster.createMany({
                     data,
                     skipDuplicates: true
                 });
@@ -255,17 +255,43 @@ export class ProfileService implements OnModuleInit {
     async searchLocations(query: string) {
         if (!query || query.length < 2) return [];
 
-        return this.prisma.userRead.locationMaster.findMany({
+        return this.prisma.geoRead.locationMaster.findMany({
             where: {
                 searchStr: {
                     contains: query.toLowerCase()
                 }
             },
             take: 10,
+            select: {
+                placeName: true,
+                pincode: true,
+                district: true,
+                state: true,
+                latitude: true,
+                longitude: true
+            },
             orderBy: {
                 placeName: 'asc'
             }
         });
+    }
+
+    async reverseGeocode(lat: number, lng: number) {
+        // Find nearest location in our local database
+        const localMatch = await this.prisma.geoRead.$queryRawUnsafe(`
+            SELECT * FROM location_master
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            ORDER BY ST_Distance(
+                ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+            )
+            LIMIT 1
+        `);
+
+        if (localMatch && Array.isArray(localMatch) && localMatch.length > 0) {
+            return localMatch[0];
+        }
+        return null;
     }
 
     async saveScan(userId: string, data: string, type?: string) {

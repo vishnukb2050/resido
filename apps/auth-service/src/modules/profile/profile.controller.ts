@@ -36,13 +36,28 @@ export class ProfileController {
         @Query('pincode') pincode?: string,
         @Query('district') district?: string,
         @Query('state') state?: string,
+        @Query('lat') lat?: string,
+        @Query('lng') lng?: string,
+        @Query('radius') radius?: string,
     ) {
-        return this.profileService.searchServices(category, { pincode, district, state });
+        return this.profileService.searchServices(category, { 
+            pincode, 
+            district, 
+            state,
+            lat: lat ? parseFloat(lat) : undefined,
+            lng: lng ? parseFloat(lng) : undefined,
+            radius: radius ? parseFloat(radius) : undefined
+        });
     }
 
     @Get('locations/search')
     async searchLocations(@Query('query') query: string) {
         return this.profileService.searchLocations(query);
+    }
+
+    @Get('locations/reverse-geocode')
+    async reverseGeocode(@Query('lat') lat: string, @Query('lng') lng: string) {
+        return this.profileService.reverseGeocode(parseFloat(lat), parseFloat(lng));
     }
 
     @UseGuards(JwtAuthGuard)

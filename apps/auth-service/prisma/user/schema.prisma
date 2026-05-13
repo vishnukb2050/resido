@@ -88,20 +88,6 @@ enum ServiceAreaType {
   PAN_INDIA
 }
 
-model LocationMaster {
-  id          String   @id @default(cuid())
-  placeName   String   // Neighborhood / Area Name
-  pincode     String   
-  district    String
-  state       String
-  searchStr   String?  // Concatenated for indexing: "Place Pincode District State"
-  createdAt   DateTime @default(now())
-
-  @@index([searchStr])
-  @@index([pincode])
-  @@index([district])
-  @@index([state])
-}
 
 model WorkspaceMembership {
   id         String   @id @default(cuid())

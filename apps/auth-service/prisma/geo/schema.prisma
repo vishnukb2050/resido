@@ -1,0 +1,28 @@
+// apps/auth-service/prisma/geo/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@resido/geo-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("GEO_WRITE_URL")
+}
+
+model LocationMaster {
+  id          String   @id @default(cuid())
+  placeName   String   // Neighborhood / Area Name
+  pincode     String   
+  district    String
+  state       String
+  latitude    Float?   // GPS Latitude for Map selection
+  longitude   Float?   // GPS Longitude for Map selection
+  searchStr   String?  // Concatenated for indexing: "Place Pincode District State"
+  createdAt   DateTime @default(now())
+
+  @@index([searchStr])
+  @@index([pincode])
+  @@index([district])
+  @@index([state])
+  @@map("location_master")
+}
