@@ -9,6 +9,7 @@ import { chatApi, API_URL } from '../services/api';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import PollBuilderModal from '../components/PollBuilderModal';
 
 interface Message {
     id: string;
@@ -19,6 +20,7 @@ interface Message {
     type: string;
     createdAt: string;
     reactions?: string[];
+    poll?: any;
 }
 
 const MOCK_MESSAGES: Message[] = [
@@ -70,6 +72,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPollBuilder, setShowPollBuilder] = useState(false);
     const socketRef = useRef<Socket | null>(null);
     const flatRef = useRef<FlatList>(null);
     const { activeWorkspace, user } = useAuthStore();
@@ -141,15 +144,66 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         setInput('');
     };
 
+    const handlePublishPoll = (pollData: any) => {
+        if (!socketRef.current) return;
+        
+        const messageData = {
+            conversationId,
+            type: 'POLL',
+            poll: pollData
+        };
+
+        socketRef.current.emit('send_message', messageData);
+    };
+
+    const handleVote = async (pollId: string, optionId: string) => {
+        try {
+            await chatApi.votePoll(pollId, optionId);
+            // Refresh local state if possible or wait for socket update
+            // For now we'll reload messages to be sure
+            loadMessages();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const renderMessage = ({ item }: { item: Message }) => {
         const isMine = item.senderId === user?.id;
         return (
             <View style={[styles.messageWrapper, isMine ? styles.mineWrapper : styles.theirsWrapper]}>
                 {!isMine && <Text style={styles.senderName}>{item.senderName}</Text>}
                 <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
-                    <Text style={[styles.bubbleText, isMine ? styles.mineText : styles.theirsText]}>
-                        {item.content}
-                    </Text>
+                    {item.type === 'POLL' && item.poll ? (
+                        <View style={styles.pollContainer}>
+                            <Text style={[styles.pollQuestion, isMine && { color: '#fff' }]}>{item.poll.question}</Text>
+                            {item.poll.options.map((opt: any) => {
+                                const totalVotes = item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
+                                const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
+                                const hasVoted = item.poll.votes && item.poll.votes.length > 0;
+                                const isSelected = item.poll.votes && item.poll.votes[0]?.optionId === opt.id;
+
+                                return (
+                                    <TouchableOpacity 
+                                        key={opt.id} 
+                                        style={[styles.pollOption, isSelected && styles.pollOptionSelected, isMine && { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }]}
+                                        onPress={() => handleVote(item.poll.id, opt.id)}
+                                        disabled={hasVoted}
+                                    >
+                                        <View style={[styles.pollProgress, { width: `${percentage}%` }, isMine && { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
+                                        <Text style={[styles.pollOptionText, isSelected && styles.pollOptionTextSelected, isMine && { color: '#fff' }]}>{opt.text}</Text>
+                                        {hasVoted && <Text style={[styles.pollPercentage, isMine && { color: '#fff' }]}>{percentage}%</Text>}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                            <Text style={[styles.pollMeta, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
+                                {item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0)} votes
+                            </Text>
+                        </View>
+                    ) : (
+                        <Text style={[styles.bubbleText, isMine ? styles.mineText : styles.theirsText]}>
+                            {item.content}
+                        </Text>
+                    )}
                     <View style={styles.bubbleFooter}>
                         <Text style={[styles.time, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
                             {dayjs(item.createdAt).format('H:mm A')}
@@ -216,7 +270,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
 
                 {/* Input Bar */}
                 <View style={styles.inputBar}>
-                    <TouchableOpacity style={styles.attachBtn}>
+                    <TouchableOpacity style={styles.attachBtn} onPress={() => setShowPollBuilder(true)}>
                         <Ionicons name="add" size={24} color="#6366f1" />
                     </TouchableOpacity>
                     <View style={styles.inputContainer}>
@@ -234,6 +288,12 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                         <Ionicons name={input.trim() ? "send" : "mic"} size={22} color="#fff" />
                     </TouchableOpacity>
                 </View>
+
+                <PollBuilderModal 
+                    visible={showPollBuilder}
+                    onClose={() => setShowPollBuilder(false)}
+                    onPublish={handlePublishPoll}
+                />
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -275,4 +335,15 @@ const styles = StyleSheet.create({
     inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 20, paddingHorizontal: 15, borderWidth: 1, borderColor: '#f1f5f9' },
     input: { flex: 1, fontSize: 14, color: '#1e293b', maxHeight: 100, paddingVertical: 8 },
     sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+
+    // Poll Styles
+    pollContainer: { width: '100%', marginVertical: 5 },
+    pollQuestion: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 12 },
+    pollOption: { backgroundColor: '#fff', padding: 10, borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    pollOptionSelected: { borderColor: '#6366f1', backgroundColor: '#f5f3ff' },
+    pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#6366f115' },
+    pollOptionText: { fontSize: 13, fontWeight: '700', color: '#475569', zIndex: 1 },
+    pollOptionTextSelected: { color: '#6366f1' },
+    pollPercentage: { fontSize: 12, fontWeight: '800', color: '#6366f1', zIndex: 1 },
+    pollMeta: { fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: '600' },
 });

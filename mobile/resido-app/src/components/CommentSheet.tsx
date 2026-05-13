@@ -16,6 +16,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { threadApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import PollBuilderModal from './PollBuilderModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -27,6 +28,7 @@ interface Comment {
     content: string;
     likesCount: number;
     createdAt: string;
+    poll?: any;
 }
 
 interface CommentSheetProps {
@@ -42,6 +44,7 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
     const [loading, setLoading] = useState(true);
     const [newComment, setNewComment] = useState('');
     const [sending, setSending] = useState(false);
+    const [showPollBuilder, setShowPollBuilder] = useState(false);
     const { user } = useAuthStore();
     
     // Animation
@@ -86,6 +89,32 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
         }
     };
 
+    const handlePublishPoll = async (pollData: any) => {
+        setSending(true);
+        try {
+            const { data } = await threadApi.addComment(flareId, {
+                content: "Posted a poll",
+                userName: user?.name || 'Resident',
+                userAvatar: user?.profilePhoto,
+                poll: pollData
+            });
+            setComments(prev => [data, ...prev]);
+        } catch (error) {
+            console.error('Failed to add poll comment', error);
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleVote = async (pollId: string, optionId: string) => {
+        try {
+            await threadApi.votePoll(pollId, optionId);
+            fetchComments(); // Refresh to get updated counts
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const handleClose = () => {
         RNAnimated.timing(translateY, {
             toValue: SCREEN_HEIGHT,
@@ -110,7 +139,33 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                             <Text style={styles.authorBadge}>• Author</Text>
                         )}
                     </View>
-                    <Text style={styles.commentText}>{item.content}</Text>
+                    {item.poll ? (
+                        <View style={styles.pollContainer}>
+                            <Text style={styles.pollQuestion}>{item.poll.question}</Text>
+                            {item.poll.options.map((opt: any) => {
+                                const totalVotes = item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
+                                const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
+                                const hasVoted = item.poll.votes && item.poll.votes.length > 0;
+                                const isSelected = item.poll.votes && item.poll.votes[0]?.optionId === opt.id;
+
+                                return (
+                                    <TouchableOpacity 
+                                        key={opt.id} 
+                                        style={[styles.pollOption, isSelected && styles.pollOptionSelected]}
+                                        onPress={() => handleVote(item.poll.id, opt.id)}
+                                        disabled={hasVoted}
+                                    >
+                                        <View style={[styles.pollProgress, { width: `${percentage}%` }]} />
+                                        <Text style={[styles.pollOptionText, isSelected && styles.pollOptionTextSelected]}>{opt.text}</Text>
+                                        {hasVoted && <Text style={styles.pollPercentage}>{percentage}%</Text>}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                            <Text style={styles.pollMeta}>{item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0)} votes</Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.commentText}>{item.content}</Text>
+                    )}
                     <TouchableOpacity style={styles.replyBtn}>
                         <Text style={styles.replyText}>Reply</Text>
                     </TouchableOpacity>
@@ -160,6 +215,9 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                         </View>
                         
                         <View style={styles.inputRow}>
+                            <TouchableOpacity onPress={() => setShowPollBuilder(true)} style={styles.plusBtn}>
+                                <Ionicons name="add" size={24} color="#6366f1" />
+                            </TouchableOpacity>
                             <Image 
                                 source={{ uri: user?.profilePhoto || 'https://randomuser.me/api/portraits/lego/1.jpg' }} 
                                 style={styles.inputAvatar} 
@@ -167,7 +225,7 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                             <View style={styles.textInputContainer}>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder={`Add a comment for ${authorId.slice(0, 5)}...`}
+                                    placeholder={`Add a comment...`}
                                     placeholderTextColor="rgba(255,255,255,0.4)"
                                     value={newComment}
                                     onChangeText={setNewComment}
@@ -184,6 +242,12 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                         </View>
                     </View>
                 </KeyboardAvoidingView>
+
+                <PollBuilderModal 
+                    visible={showPollBuilder}
+                    onClose={() => setShowPollBuilder(false)}
+                    onPublish={handlePublishPoll}
+                />
             </RNAnimated.View>
         </View>
     );
@@ -333,4 +397,16 @@ const styles = StyleSheet.create({
     postBtnDisabled: {
         color: 'rgba(99, 102, 241, 0.4)',
     },
+
+    // Poll Styles (Dark)
+    plusBtn: { marginRight: 5, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    pollContainer: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 12, marginVertical: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    pollQuestion: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 10 },
+    pollOption: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 8, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    pollOptionSelected: { borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)' },
+    pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(99, 102, 241, 0.2)' },
+    pollOptionText: { fontSize: 12, fontWeight: '700', color: '#e2e8f0', zIndex: 1 },
+    pollOptionTextSelected: { color: '#6366f1' },
+    pollPercentage: { fontSize: 11, fontWeight: '800', color: '#6366f1', zIndex: 1 },
+    pollMeta: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: '600' },
 });

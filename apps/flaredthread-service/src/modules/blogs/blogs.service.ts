@@ -233,7 +233,25 @@ export class BlogsService {
         }
     }
 
-    async addComment(blogId: string, userId: string, data: { content: string; userName: string; userAvatar?: string }, tenantId: string) {
+    async addComment(blogId: string, userId: string, data: { content: string; userName: string; userAvatar?: string; poll?: any }, tenantId: string) {
+        let pollId = undefined;
+        if (data.poll) {
+            const poll = await (this.prisma.client as any).poll.create({
+                data: {
+                    tenantId,
+                    question: data.poll.question,
+                    expiresAt: new Date(Date.now() + (data.poll.durationDays || 7) * 24 * 60 * 60 * 1000),
+                    options: {
+                        create: data.poll.options.map((opt: string) => ({
+                            tenantId,
+                            text: opt
+                        }))
+                    }
+                }
+            });
+            pollId = poll.id;
+        }
+
         const comment = await (this.prisma.client as any).comment.create({
             data: {
                 blogId,
@@ -241,7 +259,8 @@ export class BlogsService {
                 userName: data.userName,
                 userAvatar: data.userAvatar,
                 content: data.content,
-                tenantId
+                tenantId,
+                pollId
             }
         });
 
@@ -250,14 +269,44 @@ export class BlogsService {
             data: { commentsCount: { increment: 1 } }
         });
 
-        this.flareGateway.broadcastComment(blogId, comment);
+        // Fetch complete comment with poll for broadcasting
+        const completeComment = await (this.prisma.reader as any).comment.findUnique({
+            where: { id: comment.id },
+            include: {
+                poll: {
+                    include: {
+                        options: {
+                            include: {
+                                _count: { select: { votes: true } }
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
-        return comment;
+        this.flareGateway.broadcastComment(blogId, completeComment);
+
+        return completeComment;
     }
 
-    async getComments(blogId: string) {
+    async getComments(blogId: string, userId?: string) {
         return (this.prisma.reader as any).comment.findMany({
             where: { blogId },
+            include: {
+                poll: {
+                    include: {
+                        options: {
+                            include: {
+                                _count: { select: { votes: true } }
+                            }
+                        },
+                        votes: userId ? {
+                            where: { userId }
+                        } : false
+                    }
+                }
+            },
             orderBy: { createdAt: 'desc' }
         });
     }

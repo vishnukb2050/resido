@@ -127,6 +127,7 @@ export const chatApi = {
     getMessages: (conversationId: string) => api.get(`/chat/conversations/${conversationId}/messages`),
     sendMessage: (conversationId: string, data: { content: string }) => api.post(`/chat/conversations/${conversationId}/messages`, data),
     createConversation: (memberIds: string[]) => api.post('/chat/conversations', { memberIds }),
+    votePoll: (pollId: string, optionId: string) => api.post(`/chat/polls/${pollId}/vote`, { optionId }),
 };
 // Visitor APIs
 export const visitorApi = {

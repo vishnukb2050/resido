@@ -4,6 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { threadApi, API_URL } from '../services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import PollBuilderModal from '../components/PollBuilderModal';
 import { io } from 'socket.io-client';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -17,6 +18,7 @@ export default function ThreadDetailScreen() {
     const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [showPollBuilder, setShowPollBuilder] = useState(false);
     
     const router = useRouter();
     const { user } = useAuthStore();
@@ -85,12 +87,30 @@ export default function ThreadDetailScreen() {
         try {
             const { data } = await threadApi.addComment(id as string, {
                 content: newComment,
-                authorName: user?.name,
-                authorAvatar: user?.profilePhoto
+                userName: user?.name,
+                userAvatar: user?.profilePhoto
             });
             setComments([data, ...comments]);
             setNewComment('');
             // Increment local comment count
+            setThread({ ...thread, commentsCount: (thread.commentsCount || 0) + 1 });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handlePublishPollComment = async (pollData: any) => {
+        setSending(true);
+        try {
+            const { data } = await threadApi.addComment(id as string, {
+                content: "Posted a poll",
+                userName: user?.name,
+                userAvatar: user?.profilePhoto,
+                poll: pollData
+            });
+            setComments([data, ...comments]);
             setThread({ ...thread, commentsCount: (thread.commentsCount || 0) + 1 });
         } catch (e) {
             console.error(e);
@@ -227,13 +247,43 @@ export default function ThreadDetailScreen() {
                     }
                     renderItem={({ item }) => (
                         <View style={styles.commentItem}>
-                            <Image source={{ uri: item.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.commentAvatar} />
+                            <Image source={{ uri: item.userAvatar || 'https://i.pravatar.cc/100' }} style={styles.commentAvatar} />
                             <View style={styles.commentBody}>
                                 <View style={styles.commentHeader}>
-                                    <Text style={styles.commentAuthor}>{item.authorName || 'User'}</Text>
+                                    <Text style={styles.commentAuthor}>{item.userName || 'User'}</Text>
                                     <Text style={styles.commentTime}>{dayjs(item.createdAt).fromNow()}</Text>
                                 </View>
-                                <Text style={styles.commentText}>{item.content}</Text>
+                                
+                                {item.poll ? (
+                                    <View style={styles.commentPollContainer}>
+                                        <Text style={styles.commentPollQuestion}>{item.poll.question}</Text>
+                                        {item.poll.options.map((opt: any) => {
+                                            const totalVotes = item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
+                                            const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
+                                            const hasVoted = item.poll.votes && item.poll.votes.length > 0;
+                                            const isSelected = item.poll.votes && item.poll.votes[0]?.optionId === opt.id;
+
+                                            return (
+                                                <TouchableOpacity 
+                                                    key={opt.id} 
+                                                    style={[styles.commentPollOption, isSelected && styles.commentPollOptionSelected]}
+                                                    onPress={() => handleVote(item.poll.id, opt.id)}
+                                                    disabled={hasVoted}
+                                                >
+                                                    <View style={[styles.commentPollProgress, { width: `${percentage}%` }]} />
+                                                    <Text style={[styles.commentPollOptionText, isSelected && styles.commentPollOptionTextSelected]}>{opt.text}</Text>
+                                                    {hasVoted && <Text style={styles.commentPollPercentage}>{percentage}%</Text>}
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                        <Text style={styles.commentPollMeta}>
+                                            {item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0)} votes
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.commentText}>{item.content}</Text>
+                                )}
+                                
                                 <View style={styles.commentActions}>
                                     <TouchableOpacity>
                                         <Text style={styles.commentActionText}>Reply</Text>
@@ -255,6 +305,9 @@ export default function ThreadDetailScreen() {
 
                 <View style={styles.inputWrapper}>
                     <Image source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/100' }} style={styles.smallAvatar} />
+                    <TouchableOpacity style={styles.commentPlusBtn} onPress={() => setShowPollBuilder(true)}>
+                        <Ionicons name="add" size={24} color="#6366f1" />
+                    </TouchableOpacity>
                     <View style={styles.inputContainer}>
                         <TextInput
                             style={styles.input}
@@ -273,6 +326,12 @@ export default function ThreadDetailScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                <PollBuilderModal 
+                    visible={showPollBuilder}
+                    onClose={() => setShowPollBuilder(false)}
+                    onPublish={handlePublishPollComment}
+                />
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -332,4 +391,15 @@ const styles = StyleSheet.create({
     pollOptionTextSelected: { color: '#6366f1' },
     pollPercentage: { fontSize: 13, fontWeight: '800', color: '#6366f1', zIndex: 1 },
     pollMeta: { fontSize: 12, color: '#94a3b8', marginTop: 5, fontWeight: '600' },
+
+    commentPlusBtn: { marginLeft: 12, width: 32, height: 32, borderRadius: 16, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
+    commentPollContainer: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, marginVertical: 8, borderWidth: 1, borderColor: '#f1f5f9' },
+    commentPollQuestion: { fontSize: 14, fontWeight: '800', color: '#1e293b', marginBottom: 10 },
+    commentPollOption: { backgroundColor: '#fff', padding: 8, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    commentPollOptionSelected: { borderColor: '#6366f1', backgroundColor: '#f5f3ff' },
+    commentPollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#6366f115' },
+    commentPollOptionText: { fontSize: 12, fontWeight: '700', color: '#475569', zIndex: 1 },
+    commentPollOptionTextSelected: { color: '#6366f1' },
+    commentPollPercentage: { fontSize: 11, fontWeight: '800', color: '#6366f1', zIndex: 1 },
+    commentPollMeta: { fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
 });

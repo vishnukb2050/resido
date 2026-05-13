@@ -70,9 +70,11 @@ export class ProxyController {
                 this.httpService.request({
                     method: req.method,
                     url: targetUrl,
-                    data: req.body,
-                    headers: headers,
+                    data: req, // Forward raw request stream
+                    headers: headers as any,
                     params: req.query,
+                    maxContentLength: Infinity,
+                    maxBodyLength: Infinity,
                 }),
             );
 

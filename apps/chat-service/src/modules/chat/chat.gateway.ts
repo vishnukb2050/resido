@@ -55,6 +55,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             content: string;
             type: string;
             mediaUrl?: string;
+            poll?: {
+                question: string;
+                options: string[];
+                durationDays?: number;
+            }
         },
     ) {
         const { dbName, memberId, tenantId } = client.data;
@@ -66,6 +71,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             content: data.content,
             type: data.type as any,
             mediaUrl: data.mediaUrl,
+            poll: data.poll
         });
 
         // Broadcast to all members in conversation

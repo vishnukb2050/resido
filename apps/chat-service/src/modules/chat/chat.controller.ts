@@ -31,9 +31,20 @@ export class ChatController {
     getMessages(
         @Req() req: any,
         @Param('id') conversationId: string,
+        @Headers('x-user-id') userId: string,
         @Query('skip') skip = '0',
         @Query('take') take = '50',
     ) {
-        return this.chatService.getMessages(req.tenantDbName, conversationId, +skip, +take);
+        return this.chatService.getMessages(req.tenantDbName, conversationId, +skip, +take, userId);
+    }
+
+    @Post('polls/:id/vote')
+    votePoll(
+        @Req() req: any,
+        @Param('id') pollId: string,
+        @Headers('x-user-id') userId: string,
+        @Body() body: { optionId: string },
+    ) {
+        return this.chatService.votePoll(req.tenantDbName, pollId, body.optionId, userId);
     }
 }

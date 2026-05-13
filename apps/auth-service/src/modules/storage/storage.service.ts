@@ -33,20 +33,41 @@ export class StorageService {
 
         const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
         
-        // Generate public URL
-        const endpoint = this.configService.get('AWS_S3_ENDPOINT');
-        const publicUrlBase = this.configService.get('CLOUDFLARE_R2_PUBLIC_URL');
-        let fileUrl = '';
-        
-        if (publicUrlBase) {
-            fileUrl = `${publicUrlBase.replace(/\/$/, '')}/${key}`;
-        } else if (endpoint && endpoint.includes('cloudflarestorage.com')) {
-            fileUrl = `${endpoint}/${this.bucketName}/${key}`;
-        } else {
-            const region = this.configService.get('AWS_REGION', 'ap-south-1');
-            fileUrl = `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
-        }
+        const fileUrl = this.generatePublicUrl(key);
 
         return { uploadUrl, fileUrl, key };
+    }
+
+    async uploadFile(file: any, tenantId: string, userId: string, resourceType: string = 'uploads') {
+        const fileName = file.originalname || 'upload';
+        const key = `resido/${tenantId}/${resourceType}/${userId}/${Date.now()}_${fileName}`;
+        
+        const command = new PutObjectCommand({
+            Bucket: this.bucketName,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+        });
+
+        await this.s3Client.send(command);
+        
+        return {
+            fileUrl: this.generatePublicUrl(key),
+            key: key
+        };
+    }
+
+    private generatePublicUrl(key: string): string {
+        const endpoint = this.configService.get('AWS_S3_ENDPOINT');
+        const publicUrlBase = this.configService.get('CLOUDFLARE_R2_PUBLIC_URL');
+        
+        if (publicUrlBase) {
+            return `${publicUrlBase.replace(/\/$/, '')}/${key}`;
+        } else if (endpoint && endpoint.includes('cloudflarestorage.com')) {
+            return `${endpoint}/${this.bucketName}/${key}`;
+        } else {
+            const region = this.configService.get('AWS_REGION', 'ap-south-1');
+            return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+        }
     }
 }
