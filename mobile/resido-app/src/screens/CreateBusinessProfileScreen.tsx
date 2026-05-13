@@ -384,8 +384,26 @@ export default function CreateBusinessProfileScreen() {
                         <Text style={styles.serviceName}>{s.name}</Text>
                         <Text style={styles.serviceDesc} numberOfLines={1}>{s.description}</Text>
                     </View>
-                    <TouchableOpacity style={styles.iconBtn}><Feather name="edit-2" size={18} color="#64748b" /></TouchableOpacity>
-                    <TouchableOpacity style={styles.iconBtn}><Ionicons name="trash-outline" size={18} color="#ef4444" /></TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.iconBtn}
+                        onPress={() => {
+                            setCurrentService(s);
+                            setShowServiceModal(true);
+                        }}
+                    >
+                        <Feather name="edit-2" size={18} color="#64748b" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.iconBtn}
+                        onPress={() => {
+                            setFormData({
+                                ...formData,
+                                services: formData.services.filter((_, idx) => idx !== i)
+                            });
+                        }}
+                    >
+                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    </TouchableOpacity>
                 </View>
             ))}
 
@@ -410,28 +428,50 @@ export default function CreateBusinessProfileScreen() {
                             placeholder="Describe what you offer in this service" 
                             multiline
                             maxLength={250}
+                            value={currentService.description}
+                            onChangeText={t => setCurrentService({...currentService, description: t})}
                         />
-                        <Text style={styles.charCount}>0/250</Text>
+                        <Text style={styles.charCount}>{currentService.description.length}/250</Text>
                     </View>
                     
                     <Text style={styles.label}>Pricing Type</Text>
                     <View style={styles.radioGroup}>
-                        {['Fixed Price', 'Starting From', 'Contact for Price'].map(p => (
-                            <TouchableOpacity key={p} style={styles.radioItem}>
-                                <View style={[styles.radioCircle, p === 'Contact for Price' && styles.radioCircleActive]}>
-                                    {p === 'Contact for Price' && <View style={styles.radioInner} />}
+                        {['FIXED', 'STARTING', 'CONTACT'].map(p => (
+                            <TouchableOpacity 
+                                key={p} 
+                                style={styles.radioItem}
+                                onPress={() => setCurrentService({...currentService, pricingType: p})}
+                            >
+                                <View style={[styles.radioCircle, currentService.pricingType === p && styles.radioCircleActive]}>
+                                    {currentService.pricingType === p && <View style={styles.radioInner} />}
                                 </View>
-                                <Text style={styles.radioLabel}>{p}</Text>
+                                <Text style={styles.radioLabel}>{p === 'CONTACT' ? 'Contact for Price' : p === 'STARTING' ? 'Starting From' : 'Fixed Price'}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
 
+                    {currentService.pricingType !== 'CONTACT' && (
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Price (₹)</Text>
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Enter amount" 
+                                keyboardType="numeric"
+                                value={currentService.price}
+                                onChangeText={t => setCurrentService({...currentService, price: t})}
+                            />
+                        </View>
+                    )}
+
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Average Response Time</Text>
-                        <View style={styles.pickerContainer}>
-                            <Text style={styles.inputPlaceholder}>Within 2 Hours</Text>
+                        <TouchableOpacity 
+                            style={styles.pickerContainer}
+                            onPress={() => {/* Add picker for response time if needed */}}
+                        >
+                            <Text style={styles.pickerValue}>{currentService.responseTime}</Text>
                             <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
-                        </View>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.emergencyRow}>
@@ -439,7 +479,11 @@ export default function CreateBusinessProfileScreen() {
                             <Text style={styles.label}>Emergency Service</Text>
                             <Text style={styles.subText}>Do you provide emergency services?</Text>
                         </View>
-                        <Switch value={true} trackColor={{ false: '#e2e8f0', true: '#6366f1' }} />
+                        <Switch 
+                            value={currentService.isEmergency} 
+                            onValueChange={v => setCurrentService({...currentService, isEmergency: v})}
+                            trackColor={{ false: '#e2e8f0', true: '#6366f1' }} 
+                        />
                     </View>
 
                     <TouchableOpacity style={styles.contactItem}>
@@ -759,6 +803,76 @@ export default function CreateBusinessProfileScreen() {
                 (val) => setFormData({...formData, businessType: val, showTypeModal: false}),
                 () => setFormData({...formData, showTypeModal: false})
             )}
+
+            {/* Service Modal */}
+            <Modal visible={showServiceModal} transparent animationType="slide">
+                <View style={pickerStyles.modalOverlay}>
+                    <View style={[pickerStyles.modalContent, { maxHeight: '80%' }]}>
+                        <View style={pickerStyles.modalHeader}>
+                            <Text style={pickerStyles.modalTitle}>{currentService.id ? 'Edit Service' : 'Add New Service'}</Text>
+                            <TouchableOpacity onPress={() => setShowServiceModal(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Service Name *</Text>
+                                <TextInput 
+                                    style={styles.input} 
+                                    placeholder="e.g., Pipe Fixing, Full Cleaning" 
+                                    placeholderTextColor="#94a3b8"
+                                    value={currentService.name}
+                                    onChangeText={t => setCurrentService({...currentService, name: t})}
+                                />
+                            </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Description</Text>
+                                <TextInput 
+                                    style={[styles.input, styles.textArea]} 
+                                    placeholder="Describe the service details..." 
+                                    placeholderTextColor="#94a3b8"
+                                    multiline
+                                    value={currentService.description}
+                                    onChangeText={t => setCurrentService({...currentService, description: t})}
+                                />
+                            </View>
+                            
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Average Price (Optional)</Text>
+                                <TextInput 
+                                    style={styles.input} 
+                                    placeholder="Enter price" 
+                                    placeholderTextColor="#94a3b8"
+                                    keyboardType="numeric"
+                                    value={currentService.price}
+                                    onChangeText={t => setCurrentService({...currentService, price: t})}
+                                />
+                            </View>
+
+                            <TouchableOpacity 
+                                style={[styles.continueBtn, { marginTop: 20 }]}
+                                onPress={() => {
+                                    if (!currentService.name) {
+                                        Alert.alert('Error', 'Please enter a service name');
+                                        return;
+                                    }
+                                    const newServices = [...formData.services];
+                                    if (currentService.id) {
+                                        const idx = newServices.findIndex(s => s.id === currentService.id);
+                                        if (idx !== -1) newServices[idx] = currentService;
+                                    } else {
+                                        newServices.push({ ...currentService, id: Date.now().toString() });
+                                    }
+                                    setFormData({ ...formData, services: newServices });
+                                    setShowServiceModal(false);
+                                }}
+                            >
+                                <Text style={styles.continueBtnText}>Save Service</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };

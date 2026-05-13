@@ -97,6 +97,10 @@ export class ProfileService implements OnModuleInit {
                 profilePhoto: profilePhotoUrl,
                 profileName: data.profileName,
                 phoneVisibility: data.phoneVisibility,
+                instagram: data.instagram,
+                linkedin: data.linkedin,
+                website: data.website,
+                location: data.location,
             }
         });
 
@@ -109,6 +113,10 @@ export class ProfileService implements OnModuleInit {
                     phoneVisibility: user.phoneVisibility,
                     name: user.name,
                     profilePhoto: user.profilePhoto,
+                    instagram: user.instagram,
+                    linkedin: user.linkedin,
+                    website: user.website,
+                    location: user.location,
                 }
             });
         }

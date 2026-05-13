@@ -26,8 +26,9 @@ export default function EditProfileScreen() {
         phone: user?.phone || '+1 234 567 8900',
         bio: user?.description || 'Greenwoods resident | Love community & smart living',
         location: 'Greenwoods, Block A, Unit 1203',
-        instagram: '@johndoe_resido',
-        linkedin: 'linkedin.com/in/johndoe-resido',
+        instagram: user?.instagram || '',
+        linkedin: user?.linkedin || '',
+        website: user?.website || '',
         visibility: 'Greenwoods Residents',
         profilePhoto: user?.profilePhoto || "https://i.pravatar.cc/100?u=john"
     });
@@ -56,6 +57,10 @@ export default function EditProfileScreen() {
             formDataToSubmit.append('email', formData.email);
             formDataToSubmit.append('phone', formData.phone);
             formDataToSubmit.append('description', formData.bio);
+            formDataToSubmit.append('instagram', formData.instagram);
+            formDataToSubmit.append('linkedin', formData.linkedin);
+            formDataToSubmit.append('website', formData.website);
+            formDataToSubmit.append('location', formData.location);
             
             // Handle profile photo
             const photoUrl = formData.profilePhoto;
@@ -185,32 +190,62 @@ export default function EditProfileScreen() {
                     <View style={styles.inputGroup}>
                         <View style={styles.inputLabelRow}>
                             <Ionicons name="location-outline" size={16} color="#64748b" />
-                            <Text style={styles.inputLabel}>Location</Text>
+                            <Text style={styles.inputLabel}>Location / Address</Text>
                         </View>
-                        <View style={styles.pickerContainer}>
-                            <Text style={styles.pickerText}>{formData.location}</Text>
-                            <Ionicons name="chevron-down" size={18} color="#64748b" />
-                        </View>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Enter your location"
+                            placeholderTextColor="#64748b"
+                            value={formData.location}
+                            onChangeText={t => setFormData({...formData, location: t})}
+                        />
                     </View>
 
                     {/* Social Links */}
                     <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Social Links</Text>
                     <Text style={styles.subText}>Connect your social accounts to enhance your experience</Text>
 
-                    <SocialItem 
-                        icon="logo-instagram" 
-                        label="Instagram" 
-                        value={formData.instagram} 
-                        color="#E1306C" 
-                        isConnected
-                    />
-                    <SocialItem 
-                        icon="logo-linkedin" 
-                        label="LinkedIn" 
-                        value={formData.linkedin} 
-                        color="#0077B5" 
-                        isConnected
-                    />
+                    <View style={styles.inputGroup}>
+                        <View style={styles.inputLabelRow}>
+                            <Ionicons name="logo-instagram" size={16} color="#E1306C" />
+                            <Text style={styles.inputLabel}>Instagram Username</Text>
+                        </View>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="@username"
+                            placeholderTextColor="#64748b"
+                            value={formData.instagram}
+                            onChangeText={t => setFormData({...formData, instagram: t})}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <View style={styles.inputLabelRow}>
+                            <Ionicons name="logo-linkedin" size={16} color="#0077B5" />
+                            <Text style={styles.inputLabel}>LinkedIn Profile URL</Text>
+                        </View>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="linkedin.com/in/username"
+                            placeholderTextColor="#64748b"
+                            value={formData.linkedin}
+                            onChangeText={t => setFormData({...formData, linkedin: t})}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <View style={styles.inputLabelRow}>
+                            <Ionicons name="globe-outline" size={16} color="#6366f1" />
+                            <Text style={styles.inputLabel}>Website</Text>
+                        </View>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="https://yourwebsite.com"
+                            placeholderTextColor="#64748b"
+                            value={formData.website}
+                            onChangeText={t => setFormData({...formData, website: t})}
+                        />
+                    </View>
                     
                     <TouchableOpacity style={styles.connectMoreBtn}>
                         <View style={styles.plusIcon}>
