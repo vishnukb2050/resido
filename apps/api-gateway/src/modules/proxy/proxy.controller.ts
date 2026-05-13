@@ -66,6 +66,7 @@ export class ProxyController {
         }
 
         try {
+            console.log(`[Proxy] Forwarding ${req.method} ${path} to ${targetUrl}`);
             const response = await lastValueFrom(
                 this.httpService.request({
                     method: req.method,
@@ -75,15 +76,22 @@ export class ProxyController {
                     params: req.query,
                     maxContentLength: Infinity,
                     maxBodyLength: Infinity,
+                    timeout: 30000, // 30s timeout
                 }),
             );
 
             res.status(response.status).set(response.headers).send(response.data);
         } catch (err: any) {
+            console.error(`[Proxy Error] ${req.method} ${path}:`, err.message);
             if (err.response) {
                 res.status(err.response.status).set(err.response.headers).send(err.response.data);
             } else {
-                res.status(500).json({ message: 'Internal Gateway Error', error: err.message });
+                res.status(502).json({ 
+                    message: 'Internal Gateway Error', 
+                    error: err.message,
+                    target: targetUrl,
+                    hint: 'The target service might be down or unreachable.'
+                });
             }
         }
     }

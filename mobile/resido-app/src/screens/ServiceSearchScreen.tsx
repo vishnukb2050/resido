@@ -6,7 +6,7 @@ import {
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Modal } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import BottomNav from '../components/BottomNav';
 import { authApi } from '../services/api';
@@ -190,11 +190,11 @@ export default function ServiceSearchScreen() {
                             onChangeText={setSearchQuery}
                         />
                         <TouchableOpacity style={styles.nearMeBtn} onPress={handleNearMe}>
-                            <Ionicons name="navigate" size={18} color="#6366f1" />
+                            <MaterialCommunityIcons name="google-maps" size={18} color="#6366f1" />
                             <Text style={styles.nearMeText}>Near Me</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.filterBtn} onPress={() => setViewMode(viewMode === 'LIST' ? 'MAP' : 'LIST')}>
-                            <Ionicons name={viewMode === 'LIST' ? "map-outline" : "list-outline"} size={20} color="#64748b" />
+                            <Ionicons name={viewMode === 'LIST' ? "map" : "list-outline"} size={20} color="#64748b" />
                         </TouchableOpacity>
                     </View>
                     
@@ -332,15 +332,15 @@ export default function ServiceSearchScreen() {
                     <View style={styles.mapViewContainer}>
                         <MapView
                             style={styles.map}
-                            provider={null}
+                            provider={PROVIDER_DEFAULT}
                             initialRegion={{
                                 latitude: userLocation?.latitude || 20.5937,
                                 longitude: userLocation?.longitude || 78.9629,
-                                latitudeDelta: 0.5,
-                                longitudeDelta: 0.5,
+                                latitudeDelta: 0.1,
+                                longitudeDelta: 0.1,
                             }}
                         >
-                            <MapView.UrlTile
+                            <UrlTile
                                 urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                 shouldReplaceMapContent={true}
                             />

@@ -92,7 +92,7 @@ export class ProfileService implements OnModuleInit {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
-                age: data.age ? parseInt(data.age) : undefined,
+                age: data.age && !isNaN(parseInt(data.age)) ? parseInt(data.age) : undefined,
                 description: data.description,
                 profilePhoto: profilePhotoUrl,
                 profileName: data.profileName,

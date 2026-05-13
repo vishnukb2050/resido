@@ -539,19 +539,13 @@ export default function CreateBusinessProfileScreen() {
             <View style={styles.mapContainer}>
                 <MapView
                     style={StyleSheet.absoluteFill}
-                    provider={PROVIDER_DEFAULT} // Explicitly use default provider
+                    provider={PROVIDER_DEFAULT}
                     initialRegion={{
                         latitude: formData.latitude || 20.5937,
                         longitude: formData.longitude || 78.9629,
                         latitudeDelta: 0.1,
                         longitudeDelta: 0.1,
                     }}
-                    region={formData.latitude ? {
-                        latitude: formData.latitude,
-                        longitude: formData.longitude,
-                        latitudeDelta: 0.1,
-                        longitudeDelta: 0.1,
-                    } : undefined}
                     onPress={(e: any) => {
                         const { latitude, longitude } = e.nativeEvent.coordinate;
                         setFormData({ ...formData, latitude, longitude });
@@ -561,7 +555,7 @@ export default function CreateBusinessProfileScreen() {
                         urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         shouldReplaceMapContent={true}
                     />
-                    {formData.latitude !== 0 && (
+                    {formData.latitude !== 0 && formData.latitude !== null && (
                         <>
                             <Marker coordinate={{ latitude: formData.latitude, longitude: formData.longitude }} />
                             <Circle 

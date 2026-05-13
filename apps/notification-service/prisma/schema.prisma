@@ -16,9 +16,17 @@ model User {
   email       String?  @unique
   password    String?
   name        String?
+  age         Int?
+  description String?
+  profilePhoto String?
   role        Role     @default(RESIDENT)
-  isActive    Boolean  @default(true)
+  profileName String?  @unique
+  instagram    String?
+  linkedin     String?
+  website      String?
+  location     String?
   fcmToken    String?
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
