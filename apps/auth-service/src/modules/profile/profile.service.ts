@@ -1,13 +1,69 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
-export class ProfileService {
+export class ProfileService implements OnModuleInit {
+    private readonly logger = new Logger(ProfileService.name);
+
     constructor(
         private prisma: PrismaService,
         private storageService: StorageService
     ) {}
+
+    async onModuleInit() {
+        // Run ingestion in background to not block startup
+        this.seedLocations();
+    }
+
+    private async seedLocations() {
+        const count = await this.prisma.userRead.locationMaster.count();
+        if (count > 0) {
+            this.logger.log('📍 Location database already populated.');
+            return;
+        }
+
+        this.logger.log('📍 Starting automatic location ingestion...');
+        try {
+            const filePath = path.join(__dirname, '../../assets/pincodes.json');
+            if (!fs.existsSync(filePath)) {
+                this.logger.warn('⚠️ Location asset file not found at ' + filePath);
+                return;
+            }
+
+            const rawData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            if (!Array.isArray(rawData)) return;
+
+            this.logger.log(`📥 Processing ${rawData.length} locations...`);
+            
+            const BATCH_SIZE = 5000;
+            for (let i = 0; i < rawData.length; i += BATCH_SIZE) {
+                const batch = rawData.slice(i, i + BATCH_SIZE);
+                const data = batch.map((item: any) => {
+                    const placeName = item.officename.replace(/ B\.O| S\.O| H\.O/g, '').trim();
+                    const pincode = String(item.pincode);
+                    return {
+                        placeName,
+                        pincode,
+                        district: item.Districtname,
+                        state: item.statename,
+                        searchStr: `${placeName} ${pincode} ${item.Districtname} ${item.statename}`.toLowerCase()
+                    };
+                });
+
+                await this.prisma.userClient.locationMaster.createMany({
+                    data,
+                    skipDuplicates: true
+                });
+                this.logger.log(`✅ Ingested ${i + data.length}/${rawData.length}...`);
+            }
+            this.logger.log('🎉 Location database ingestion complete!');
+        } catch (error) {
+            this.logger.error('❌ Failed to seed locations:', error);
+        }
+    }
 
     async updateProfile(userId: string, data: any, file?: any) {
         let profilePhotoUrl = data.profilePhoto;
@@ -92,26 +148,72 @@ export class ProfileService {
         });
     }
 
-    async searchServices(category: string, location: string) {
-        // Simple search by pincode or city or district or state
+    async searchServices(category: string, locationData: { pincode?: string; district?: string; state?: string }) {
+        const { pincode, district, state } = locationData;
+
+        // Smart Visibility Intersection:
+        // We match providers who serve the user's specific location
         return this.prisma.userRead.jobProfile.findMany({
             where: {
                 category: category,
+                isActive: true,
                 OR: [
-                    { pincode: location },
-                    { city: { contains: location, mode: 'insensitive' } },
-                    { district: { contains: location, mode: 'insensitive' } },
-                    { state: { contains: location, mode: 'insensitive' } }
-                ],
-                isActive: true
+                    // Case 1: Provider serves this specific pincode
+                    { 
+                        serviceAreaType: 'PINCODE',
+                        serviceAreaValues: { has: pincode }
+                    },
+                    // Case 2: Provider serves this district
+                    {
+                        serviceAreaType: 'DISTRICT',
+                        serviceAreaValues: { has: district }
+                    },
+                    // Case 3: Provider serves this state
+                    {
+                        serviceAreaType: 'STATE',
+                        serviceAreaValues: { has: state }
+                    },
+                    // Case 4: Provider is PAN_INDIA
+                    {
+                        serviceAreaType: 'PAN_INDIA'
+                    },
+                    // Fallback: Legacy match (if no serviceAreaType is set)
+                    {
+                        OR: [
+                            { pincode: pincode },
+                            { district: { contains: district, mode: 'insensitive' } }
+                        ]
+                    }
+                ]
             },
             include: {
                 user: {
                     select: {
                         name: true,
-                        phone: true
+                        phone: true,
+                        profilePhoto: true
                     }
                 }
+            },
+            orderBy: [
+                { serviceAreaType: 'asc' }, // Prioritize PINCODE over DISTRICT over STATE
+                { createdAt: 'desc' }
+            ]
+        });
+    }
+
+    async searchLocations(query: string) {
+        if (!query || query.length < 2) return [];
+
+        return this.prisma.userRead.locationMaster.findMany({
+            where: {
+                searchStr: {
+                    contains: query.toLowerCase()
+                }
+            },
+            take: 10,
+            orderBy: {
+                placeName: 'asc'
             }
         });
     }

@@ -5,9 +5,9 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { businessApi } from '../services/api';
-import { ActivityIndicator, Alert } from 'react-native';
+import { ActivityIndicator, Alert, Modal } from 'react-native';
 import BottomNav from '../components/BottomNav';
+import { authApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -69,12 +69,41 @@ export default function ServiceSearchScreen() {
     const [activeCat, setActiveCat] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchLocation, setSearchLocation] = useState('');
+    const [locationResults, setLocationResults] = useState<any[]>([]);
+    const [selectedLocation, setSelectedLocation] = useState<{ pincode?: string; district?: string; state?: string } | null>(null);
+    const [showLocDropdown, setShowLocDropdown] = useState(false);
     const [profiles, setProfiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     React.useEffect(() => {
         fetchProfiles();
-    }, [activeCat, searchLocation]);
+    }, [activeCat, selectedLocation]);
+
+    const handleLocationSearch = async (text: string) => {
+        setSearchLocation(text);
+        if (text.length > 2) {
+            try {
+                const { data } = await authApi.searchLocations(text);
+                setLocationResults(data);
+                setShowLocDropdown(true);
+            } catch (error) {
+                console.error('Location search failed', error);
+            }
+        } else {
+            setLocationResults([]);
+            setShowLocDropdown(false);
+        }
+    };
+
+    const onSelectLocation = (loc: any) => {
+        setSearchLocation(`${loc.placeName} (${loc.pincode})`);
+        setSelectedLocation({
+            pincode: loc.pincode,
+            district: loc.district,
+            state: loc.state
+        });
+        setShowLocDropdown(false);
+    };
 
     const fetchProfiles = async () => {
         setLoading(true);
@@ -84,10 +113,14 @@ export default function ServiceSearchScreen() {
                 const cat = CATEGORIES.find(c => c.id === activeCat);
                 if (cat) params.category = cat.name;
             }
-            if (searchLocation) {
-                params.location = searchLocation;
+            
+            if (selectedLocation) {
+                params.pincode = selectedLocation.pincode;
+                params.district = selectedLocation.district;
+                params.state = selectedLocation.state;
             }
-            const { data } = await businessApi.getProfiles(params);
+
+            const { data } = await authApi.searchServiceProfiles(params);
             setProfiles(data);
         } catch (error) {
             console.error('Failed to fetch profiles', error);
@@ -129,15 +162,52 @@ export default function ServiceSearchScreen() {
                         </TouchableOpacity>
                     </View>
                     
-                    <View style={[styles.searchBar, { marginTop: 12, height: 48 }]}>
-                        <Ionicons name="location" size={18} color="#6366f1" />
-                        <TextInput 
-                            placeholder="Search by area/location..." 
-                            style={styles.searchInput}
-                            placeholderTextColor="#94a3b8"
-                            value={searchLocation}
-                            onChangeText={setSearchLocation}
-                        />
+                    <View style={{ zIndex: 100 }}>
+                        <View style={[styles.searchBar, { marginTop: 12, height: 48 }]}>
+                            <Ionicons name="location" size={18} color="#6366f1" />
+                            <TextInput 
+                                placeholder="Search by area/location..." 
+                                style={styles.searchInput}
+                                placeholderTextColor="#94a3b8"
+                                value={searchLocation}
+                                onChangeText={handleLocationSearch}
+                                onBlur={() => setTimeout(() => setShowLocDropdown(false), 200)}
+                            />
+                            {searchLocation.length > 0 && (
+                                <TouchableOpacity onPress={() => {
+                                    setSearchLocation('');
+                                    setSelectedLocation(null);
+                                }}>
+                                    <Ionicons name="close-circle" size={18} color="#cbd5e1" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {showLocDropdown && locationResults.length > 0 && (
+                            <View style={styles.dropdown}>
+                                {locationResults.map((loc, idx) => (
+                                    <TouchableOpacity 
+                                        key={idx} 
+                                        style={styles.dropdownItem}
+                                        onPress={() => onSelectLocation(loc)}
+                                    >
+                                        <Ionicons name="location-outline" size={16} color="#64748b" />
+                                        <View style={{ marginLeft: 10 }}>
+                                            <Text style={styles.dropdownPlace}>{loc.placeName} ({loc.pincode})</Text>
+                                            <Text style={styles.dropdownSub}>{loc.district}, {loc.state}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                        
+                        {showLocDropdown && searchLocation.length > 2 && locationResults.length === 0 && (
+                            <View style={styles.dropdown}>
+                                <View style={styles.noResultItem}>
+                                    <Text style={styles.noResultText}>No location found. Please enter pincode.</Text>
+                                </View>
+                            </View>
+                        )}
                     </View>
                 </View>
 
@@ -377,4 +447,48 @@ const styles = StyleSheet.create({
     postJobSubtitle: { fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 18 },
     postJobBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
     postJobBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+
+    dropdown: {
+        position: 'absolute',
+        top: 60,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 10,
+        zIndex: 1000,
+        padding: 8
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f8fafc'
+    },
+    dropdownPlace: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1e293b'
+    },
+    dropdownSub: {
+        fontSize: 11,
+        color: '#64748b',
+        marginTop: 1
+    },
+    noResultItem: {
+        padding: 15,
+        alignItems: 'center'
+    },
+    noResultText: {
+        fontSize: 12,
+        color: '#94a3b8',
+        fontStyle: 'italic'
+    }
 });

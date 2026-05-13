@@ -33,9 +33,16 @@ export class ProfileController {
     @Get('search')
     async searchServices(
         @Query('category') category: string,
-        @Query('location') location: string,
+        @Query('pincode') pincode?: string,
+        @Query('district') district?: string,
+        @Query('state') state?: string,
     ) {
-        return this.profileService.searchServices(category, location);
+        return this.profileService.searchServices(category, { pincode, district, state });
+    }
+
+    @Get('locations/search')
+    async searchLocations(@Query('query') query: string) {
+        return this.profileService.searchLocations(query);
     }
 
     @UseGuards(JwtAuthGuard)

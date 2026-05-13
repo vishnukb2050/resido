@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
-import { businessApi } from '../services/api';
+import { businessApi, authApi } from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get('window');
@@ -50,7 +50,9 @@ export default function CreateBusinessProfileScreen() {
         fullAddress: '',
         latitude: 0,
         longitude: 0,
-        serviceAreaType: 'AT_LOCATION', // AT_LOCATION, CUSTOMER_LOCATION, SPECIFIC_AREAS
+        serviceAreaType: 'PINCODE', // PINCODE, DISTRICT, STATE, PAN_INDIA
+        serviceAreaValues: [] as string[],
+        baseLocation: null as any,
         
         // Services
         services: [] as any[],
@@ -83,6 +85,49 @@ export default function CreateBusinessProfileScreen() {
         } finally {
             setInitialLoading(false);
         }
+    };
+
+    // Location Search Logic
+    const [locQuery, setLocQuery] = useState('');
+    const [locResults, setLocResults] = useState<any[]>([]);
+    const [showLocDropdown, setShowLocDropdown] = useState(false);
+
+    const handleLocSearch = async (text: string) => {
+        setLocQuery(text);
+        if (text.length > 2) {
+            try {
+                const { data } = await authApi.searchLocations(text);
+                setLocResults(data);
+                setShowLocDropdown(true);
+            } catch (error) {
+                console.error(error);
+            }
+        } else {
+            setShowLocDropdown(false);
+        }
+    };
+
+    const addServiceArea = (loc: any) => {
+        let value = '';
+        if (formData.serviceAreaType === 'PINCODE') value = loc.pincode;
+        else if (formData.serviceAreaType === 'DISTRICT') value = loc.district;
+        else if (formData.serviceAreaType === 'STATE') value = loc.state;
+
+        if (value && !formData.serviceAreaValues.includes(value)) {
+            setFormData({
+                ...formData,
+                serviceAreaValues: [...formData.serviceAreaValues, value]
+            });
+        }
+        setLocQuery('');
+        setShowLocDropdown(false);
+    };
+
+    const removeServiceArea = (val: string) => {
+        setFormData({
+            ...formData,
+            serviceAreaValues: formData.serviceAreaValues.filter(v => v !== val)
+        });
     };
 
     const nextStep = () => setStep(Math.min(step + 1, 4));
@@ -378,66 +423,97 @@ export default function CreateBusinessProfileScreen() {
             <Text style={styles.sectionTitle}>Set Your Business Location</Text>
             <Text style={styles.subText}>Help customers find and contact your business easily by updating your accurate location.</Text>
 
-            <View style={styles.searchRow}>
+            <Text style={styles.label}>Business Base Location</Text>
+            <View style={{ zIndex: 100 }}>
                 <View style={styles.searchBox}>
-                    <Ionicons name="search" size={20} color="#94a3b8" />
+                    <Ionicons name="location" size={20} color="#94a3b8" />
                     <TextInput 
                         style={styles.searchInput} 
-                        placeholder="Search for area, street, landmark..." 
+                        placeholder="Search your office/shop location..." 
                         placeholderTextColor="#94a3b8"
+                        value={locQuery}
+                        onChangeText={handleLocSearch}
                     />
                 </View>
-                <TouchableOpacity style={styles.locationBtn}>
-                    <MaterialCommunityIcons name="target" size={20} color="#fff" />
-                    <Text style={styles.locationBtnText}>Use My Location</Text>
-                </TouchableOpacity>
+                {showLocDropdown && (
+                    <View style={styles.dropdown}>
+                        {locResults.map((loc, idx) => (
+                            <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => {
+                                setFormData({ ...formData, baseLocation: loc, area: loc.placeName, location: loc.pincode });
+                                setLocQuery(`${loc.placeName} (${loc.pincode})`);
+                                setShowLocDropdown(false);
+                            }}>
+                                <Text style={styles.dropdownText}>{loc.placeName}, {loc.district} ({loc.pincode})</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </View>
 
-            <View style={styles.mapContainer}>
-                <Image source={{ uri: 'https://maps.googleapis.com/maps/api/staticmap?center=40.7128,-74.0060&zoom=14&size=600x300&key=YOUR_KEY' }} style={styles.mapImage} />
-                <View style={styles.mapOverlay}>
-                    <Ionicons name="location" size={32} color="#6366f1" />
-                    <View style={styles.mapCircle} />
-                </View>
-                <View style={styles.mapControls}>
-                    <TouchableOpacity style={styles.zoomBtn}><Ionicons name="add" size={20} color="#64748b" /></TouchableOpacity>
-                    <View style={styles.zoomLine} />
-                    <TouchableOpacity style={styles.zoomBtn}><Ionicons name="remove" size={20} color="#64748b" /></TouchableOpacity>
-                </View>
-            </View>
-
-            <Text style={styles.label}>Selected Location</Text>
-            <View style={styles.selectedLocCard}>
-                <View style={styles.locIconBox}><Ionicons name="location" size={20} color="#6366f1" /></View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.locTitle}>Greenwoods, Block A, Unit 1203</Text>
-                    <Text style={styles.locSub}>Greenwoods Community, Nairobi, Kenya</Text>
-                </View>
-                <TouchableOpacity><Text style={styles.editText}>Edit</Text><Feather name="edit-2" size={14} color="#6366f1" /></TouchableOpacity>
-            </View>
-
-            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Service Area</Text>
-            <Text style={styles.subText}>Choose how you want to serve your customers.</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Service Reach (Operational Area)</Text>
+            <Text style={styles.subText}>Define where you provide your services. Customers in these areas will see your profile.</Text>
             
-            {['Serve at this location', "Serve at customer's location", 'Serve in specific areas'].map(opt => (
-                <TouchableOpacity key={opt} style={styles.serviceAreaCard}>
-                    <View style={[styles.radioCircle, opt === 'Serve at this location' && styles.radioCircleActive]}>
-                        {opt === 'Serve at this location' && <View style={styles.radioInner} />}
+            <View style={styles.reachTabs}>
+                {['PINCODE', 'DISTRICT', 'STATE', 'PAN_INDIA'].map(type => (
+                    <TouchableOpacity 
+                        key={type} 
+                        style={[styles.reachTab, formData.serviceAreaType === type && styles.reachTabActive]}
+                        onPress={() => setFormData({ ...formData, serviceAreaType: type, serviceAreaValues: [] })}
+                    >
+                        <Text style={[styles.reachTabText, formData.serviceAreaType === type && styles.reachTabTextActive]}>{type.replace('_', ' ')}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+            {formData.serviceAreaType !== 'PAN_INDIA' && (
+                <View style={{ marginTop: 16 }}>
+                    <Text style={styles.label}>Add {formData.serviceAreaType.toLowerCase()}s</Text>
+                    <View style={styles.searchBox}>
+                        <TextInput 
+                            style={styles.searchInput} 
+                            placeholder={`Search ${formData.serviceAreaType.toLowerCase()} to add...`}
+                            onChangeText={handleLocSearch}
+                        />
+                        <TouchableOpacity style={{ padding: 8 }} onPress={() => {
+                            if (locResults.length > 0) addServiceArea(locResults[0]);
+                        }}>
+                            <Ionicons name="add" size={24} color="#6366f1" />
+                        </TouchableOpacity>
                     </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.serviceAreaTitle}>{opt}</Text>
-                        <Text style={styles.serviceAreaSub}>
-                            {opt === 'Serve at this location' ? 'Customers will visit my business location' : 
-                             opt === "Serve at customer's location" ? 'I will travel to customer locations' : 
-                             'Select areas where you provide services'}
-                        </Text>
+                    
+                    {showLocDropdown && (
+                        <View style={styles.dropdown}>
+                            {locResults.map((loc, idx) => (
+                                <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => addServiceArea(loc)}>
+                                    <Text style={styles.dropdownText}>{loc.placeName}, {loc.district} ({loc.pincode})</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+
+                    <View style={styles.chipContainer}>
+                        {formData.serviceAreaValues.map(val => (
+                            <View key={val} style={styles.chip}>
+                                <Text style={styles.chipText}>{val}</Text>
+                                <TouchableOpacity onPress={() => removeServiceArea(val)}>
+                                    <Ionicons name="close-circle" size={16} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
                     </View>
-                </TouchableOpacity>
-            ))}
+                </View>
+            )}
+
+            {formData.serviceAreaType === 'PAN_INDIA' && (
+                <View style={styles.infoBox}>
+                    <Ionicons name="globe-outline" size={20} color="#6366f1" />
+                    <Text style={styles.infoText}>Your profile will be visible to users across all of India.</Text>
+                </View>
+            )}
 
             <View style={styles.tipBox}>
                 <Ionicons name="information-circle-outline" size={20} color="#6366f1" />
-                <Text style={styles.tipText}>Tip: Keeping your location accurate helps customers find you faster and builds trust.</Text>
+                <Text style={styles.tipText}>Tip: Precise service areas help you get more relevant leads from your neighborhood.</Text>
             </View>
         </View>
     );
@@ -696,4 +772,21 @@ const styles = StyleSheet.create({
     modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '85%', padding: 24 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     modalTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+
+    dropdown: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, marginTop: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+    dropdownItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    dropdownText: { color: '#fff', fontSize: 14 },
+
+    reachTabs: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4 },
+    reachTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+    reachTabActive: { backgroundColor: '#6366f1' },
+    reachTabText: { fontSize: 11, fontWeight: '700', color: '#94a3b8' },
+    reachTabTextActive: { color: '#fff' },
+
+    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#6366f1', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
+    chipText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+    infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(99, 102, 241, 0.05)', padding: 16, borderRadius: 12, marginTop: 16, gap: 12 },
+    infoText: { flex: 1, fontSize: 13, color: '#6366f1' },
 });

@@ -28,16 +28,35 @@ export class BusinessService {
         });
     }
 
-    async listProfiles(tenantId?: string, category?: string, location?: string) {
+    async listProfiles(params: { category?: string, pincode?: string, district?: string, state?: string, tenantId?: string }) {
+        const { category, pincode, district, state, tenantId } = params;
+
         return this.prisma.businessProfile.findMany({
             where: {
                 tenantId: tenantId || undefined,
                 category: category || undefined,
-                OR: location ? [
-                    { location: { contains: location, mode: 'insensitive' } },
-                    { area: { contains: location, mode: 'insensitive' } }
-                ] : undefined,
-                isActive: true
+                isActive: true,
+                OR: [
+                    // Tier 1: Pan India reach
+                    { serviceAreaType: 'PAN_INDIA' },
+                    // Tier 2: State reach
+                    state ? {
+                        serviceAreaType: 'STATE',
+                        serviceAreaValues: { has: state }
+                    } : {},
+                    // Tier 3: District reach
+                    district ? {
+                        serviceAreaType: 'DISTRICT',
+                        serviceAreaValues: { has: district }
+                    } : {},
+                    // Tier 4: Pincode reach
+                    pincode ? {
+                        serviceAreaType: 'PINCODE',
+                        serviceAreaValues: { has: pincode }
+                    } : {},
+                    // Legacy/Exact match
+                    pincode ? { location: pincode } : {}
+                ].filter(condition => Object.keys(condition).length > 0)
             },
             include: { services: true },
             orderBy: { createdAt: 'desc' }
