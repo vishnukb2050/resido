@@ -5,8 +5,13 @@ interface CreateMessageDto {
     conversationId: string;
     senderId: string;
     content?: string;
-    type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'FILE' | 'AUDIO';
+    type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'FILE' | 'AUDIO' | 'POLL';
     mediaUrl?: string;
+    poll?: {
+        question: string;
+        options: string[];
+        durationDays?: number;
+    }
 }
 
 @Injectable()
@@ -52,6 +57,21 @@ export class ChatService {
 
     async createMessage(dbName: string, dto: CreateMessageDto) {
         const prisma = this.tenantPrisma.getWriteClient(dbName);
+        
+        let pollId = undefined;
+        if (dto.type === 'POLL' && dto.poll) {
+            const poll = await prisma.poll.create({
+                data: {
+                    question: dto.poll.question,
+                    expiresAt: new Date(Date.now() + (dto.poll.durationDays || 7) * 24 * 60 * 60 * 1000),
+                    options: {
+                        create: dto.poll.options.map(text => ({ text }))
+                    }
+                }
+            });
+            pollId = poll.id;
+        }
+
         return prisma.message.create({
             data: {
                 conversationId: dto.conversationId,
@@ -59,14 +79,61 @@ export class ChatService {
                 content: dto.content,
                 type: dto.type,
                 mediaUrl: dto.mediaUrl,
+                pollId
             },
+            include: {
+                poll: {
+                    include: {
+                        options: {
+                            include: {
+                                _count: { select: { votes: true } }
+                            }
+                        }
+                    }
+                }
+            }
         });
     }
 
-    async getMessages(dbName: string, conversationId: string, skip = 0, take = 50) {
+    async votePoll(dbName: string, pollId: string, optionId: string, userId: string) {
+        const prisma = this.tenantPrisma.getWriteClient(dbName);
+        
+        // Check if already voted
+        const existing = await prisma.pollVote.findFirst({
+            where: { pollId, userId }
+        });
+
+        if (existing) {
+            throw new Error('Already voted in this poll');
+        }
+
+        return prisma.pollVote.create({
+            data: {
+                pollId,
+                optionId,
+                userId
+            }
+        });
+    }
+
+    async getMessages(dbName: string, conversationId: string, skip = 0, take = 50, userId?: string) {
         const prisma = this.tenantPrisma.getReadClient(dbName);
         return prisma.message.findMany({
             where: { conversationId, isDeleted: false },
+            include: {
+                poll: {
+                    include: {
+                        options: {
+                            include: {
+                                _count: { select: { votes: true } }
+                            }
+                        },
+                        votes: userId ? {
+                            where: { userId }
+                        } : false
+                    }
+                }
+            },
             orderBy: { createdAt: 'asc' },
             skip,
             take,

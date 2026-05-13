@@ -41,12 +41,49 @@ model Message {
   type           MessageType  @default(TEXT)
   content        String?
   mediaUrl       String?      // S3 key
+  pollId         String?      // Reference to a poll
+  poll           Poll?        @relation(fields: [pollId], references: [id])
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
 
   conversation   Conversation @relation(fields: [conversationId], references: [id])
 
   @@map("messages")
+}
+
+model Poll {
+  id          String   @id @default(cuid())
+  question    String
+  options     PollOption[]
+  votes       PollVote[]
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  messages    Message[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id          String   @id @default(cuid())
+  pollId      String
+  poll        Poll     @relation(fields: [pollId], references: [id])
+  text        String
+  votes       PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  id          String   @id @default(cuid())
+  pollId      String
+  optionId    String
+  userId      String
+  
+  poll        Poll       @relation(fields: [pollId], references: [id])
+  option      PollOption @relation(fields: [optionId], references: [id])
+
+  @@unique([pollId, userId])
+  @@map("poll_votes")
 }
 
 enum ConversationType {
@@ -60,4 +97,5 @@ enum MessageType {
   VIDEO
   FILE
   AUDIO
+  POLL
 }

@@ -28,11 +28,19 @@ export class FlareGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: { flareId: string },
     ) {
         client.join(`flare:${data.flareId}`);
-        console.log(`Client ${client.id} joined flare room: ${data.flareId}`);
         return { event: 'joined', data: data.flareId };
     }
 
+    @SubscribeMessage('join_global_feed')
+    handleJoinGlobalFeed(@ConnectedSocket() client: Socket) {
+        client.join('global_feed');
+        return { event: 'joined', data: 'global_feed' };
+    }
+
     broadcastComment(flareId: string, comment: any) {
+        // Broadcast to specific room for detailed view
         this.server.to(`flare:${flareId}`).emit('new_comment', comment);
+        // Broadcast to global feed for list updates
+        this.server.to('global_feed').emit('feed_comment_update', { flareId, comment });
     }
 }

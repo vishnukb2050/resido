@@ -95,7 +95,7 @@ export class BlogsService {
         let pollId = undefined;
         
         if (data.poll) {
-            const poll = await this.prisma.client.poll.create({
+            const poll = await (this.prisma.client as any).poll.create({
                 data: {
                     tenantId,
                     question: data.poll.question,
@@ -111,28 +111,36 @@ export class BlogsService {
             pollId = poll.id;
         }
 
-        const blog = await this.prisma.client.blog.create({
-            data: { 
-                title: data.title || (data.content ? data.content.substring(0, 50) : "Untitled"),
-                content: data.content || "",
-                authorId,
-                tenantId,
-                pollId,
-                authorName: data.authorName || "Anonymous",
-                authorAvatar: data.authorAvatar,
-                location: data.location,
-                isVerified: data.isVerified || false,
-                musicName: data.musicName || "Original Audio",
-                musicId: data.musicId || null,
-                type: data.type || 'THREAD',
-                mediaUrls: data.mediaUrls || [],
-                mediaType: data.mediaType || 'IMAGE',
-                tags: data.tags || [],
-                hashtags: data.hashtags || [],
-                visibility: data.visibility || 'PUBLIC',
-                targetCommunities: data.targetCommunities || [],
-                commentsEnabled: data.commentsEnabled !== undefined ? data.commentsEnabled : true
-            }
+        const blogData: any = {
+            title: data.title || (data.content ? data.content.substring(0, 50) : "Untitled"),
+            content: data.content || "",
+            authorId,
+            authorName: data.authorName || "Anonymous",
+            authorAvatar: data.authorAvatar,
+            location: data.location,
+            isVerified: data.isVerified || false,
+            musicName: data.musicName || "Original Audio",
+            musicId: data.musicId || null,
+            type: data.type || 'THREAD',
+            mediaUrls: data.mediaUrls || [],
+            mediaType: data.mediaType || 'IMAGE',
+            tags: data.tags || [],
+            hashtags: data.hashtags || [],
+            visibility: data.visibility || 'PUBLIC',
+            targetCommunities: data.targetCommunities || [],
+            commentsEnabled: data.commentsEnabled !== undefined ? data.commentsEnabled : true
+        };
+
+        if (pollId) {
+            blogData.poll = {
+                connect: {
+                    id_tenantId: { id: pollId, tenantId }
+                }
+            };
+        }
+
+        const blog = await (this.prisma.client as any).blog.create({
+            data: blogData
         });
 
         // Notify tagged users

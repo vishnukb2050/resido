@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, SafeAreaView, Share, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, SafeAreaView, Share, ScrollView, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { threadApi } from '../services/api';
+import { threadApi, API_URL } from '../services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import { io } from 'socket.io-client';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -23,6 +24,29 @@ export default function ThreadDetailScreen() {
     useEffect(() => {
         fetchThreadDetails();
         fetchComments();
+        
+        if (!id) return;
+        const socket = io(`${API_URL}/flares`, {
+            transports: ['websocket']
+        });
+
+        socket.on('connect', () => {
+            socket.emit('join_flare', { flareId: id });
+        });
+
+        socket.on('new_comment', (comment: any) => {
+            if (comment.blogId === id) {
+                setComments(prev => {
+                    if (prev.find(c => c.id === comment.id)) return prev;
+                    return [comment, ...prev];
+                });
+                setThread((prev: any) => prev ? { ...prev, commentsCount: (prev.commentsCount || 0) + 1 } : prev);
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
     }, [id]);
 
     const fetchThreadDetails = async () => {
@@ -42,6 +66,16 @@ export default function ThreadDetailScreen() {
             console.error(e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleVote = async (pollId: string, optionId: string) => {
+        try {
+            await threadApi.votePoll(pollId, optionId);
+            fetchThreadDetails(); // Refresh to get updated vote counts
+        } catch (e) {
+            console.error(e);
+            Alert.alert('Error', 'Failed to submit vote');
         }
     };
 
@@ -139,6 +173,34 @@ export default function ThreadDetailScreen() {
                             {thread.mediaUrls && thread.mediaUrls.map((url: string, i: number) => (
                                 <Image key={i} source={{ uri: url }} style={styles.media} resizeMode="cover" />
                             ))}
+
+                            {thread.poll && (
+                                <View style={styles.pollContainer}>
+                                    <Text style={styles.pollQuestion}>{thread.poll.question}</Text>
+                                    {thread.poll.options.map((opt: any) => {
+                                        const totalVotes = thread.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
+                                        const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
+                                        const hasVoted = thread.poll.votes && thread.poll.votes.length > 0;
+                                        const isSelected = thread.poll.votes && thread.poll.votes[0]?.optionId === opt.id;
+
+                                        return (
+                                            <TouchableOpacity 
+                                                key={opt.id} 
+                                                style={[styles.pollOption, isSelected && styles.pollOptionSelected]}
+                                                onPress={() => handleVote(thread.poll.id, opt.id)}
+                                                disabled={hasVoted}
+                                            >
+                                                <View style={[styles.pollProgress, { width: `${percentage}%` }]} />
+                                                <Text style={[styles.pollOptionText, isSelected && styles.pollOptionTextSelected]}>{opt.text}</Text>
+                                                {hasVoted && <Text style={styles.pollPercentage}>{percentage}%</Text>}
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                    <Text style={styles.pollMeta}>
+                                        {thread.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0)} votes • {dayjs(thread.poll.expiresAt).isBefore(dayjs()) ? 'Ended' : `Ends ${dayjs(thread.poll.expiresAt).fromNow()}`}
+                                    </Text>
+                                </View>
+                            )}
 
                             <View style={styles.statsRow}>
                                 <TouchableOpacity style={styles.statItem} onPress={handleLike}>
@@ -259,4 +321,15 @@ const styles = StyleSheet.create({
     errorText: { fontSize: 16, color: '#94a3b8' },
     backBtn: { marginTop: 20, backgroundColor: '#6366f1', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
     backBtnText: { color: '#fff', fontWeight: '800' },
+
+    // Poll Styles
+    pollContainer: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 16, marginVertical: 15, borderWidth: 1, borderColor: '#f1f5f9' },
+    pollQuestion: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 15 },
+    pollOption: { backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    pollOptionSelected: { borderColor: '#6366f1', backgroundColor: '#f5f3ff' },
+    pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#6366f115' },
+    pollOptionText: { fontSize: 14, fontWeight: '700', color: '#475569', zIndex: 1 },
+    pollOptionTextSelected: { color: '#6366f1' },
+    pollPercentage: { fontSize: 13, fontWeight: '800', color: '#6366f1', zIndex: 1 },
+    pollMeta: { fontSize: 12, color: '#94a3b8', marginTop: 5, fontWeight: '600' },
 });

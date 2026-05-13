@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, SafeAreaView, Dimensions, StatusBar, Share, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { threadApi, authApi } from '../services/api';
+import { threadApi, authApi, API_URL } from '../services/api';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../store/authStore';
+import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -50,6 +51,24 @@ export default function ThreadScreen() {
         if (activeTab === 'MY' || activeTab === 'FOLLOWING') {
             fetchFollowingFlares();
         }
+
+        const socket = io(`${API_URL}/flares`, {
+            transports: ['websocket']
+        });
+
+        socket.on('connect', () => {
+            socket.emit('join_global_feed');
+        });
+
+        socket.on('feed_comment_update', ({ flareId }: { flareId: string }) => {
+            setThreads(prev => prev.map(t => 
+                t.id === flareId ? { ...t, commentsCount: (t.commentsCount || 0) + 1 } : t
+            ));
+        });
+
+        return () => {
+            socket.disconnect();
+        };
     }, [activeWorkspace, activeTab, activeCategory, refresh]);
 
     const fetchInitialData = async () => {

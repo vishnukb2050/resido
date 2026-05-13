@@ -63,6 +63,7 @@ model Poll {
   createdAt   DateTime @default(now())
 
   blogs       Blog[]
+  comments    Comment[]
 
   @@unique([id, tenantId])
   @@map("polls")
@@ -105,6 +106,8 @@ model Comment {
   userAvatar String?
   content   String
   likesCount Int     @default(0)
+  pollId    String?
+  poll      Poll?    @relation(fields: [pollId, tenantId], references: [id, tenantId])
   createdAt DateTime @default(now())
 
   @@unique([id, tenantId])
