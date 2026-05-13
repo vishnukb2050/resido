@@ -2,7 +2,13 @@ const { Client } = require('pg');
 
 async function enablePostGIS(url, dbName) {
     if (!url) return;
-    const client = new Client({ connectionString: url });
+    
+    // RDS often requires SSL
+    const client = new Client({ 
+        connectionString: url,
+        ssl: url.includes('amazonaws.com') ? { rejectUnauthorized: false } : false
+    });
+
     try {
         await client.connect();
         console.log(`🐘 Enabling PostGIS on ${dbName}...`);
@@ -16,10 +22,11 @@ async function enablePostGIS(url, dbName) {
 }
 
 async function main() {
-    // Enable on User DB (for job profiles)
+    // Fallback for Geo URL
+    const geoUrl = process.env.GEO_WRITE_URL || `${process.env.RDS_WRITE_URL}/resido_geodata?schema=public`;
+
     await enablePostGIS(process.env.USER_WRITE_URL, 'User DB');
-    // Enable on Geo DB (for future spatial indexing)
-    await enablePostGIS(process.env.GEO_WRITE_URL, 'Geo DB');
+    await enablePostGIS(geoUrl, 'Geo DB');
 }
 
 main();

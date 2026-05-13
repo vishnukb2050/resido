@@ -36,11 +36,16 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         this.coreRead = new CoreClient({
             datasources: { db: { url: config.get('CORE_READ_URL') } },
         });
+
+        // Fallback for GEO URLs if they are missing from env
+        const geoWriteUrl = config.get('GEO_WRITE_URL') || `${config.get('RDS_WRITE_URL')}/resido_geodata?schema=public`;
+        const geoReadUrl = config.get('GEO_READ_URL') || `${config.get('RDS_READ_URL')}/resido_geodata?schema=public`;
+
         this.geoClient = new GeoClient({
-            datasources: { db: { url: config.get('GEO_WRITE_URL') } },
+            datasources: { db: { url: geoWriteUrl } },
         });
         this.geoRead = new GeoClient({
-            datasources: { db: { url: config.get('GEO_READ_URL') } },
+            datasources: { db: { url: geoReadUrl } },
         });
     }
 
