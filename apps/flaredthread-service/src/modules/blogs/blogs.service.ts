@@ -321,13 +321,13 @@ export class BlogsService {
     }
 
     async toggleSave(blogId: string, userId: string, tenantId: string) {
-        const existing = await (this.prisma.reader as any).interaction.findFirst({
+        const existing = await (this.prisma.reader as any).blogInteraction.findFirst({
             where: { blogId, userId, type: 'SAVE', tenantId }
         });
 
         if (existing) {
             await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.delete({ 
+                (this.prisma.client as any).blogInteraction.delete({ 
                     where: { 
                         id_tenantId: { id: existing.id, tenantId } 
                     } 
@@ -337,7 +337,7 @@ export class BlogsService {
             return { saved: false };
         } else {
             await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.create({ 
+                (this.prisma.client as any).blogInteraction.create({ 
                     data: { blogId, userId, type: 'SAVE', tenantId } 
                 }),
                 (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { savesCount: { increment: 1 } } })
@@ -366,7 +366,7 @@ export class BlogsService {
             // UN-RESHARE: Delete the reshare, delete interaction, and decrement count
             await Promise.all([
                 (this.prisma.client as any).blog.delete({ where: { id: existing.id } }),
-                (this.prisma.client as any).interaction.deleteMany({
+                (this.prisma.client as any).blogInteraction.deleteMany({
                     where: {
                         blogId: blogId,
                         userId: userId,
@@ -405,7 +405,7 @@ export class BlogsService {
             // 2. Track interaction and increment count
             try {
                 await (this.prisma.client as any).$transaction([
-                    (this.prisma.client as any).interaction.create({
+                    (this.prisma.client as any).blogInteraction.create({
                         data: {
                             blogId: blogId,
                             userId: userId,
