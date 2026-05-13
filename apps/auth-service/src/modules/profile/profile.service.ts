@@ -132,6 +132,11 @@ export class ProfileService implements OnModuleInit {
                 state: data.state,
                 expertise: data.expertise,
                 images: data.images,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                serviceRadiusKm: data.serviceRadiusKm,
+                serviceAreaType: data.serviceAreaType,
+                serviceAreaValues: data.serviceAreaValues,
                 isActive: true
             },
             create: {
@@ -143,62 +148,87 @@ export class ProfileService implements OnModuleInit {
                 district: data.district,
                 state: data.state,
                 expertise: data.expertise,
-                images: data.images
+                images: data.images,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                serviceRadiusKm: data.serviceRadiusKm,
+                serviceAreaType: data.serviceAreaType,
+                serviceAreaValues: data.serviceAreaValues
             }
         });
     }
 
-    async searchServices(category: string, locationData: { pincode?: string; district?: string; state?: string }) {
-        const { pincode, district, state } = locationData;
+    async searchServices(category: string, locationData: { pincode?: string; district?: string; state?: string; lat?: number; lng?: number; radius?: number }) {
+        const { pincode, district, state, lat, lng, radius } = locationData;
 
-        // Smart Visibility Intersection:
-        // We match providers who serve the user's specific location
-        return this.prisma.userRead.jobProfile.findMany({
-            where: {
-                category: category,
-                isActive: true,
-                OR: [
-                    // Case 1: Provider serves this specific pincode
-                    { 
-                        serviceAreaType: 'PINCODE',
-                        serviceAreaValues: { has: pincode }
-                    },
-                    // Case 2: Provider serves this district
-                    {
-                        serviceAreaType: 'DISTRICT',
-                        serviceAreaValues: { has: district }
-                    },
-                    // Case 3: Provider serves this state
-                    {
-                        serviceAreaType: 'STATE',
-                        serviceAreaValues: { has: state }
-                    },
-                    // Case 4: Provider is PAN_INDIA
-                    {
-                        serviceAreaType: 'PAN_INDIA'
-                    },
-                    // Fallback: Legacy match (if no serviceAreaType is set)
-                    {
-                        OR: [
-                            { pincode: pincode },
-                            { district: { contains: district, mode: 'insensitive' } }
-                        ]
-                    }
+        // If no lat/lng, stick to standard Prisma findMany
+        if (!lat || !lng) {
+            return this.prisma.userRead.jobProfile.findMany({
+                where: {
+                    category: category,
+                    isActive: true,
+                    OR: [
+                        { serviceAreaType: 'PINCODE', serviceAreaValues: { has: pincode } },
+                        { serviceAreaType: 'DISTRICT', serviceAreaValues: { has: district } },
+                        { serviceAreaType: 'STATE', serviceAreaValues: { has: state } },
+                        { serviceAreaType: 'PAN_INDIA' },
+                        { OR: [{ pincode: pincode }, { district: { contains: district, mode: 'insensitive' } }] }
+                    ].filter(c => c !== null) as any
+                },
+                include: {
+                    user: { select: { name: true, phone: true, profilePhoto: true } }
+                },
+                orderBy: [
+                    { serviceAreaType: 'asc' },
+                    { createdAt: 'desc' }
                 ]
-            },
+            });
+        }
+
+        // Hybrid Geospatial Query for JobProfiles
+        const profiles = await this.prisma.userRead.$queryRawUnsafe(`
+            SELECT DISTINCT j.* FROM job_profiles j
+            WHERE j."isActive" = true
+            AND j.category = '${category}'
+            AND (
+                -- Administrative Matches
+                "serviceAreaType" = 'PAN_INDIA'
+                ${state ? `OR ("serviceAreaType" = 'STATE' AND '${state}' = ANY("serviceAreaValues"))` : ''}
+                ${district ? `OR ("serviceAreaType" = 'DISTRICT' AND '${district}' = ANY("serviceAreaValues"))` : ''}
+                ${pincode ? `OR ("serviceAreaType" = 'PINCODE' AND '${pincode}' = ANY("serviceAreaValues"))` : ''}
+                
+                -- Geospatial Match: User is within Provider's configured radius
+                OR (
+                    j.latitude IS NOT NULL AND j.longitude IS NOT NULL AND j."serviceRadiusKm" IS NOT NULL
+                    AND ST_DWithin(
+                        ST_SetSRID(ST_MakePoint(j.longitude, j.latitude), 4326)::geography,
+                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+                        j."serviceRadiusKm" * 1000
+                    )
+                )
+                
+                -- Geospatial Match: Provider is within User's requested search radius
+                ${radius ? `
+                OR (
+                    j.latitude IS NOT NULL AND j.longitude IS NOT NULL
+                    AND ST_DWithin(
+                        ST_SetSRID(ST_MakePoint(j.longitude, j.latitude), 4326)::geography,
+                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+                        ${radius} * 1000
+                    )
+                )` : ''}
+            )
+            ORDER BY j."createdAt" DESC
+        `);
+
+        const ids = (profiles as any[]).map(p => p.id);
+
+        return this.prisma.userRead.jobProfile.findMany({
+            where: { id: { in: ids } },
             include: {
-                user: {
-                    select: {
-                        name: true,
-                        phone: true,
-                        profilePhoto: true
-                    }
-                }
+                user: { select: { name: true, phone: true, profilePhoto: true } }
             },
-            orderBy: [
-                { serviceAreaType: 'asc' }, // Prioritize PINCODE over DISTRICT over STATE
-                { createdAt: 'desc' }
-            ]
+            orderBy: { createdAt: 'desc' }
         });
     }
 

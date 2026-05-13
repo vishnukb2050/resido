@@ -39,6 +39,7 @@ model BusinessProfile {
   longitude       Float?
   serviceAreaType   String?  @default("PINCODE") // PINCODE, DISTRICT, STATE, PAN_INDIA
   serviceAreaValues String[] // List of pincodes, districts, or states
+  serviceRadiusKm   Int?     @default(10) // Coverage radius from lat/lng
 
   isActive        Boolean  @default(true)
   isVerified      Boolean  @default(false)

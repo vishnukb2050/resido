@@ -52,7 +52,7 @@ export const authApi = {
     getFollowing: () => api.get('/profile/following'),
     updateProfile: (data: any) => api.put('/profile/user', data),
     searchLocations: (query: string) => api.get('/profile/locations/search', { params: { query } }),
-    searchServiceProfiles: (params: { category?: string, pincode?: string, district?: string, state?: string }) => 
+    searchServiceProfiles: (params: { category?: string, pincode?: string, district?: string, state?: string, lat?: number, lng?: number, radius?: number }) => 
         api.get('/profile/search', { params }),
 };
 

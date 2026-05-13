@@ -4,6 +4,8 @@ import {
     Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
     FlatList, Modal, ActivityIndicator, Switch, Dimensions, StatusBar
 } from 'react-native';
+import MapView, { Marker, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import { businessApi, authApi } from '../services/api';
@@ -52,6 +54,7 @@ export default function CreateBusinessProfileScreen() {
         longitude: 0,
         serviceAreaType: 'PINCODE', // PINCODE, DISTRICT, STATE, PAN_INDIA
         serviceAreaValues: [] as string[],
+        serviceRadiusKm: 10,
         baseLocation: null as any,
         
         // Services
@@ -128,6 +131,25 @@ export default function CreateBusinessProfileScreen() {
             ...formData,
             serviceAreaValues: formData.serviceAreaValues.filter(v => v !== val)
         });
+    };
+    
+    const getCurrentLocation = async () => {
+        setLoading(true);
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'Please allow location access to fetch your coordinates.');
+                return;
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            const { latitude, longitude } = location.coords;
+            setFormData({ ...formData, latitude, longitude });
+        } catch (error) {
+            Alert.alert('Error', 'Failed to get current location');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const nextStep = () => setStep(Math.min(step + 1, 4));
@@ -425,15 +447,21 @@ export default function CreateBusinessProfileScreen() {
 
             <Text style={styles.label}>Business Base Location</Text>
             <View style={{ zIndex: 100 }}>
-                <View style={styles.searchBox}>
-                    <Ionicons name="location" size={20} color="#94a3b8" />
-                    <TextInput 
-                        style={styles.searchInput} 
-                        placeholder="Search your office/shop location..." 
-                        placeholderTextColor="#94a3b8"
-                        value={locQuery}
-                        onChangeText={handleLocSearch}
-                    />
+                <View style={styles.searchRow}>
+                    <View style={styles.searchBox}>
+                        <Ionicons name="location" size={20} color="#94a3b8" />
+                        <TextInput 
+                            style={styles.searchInput} 
+                            placeholder="Search your office/shop location..." 
+                            placeholderTextColor="#94a3b8"
+                            value={locQuery}
+                            onChangeText={handleLocSearch}
+                        />
+                    </View>
+                    <TouchableOpacity style={styles.locationBtn} onPress={getCurrentLocation}>
+                        <Ionicons name="navigate" size={18} color="#fff" />
+                        <Text style={styles.locationBtnText}>GPS</Text>
+                    </TouchableOpacity>
                 </View>
                 {showLocDropdown && (
                     <View style={styles.dropdown}>
@@ -448,6 +476,63 @@ export default function CreateBusinessProfileScreen() {
                         ))}
                     </View>
                 )}
+            </View>
+
+            <View style={styles.mapContainer}>
+                <MapView
+                    style={StyleSheet.absoluteFill}
+                    provider={null} // Use OSM tiles
+                    initialRegion={{
+                        latitude: formData.latitude || 20.5937,
+                        longitude: formData.longitude || 78.9629,
+                        latitudeDelta: 0.1,
+                        longitudeDelta: 0.1,
+                    }}
+                    region={formData.latitude ? {
+                        latitude: formData.latitude,
+                        longitude: formData.longitude,
+                        latitudeDelta: 0.1,
+                        longitudeDelta: 0.1,
+                    } : undefined}
+                    onPress={(e: any) => {
+                        const { latitude, longitude } = e.nativeEvent.coordinate;
+                        setFormData({ ...formData, latitude, longitude });
+                    }}
+                >
+                    <MapView.UrlTile
+                        urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        shouldReplaceMapContent={true}
+                    />
+                    {formData.latitude !== 0 && (
+                        <>
+                            <Marker coordinate={{ latitude: formData.latitude, longitude: formData.longitude }} />
+                            <Circle 
+                                center={{ latitude: formData.latitude, longitude: formData.longitude }}
+                                radius={formData.serviceRadiusKm * 1000}
+                                fillColor="rgba(99, 102, 241, 0.2)"
+                                strokeColor="#6366f1"
+                            />
+                        </>
+                    )}
+                </MapView>
+            </View>
+
+            <View style={styles.inputGroup}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.label}>Service Coverage Radius (km)</Text>
+                    <Text style={styles.radiusValueText}>{formData.serviceRadiusKm} km</Text>
+                </View>
+                <View style={styles.sliderContainer}>
+                    {[5, 10, 20, 50, 100].map(r => (
+                        <TouchableOpacity 
+                            key={r} 
+                            style={[styles.radiusChip, formData.serviceRadiusKm === r && styles.radiusChipActive]}
+                            onPress={() => setFormData({ ...formData, serviceRadiusKm: r })}
+                        >
+                            <Text style={[styles.radiusChipText, formData.serviceRadiusKm === r && styles.radiusChipTextActive]}>{r}km</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
             </View>
 
             <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Service Reach (Operational Area)</Text>
@@ -789,4 +874,10 @@ const styles = StyleSheet.create({
 
     infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(99, 102, 241, 0.05)', padding: 16, borderRadius: 12, marginTop: 16, gap: 12 },
     infoText: { flex: 1, fontSize: 13, color: '#6366f1' },
+    radiusValueText: { fontSize: 16, fontWeight: '800', color: '#6366f1' },
+    sliderContainer: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    radiusChip: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    radiusChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+    radiusChipText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
+    radiusChipTextActive: { color: '#fff' },
 });

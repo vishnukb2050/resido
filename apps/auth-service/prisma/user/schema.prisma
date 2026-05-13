@@ -58,8 +58,11 @@ model JobProfile {
   isActive    Boolean  @default(true)
   
   // New: Tiered Service Reach
+  latitude          Float?
+  longitude         Float?
   serviceAreaType   ServiceAreaType @default(PINCODE)
   serviceAreaValues String[] // List of pincodes, districts, or states
+  serviceRadiusKm   Int?            @default(10) // Coverage radius from lat/lng
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

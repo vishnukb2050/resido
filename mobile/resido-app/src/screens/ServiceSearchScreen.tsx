@@ -6,6 +6,8 @@ import {
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Modal } from 'react-native';
+import MapView, { Marker, Circle } from 'react-native-maps';
+import * as Location from 'expo-location';
 import BottomNav from '../components/BottomNav';
 import { authApi } from '../services/api';
 
@@ -74,6 +76,8 @@ export default function ServiceSearchScreen() {
     const [showLocDropdown, setShowLocDropdown] = useState(false);
     const [profiles, setProfiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [viewMode, setViewMode] = useState<'LIST' | 'MAP'>('LIST');
+    const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number, radius: number } | null>(null);
 
     React.useEffect(() => {
         fetchProfiles();
@@ -102,7 +106,31 @@ export default function ServiceSearchScreen() {
             district: loc.district,
             state: loc.state
         });
+        setUserLocation(null); // Clear GPS mode when choosing administrative location
         setShowLocDropdown(false);
+    };
+
+    const handleNearMe = async () => {
+        setLoading(true);
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'Allow location access to find services near you.');
+                return;
+            }
+            let location = await Location.getCurrentPositionAsync({});
+            setUserLocation({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                radius: 10 // Default 10km search
+            });
+            setSelectedLocation(null); // Clear admin filters
+            setSearchLocation('Near Me (GPS)');
+        } catch (error) {
+            Alert.alert('Error', 'Failed to get current location');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchProfiles = async () => {
@@ -114,7 +142,11 @@ export default function ServiceSearchScreen() {
                 if (cat) params.category = cat.name;
             }
             
-            if (selectedLocation) {
+            if (userLocation) {
+                params.lat = userLocation.latitude;
+                params.lng = userLocation.longitude;
+                params.radius = userLocation.radius;
+            } else if (selectedLocation) {
                 params.pincode = selectedLocation.pincode;
                 params.district = selectedLocation.district;
                 params.state = selectedLocation.state;
@@ -157,8 +189,12 @@ export default function ServiceSearchScreen() {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
-                        <TouchableOpacity style={styles.filterBtn}>
-                            <Ionicons name="options-outline" size={20} color="#64748b" />
+                        <TouchableOpacity style={styles.nearMeBtn} onPress={handleNearMe}>
+                            <Ionicons name="navigate" size={18} color="#6366f1" />
+                            <Text style={styles.nearMeText}>Near Me</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.filterBtn} onPress={() => setViewMode(viewMode === 'LIST' ? 'MAP' : 'LIST')}>
+                            <Ionicons name={viewMode === 'LIST' ? "map-outline" : "list-outline"} size={20} color="#64748b" />
                         </TouchableOpacity>
                     </View>
                     
@@ -291,6 +327,48 @@ export default function ServiceSearchScreen() {
                     <View style={{ padding: 40, alignItems: 'center' }}>
                         <ActivityIndicator color="#6366f1" size="large" />
                         <Text style={{ marginTop: 12, color: '#64748b' }}>Finding best matches...</Text>
+                    </View>
+                ) : viewMode === 'MAP' ? (
+                    <View style={styles.mapViewContainer}>
+                        <MapView
+                            style={styles.map}
+                            provider={null}
+                            initialRegion={{
+                                latitude: userLocation?.latitude || 20.5937,
+                                longitude: userLocation?.longitude || 78.9629,
+                                latitudeDelta: 0.5,
+                                longitudeDelta: 0.5,
+                            }}
+                        >
+                            <MapView.UrlTile
+                                urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                shouldReplaceMapContent={true}
+                            />
+                            {userLocation && (
+                                <Circle 
+                                    center={{ latitude: userLocation.latitude, longitude: userLocation.longitude }}
+                                    radius={userLocation.radius * 1000}
+                                    fillColor="rgba(99, 102, 241, 0.1)"
+                                    strokeColor="#6366f1"
+                                />
+                            )}
+                            {profiles.filter(p => p.latitude && p.longitude).map(pro => (
+                                <Marker 
+                                    key={pro.id}
+                                    coordinate={{ latitude: pro.latitude, longitude: pro.longitude }}
+                                    title={pro.businessName || pro.name}
+                                    description={pro.category}
+                                    onCalloutPress={() => router.push(`/business/${pro.id}`)}
+                                >
+                                    <View style={styles.markerContainer}>
+                                        <View style={styles.markerCircle}>
+                                            <Ionicons name="person" size={14} color="#fff" />
+                                        </View>
+                                        <View style={styles.markerArrow} />
+                                    </View>
+                                </Marker>
+                            ))}
+                        </MapView>
                     </View>
                 ) : (
                     <View style={styles.prosList}>
@@ -490,5 +568,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#94a3b8',
         fontStyle: 'italic'
-    }
+    },
+    nearMeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f7ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginRight: 8, borderWidth: 1, borderColor: '#e0e7ff' },
+    nearMeText: { fontSize: 12, fontWeight: '700', color: '#6366f1', marginLeft: 4 },
+    mapViewContainer: { height: 400, marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25 },
+    map: { ...StyleSheet.absoluteFillObject },
+    markerContainer: { alignItems: 'center', justifyContent: 'center' },
+    markerCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#6366f1', marginTop: -1 },
 });

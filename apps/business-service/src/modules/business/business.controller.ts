@@ -20,9 +20,21 @@ export class BusinessController {
         @Query('category') category?: string,
         @Query('pincode') pincode?: string,
         @Query('district') district?: string,
-        @Query('state') state?: string
+        @Query('state') state?: string,
+        @Query('lat') lat?: string,
+        @Query('lng') lng?: string,
+        @Query('radius') radius?: string
     ) {
-        return this.businessService.listProfiles({ tenantId, category, pincode, district, state });
+        return this.businessService.listProfiles({ 
+            tenantId, 
+            category, 
+            pincode, 
+            district, 
+            state, 
+            lat: lat ? parseFloat(lat) : undefined,
+            lng: lng ? parseFloat(lng) : undefined,
+            radius: radius ? parseInt(radius) : undefined
+        });
     }
 
     @Get('profiles/my')

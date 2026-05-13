@@ -28,36 +28,86 @@ export class BusinessService {
         });
     }
 
-    async listProfiles(params: { category?: string, pincode?: string, district?: string, state?: string, tenantId?: string }) {
-        const { category, pincode, district, state, tenantId } = params;
+    async listProfiles(params: { 
+        category?: string, 
+        pincode?: string, 
+        district?: string, 
+        state?: string, 
+        tenantId?: string,
+        lat?: number,
+        lng?: number,
+        radius?: number // User's search radius (optional)
+    }) {
+        const { category, pincode, district, state, tenantId, lat, lng, radius } = params;
 
+        // Base query for administrative matches
+        const adminConditions: any[] = [
+            { serviceAreaType: 'PAN_INDIA' },
+            state ? { serviceAreaType: 'STATE', serviceAreaValues: { has: state } } : null,
+            district ? { serviceAreaType: 'DISTRICT', serviceAreaValues: { has: district } } : null,
+            pincode ? { serviceAreaType: 'PINCODE', serviceAreaValues: { has: pincode } } : null,
+            pincode ? { location: pincode } : null
+        ].filter(Boolean);
+
+        // If no lat/lng, stick to standard Prisma findMany
+        if (!lat || !lng) {
+            return this.prisma.businessProfile.findMany({
+                where: {
+                    tenantId: tenantId || undefined,
+                    category: category || undefined,
+                    isActive: true,
+                    OR: adminConditions.length > 0 ? adminConditions : undefined
+                },
+                include: { services: true },
+                orderBy: { createdAt: 'desc' }
+            });
+        }
+
+        // Hybrid Geospatial Query using $queryRaw
+        // 1. Matches administrative tiers
+        // 2. Matches providers whose radius covers the user's current lat/lng
+        // 3. Matches providers within the user's requested search radius
+        const profiles = await this.prisma.$queryRawUnsafe(`
+            SELECT DISTINCT b.* FROM business_profiles b
+            WHERE b."isActive" = true
+            ${category ? `AND b.category = '${category}'` : ''}
+            ${tenantId ? `AND b."tenantId" = '${tenantId}'` : ''}
+            AND (
+                -- Administrative Matches
+                "serviceAreaType" = 'PAN_INDIA'
+                ${state ? `OR ("serviceAreaType" = 'STATE' AND '${state}' = ANY("serviceAreaValues"))` : ''}
+                ${district ? `OR ("serviceAreaType" = 'DISTRICT' AND '${district}' = ANY("serviceAreaValues"))` : ''}
+                ${pincode ? `OR ("serviceAreaType" = 'PINCODE' AND '${pincode}' = ANY("serviceAreaValues"))` : ''}
+                
+                -- Geospatial Match: User is within Provider's configured radius
+                OR (
+                    b.latitude IS NOT NULL AND b.longitude IS NOT NULL AND b."serviceRadiusKm" IS NOT NULL
+                    AND ST_DWithin(
+                        ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
+                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+                        b."serviceRadiusKm" * 1000
+                    )
+                )
+                
+                -- Geospatial Match: Provider is within User's requested search radius
+                ${radius ? `
+                OR (
+                    b.latitude IS NOT NULL AND b.longitude IS NOT NULL
+                    AND ST_DWithin(
+                        ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
+                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+                        ${radius} * 1000
+                    )
+                )` : ''}
+            )
+            ORDER BY b."createdAt" DESC
+        `);
+
+        // Get IDs to fetch with services (to maintain Prisma's nice include/typing)
+        const ids = (profiles as any[]).map(p => p.id);
+        
         return this.prisma.businessProfile.findMany({
-            where: {
-                tenantId: tenantId || undefined,
-                category: category || undefined,
-                isActive: true,
-                OR: [
-                    // Tier 1: Pan India reach
-                    { serviceAreaType: 'PAN_INDIA' },
-                    // Tier 2: State reach
-                    state ? {
-                        serviceAreaType: 'STATE',
-                        serviceAreaValues: { has: state }
-                    } : {},
-                    // Tier 3: District reach
-                    district ? {
-                        serviceAreaType: 'DISTRICT',
-                        serviceAreaValues: { has: district }
-                    } : {},
-                    // Tier 4: Pincode reach
-                    pincode ? {
-                        serviceAreaType: 'PINCODE',
-                        serviceAreaValues: { has: pincode }
-                    } : {},
-                    // Legacy/Exact match
-                    pincode ? { location: pincode } : {}
-                ].filter(condition => Object.keys(condition).length > 0)
-            },
+            where: { id: { in: ids } },
             include: { services: true },
             orderBy: { createdAt: 'desc' }
         });
