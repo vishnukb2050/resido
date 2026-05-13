@@ -111,6 +111,18 @@ services:
       - resido-net
     restart: unless-stopped
 
+  business-service:
+    build:
+      context: ../apps/business-service
+      dockerfile: Dockerfile
+    container_name: resido-business
+    env_file: .env
+    ports:
+      - '3009:3009'
+    networks:
+      - resido-net
+    restart: unless-stopped
+
   # ─── Nginx Reverse Proxy ───────────────────────────────────────
   nginx:
     image: nginx:alpine
