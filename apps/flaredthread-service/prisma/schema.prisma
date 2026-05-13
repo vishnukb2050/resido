@@ -43,60 +43,60 @@ model Blog {
 
   parentId    String?
   pollId      String?
-  poll        Poll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  poll        BlogPoll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
 
-  comments    Comment[]
-  interactions Interaction[]
+  comments    BlogComment[]
+  interactions BlogInteraction[]
 
   @@unique([id, tenantId])
   @@index([tenantId])
   @@map("blogs")
 }
 
-model Poll {
+model BlogPoll {
   id          String   @id @default(cuid())
   tenantId    String   @default("global")
   question    String
-  options     PollOption[]
-  votes       PollVote[]
+  options     BlogPollOption[]
+  votes       BlogPollVote[]
   expiresAt   DateTime
   createdAt   DateTime @default(now())
 
   blogs       Blog[]
-  comments    Comment[]
+  comments    BlogComment[]
 
   @@unique([id, tenantId])
-  @@map("polls")
+  @@map("blog_polls")
 }
 
-model PollOption {
+model BlogPollOption {
   id          String   @id @default(cuid())
   pollId      String
   tenantId    String   @default("global")
-  poll        Poll     @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  poll        BlogPoll @relation(fields: [pollId, tenantId], references: [id, tenantId])
   text        String
-  votes       PollVote[]
+  votes       BlogPollVote[]
 
   @@unique([id, tenantId])
-  @@map("poll_options")
+  @@map("blog_poll_options")
 }
 
-model PollVote {
+model BlogPollVote {
   id          String   @id @default(cuid())
   pollId      String
   optionId    String
   userId      String
   tenantId    String   @default("global")
   
-  poll        Poll       @relation(fields: [pollId, tenantId], references: [id, tenantId])
-  option      PollOption @relation(fields: [optionId, tenantId], references: [id, tenantId])
+  poll        BlogPoll       @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  option      BlogPollOption @relation(fields: [optionId, tenantId], references: [id, tenantId])
 
   @@unique([id, tenantId])
   @@unique([pollId, userId, tenantId])
-  @@map("poll_votes")
+  @@map("blog_poll_votes")
 }
 
-model Comment {
+model BlogComment {
   id        String   @id @default(cuid())
   tenantId  String   @default("global")
   blogId    String
@@ -107,7 +107,7 @@ model Comment {
   content   String
   likesCount Int     @default(0)
   pollId    String?
-  poll      Poll?    @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  poll      BlogPoll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
   createdAt DateTime @default(now())
 
   @@unique([id, tenantId])
@@ -116,13 +116,13 @@ model Comment {
   @@map("blog_comments")
 }
 
-model Interaction {
+model BlogInteraction {
   id        String   @id @default(cuid())
   tenantId  String   @default("global")
   blogId    String
   blog      Blog     @relation(fields: [blogId, tenantId], references: [id, tenantId])
   userId    String
-  type      InteractionType
+  type      BlogInteractionType
   createdAt DateTime @default(now())
 
   @@unique([id, tenantId])
@@ -131,7 +131,7 @@ model Interaction {
   @@map("blog_interactions")
 }
 
-enum InteractionType {
+enum BlogInteractionType {
   LIKE
   RESHARE
   SAVE

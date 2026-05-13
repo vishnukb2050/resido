@@ -17,6 +17,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY start.sh ./
+COPY enable-postgis.js ./
 RUN chmod +x start.sh
 EXPOSE 3001
 CMD ["./start.sh"]

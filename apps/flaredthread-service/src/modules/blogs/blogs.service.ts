@@ -70,7 +70,7 @@ export class BlogsService {
 
         // Fetch user's interactions (likes) for these blogs
         const blogIds = blogs.map(b => b.id);
-        const interactions = await (this.prisma.reader as any).interaction.findMany({
+        const interactions = await (this.prisma.reader as any).blogInteraction.findMany({
             where: {
                 blogId: { in: blogIds },
                 userId: userId,
@@ -95,7 +95,7 @@ export class BlogsService {
         let pollId = undefined;
         
         if (data.poll) {
-            const poll = await (this.prisma.client as any).poll.create({
+            const poll = await (this.prisma.client as any).blogPoll.create({
                 data: {
                     tenantId,
                     question: data.poll.question,
@@ -183,7 +183,7 @@ export class BlogsService {
 
     async votePoll(pollId: string, optionId: string, userId: string, tenantId: string) {
         // Check if already voted
-        const existing = await (this.prisma.reader as any).pollVote.findFirst({
+        const existing = await (this.prisma.reader as any).blogPollVote.findFirst({
             where: { pollId, userId, tenantId }
         });
 
@@ -191,7 +191,7 @@ export class BlogsService {
             throw new Error('Already voted in this poll');
         }
 
-        return (this.prisma.client as any).pollVote.create({
+        return (this.prisma.client as any).blogPollVote.create({
             data: {
                 pollId,
                 optionId,
@@ -214,19 +214,19 @@ export class BlogsService {
     }
 
     async toggleLike(blogId: string, userId: string, tenantId: string) {
-        const existing = await (this.prisma.reader as any).interaction.findFirst({
+        const existing = await (this.prisma.reader as any).blogInteraction.findFirst({
             where: { blogId, userId, type: 'LIKE', tenantId }
         });
 
         if (existing) {
             await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.delete({ where: { id: existing.id } }),
+                (this.prisma.client as any).blogInteraction.delete({ where: { id: existing.id } }),
                 (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { likesCount: { decrement: 1 } } })
             ]);
             return { liked: false };
         } else {
             await (this.prisma.client as any).$transaction([
-                (this.prisma.client as any).interaction.create({ data: { blogId, userId, type: 'LIKE', tenantId } }),
+                (this.prisma.client as any).blogInteraction.create({ data: { blogId, userId, type: 'LIKE', tenantId } }),
                 (this.prisma.client as any).blog.update({ where: { id: blogId }, data: { likesCount: { increment: 1 } } })
             ]);
             return { liked: true };
@@ -236,7 +236,7 @@ export class BlogsService {
     async addComment(blogId: string, userId: string, data: { content: string; userName: string; userAvatar?: string; poll?: any }, tenantId: string) {
         let pollId = undefined;
         if (data.poll) {
-            const poll = await (this.prisma.client as any).poll.create({
+            const poll = await (this.prisma.client as any).blogPoll.create({
                 data: {
                     tenantId,
                     question: data.poll.question,
@@ -252,7 +252,7 @@ export class BlogsService {
             pollId = poll.id;
         }
 
-        const comment = await (this.prisma.client as any).comment.create({
+        const comment = await (this.prisma.client as any).blogComment.create({
             data: {
                 blogId,
                 userId,
@@ -270,7 +270,7 @@ export class BlogsService {
         });
 
         // Fetch complete comment with poll for broadcasting
-        const completeComment = await (this.prisma.reader as any).comment.findUnique({
+        const completeComment = await (this.prisma.reader as any).blogComment.findUnique({
             where: { id: comment.id },
             include: {
                 poll: {
@@ -291,7 +291,7 @@ export class BlogsService {
     }
 
     async getComments(blogId: string, userId?: string) {
-        return (this.prisma.reader as any).comment.findMany({
+        return (this.prisma.reader as any).blogComment.findMany({
             where: { blogId },
             include: {
                 poll: {

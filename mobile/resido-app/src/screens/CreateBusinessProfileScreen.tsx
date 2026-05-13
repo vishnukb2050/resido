@@ -4,7 +4,7 @@ import {
     Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
     FlatList, Modal, ActivityIndicator, Switch, Dimensions, StatusBar
 } from 'react-native';
-import MapView, { Marker, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Circle, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
@@ -56,6 +56,11 @@ export default function CreateBusinessProfileScreen() {
         serviceAreaValues: [] as string[],
         serviceRadiusKm: 10,
         baseLocation: null as any,
+        
+        // Modal states
+        showCategoryModal: false,
+        showExpModal: false,
+        showTypeModal: false,
         
         // Services
         services: [] as any[],
@@ -222,16 +227,15 @@ export default function CreateBusinessProfileScreen() {
                     </View>
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Business Category *</Text>
-                        <View style={styles.pickerContainer}>
-                            <TextInput 
-                                style={[styles.input, { paddingRight: 40 }]} 
-                                placeholder="Select a category" 
-                                placeholderTextColor="#94a3b8"
-                                value={formData.category}
-                                editable={false}
-                            />
+                        <TouchableOpacity 
+                            style={styles.pickerContainer}
+                            onPress={() => setFormData({...formData, showCategoryModal: true})}
+                        >
+                            <Text style={[styles.pickerValue, !formData.category && { color: '#94a3b8' }]}>
+                                {formData.category || 'Select a category'}
+                            </Text>
                             <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
-                        </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </View>
@@ -253,17 +257,27 @@ export default function CreateBusinessProfileScreen() {
             <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                     <Text style={styles.label}>Years in Business</Text>
-                    <View style={styles.pickerContainer}>
-                        <Text style={styles.inputPlaceholder}>{formData.experience || 'Select experience'}</Text>
+                    <TouchableOpacity 
+                        style={styles.pickerContainer}
+                        onPress={() => setFormData({...formData, showExpModal: true})}
+                    >
+                        <Text style={[styles.pickerValue, !formData.experience && { color: '#94a3b8' }]}>
+                            {formData.experience || 'Select experience'}
+                        </Text>
                         <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
-                    </View>
+                    </TouchableOpacity>
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                     <Text style={styles.label}>Business Type</Text>
-                    <View style={styles.pickerContainer}>
-                        <Text style={styles.inputPlaceholder}>{formData.businessType || 'Select type'}</Text>
+                    <TouchableOpacity 
+                        style={styles.pickerContainer}
+                        onPress={() => setFormData({...formData, showTypeModal: true})}
+                    >
+                        <Text style={[styles.pickerValue, !formData.businessType && { color: '#94a3b8' }]}>
+                            {formData.businessType || 'Select type'}
+                        </Text>
                         <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
-                    </View>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -481,7 +495,7 @@ export default function CreateBusinessProfileScreen() {
             <View style={styles.mapContainer}>
                 <MapView
                     style={StyleSheet.absoluteFill}
-                    provider={null} // Use OSM tiles
+                    provider={PROVIDER_DEFAULT} // Explicitly use default provider
                     initialRegion={{
                         latitude: formData.latitude || 20.5937,
                         longitude: formData.longitude || 78.9629,
@@ -499,7 +513,7 @@ export default function CreateBusinessProfileScreen() {
                         setFormData({ ...formData, latitude, longitude });
                     }}
                 >
-                    <MapView.UrlTile
+                    <UrlTile
                         urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         shouldReplaceMapContent={true}
                     />
@@ -721,9 +735,64 @@ export default function CreateBusinessProfileScreen() {
                     <Text style={styles.safetyText}>Your information is safe and will not be shared without your permission.</Text>
                 </View>
             </View>
+            {/* Modals for Pickers */}
+            {renderGenericPicker(
+                formData.showCategoryModal, 
+                'Select Business Category',
+                ['Plumber', 'Electrician', 'Carpenter', 'Cleaner', 'Painter', 'AC Repair', 'Pest Control'],
+                (val) => setFormData({...formData, category: val, showCategoryModal: false}),
+                () => setFormData({...formData, showCategoryModal: false})
+            )}
+
+            {renderGenericPicker(
+                formData.showExpModal, 
+                'Select Years in Business',
+                ['0-1 Year', '1-3 Years', '3-5 Years', '5-10 Years', '10+ Years'],
+                (val) => setFormData({...formData, experience: val, showExpModal: false}),
+                () => setFormData({...formData, showExpModal: false})
+            )}
+
+            {renderGenericPicker(
+                formData.showTypeModal, 
+                'Select Business Type',
+                ['Individual', 'Small Business', 'Company', 'Agency'],
+                (val) => setFormData({...formData, businessType: val, showTypeModal: false}),
+                () => setFormData({...formData, showTypeModal: false})
+            )}
         </SafeAreaView>
     );
-}
+};
+
+const renderGenericPicker = (visible: boolean, title: string, options: string[], onSelect: (val: string) => void, onClose: () => void) => (
+    <Modal visible={visible} transparent animationType="slide">
+        <View style={pickerStyles.modalOverlay}>
+            <View style={pickerStyles.modalContent}>
+                <View style={pickerStyles.modalHeader}>
+                    <Text style={pickerStyles.modalTitle}>{title}</Text>
+                    <TouchableOpacity onPress={onClose}>
+                        <Ionicons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+                <ScrollView>
+                    {options.map(opt => (
+                        <TouchableOpacity key={opt} style={pickerStyles.optionItem} onPress={() => onSelect(opt)}>
+                            <Text style={pickerStyles.optionText}>{opt}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+        </View>
+    </Modal>
+);
+
+const pickerStyles = StyleSheet.create({
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '60%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    optionItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    optionText: { fontSize: 16, color: '#fff' }
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' }, // Dark theme base
@@ -874,6 +943,7 @@ const styles = StyleSheet.create({
 
     infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(99, 102, 241, 0.05)', padding: 16, borderRadius: 12, marginTop: 16, gap: 12 },
     infoText: { flex: 1, fontSize: 13, color: '#6366f1' },
+    pickerValue: { fontSize: 15, color: '#fff', fontWeight: '500' },
     radiusValueText: { fontSize: 16, fontWeight: '800', color: '#6366f1' },
     sliderContainer: { flexDirection: 'row', gap: 10, marginTop: 12 },
     radiusChip: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },

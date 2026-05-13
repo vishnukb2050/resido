@@ -90,6 +90,8 @@ export class ProfileService implements OnModuleInit {
             where: { id: userId },
             data: {
                 name: data.name,
+                email: data.email,
+                phone: data.phone,
                 age: data.age ? parseInt(data.age) : undefined,
                 description: data.description,
                 profilePhoto: profilePhotoUrl,
@@ -138,7 +140,7 @@ export class ProfileService implements OnModuleInit {
                 serviceAreaType: data.serviceAreaType,
                 serviceAreaValues: data.serviceAreaValues,
                 isActive: true
-            },
+            } as any,
             create: {
                 userId,
                 category: data.category,
@@ -154,7 +156,7 @@ export class ProfileService implements OnModuleInit {
                 serviceRadiusKm: data.serviceRadiusKm,
                 serviceAreaType: data.serviceAreaType,
                 serviceAreaValues: data.serviceAreaValues
-            }
+            } as any
         });
     }
 

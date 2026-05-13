@@ -1,4 +1,4 @@
-// resident-service Prisma schema (Shared Core DB)
+// resident-service Prisma schema (Shared Master Core DB)
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/@resido/resident-client"
@@ -151,7 +151,7 @@ model Notice {
   @@map("notices")
 }
 
-// ─── Polls ───────────────────────────────────────────────────────────────────
+// ─── Community Polls ──────────────────────────────────────────────────────────
 model Poll {
   id          String       @id @default(cuid())
   tenantId    String
@@ -526,6 +526,229 @@ model FinanceBudget {
 enum TransactionType {
   INCOME
   EXPENSE
+}
+
+// ─── Blogs / Flares / Threads ─────────────────────────────────
+model Blog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  content     String
+  authorId    String   // Global User ID
+  authorName  String?
+  authorAvatar String?
+  location    String?
+  isVerified  Boolean  @default(false)
+  category    String?
+  type        BlogType @default(THREAD)
+  mediaUrls   String[]
+  mediaType   BlogMediaType @default(IMAGE)
+  musicName   String?  @default("Original Audio")
+  musicId     String?  // Optional reference to a music track
+  tags        String[] // Array of Global User IDs
+  hashtags    String[] // Array of hashtags (without #)
+  visibility  BlogVisibility @default(PUBLIC)
+  targetCommunities String[] // Tenant IDs for COMMUNITY visibility
+  audioUrl    String?  // URL to custom background audio
+  commentsEnabled Boolean @default(true)
+  
+  // Interaction Counts
+  likesCount    Int @default(0)
+  commentsCount Int @default(0)
+  resharesCount Int @default(0)
+  savesCount    Int @default(0)
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parentId    String?
+  pollId      String?
+  poll        BlogPoll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
+
+  comments    BlogComment[]
+  interactions BlogInteraction[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@map("blogs")
+}
+
+model BlogPoll {
+  id          String   @id @default(cuid())
+  tenantId    String   @default("global")
+  question    String
+  options     BlogPollOption[]
+  votes       BlogPollVote[]
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  blogs       Blog[]
+  comments    BlogComment[]
+
+  @@unique([id, tenantId])
+  @@map("blog_polls")
+}
+
+model BlogPollOption {
+  id          String   @id @default(cuid())
+  pollId      String
+  tenantId    String   @default("global")
+  poll        BlogPoll @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  text        String
+  votes       BlogPollVote[]
+
+  @@unique([id, tenantId])
+  @@map("blog_poll_options")
+}
+
+model BlogPollVote {
+  id          String   @id @default(cuid())
+  pollId      String
+  optionId    String
+  userId      String
+  tenantId    String   @default("global")
+  
+  poll        BlogPoll       @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  option      BlogPollOption @relation(fields: [optionId, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@unique([pollId, userId, tenantId])
+  @@map("blog_poll_votes")
+}
+
+model BlogComment {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("global")
+  blogId    String
+  blog      Blog     @relation(fields: [blogId, tenantId], references: [id, tenantId])
+  userId    String
+  userName  String
+  userAvatar String?
+  content   String
+  likesCount Int     @default(0)
+  pollId    String?
+  poll      BlogPoll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  createdAt DateTime @default(now())
+
+  @@unique([id, tenantId])
+  @@index([blogId, tenantId])
+  @@index([tenantId])
+  @@map("blog_comments")
+}
+
+model BlogInteraction {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("global")
+  blogId    String
+  blog      Blog     @relation(fields: [blogId, tenantId], references: [id, tenantId])
+  userId    String
+  type      BlogInteractionType
+  createdAt DateTime @default(now())
+
+  @@unique([id, tenantId])
+  @@unique([blogId, userId, type, tenantId])
+  @@index([tenantId])
+  @@map("blog_interactions")
+}
+
+enum BlogInteractionType {
+  LIKE
+  RESHARE
+  SAVE
+}
+
+enum BlogType {
+  THREAD
+  FLARE
+}
+
+enum BlogMediaType {
+  IMAGE
+  VIDEO
+}
+
+enum BlogVisibility {
+    PUBLIC
+    CONTACTS
+    FOLLOWERS
+}
+
+// ─── Business Profiles ────────────────────────────────────────
+model BusinessProfile {
+  id              String   @id @default(cuid())
+  userId          String   // Global user ID
+  tenantId        String?  // Linked community (optional)
+  profileType     String   @default("BUSINESS") // BUSINESS or JOB
+  businessName    String
+  category        String
+  subcategory     String?
+  businessType    String   @default("INDIVIDUAL") // INDIVIDUAL or COMPANY
+  about           String
+  logo            String?  // S3 Key for Logo
+  experience      String?
+  
+  // Contact Info
+  phone           String?
+  email           String?
+  website         String?
+  workingHours    Json?
+  
+  // Social Links
+  instagram       String?
+  linkedin        String?
+
+  // Location
+  location        String?  // block/unit
+  area            String?  // city/area
+  fullAddress     String?
+  latitude        Float?
+  longitude       Float?
+  serviceAreaType   String?  @default("PINCODE") // PINCODE, DISTRICT, STATE, PAN_INDIA
+  serviceAreaValues String[] // List of pincodes, districts, or states
+  serviceRadiusKm   Int?     @default(10) // Coverage radius from lat/lng
+
+  isActive        Boolean  @default(true)
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  services        ServiceItem[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([category])
+  @@map("business_profiles")
+}
+
+model ServiceItem {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id])
+  name              String
+  description       String?
+  pricingType       String          @default("FIXED") // FIXED, STARTING, CONTACT
+  price             Float?
+  responseTime      String?
+  isEmergency       Boolean         @default(false)
+  
+  @@map("business_services")
+}
+
+// ─── Visitors (Entry/Exit) ────────────────────────────────────
+model VisitorEntry {
+  id          String    @id @default(cuid())
+  visitorName String
+  phone       String?
+  purpose     String?
+  unitToVisit String
+  photoUrl    String?   // S3 key
+  inTime      DateTime  @default(now())
+  outTime     DateTime?
+  loggedBy    String    // security member id
+  createdAt   DateTime  @default(now())
+
+  @@map("visitor_entries")
 }
 
 // ─── Enums ───────────────────────────────────────────────────

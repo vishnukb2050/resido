@@ -121,6 +121,14 @@ model Member {
   notifications         Notification[]
   complaints            Complaint[]
   visitors              Visitor[]
+  ownedFolders          DocFolder[]    @relation("OwnedFolders")
+  ownedFiles            DocFile[]      @relation("OwnedFiles")
+  docPermissions        DocPermission[]
+  ownedNoteFolders      NoteFolder[]   @relation("OwnedNoteFolders")
+  ownedNotes            Note[]         @relation("OwnedNotes")
+  notePermissions       NotePermission[]
+  financeTransactions   FinanceTransaction[]
+  financeBudgets        FinanceBudget[]
 
   @@index([tenantId])
   @@unique([tenantId, phone])
@@ -143,7 +151,7 @@ model Notice {
   @@map("notices")
 }
 
-// ─── Polls ───────────────────────────────────────────────────────────────────
+// ─── Community Polls ──────────────────────────────────────────────────────────
 model Poll {
   id          String       @id @default(cuid())
   tenantId    String
@@ -193,7 +201,9 @@ model Group {
   createdBy String
   createdAt DateTime      @default(now())
 
-  members   GroupMember[]
+  members         GroupMember[]
+  docPermissions  DocPermission[]
+  notePermissions NotePermission[]
 
   @@index([tenantId])
   @@map("groups")
@@ -334,6 +344,413 @@ enum MediaType {
   VIDEO
 }
 
+// ─── Document Management ──────────────────────────────────────
+model DocFolder {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedFolders", fields: [ownerId], references: [id])
+  isPrivate   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files       DocFile[]
+  permissions DocPermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("doc_folders")
+}
+
+model DocFile {
+  id          String   @id @default(cuid())
+  tenantId    String
+  folderId    String?
+  folder      DocFolder? @relation(fields: [folderId], references: [id])
+  name        String
+  description String?
+  fileUrl     String   // S3 URL
+  fileType    String   // PDF, WORD, EXCEL, etc.
+  fileSize    String
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedFiles", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions DocPermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("doc_files")
+}
+
+model DocPermission {
+  id          String   @id @default(cuid())
+  tenantId    String
+  fileId      String?
+  file        DocFile? @relation(fields: [fileId], references: [id])
+  folderId    String?
+  folder      DocFolder? @relation(fields: [folderId], references: [id])
+  memberId    String?
+  member      Member?  @relation(fields: [memberId], references: [id])
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  accessLevel AccessLevel @default(VIEWER)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("doc_permissions")
+}
+
+enum AccessLevel {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+// ─── Note Management ──────────────────────────────────────────
+model NoteFolder {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedNoteFolders", fields: [ownerId], references: [id])
+  isPrivate   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  notes       Note[]
+  permissions NotePermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("note_folders")
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  tenantId    String
+  folderId    String?
+  folder      NoteFolder? @relation(fields: [folderId], references: [id])
+  title       String
+  body        String   @db.Text
+  bgColor     String   @default("#ffffff")
+  isPinned    Boolean  @default(false)
+  ownerId     String   // memberId
+  owner       Member   @relation("OwnedNotes", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions NotePermission[]
+
+  @@index([tenantId, ownerId])
+  @@map("notes")
+}
+
+model NotePermission {
+  id          String   @id @default(cuid())
+  tenantId    String
+  noteId      String?
+  note        Note?    @relation(fields: [noteId], references: [id])
+  folderId    String?
+  folder      NoteFolder? @relation(fields: [folderId], references: [id])
+  memberId    String?
+  member      Member?  @relation(fields: [memberId], references: [id])
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  accessLevel AccessLevel @default(VIEWER)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("note_permissions")
+}
+
+// ─── Finance Management ───────────────────────────────────────
+model FinanceTransaction {
+  id            String          @id @default(cuid())
+  tenantId      String
+  memberId      String
+  member        Member          @relation(fields: [memberId], references: [id])
+  amount        Float
+  type          TransactionType @default(EXPENSE)
+  categoryId    String
+  category      FinanceCategory @relation(fields: [categoryId], references: [id])
+  date          DateTime        @default(now())
+  paymentMethod String          @default("CASH") // UPI, CARD, CASH
+  description   String?
+  billUrl       String?         // S3 URL
+  tags          String[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([tenantId, memberId])
+  @@map("finance_transactions")
+}
+
+model FinanceCategory {
+  id        String          @id @default(cuid())
+  tenantId  String
+  name      String
+  icon      String?
+  color     String?
+  type      TransactionType @default(EXPENSE)
+  createdAt DateTime        @default(now())
+
+  transactions FinanceTransaction[]
+  budgets      FinanceBudget[]
+
+  @@index([tenantId])
+  @@map("finance_categories")
+}
+
+model FinanceBudget {
+  id         String          @id @default(cuid())
+  tenantId   String
+  memberId   String
+  member     Member          @relation(fields: [memberId], references: [id])
+  categoryId String
+  category   FinanceCategory @relation(fields: [categoryId], references: [id])
+  amount     Float           // Budget limit
+  month      Int             // 1-12
+  year       Int
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([tenantId, memberId])
+  @@unique([memberId, categoryId, month, year])
+  @@map("finance_budgets")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+// ─── Blogs / Flares / Threads ─────────────────────────────────
+model Blog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  content     String
+  authorId    String   // Global User ID
+  authorName  String?
+  authorAvatar String?
+  location    String?
+  isVerified  Boolean  @default(false)
+  category    String?
+  type        BlogType @default(THREAD)
+  mediaUrls   String[]
+  mediaType   BlogMediaType @default(IMAGE)
+  musicName   String?  @default("Original Audio")
+  musicId     String?  // Optional reference to a music track
+  tags        String[] // Array of Global User IDs
+  hashtags    String[] // Array of hashtags (without #)
+  visibility  BlogVisibility @default(PUBLIC)
+  targetCommunities String[] // Tenant IDs for COMMUNITY visibility
+  audioUrl    String?  // URL to custom background audio
+  commentsEnabled Boolean @default(true)
+  
+  // Interaction Counts
+  likesCount    Int @default(0)
+  commentsCount Int @default(0)
+  resharesCount Int @default(0)
+  savesCount    Int @default(0)
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parentId    String?
+  pollId      String?
+  poll        BlogPoll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
+
+  comments    BlogComment[]
+  interactions BlogInteraction[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@map("blogs")
+}
+
+model BlogPoll {
+  id          String   @id @default(cuid())
+  tenantId    String   @default("global")
+  question    String
+  options     BlogPollOption[]
+  votes       BlogPollVote[]
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  blogs       Blog[]
+  comments    BlogComment[]
+
+  @@unique([id, tenantId])
+  @@map("blog_polls")
+}
+
+model BlogPollOption {
+  id          String   @id @default(cuid())
+  pollId      String
+  tenantId    String   @default("global")
+  poll        BlogPoll @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  text        String
+  votes       BlogPollVote[]
+
+  @@unique([id, tenantId])
+  @@map("blog_poll_options")
+}
+
+model BlogPollVote {
+  id          String   @id @default(cuid())
+  pollId      String
+  optionId    String
+  userId      String
+  tenantId    String   @default("global")
+  
+  poll        BlogPoll       @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  option      BlogPollOption @relation(fields: [optionId, tenantId], references: [id, tenantId])
+
+  @@unique([id, tenantId])
+  @@unique([pollId, userId, tenantId])
+  @@map("blog_poll_votes")
+}
+
+model BlogComment {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("global")
+  blogId    String
+  blog      Blog     @relation(fields: [blogId, tenantId], references: [id, tenantId])
+  userId    String
+  userName  String
+  userAvatar String?
+  content   String
+  likesCount Int     @default(0)
+  pollId    String?
+  poll      BlogPoll? @relation(fields: [pollId, tenantId], references: [id, tenantId])
+  createdAt DateTime @default(now())
+
+  @@unique([id, tenantId])
+  @@index([blogId, tenantId])
+  @@index([tenantId])
+  @@map("blog_comments")
+}
+
+model BlogInteraction {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("global")
+  blogId    String
+  blog      Blog     @relation(fields: [blogId, tenantId], references: [id, tenantId])
+  userId    String
+  type      BlogInteractionType
+  createdAt DateTime @default(now())
+
+  @@unique([id, tenantId])
+  @@unique([blogId, userId, type, tenantId])
+  @@index([tenantId])
+  @@map("blog_interactions")
+}
+
+enum BlogInteractionType {
+  LIKE
+  RESHARE
+  SAVE
+}
+
+enum BlogType {
+  THREAD
+  FLARE
+}
+
+enum BlogMediaType {
+  IMAGE
+  VIDEO
+}
+
+enum BlogVisibility {
+    PUBLIC
+    CONTACTS
+    FOLLOWERS
+}
+
+// ─── Business Profiles ────────────────────────────────────────
+model BusinessProfile {
+  id              String   @id @default(cuid())
+  userId          String   // Global user ID
+  tenantId        String?  // Linked community (optional)
+  profileType     String   @default("BUSINESS") // BUSINESS or JOB
+  businessName    String
+  category        String
+  subcategory     String?
+  businessType    String   @default("INDIVIDUAL") // INDIVIDUAL or COMPANY
+  about           String
+  logo            String?  // S3 Key for Logo
+  experience      String?
+  
+  // Contact Info
+  phone           String?
+  email           String?
+  website         String?
+  workingHours    Json?
+  
+  // Social Links
+  instagram       String?
+  linkedin        String?
+
+  // Location
+  location        String?  // block/unit
+  area            String?  // city/area
+  fullAddress     String?
+  latitude        Float?
+  longitude       Float?
+  serviceAreaType   String?  @default("PINCODE") // PINCODE, DISTRICT, STATE, PAN_INDIA
+  serviceAreaValues String[] // List of pincodes, districts, or states
+  serviceRadiusKm   Int?     @default(10) // Coverage radius from lat/lng
+
+  isActive        Boolean  @default(true)
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  services        ServiceItem[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([category])
+  @@map("business_profiles")
+}
+
+model ServiceItem {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id])
+  name              String
+  description       String?
+  pricingType       String          @default("FIXED") // FIXED, STARTING, CONTACT
+  price             Float?
+  responseTime      String?
+  isEmergency       Boolean         @default(false)
+  
+  @@map("business_services")
+}
+
+// ─── Visitors (Entry/Exit) ────────────────────────────────────
+model VisitorEntry {
+  id          String    @id @default(cuid())
+  visitorName String
+  phone       String?
+  purpose     String?
+  unitToVisit String
+  photoUrl    String?   // S3 key
+  inTime      DateTime  @default(now())
+  outTime     DateTime?
+  loggedBy    String    // security member id
+  createdAt   DateTime  @default(now())
+
+  @@map("visitor_entries")
+}
+
 // ─── Enums ───────────────────────────────────────────────────
 enum MemberRole {
   APARTMENT_ADMIN
@@ -346,6 +763,8 @@ enum MemberRole {
   ADMIN_STAFF
   STAFF
   SERVICE_STAFF
+  ACCOUNTS
+  NOT_APPLICABLE
 }
 
 enum DepartmentType {
