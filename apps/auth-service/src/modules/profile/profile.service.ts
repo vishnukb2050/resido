@@ -173,17 +173,27 @@ export class ProfileService implements OnModuleInit {
 
         // If no lat/lng, stick to standard Prisma findMany
         if (!lat || !lng) {
+            const orConditions: any[] = [
+                { serviceAreaType: 'PAN_INDIA' }
+            ];
+
+            if (pincode) {
+                orConditions.push({ serviceAreaType: 'PINCODE', serviceAreaValues: { has: pincode } });
+                orConditions.push({ pincode: pincode });
+            }
+            if (district) {
+                orConditions.push({ serviceAreaType: 'DISTRICT', serviceAreaValues: { has: district } });
+                orConditions.push({ district: { contains: district, mode: 'insensitive' } });
+            }
+            if (state) {
+                orConditions.push({ serviceAreaType: 'STATE', serviceAreaValues: { has: state } });
+            }
+
             return this.prisma.userRead.jobProfile.findMany({
                 where: {
-                    category: category,
+                    category: category || undefined,
                     isActive: true,
-                    OR: [
-                        { serviceAreaType: 'PINCODE', serviceAreaValues: { has: pincode } },
-                        { serviceAreaType: 'DISTRICT', serviceAreaValues: { has: district } },
-                        { serviceAreaType: 'STATE', serviceAreaValues: { has: state } },
-                        { serviceAreaType: 'PAN_INDIA' },
-                        { OR: [{ pincode: pincode }, { district: { contains: district, mode: 'insensitive' } }] }
-                    ].filter(c => c !== null) as any
+                    OR: orConditions
                 },
                 include: {
                     user: { select: { name: true, phone: true, profilePhoto: true } }
