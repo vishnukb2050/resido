@@ -1,18 +1,42 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class ProfileService {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private storageService: StorageService
+    ) {}
 
-    async updateProfile(userId: string, data: any) {
+    async updateProfile(userId: string, data: any, file?: any) {
+        let profilePhotoUrl = data.profilePhoto;
+
+        if (file) {
+            // Get user's first membership for structured key
+            const userWithMembership = await this.prisma.userRead.user.findUnique({
+                where: { id: userId },
+                include: { workspaceMemberships: { take: 1 } }
+            });
+            
+            const tenantId = (userWithMembership as any)?.workspaceMemberships?.[0]?.tenantId || 'global';
+            
+            const uploadResult = await this.storageService.uploadFile(
+                file, 
+                tenantId, 
+                userId, 
+                'profiles'
+            );
+            profilePhotoUrl = uploadResult.fileUrl;
+        }
+
         const user = await this.prisma.userClient.user.update({
             where: { id: userId },
             data: {
                 name: data.name,
                 age: data.age ? parseInt(data.age) : undefined,
                 description: data.description,
-                profilePhoto: data.profilePhoto,
+                profilePhoto: profilePhotoUrl,
                 profileName: data.profileName,
                 phoneVisibility: data.phoneVisibility,
             }
@@ -27,7 +51,6 @@ export class ProfileService {
                     phoneVisibility: user.phoneVisibility,
                     name: user.name,
                     profilePhoto: user.profilePhoto,
-                    // userId is often not updatable via updateMany in some Prisma versions/configs
                 }
             });
         }

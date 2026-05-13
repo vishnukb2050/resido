@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Body, Query, UseGuards, Req, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, UseGuards, Req, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('profile')
 export class ProfileController {
@@ -8,8 +9,13 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Put('user')
-    async updateProfile(@Req() req: any, @Body() data: any) {
-        return this.profileService.updateProfile(req.user.userId, data);
+    @UseInterceptors(FileInterceptor('file'))
+    async updateProfile(
+        @Req() req: any, 
+        @Body() data: any,
+        @UploadedFile() file?: any
+    ) {
+        return this.profileService.updateProfile(req.user.userId, data, file);
     }
 
     @UseGuards(JwtAuthGuard)

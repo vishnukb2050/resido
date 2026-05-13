@@ -48,29 +48,33 @@ export default function EditProfileScreen() {
     const handleSave = async () => {
         setLoading(true);
         try {
-            let photoUrl = formData.profilePhoto;
+            const formDataToSubmit = new FormData();
             
-            // Check if photo is a local file that needs uploading
+            // Append basic info
+            formDataToSubmit.append('name', formData.name);
+            formDataToSubmit.append('profileName', formData.username); 
+            formDataToSubmit.append('email', formData.email);
+            formDataToSubmit.append('phone', formData.phone);
+            formDataToSubmit.append('description', formData.bio);
+            
+            // Handle profile photo
+            const photoUrl = formData.profilePhoto;
             if (photoUrl && (photoUrl.startsWith('file://') || photoUrl.startsWith('content://') || !photoUrl.startsWith('http'))) {
-                const fileName = `profile_${user?.id}_${Date.now()}.jpg`;
-                // Using generic storage upload for profile photos
-                photoUrl = await storageApi.uploadFile(photoUrl, fileName, 'image/jpeg', 'profiles') as string;
+                const uriParts = photoUrl.split('.');
+                const fileType = uriParts[uriParts.length - 1];
+                
+                formDataToSubmit.append('file', {
+                    uri: photoUrl,
+                    name: `profile.${fileType}`,
+                    type: `image/${fileType}`,
+                } as any);
+            } else {
+                formDataToSubmit.append('profilePhoto', photoUrl);
             }
 
-            const payload = {
-                name: formData.name,
-                username: formData.username,
-                email: formData.email,
-                phone: formData.phone,
-                description: formData.bio,
-                profilePhoto: photoUrl
-            };
-
-            const { data: updatedUser } = await authApi.updateProfile(payload);
+            const { data: updatedUser } = await authApi.updateProfile(formDataToSubmit);
             
-            // Update global state so changes reflect everywhere immediately
             updateUser(updatedUser);
-            
             Alert.alert('Success', 'Profile updated successfully! ✨');
             router.back();
         } catch (error) {
