@@ -124,6 +124,12 @@ export default function ProfileScreen() {
                         sublabel="Manage your connections" 
                     />
                     <MenuItem 
+                        icon="person-add-outline" 
+                        label="My Contacts" 
+                        sublabel="See which friends use Resido" 
+                        onPress={() => router.push('/contacts')}
+                    />
+                    <MenuItem 
                         icon="grid-outline" 
                         label="Groups & Communities" 
                         sublabel="Your joined groups" 

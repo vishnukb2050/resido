@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { FlareGateway } from './flare.gateway';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -10,7 +11,8 @@ export class BlogsService {
     constructor(
         private prisma: PrismaService,
         private http: HttpService,
-        private storage: StorageService
+        private storage: StorageService,
+        private flareGateway: FlareGateway
     ) {}
 
     async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC', followingIds: string[] = [], tenantId?: string, category?: string) {
@@ -239,6 +241,8 @@ export class BlogsService {
             where: { id: blogId },
             data: { commentsCount: { increment: 1 } }
         });
+
+        this.flareGateway.broadcastComment(blogId, comment);
 
         return comment;
     }

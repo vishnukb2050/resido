@@ -25,7 +25,7 @@ export default function ContactsScreen() {
 
                 if (data.length > 0) {
                     const phones = data
-                        .flatMap(c => c.phoneNumbers?.map(p => p.number) || [])
+                        .flatMap(c => c.phoneNumbers?.map(p => p.number?.replace(/\D/g, '')) || [])
                         .filter(Boolean) as string[];
 
                     try {

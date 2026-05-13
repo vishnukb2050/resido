@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import * as Contacts from 'expo-contacts';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, ScrollView, Image, StatusBar, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { chatApi, authApi } from '../services/api';
+import { chatApi, authApi, API_URL } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
+import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
 
 const CHAT_FILTERS = ['All', 'Community', 'Contacts', 'Groups'];
@@ -19,11 +21,70 @@ export default function ChatListScreen() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [userCache, setUserCache] = useState<Record<string, any>>({});
+    const [registeredContacts, setRegisteredContacts] = useState<any[]>([]);
+    const { activeWorkspace } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
         fetchConversations();
+        syncRegisteredContacts();
+        const cleanup = connectSocket();
+        return cleanup;
     }, []);
+
+    const connectSocket = () => {
+        if (!activeWorkspace) return;
+
+        const socket = io(`${API_URL}/chat`, {
+            auth: {
+                tenantId: activeWorkspace.tenantId,
+                dbName: activeWorkspace.dbName,
+                memberId: user?.id
+            }
+        });
+
+        socket.on('new_message', (message: any) => {
+            setConversations(prev => {
+                const existing = prev.find(c => c.id === message.conversationId);
+                if (existing) {
+                    // Update conversation and move to top
+                    const updated = { 
+                        ...existing, 
+                        messages: [message, ...(existing.messages || [])] 
+                    };
+                    return [updated, ...prev.filter(c => c.id !== message.conversationId)];
+                }
+                // If it's a completely new conversation we don't have yet
+                return prev; 
+            });
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    };
+
+    const syncRegisteredContacts = async () => {
+        try {
+            const { status } = await Contacts.requestPermissionsAsync();
+            if (status === 'granted') {
+                const { data } = await Contacts.getContactsAsync({
+                    fields: [Contacts.Fields.PhoneNumbers],
+                });
+                
+                const phones = data
+                    .flatMap(c => c.phoneNumbers?.map(p => p.number?.replace(/\D/g, '')) || [])
+                    .filter(Boolean) as string[];
+
+                if (phones.length > 0) {
+                    const res = await authApi.syncContacts(phones);
+                    setRegisteredContacts(res.data || []);
+                }
+            }
+        } catch (e) {
+            console.error('Contact sync in chat failed', e);
+        }
+    };
 
     const fetchConversations = async () => {
         try {
@@ -66,6 +127,15 @@ export default function ChatListScreen() {
         if (activeFilter === 'Contacts') return conv.type === 'DIRECT';
         if (activeFilter === 'Groups') return conv.type === 'GROUP';
         return true;
+    });
+
+    const displayContacts = registeredContacts.filter(contact => {
+        if (activeFilter !== 'Contacts') return false;
+        // Don't show if already in conversations list
+        return !conversations.some(c => 
+            c.type === 'DIRECT' && 
+            c.members?.some((m: any) => m.memberId === contact.id)
+        );
     });
 
     const handleSearch = async (text: string) => {
@@ -166,38 +236,60 @@ export default function ChatListScreen() {
                     <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
                 ) : (
                     <>
-                        {filteredConversations.length > 0 ? (
-                            filteredConversations.map(conv => (
-                                <ChatItem 
-                                    key={conv.id} 
-                                    item={{
-                                        id: conv.id,
-                                        name: conv.name || (conv.type === 'DIRECT' ? getOtherMemberName(conv) : 'Group Chat'),
-                                        sub: conv.messages?.[0]?.content || 'No messages yet',
-                                        time: conv.messages?.[0] ? dayjs(conv.messages[0].createdAt).format('hh:mm A') : '',
-                                        icon: conv.type === 'GROUP' ? 'people' : undefined,
-                                        online: conv.type === 'DIRECT' // Mock online status
-                                    }} 
-                                    onPress={() => {
-                                        if (forwardContent) {
-                                            Alert.alert('Forward', 'Forward this content to this chat?', [
-                                                { text: 'Cancel', style: 'cancel' },
-                                                { text: 'Send', onPress: async () => {
-                                                    try {
-                                                        await chatApi.sendMessage(conv.id, { content: forwardContent as string });
-                                                        Alert.alert('Success', 'Forwarded successfully!');
-                                                        router.back();
-                                                    } catch (e) {
-                                                        Alert.alert('Error', 'Failed to forward');
-                                                    }
+                        {filteredConversations.length > 0 || displayContacts.length > 0 ? (
+                            <>
+                                {filteredConversations.map(conv => (
+                                    <ChatItem 
+                                        key={conv.id} 
+                                        item={{
+                                            id: conv.id,
+                                            name: conv.name || (conv.type === 'DIRECT' ? getOtherMemberName(conv) : 'Group Chat'),
+                                            sub: conv.messages?.[0]?.content || 'No messages yet',
+                                            time: conv.messages?.[0] ? dayjs(conv.messages[0].createdAt).format('hh:mm A') : '',
+                                            icon: conv.type === 'GROUP' ? 'people' : undefined,
+                                            online: conv.type === 'DIRECT' // Mock online status
+                                        }} 
+                                        onPress={() => {
+                                            if (forwardContent) {
+                                                Alert.alert('Forward', 'Forward this content to this chat?', [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    { text: 'Send', onPress: async () => {
+                                                        try {
+                                                            await chatApi.sendMessage(conv.id, { content: forwardContent as string });
+                                                            Alert.alert('Success', 'Forwarded successfully!');
+                                                            router.back();
+                                                        } catch (e) {
+                                                            Alert.alert('Error', 'Failed to forward');
+                                                        }
+                                                    }}
+                                                ]);
+                                            } else {
+                                                router.push(`/chat/${conv.id}`);
+                                            }
+                                        }} 
+                                    />
+                                ))}
+
+                                {activeFilter === 'Contacts' && displayContacts.length > 0 && (
+                                    <>
+                                        <View style={styles.sectionHeader}>
+                                            <Text style={styles.sectionTitle}>Suggestions</Text>
+                                        </View>
+                                        {displayContacts.map(contact => (
+                                            <ChatItem 
+                                                key={contact.id}
+                                                item={{
+                                                    id: contact.id,
+                                                    name: contact.name || contact.profileName || contact.phone,
+                                                    sub: 'Resido Contact',
+                                                    online: false
                                                 }}
-                                            ]);
-                                        } else {
-                                            router.push(`/chat/${conv.id}`);
-                                        }
-                                    }} 
-                                />
-                            ))
+                                                onPress={() => router.push(`/chat/new?userId=${contact.id}`)}
+                                            />
+                                        ))}
+                                    </>
+                                )}
+                            </>
                         ) : (
                             <View style={styles.emptyState}>
                                 <Ionicons name="chatbubble-outline" size={48} color="#cbd5e1" />

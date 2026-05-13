@@ -169,11 +169,11 @@ export class AuthService {
 
     async syncContacts(userId: string, phones: string[]) {
         const normalized = phones.map(p => p.replace(/\D/g, ''));
-        const registered = await this.prisma.userRead.user.findMany({
-            where: {
-                phone: { in: normalized },
-                isActive: true
-            },
+        
+        // We'll use suffix matching for better discovery
+        // Fetch all active users and filter in-memory for accuracy
+        const allUsers = await this.prisma.userRead.user.findMany({
+            where: { isActive: true },
             select: {
                 id: true,
                 phone: true,
@@ -182,6 +182,14 @@ export class AuthService {
                 phoneVisibility: true,
                 profilePhoto: true
             }
+        });
+
+        const registered = allUsers.filter(user => {
+            const userPhone = user.phone.replace(/\D/g, '');
+            return normalized.some(p => {
+                // Match if exact or if last 10 digits match (common for varied prefixes)
+                return p === userPhone || (p.length >= 10 && userPhone.endsWith(p.slice(-10)));
+            });
         });
 
         // Automatically follow registered contacts

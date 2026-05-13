@@ -83,8 +83,8 @@ export default function FlarePlayerScreen() {
         }
     };
 
-    const handleToggleSave = (id: string, saved: boolean) => {
-        setFlares(prev => prev.map(f => f.id === id ? { ...f, saved } : f));
+    const handleToggleSave = (id: string, saved: boolean, savesCount: number) => {
+        setFlares(prev => prev.map(f => f.id === id ? { ...f, saved, savesCount } : f));
     };
 
     const handleToggleLike = (id: string, liked: boolean, likesCount: number) => {
@@ -152,12 +152,15 @@ export default function FlarePlayerScreen() {
     );
 }
 
-function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLike, onToggleReshare }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void, onToggleSave: (id: string, saved: boolean) => void, onToggleLike: (id: string, liked: boolean, count: number) => void, onToggleReshare: (id: string, reshared: boolean, count: number) => void }) {
+function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLike, onToggleReshare }: { flare: any, isActive: boolean, onBack: () => void, onFinish: () => void, onToggleSave: (id: string, saved: boolean, count: number) => void, onToggleLike: (id: string, liked: boolean, count: number) => void, onToggleReshare: (id: string, reshared: boolean, count: number) => void }) {
     const [status, setStatus] = useState<any>({});
     const [liked, setLiked] = useState(flare.liked || false);
     const [saved, setSaved] = useState(flare.saved || false);
     const [reshared, setReshared] = useState(flare.reshared || false);
     const [displayLikes, setDisplayLikes] = useState(flare.likesCount || 0);
+    const [displayComments, setDisplayComments] = useState(flare.commentsCount || 0);
+    const [displayReshares, setDisplayReshares] = useState(flare.resharesCount || 0);
+    const [displaySaves, setDisplaySaves] = useState(flare.savesCount || 0);
     const [showHeart, setShowHeart] = useState(false);
     const lastTap = useRef<number>(0);
     const video = useRef<Video>(null);
@@ -165,12 +168,22 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
-    const [displayComments, setDisplayComments] = useState(flare.commentsCount);
-    const [displayReshares, setDisplayReshares] = useState(flare.resharesCount || 0);
 
     useEffect(() => {
-        // Socket listener for live comments
-        const socket = io(`${API_URL}/chat`, {
+        setLiked(flare.liked || false);
+        setSaved(flare.saved || false);
+        setReshared(flare.reshared || false);
+        setDisplayLikes(flare.likesCount || 0);
+        setDisplaySaves(flare.savesCount || 0);
+        setDisplayReshares(flare.resharesCount || 0);
+    }, [flare]);
+
+    useEffect(() => {
+        if (!flare.id || !activeWorkspace) return;
+
+        // Connect to flares namespace for live comments
+        const socket = io(`${API_URL}/flares`, {
+            transports: ['websocket'],
             auth: { 
                 tenantId: activeWorkspace?.tenantId,
                 dbName: activeWorkspace?.dbName,
@@ -178,14 +191,20 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
             }
         });
 
+        socket.on('connect', () => {
+            socket.emit('join_flare', { flareId: flare.id });
+        });
+
         socket.on('new_comment', (data) => {
             if (data.blogId === flare.id) {
-                setDisplayComments((prev: number) => prev + 1);
+                setDisplayComments((prev: number) => (prev || 0) + 1);
             }
         });
 
-        return () => { socket.disconnect(); };
-    }, [flare.id]);
+        return () => { 
+            socket.disconnect(); 
+        };
+    }, [flare.id, activeWorkspace]);
 
     const toggleLike = async () => {
         try {
@@ -281,12 +300,15 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
     const toggleSave = async () => {
         try {
             const newSaved = !saved;
+            const newCount = newSaved ? (displaySaves || 0) + 1 : Math.max(0, (displaySaves || 0) - 1);
             setSaved(newSaved);
+            setDisplaySaves(newCount);
             await threadApi.toggleSave(flare.id);
-            onToggleSave(flare.id, newSaved);
+            onToggleSave(flare.id, newSaved, newCount);
         } catch (e) {
             console.error(e);
             setSaved(saved);
+            setDisplaySaves(displaySaves);
         }
     };
 
@@ -373,7 +395,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                 />
                 <ActionIcon 
                     icon="bookmark" 
-                    label="Save" 
+                    label={displaySaves.toString()} 
                     active={saved} 
                     activeColor="#ffcc00" 
                     onPress={toggleSave}
