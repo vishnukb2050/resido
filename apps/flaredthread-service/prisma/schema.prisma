@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../../node_modules/@resido/flaredthread-client"
+  output   = "../node_modules/@resido/flaredthread-client"
 }
 
 datasource db {
