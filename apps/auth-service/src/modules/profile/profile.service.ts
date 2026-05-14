@@ -466,7 +466,7 @@ export class ProfileService implements OnModuleInit {
     }
 
     async getFollowing(userId: string) {
-        const following = await this.prisma.userRead.userFollow.findMany({
+        const following = await this.prisma.userRead.follow.findMany({
             where: { followerId: userId },
             include: { following: true }
         });

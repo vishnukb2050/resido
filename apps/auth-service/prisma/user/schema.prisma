@@ -39,6 +39,8 @@ model User {
   following            Follow[] @relation("follower")
   incomes              PersonalIncome[]
   expenses             PersonalExpense[]
+  noteShares           NoteShare[]
+  documentShares       DocumentShare[]
 
   @@map("users")
 }
@@ -205,6 +207,7 @@ model NoteShare {
 
   folder NoteFolder? @relation(fields: [folderId], references: [id])
   page   NotePage?   @relation(fields: [pageId], references: [id])
+  user   User        @relation(fields: [userId], references: [id])
 
   @@map("note_shares")
 }
@@ -277,6 +280,7 @@ model DocumentShare {
 
   folder DocumentFolder? @relation(fields: [folderId], references: [id])
   file   DocumentFile?   @relation(fields: [fileId], references: [id])
+  user   User            @relation(fields: [userId], references: [id])
 
   @@map("document_shares")
 }
