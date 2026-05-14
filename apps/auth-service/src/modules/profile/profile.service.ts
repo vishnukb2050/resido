@@ -312,15 +312,17 @@ export class ProfileService implements OnModuleInit {
         if (!query || query.length < 2) return [];
         const lowerQuery = query.toLowerCase();
 
-        // Search for matches
+        // Search for matches across multiple fields
         const results = await this.prisma.geoRead.locationMaster.findMany({
             where: {
-                searchStr: {
-                    contains: lowerQuery,
-                    mode: 'insensitive'
-                }
+                OR: [
+                    { placeName: { contains: query, mode: 'insensitive' } },
+                    { district: { contains: query, mode: 'insensitive' } },
+                    { pincode: { startsWith: query } },
+                    { searchStr: { contains: lowerQuery, mode: 'insensitive' } }
+                ]
             },
-            take: 50, // Fetch more to ensure we find coordinate matches
+            take: 100, // Fetch more to ensure we find coordinate matches
             select: {
                 id: true,
                 placeName: true,
