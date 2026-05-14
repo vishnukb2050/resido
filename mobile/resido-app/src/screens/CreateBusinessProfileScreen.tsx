@@ -142,7 +142,9 @@ export default function CreateBusinessProfileScreen() {
         if (text.length > 2) {
             setIsMapSearching(true);
             try {
+                console.log('Searching business map places for:', text);
                 const { data } = await authApi.searchLocations(text);
+                console.log('Found business places:', data.length);
                 setMapSearchResults(data.map((item: any, idx: number) => ({
                     id: item.id || `loc_${idx}`,
                     display_name: `${item.placeName}, ${item.district} (${item.pincode})`,
@@ -1126,6 +1128,13 @@ const styles = StyleSheet.create({
     chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#6366f1', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
     chipText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
+    mapViewContainer: { height: 400, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 20, position: 'relative', zIndex: 1 },
+    map: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+    mapOverlayHeader: { position: 'absolute', top: 15, left: 15, right: 15, zIndex: 9999 },
+    mapSearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 48, borderRadius: 12, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 10000 },
+    mapSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
+    mapGpsBtn: { position: 'absolute', right: 15, bottom: 20, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
+    dropdown: { position: 'absolute', top: 55, left: 0, right: 0, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, maxHeight: 200, zIndex: 10001 },
     infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(99, 102, 241, 0.05)', padding: 16, borderRadius: 12, marginTop: 16, gap: 12 },
     infoText: { flex: 1, fontSize: 13, color: '#6366f1' },
     pickerValue: { fontSize: 15, color: '#fff', fontWeight: '500' },

@@ -55,30 +55,32 @@ export class ProfileService implements OnModuleInit {
                 this.logger.log('📍 Location database already contains base data.');
             }
 
-            // 2. ALWAYS Load high-precision South India data with coordinates (using upsert)
+            // 2. Load high-precision South India data with coordinates
             const geoPath = path.join(__dirname, '../../assets/south_india_geo.json');
             if (fs.existsSync(geoPath)) {
                 const rawGeo = JSON.parse(fs.readFileSync(geoPath, 'utf8'));
                 if (Array.isArray(rawGeo)) {
-                    this.logger.log(`📥 Syncing ${rawGeo.length} high-precision South India locations...`);
-                    for (const item of rawGeo) {
-                        await this.prisma.geoClient.locationMaster.upsert({
-                            where: { id: `geo_${item.state}_${item.placeName}_${item.pincode}`.toLowerCase().replace(/\s/g, '_') },
-                            create: {
-                                id: `geo_${item.state}_${item.placeName}_${item.pincode}`.toLowerCase().replace(/\s/g, '_'),
-                                placeName: item.placeName,
-                                pincode: String(item.pincode),
-                                district: item.district,
-                                state: item.state,
-                                latitude: item.latitude,
-                                longitude: item.longitude,
-                                searchStr: `${item.placeName} ${item.pincode} ${item.district} ${item.state}`.toLowerCase()
-                            },
-                            update: {
-                                latitude: item.latitude,
-                                longitude: item.longitude
-                            }
+                    this.logger.log(`📥 Ingesting ${rawGeo.length} high-precision South India locations...`);
+                    
+                    const BATCH_SIZE = 5000;
+                    for (let i = 0; i < rawGeo.length; i += BATCH_SIZE) {
+                        const batch = rawGeo.slice(i, i + BATCH_SIZE);
+                        const data = batch.map((item: any) => ({
+                            id: `geo_${item.state}_${item.placeName}_${item.pincode}`.toLowerCase().replace(/\s/g, '_'),
+                            placeName: item.placeName,
+                            pincode: String(item.pincode),
+                            district: item.district,
+                            state: item.state,
+                            latitude: item.latitude,
+                            longitude: item.longitude,
+                            searchStr: `${item.placeName} ${item.pincode} ${item.district} ${item.state}`.toLowerCase()
+                        }));
+
+                        await this.prisma.geoClient.locationMaster.createMany({
+                            data,
+                            skipDuplicates: true
                         });
+                        this.logger.log(`✅ Synced ${i + data.length}/${rawGeo.length} geo locations...`);
                     }
                 }
             }
@@ -279,25 +281,31 @@ export class ProfileService implements OnModuleInit {
     async searchLocations(query: string) {
         if (!query || query.length < 2) return [];
 
-        return this.prisma.geoRead.locationMaster.findMany({
+        // Search for matches, prioritizing those with coordinates
+        const results = await this.prisma.geoRead.locationMaster.findMany({
             where: {
                 searchStr: {
                     contains: query.toLowerCase()
                 }
             },
-            take: 10,
+            take: 20,
             select: {
+                id: true,
                 placeName: true,
                 pincode: true,
                 district: true,
                 state: true,
                 latitude: true,
                 longitude: true
-            },
-            orderBy: {
-                placeName: 'asc'
             }
         });
+
+        // Sort: Items with latitude first, then alphabetical by placeName
+        return results.sort((a, b) => {
+            if (a.latitude && !b.latitude) return -1;
+            if (!a.latitude && b.latitude) return 1;
+            return a.placeName.localeCompare(b.placeName);
+        }).slice(0, 10);
     }
 
     async reverseGeocode(lat: number, lng: number) {

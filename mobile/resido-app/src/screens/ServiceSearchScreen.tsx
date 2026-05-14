@@ -117,7 +117,9 @@ export default function ServiceSearchScreen() {
         if (text.length > 2) {
             setIsMapSearching(true);
             try {
+                console.log('Searching map places for:', text);
                 const { data } = await authApi.searchLocations(text);
+                console.log('Found places:', data.length);
                 setMapSearchResults(data.map((item: any, idx: number) => ({
                     id: item.id || `loc_${idx}`,
                     display_name: `${item.placeName}, ${item.district} (${item.pincode})`,
@@ -125,7 +127,7 @@ export default function ServiceSearchScreen() {
                     longitude: item.longitude,
                     type: 'area',
                     pincode: item.pincode
-                })).filter((item: any) => item.latitude && item.longitude)); // Only show items with coordinates
+                })).filter((item: any) => item.latitude && item.longitude)); 
                 setShowMapDropdown(true);
             } catch (error) {
                 console.error('Map place search error:', error);
@@ -733,15 +735,15 @@ const styles = StyleSheet.create({
     },
     nearMeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f7ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginRight: 8, borderWidth: 1, borderColor: '#e0e7ff' },
     nearMeText: { fontSize: 12, fontWeight: '700', color: '#6366f1', marginLeft: 4 },
-    mapViewContainer: { height: 450, marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25, position: 'relative' },
-    map: { ...StyleSheet.absoluteFillObject },
-    mapOverlayHeader: { position: 'absolute', top: 15, left: 15, right: 15, zIndex: 10 },
-    mapSearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 48, borderRadius: 12, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+    mapViewContainer: { height: 450, marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25, position: 'relative', zIndex: 1 },
+    map: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+    mapOverlayHeader: { position: 'absolute', top: 15, left: 15, right: 15, zIndex: 9999 },
+    mapSearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 48, borderRadius: 12, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 10000 },
     mapSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
-    mapGpsBtn: { position: 'absolute', right: 15, bottom: 85, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
-    mapDoneBtn: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#6366f1', height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 8 },
+    mapGpsBtn: { position: 'absolute', right: 15, bottom: 85, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
+    mapDoneBtn: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#6366f1', height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 8, zIndex: 100 },
     mapDoneText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-    radiusSelector: { position: 'absolute', right: 15, top: 80, backgroundColor: '#fff', borderRadius: 12, padding: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+    radiusSelector: { position: 'absolute', right: 15, top: 80, backgroundColor: '#fff', borderRadius: 12, padding: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
     radiusBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginBottom: 4 },
     radiusBtnActive: { backgroundColor: '#6366f1' },
     radiusText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
