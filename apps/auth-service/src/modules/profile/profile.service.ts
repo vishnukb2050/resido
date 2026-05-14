@@ -316,7 +316,8 @@ export class ProfileService implements OnModuleInit {
         const results = await this.prisma.geoRead.locationMaster.findMany({
             where: {
                 searchStr: {
-                    contains: lowerQuery
+                    contains: lowerQuery,
+                    mode: 'insensitive'
                 }
             },
             take: 50, // Fetch more to ensure we find coordinate matches
