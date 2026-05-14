@@ -319,7 +319,7 @@ export class ProfileService implements OnModuleInit {
                     contains: lowerQuery
                 }
             },
-            take: 30,
+            take: 50, // Fetch more to ensure we find coordinate matches
             select: {
                 id: true,
                 placeName: true,
@@ -336,9 +336,12 @@ export class ProfileService implements OnModuleInit {
             const aName = a.placeName.toLowerCase();
             const bName = b.placeName.toLowerCase();
 
-            // 1. Prioritize those with coordinates
-            if (a.latitude && !b.latitude) return -1;
-            if (!a.latitude && b.latitude) return 1;
+            // 1. TOP PRIORITY: Locations WITH coordinates (OSM/High-Precision)
+            const aHasCoords = a.latitude !== null && a.longitude !== null;
+            const bHasCoords = b.latitude !== null && b.longitude !== null;
+            
+            if (aHasCoords && !bHasCoords) return -1;
+            if (!aHasCoords && bHasCoords) return 1;
 
             // 2. Exact match on placeName
             if (aName === lowerQuery && bName !== lowerQuery) return -1;
@@ -350,7 +353,7 @@ export class ProfileService implements OnModuleInit {
 
             // 4. Alphabetical
             return aName.localeCompare(bName);
-        }).slice(0, 10);
+        }).slice(0, 15); // Show top 15 results
     }
 
     async reverseGeocode(lat: number, lng: number) {
