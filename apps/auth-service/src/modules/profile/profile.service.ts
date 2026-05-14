@@ -11,7 +11,7 @@ export class ProfileService implements OnModuleInit {
     constructor(
         private prisma: PrismaService,
         private storageService: StorageService
-    ) {}
+    ) { }
 
     async onModuleInit() {
         // Run ingestion in background to not block startup
@@ -21,7 +21,7 @@ export class ProfileService implements OnModuleInit {
     private async seedLocations() {
         try {
             const count = await this.prisma.geoRead.locationMaster.count();
-            
+
             // 1. Load standard pincodes if DB is empty
             if (count < 50000) {
                 this.logger.log('📍 Starting automatic location ingestion (Standard Pincodes)...');
@@ -61,7 +61,7 @@ export class ProfileService implements OnModuleInit {
                 const rawGeo = JSON.parse(fs.readFileSync(geoPath, 'utf8'));
                 if (Array.isArray(rawGeo)) {
                     this.logger.log(`📥 Ingesting ${rawGeo.length} high-precision South India locations...`);
-                    
+
                     const BATCH_SIZE = 5000;
                     for (let i = 0; i < rawGeo.length; i += BATCH_SIZE) {
                         const batch = rawGeo.slice(i, i + BATCH_SIZE);
@@ -85,6 +85,36 @@ export class ProfileService implements OnModuleInit {
                 }
             }
 
+            // 3. Load highly granular OSM data for Kerala and Tamil Nadu
+            const osmPath = path.join(__dirname, '../../assets/osm_detailed_geo.json');
+            if (fs.existsSync(osmPath)) {
+                const rawOsm = JSON.parse(fs.readFileSync(osmPath, 'utf8'));
+                if (Array.isArray(rawOsm)) {
+                    this.logger.log(`📥 Ingesting ${rawOsm.length} granular OSM locations for Kerala & TN...`);
+                    
+                    const BATCH_SIZE = 5000;
+                    for (let i = 0; i < rawOsm.length; i += BATCH_SIZE) {
+                        const batch = rawOsm.slice(i, i + BATCH_SIZE);
+                        const data = batch.map((item: any) => ({
+                            id: `osm_${item.state}_${item.placeName}`.toLowerCase().replace(/\s/g, '_'),
+                            placeName: item.placeName,
+                            pincode: String(item.pincode),
+                            district: item.district,
+                            state: item.state,
+                            latitude: item.latitude,
+                            longitude: item.longitude,
+                            searchStr: `${item.placeName} ${item.pincode} ${item.district} ${item.state}`.toLowerCase()
+                        }));
+
+                        await this.prisma.geoClient.locationMaster.createMany({
+                            data,
+                            skipDuplicates: true
+                        });
+                        this.logger.log(`✅ Synced ${i + data.length}/${rawOsm.length} granular locations...`);
+                    }
+                }
+            }
+
             this.logger.log('🎉 Location database sync complete!');
         } catch (error) {
             this.logger.error('❌ Failed to seed locations:', error);
@@ -100,13 +130,13 @@ export class ProfileService implements OnModuleInit {
                 where: { id: userId },
                 include: { workspaceMemberships: { take: 1 } }
             });
-            
+
             const tenantId = (userWithMembership as any)?.workspaceMemberships?.[0]?.tenantId || 'global';
-            
+
             const uploadResult = await this.storageService.uploadFile(
-                file, 
-                tenantId, 
-                userId, 
+                file,
+                tenantId,
+                userId,
                 'profiles'
             );
             profilePhotoUrl = uploadResult.fileUrl;
@@ -280,15 +310,16 @@ export class ProfileService implements OnModuleInit {
 
     async searchLocations(query: string) {
         if (!query || query.length < 2) return [];
+        const lowerQuery = query.toLowerCase();
 
-        // Search for matches, prioritizing those with coordinates
+        // Search for matches
         const results = await this.prisma.geoRead.locationMaster.findMany({
             where: {
                 searchStr: {
-                    contains: query.toLowerCase()
+                    contains: lowerQuery
                 }
             },
-            take: 20,
+            take: 30,
             select: {
                 id: true,
                 placeName: true,
@@ -300,11 +331,25 @@ export class ProfileService implements OnModuleInit {
             }
         });
 
-        // Sort: Items with latitude first, then alphabetical by placeName
+        // Advanced Ranking
         return results.sort((a, b) => {
+            const aName = a.placeName.toLowerCase();
+            const bName = b.placeName.toLowerCase();
+
+            // 1. Prioritize those with coordinates
             if (a.latitude && !b.latitude) return -1;
             if (!a.latitude && b.latitude) return 1;
-            return a.placeName.localeCompare(b.placeName);
+
+            // 2. Exact match on placeName
+            if (aName === lowerQuery && bName !== lowerQuery) return -1;
+            if (aName !== lowerQuery && bName === lowerQuery) return 1;
+
+            // 3. Starts with query
+            if (aName.startsWith(lowerQuery) && !bName.startsWith(lowerQuery)) return -1;
+            if (!aName.startsWith(lowerQuery) && bName.startsWith(lowerQuery)) return 1;
+
+            // 4. Alphabetical
+            return aName.localeCompare(bName);
         }).slice(0, 10);
     }
 
