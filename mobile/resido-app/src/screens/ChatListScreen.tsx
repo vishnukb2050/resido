@@ -231,6 +231,23 @@ export default function ChatListScreen() {
                     ))}
                 </ScrollView>
 
+                {/* Create Group Button (Only for Groups filter) */}
+                {activeFilter === 'Groups' && (
+                    <TouchableOpacity 
+                        style={styles.createGroupBtn}
+                        onPress={() => router.push('/chat/create-group')}
+                    >
+                        <View style={styles.createGroupIcon}>
+                            <Ionicons name="add" size={24} color="#fff" />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 14 }}>
+                            <Text style={styles.createGroupTitle}>New Group</Text>
+                            <Text style={styles.createGroupSub}>Add members from contacts, community or followers</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    </TouchableOpacity>
+                )}
+
                 {/* Conversations List */}
                 {loading ? (
                     <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
@@ -386,4 +403,28 @@ const styles = StyleSheet.create({
     searchDivider: { height: 1, backgroundColor: '#f1f5f9', marginTop: 15, marginBottom: 5 },
     emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 40 },
     emptyText: { color: '#94a3b8', fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 12 },
+    createGroupBtn: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 20, 
+        paddingVertical: 18, 
+        backgroundColor: '#fff', 
+        borderBottomWidth: 1, 
+        borderBottomColor: '#f8fafc' 
+    },
+    createGroupIcon: { 
+        width: 44, 
+        height: 44, 
+        borderRadius: 14, 
+        backgroundColor: '#6366f1', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4
+    },
+    createGroupTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
+    createGroupSub: { fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: 2 },
 });

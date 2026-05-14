@@ -466,10 +466,21 @@ export class ProfileService implements OnModuleInit {
     }
 
     async getFollowing(userId: string) {
-        const follows = await this.prisma.userRead.follow.findMany({
+        const following = await this.prisma.userRead.userFollow.findMany({
             where: { followerId: userId },
-            select: { followingId: true }
+            include: { following: true }
         });
-        return follows.map(f => f.followingId);
+        return following.map(f => f.following);
+    }
+
+    async getUserWithMembership(userId: string) {
+        return this.prisma.userRead.user.findUnique({
+            where: { id: userId },
+            include: { workspaceMemberships: { take: 1 } }
+        });
+    }
+
+    async getPresignedUrl(fileName: string, contentType: string, tenantId: string, userId: string, resourceType?: string) {
+        return this.storageService.getPresignedUrl(fileName, contentType, tenantId, userId, resourceType);
     }
 }

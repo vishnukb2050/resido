@@ -100,4 +100,25 @@ export class ProfileController {
     async getFollowing(@Req() req: any) {
         return this.profileService.getFollowing(req.user.userId);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('storage/presigned-url')
+    async getPresignedUrl(
+        @Req() req: any,
+        @Query('fileName') fileName: string,
+        @Query('contentType') contentType: string,
+        @Query('resourceType') resourceType?: string
+    ) {
+        // Find tenantId for the user
+        const userWithMembership = await this.profileService.getUserWithMembership(req.user.userId);
+        const tenantId = userWithMembership?.workspaceMemberships?.[0]?.tenantId || 'global';
+        
+        return this.profileService.getPresignedUrl(
+            fileName,
+            contentType,
+            tenantId,
+            req.user.userId,
+            resourceType
+        );
+    }
 }

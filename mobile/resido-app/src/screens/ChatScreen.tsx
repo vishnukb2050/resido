@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, FlatList, TextInput, TouchableOpacity,
-    StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView, Image, StatusBar
+    StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView, Image, StatusBar, Alert
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
-import { chatApi, API_URL } from '../services/api';
+import { authApi, chatApi, API_URL } from '../services/api';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import PollBuilderModal from '../components/PollBuilderModal';
+import { Image as ImageCompressor, Video as VideoCompressor } from 'react-native-compressor';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 
 interface Message {
     id: string;
@@ -21,58 +24,17 @@ interface Message {
     createdAt: string;
     reactions?: string[];
     poll?: any;
+    mediaUrl?: string;
 }
 
-const MOCK_MESSAGES: Message[] = [
-    {
-        id: '1',
-        senderId: 'admin',
-        senderName: 'Admin',
-        content: 'Dear Residents,\n\nThis is to inform you that there will be a water supply interruption on May 26th from 10:00 AM to 2:00 PM due to maintenance work.\n\nThank you for your cooperation.',
-        type: 'TEXT',
-        createdAt: '2024-05-24T08:30:00Z',
-        reactions: ['😊', '🤝', '12']
-    },
-    {
-        id: '2',
-        senderId: 'me',
-        senderName: 'Neha Sharma (A-1203)',
-        content: 'Thanks for the update!',
-        type: 'TEXT',
-        createdAt: '2024-05-24T08:45:00Z'
-    },
-    {
-        id: '3',
-        senderId: 'u2',
-        senderName: 'Ramesh Kumar (B-604)',
-        content: 'Is there any precaution we need to take?',
-        type: 'TEXT',
-        createdAt: '2024-05-24T09:00:00Z'
-    },
-    {
-        id: '4',
-        senderId: 'admin',
-        senderName: 'Admin',
-        content: 'Please store enough water for your needs during this time.',
-        type: 'TEXT',
-        createdAt: '2024-05-24T09:05:00Z',
-        reactions: ['👍', '😊', '5']
-    },
-    {
-        id: '5',
-        senderId: 'u3',
-        senderName: 'Arjun Mehta (C-301)',
-        content: 'Thanks for the heads up!',
-        type: 'TEXT',
-        createdAt: '2024-05-24T09:10:00Z'
-    }
-];
-
 export default function ChatScreen({ conversationId }: { conversationId: string }) {
-    const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPollBuilder, setShowPollBuilder] = useState(false);
+    const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    
     const socketRef = useRef<Socket | null>(null);
     const flatRef = useRef<FlatList>(null);
     const { activeWorkspace, user } = useAuthStore();
@@ -119,7 +81,6 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
 
         socket.on('new_message', (message: Message) => {
             setMessages(prev => {
-                // Avoid duplicates
                 if (prev.find(m => m.id === message.id)) return prev;
                 return [...prev, message];
             });
@@ -127,6 +88,61 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         });
 
         socketRef.current = socket;
+    };
+
+    const handlePickMedia = async (type: 'image' | 'video' | 'file') => {
+        setShowAttachmentMenu(false);
+        try {
+            let result;
+            if (type === 'file') {
+                result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+            } else {
+                result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: type === 'image' ? ImagePicker.MediaTypeOptions.Images : ImagePicker.MediaTypeOptions.Videos,
+                    allowsEditing: true,
+                    quality: 0.8,
+                });
+            }
+
+            if (result.canceled) return;
+
+            setIsUploading(true);
+            const asset = (result as any).assets[0];
+            let uri = asset.uri;
+            let contentType = asset.mimeType || (type === 'image' ? 'image/jpeg' : 'video/mp4');
+
+            if (type === 'image') {
+                uri = await ImageCompressor.compress(uri, { maxWidth: 1280, quality: 0.8 });
+            } else if (type === 'video') {
+                uri = await VideoCompressor.compress(uri, { compressionMethod: 'auto' });
+            }
+
+            const fileName = uri.split('/').pop() || 'upload';
+            const { data } = await authApi.getPresignedUrl(fileName, contentType, 'chat');
+            const { uploadUrl, fileUrl } = data;
+
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            await fetch(uploadUrl, {
+                method: 'PUT',
+                body: blob,
+                headers: { 'Content-Type': contentType }
+            });
+
+            if (socketRef.current) {
+                socketRef.current.emit('send_message', {
+                    conversationId,
+                    type: type.toUpperCase(),
+                    mediaUrl: fileUrl,
+                    content: `Sent a ${type}`
+                });
+            }
+        } catch (error) {
+            console.error('Media upload failed:', error);
+            Alert.alert('Error', 'Failed to upload media. Please try again.');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const sendMessage = async () => {
@@ -138,9 +154,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
             type: 'TEXT'
         };
 
-        // Emit via socket for real-time delivery
         socketRef.current.emit('send_message', messageData);
-        
         setInput('');
     };
 
@@ -154,13 +168,12 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         };
 
         socketRef.current.emit('send_message', messageData);
+        setShowPollBuilder(false);
     };
 
     const handleVote = async (pollId: string, optionId: string) => {
         try {
             await chatApi.votePoll(pollId, optionId);
-            // Refresh local state if possible or wait for socket update
-            // For now we'll reload messages to be sure
             loadMessages();
         } catch (e) {
             console.error(e);
@@ -173,7 +186,19 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
             <View style={[styles.messageWrapper, isMine ? styles.mineWrapper : styles.theirsWrapper]}>
                 {!isMine && <Text style={styles.senderName}>{item.senderName}</Text>}
                 <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
-                    {item.type === 'POLL' && item.poll ? (
+                    {item.type === 'IMAGE' ? (
+                        <Image source={{ uri: item.mediaUrl || item.content }} style={styles.messageImage} />
+                    ) : item.type === 'VIDEO' ? (
+                        <View style={styles.videoPlaceholder}>
+                            <Ionicons name="play-circle" size={48} color="#fff" />
+                            <Text style={{ color: '#fff', marginTop: 8 }}>Video Content</Text>
+                        </View>
+                    ) : item.type === 'FILE' ? (
+                        <TouchableOpacity style={styles.fileContainer} onPress={() => {}}>
+                            <Ionicons name="document-text" size={24} color={isMine ? "#fff" : "#6366f1"} />
+                            <Text style={[styles.fileName, isMine && { color: '#fff' }]}>{item.content}</Text>
+                        </TouchableOpacity>
+                    ) : item.type === 'POLL' && item.poll ? (
                         <View style={styles.pollContainer}>
                             <Text style={[styles.pollQuestion, isMine && { color: '#fff' }]}>{item.poll.question}</Text>
                             {item.poll.options.map((opt: any) => {
@@ -211,13 +236,6 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                         {isMine && <Ionicons name="checkmark-done" size={14} color="#fff" style={{ marginLeft: 4 }} />}
                     </View>
                 </View>
-                {item.reactions && (
-                    <View style={styles.reactionsContainer}>
-                        {item.reactions.map((r, i) => (
-                            <Text key={i} style={styles.reaction}>{r}</Text>
-                        ))}
-                    </View>
-                )}
             </View>
         );
     };
@@ -226,7 +244,6 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
             
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()}>
                     <Ionicons name="chevron-back" size={24} color="#1e293b" />
@@ -243,17 +260,6 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                 <TouchableOpacity><Ionicons name="ellipsis-vertical" size={24} color="#1e293b" /></TouchableOpacity>
             </View>
 
-            {/* Announcements Banner */}
-            <TouchableOpacity style={styles.announcementBanner}>
-                <View style={styles.announcementIconBox}>
-                    <Ionicons name="megaphone" size={18} color="#6366f1" />
-                </View>
-                <Text style={styles.announcementText} numberOfLines={1}>
-                    Announcements: Water supply will be interrupted on May...
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color="#64748b" />
-            </TouchableOpacity>
-
             <KeyboardAvoidingView 
                 style={{ flex: 1 }} 
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -265,13 +271,48 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                     keyExtractor={(m) => m.id}
                     renderItem={renderMessage}
                     contentContainerStyle={styles.listContent}
-                    ListHeaderComponent={<Text style={styles.dateDivider}>May 24, 2024</Text>}
+                    onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: true })}
                 />
 
-                {/* Input Bar */}
+                {isUploading && (
+                    <View style={styles.uploadingOverlay}>
+                        <ActivityIndicator color="#6366f1" />
+                        <Text style={styles.uploadingText}>Optimizing and uploading...</Text>
+                    </View>
+                )}
+
+                {showAttachmentMenu && (
+                    <View style={styles.attachmentMenu}>
+                        <TouchableOpacity style={styles.attachmentItem} onPress={() => handlePickMedia('image')}>
+                            <View style={[styles.attachmentIcon, { backgroundColor: '#dcfce7' }]}>
+                                <Ionicons name="image" size={20} color="#16a34a" />
+                            </View>
+                            <Text style={styles.attachmentLabel}>Images</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.attachmentItem} onPress={() => handlePickMedia('video')}>
+                            <View style={[styles.attachmentIcon, { backgroundColor: '#fee2e2' }]}>
+                                <Ionicons name="videocam" size={20} color="#dc2626" />
+                            </View>
+                            <Text style={styles.attachmentLabel}>Videos</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.attachmentItem} onPress={() => handlePickMedia('file')}>
+                            <View style={[styles.attachmentIcon, { backgroundColor: '#e0e7ff' }]}>
+                                <Ionicons name="document" size={20} color="#4338ca" />
+                            </View>
+                            <Text style={styles.attachmentLabel}>Files</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.attachmentItem} onPress={() => { setShowAttachmentMenu(false); setShowPollBuilder(true); }}>
+                            <View style={[styles.attachmentIcon, { backgroundColor: '#fef9c3' }]}>
+                                <Ionicons name="stats-chart" size={20} color="#ca8a04" />
+                            </View>
+                            <Text style={styles.attachmentLabel}>Poll</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 <View style={styles.inputBar}>
-                    <TouchableOpacity style={styles.attachBtn} onPress={() => setShowPollBuilder(true)}>
-                        <Ionicons name="add" size={24} color="#6366f1" />
+                    <TouchableOpacity style={styles.attachBtn} onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}>
+                        <Ionicons name={showAttachmentMenu ? "close" : "add"} size={24} color="#6366f1" />
                     </TouchableOpacity>
                     <View style={styles.inputContainer}>
                         <TextInput
@@ -282,10 +323,9 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                             onChangeText={setInput}
                             multiline
                         />
-                        <TouchableOpacity><Ionicons name="happy-outline" size={24} color="#94a3b8" /></TouchableOpacity>
                     </View>
                     <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-                        <Ionicons name={input.trim() ? "send" : "mic"} size={22} color="#fff" />
+                        <Ionicons name="send" size={20} color="#fff" />
                     </TouchableOpacity>
                 </View>
 
@@ -307,13 +347,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
     headerSub: { fontSize: 11, color: '#64748b', fontWeight: '600' },
 
-    announcementBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f3ff', paddingHorizontal: 15, paddingVertical: 10, marginHorizontal: 20, marginTop: 15, borderRadius: 12, gap: 10 },
-    announcementIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-    announcementText: { flex: 1, fontSize: 11, color: '#4338ca', fontWeight: '600' },
-
     listContent: { padding: 20, paddingBottom: 20 },
-    dateDivider: { textAlign: 'center', fontSize: 11, color: '#94a3b8', fontWeight: '700', marginVertical: 20 },
-
     messageWrapper: { maxWidth: '85%', marginBottom: 15 },
     mineWrapper: { alignSelf: 'flex-end' },
     theirsWrapper: { alignSelf: 'flex-start' },
@@ -327,17 +361,27 @@ const styles = StyleSheet.create({
     bubbleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 },
     time: { fontSize: 9, color: '#94a3b8', fontWeight: '600' },
 
-    reactionsContainer: { flexDirection: 'row', backgroundColor: '#fff', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, marginTop: -8, marginLeft: 15, borderWidth: 1, borderColor: '#f1f5f9', gap: 4 },
-    reaction: { fontSize: 10 },
-
     inputBar: { flexDirection: 'row', alignItems: 'center', padding: 15, gap: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f1f5f9' },
     attachBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
     inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 20, paddingHorizontal: 15, borderWidth: 1, borderColor: '#f1f5f9' },
     input: { flex: 1, fontSize: 14, color: '#1e293b', maxHeight: 100, paddingVertical: 8 },
     sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
 
+    uploadingOverlay: { position: 'absolute', bottom: 100, left: 20, right: 20, backgroundColor: 'rgba(255,255,255,0.9)', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+    uploadingText: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
+
+    attachmentMenu: { position: 'absolute', bottom: 80, left: 15, backgroundColor: '#fff', padding: 10, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 10, width: 140 },
+    attachmentItem: { flexDirection: 'row', alignItems: 'center', padding: 10, gap: 12 },
+    attachmentIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    attachmentLabel: { fontSize: 13, fontWeight: '600', color: '#475569' },
+
+    messageImage: { width: 240, height: 180, borderRadius: 12, marginBottom: 4 },
+    videoPlaceholder: { width: 240, height: 180, borderRadius: 12, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+    fileContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+    fileName: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
+
     // Poll Styles
-    pollContainer: { width: '100%', marginVertical: 5 },
+    pollContainer: { width: '220', marginVertical: 5 },
     pollQuestion: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 12 },
     pollOption: { backgroundColor: '#fff', padding: 10, borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     pollOptionSelected: { borderColor: '#6366f1', backgroundColor: '#f5f3ff' },
