@@ -437,6 +437,56 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                     <Ionicons name="musical-notes" size={14} color="#fff" />
                     <Text style={styles.musicText}>{flare.musicName || 'Golden Hour - JVKE'}</Text>
                 </View>
+
+                {/* Poll Section */}
+                {flare.poll && (
+                    <View style={styles.pollContainer}>
+                        <Text style={styles.pollQuestion}>{flare.poll.question}</Text>
+                        
+                        {flare.poll.options.map((opt: any) => {
+                            const totalVotes = flare.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
+                            const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
+                            const hasVoted = flare.poll.votes && flare.poll.votes.length > 0;
+                            const isSelected = hasVoted && flare.poll.votes[0].optionId === opt.id;
+                            const isExpired = new Date(flare.poll.expiresAt) < new Date();
+
+                            if (hasVoted || isExpired) {
+                                return (
+                                    <View key={opt.id} style={styles.resultItem}>
+                                        <View style={styles.resultLabelRow}>
+                                            <Text style={[styles.resultText, isSelected && styles.selectedResultText]}>{opt.text}</Text>
+                                            <Text style={styles.resultPercentage}>{percentage}%</Text>
+                                        </View>
+                                        <View style={styles.progressBg}>
+                                            <View style={[styles.progressFill, { width: `${percentage}%` }, isSelected && { backgroundColor: '#6366f1' }]} />
+                                        </View>
+                                    </View>
+                                );
+                            }
+
+                            return (
+                                <TouchableOpacity 
+                                    key={opt.id} 
+                                    style={styles.pollOptionBtn}
+                                    onPress={() => {
+                                        threadApi.votePoll(flare.poll.id, opt.id)
+                                            .then(() => {
+                                                // We don't have a direct way to refresh the individual flare object easily here
+                                                // but we can at least notify the user or try to refresh
+                                                Alert.alert("Success", "Vote recorded!");
+                                            })
+                                            .catch(e => {
+                                                console.error(e);
+                                                Alert.alert("Error", "Failed to vote");
+                                            });
+                                    }}
+                                >
+                                    <Text style={styles.pollOptionText}>{opt.text}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                )}
             </View>
 
             {/* Progress Bar */}
@@ -529,4 +579,17 @@ const styles = StyleSheet.create({
 
     progressBarContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 20 },
     progressBar: { height: '100%', backgroundColor: '#6366f1' },
+
+    // Poll Styles
+    pollContainer: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 15, padding: 15, marginTop: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    pollQuestion: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 12 },
+    pollOptionBtn: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    pollOptionText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    resultItem: { marginBottom: 10 },
+    resultLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+    resultText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
+    selectedResultText: { color: '#fff', fontWeight: '800' },
+    resultPercentage: { fontSize: 13, fontWeight: '800', color: '#fff' },
+    progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+    progressFill: { height: '100%', backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3 },
 });

@@ -122,7 +122,7 @@ export const threadApi = {
     getComments: (id: string) => api.get(`/blogs/${id}/comments`),
     reshare: (id: string, data?: any) => api.post(`/blogs/${id}/reshare`, data),
     toggleSave: (id: string) => api.post(`/blogs/${id}/save`),
-    votePoll: (pollId: string, optionId: string) => api.post(`/polls/${pollId}/vote`, { optionId }),
+    votePoll: (pollId: string, optionId: string) => api.post(`/blogs/polls/${pollId}/vote`, { optionId }),
     updateBlog: (id: string, data: any) => api.patch(`/blogs/${id}`, data),
     deleteBlog: (id: string) => api.delete(`/blogs/${id}`),
 };

@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     fileName: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
 
     // Poll Styles
-    pollContainer: { width: '220', marginVertical: 5 },
+    pollContainer: { width: 220, marginVertical: 5 },
     pollQuestion: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 12 },
     pollOption: { backgroundColor: '#fff', padding: 10, borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     pollOptionSelected: { borderColor: '#6366f1', backgroundColor: '#f5f3ff' },

@@ -140,7 +140,18 @@ export class BlogsService {
         }
 
         const blog = await (this.prisma.client as any).blog.create({
-            data: blogData
+            data: blogData,
+            include: {
+                poll: {
+                    include: {
+                        options: {
+                            include: {
+                                _count: { select: { votes: true } }
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         // Notify tagged users
