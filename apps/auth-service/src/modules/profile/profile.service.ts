@@ -321,6 +321,8 @@ export class ProfileService implements OnModuleInit {
     async searchLocations(query: string) {
         if (!query || query.length < 2) return [];
         const lowerQuery = query.toLowerCase();
+        
+        this.logger.debug(`🔍 Search Location Query: "${query}"`);
 
         // Search for matches across multiple fields
         const results = await this.prisma.geoRead.locationMaster.findMany({
@@ -343,6 +345,8 @@ export class ProfileService implements OnModuleInit {
                 longitude: true
             }
         });
+
+        this.logger.debug(`📍 Found ${results.length} potential matches for "${query}"`);
 
         // Advanced Ranking
         return results.sort((a, b) => {
