@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Query, UseGuards, Req, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, UseGuards, Req, Param, Delete, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -51,8 +51,13 @@ export class ProfileController {
     }
 
     @Get('locations/search')
-    async searchLocations(@Query('query') query: string) {
-        return this.profileService.searchLocations(query);
+    async searchLocations(@Query('query') query: string, @Res() res: any) {
+        const results = await this.profileService.searchLocations(query);
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        res.set('Surrogate-Control', 'no-store');
+        return res.json(results);
     }
 
     @Get('locations/reverse-geocode')

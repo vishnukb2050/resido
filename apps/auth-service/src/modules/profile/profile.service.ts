@@ -347,6 +347,8 @@ export class ProfileService implements OnModuleInit {
         });
 
         this.logger.debug(`📍 Found ${results.length} potential matches for "${query}"`);
+        const withCoords = results.filter(r => r.latitude && r.longitude).length;
+        this.logger.debug(`📍 Results with Coordinates: ${withCoords}`);
 
         // Advanced Ranking
         return results.sort((a, b) => {

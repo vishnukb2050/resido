@@ -82,6 +82,9 @@ export class ProxyController {
 
             res.status(response.status).set(response.headers).send(response.data);
         } catch (err: any) {
+            if (err.response?.status === 304) {
+                return res.status(304).set(err.response.headers).send(err.response.data);
+            }
             console.error(`[Proxy Error] ${req.method} ${path}:`, err.message);
             if (err.response) {
                 res.status(err.response.status).set(err.response.headers).send(err.response.data);
