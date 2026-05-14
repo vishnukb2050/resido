@@ -1,30 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions, Image
+    TextInput, SafeAreaView, StatusBar, Dimensions, Image,
+    ActivityIndicator
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
-
-const FOLDERS = [
-    { id: '1', name: 'Personal', count: 12, date: 'Today, 10:30 AM', color: '#f59e0b', icon: 'folder-outline' },
-    { id: '2', name: 'Work', count: 24, date: 'Yesterday, 4:20 PM', color: '#10b981', icon: 'folder-outline' },
-    { id: '3', name: 'Ideas', count: 8, date: 'May 12, 2025', color: '#6366f1', icon: 'folder-outline' },
-    { id: '4', name: 'Shopping', count: 6, date: 'May 10, 2025', color: '#f97316', icon: 'folder-outline' },
-    { id: '5', name: 'Travel', count: 5, date: 'May 8, 2025', color: '#3b82f6', icon: 'folder-outline' },
-];
-
-const SHARED = [
-    { id: 's1', name: 'Family Plan', count: 3, sharedBy: 'Priya', color: '#ec4899' },
-    { id: 's2', name: 'Project Alpha', count: 6, sharedBy: 'Aman', color: '#6366f1' },
-];
 
 export default function NotesScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('Folders');
+    const [folders, setFolders] = useState<any[]>([]);
+    const [sharedItems, setSharedItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [])
+    );
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [foldersRes, sharedRes] = await Promise.all([
+                mySpaceApi.getNoteFolders(),
+                mySpaceApi.getSharedNotes()
+            ]);
+            setFolders(foldersRes.data);
+            setSharedItems(sharedRes.data);
+        } catch (error) {
+            console.error('Failed to load notes data', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -66,54 +80,82 @@ export default function NotesScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* My Folders Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>My Folders</Text>
-                        <TouchableOpacity style={styles.sortBtn}>
-                            <Text style={styles.sortText}>Name</Text>
-                            <MaterialCommunityIcons name="menu" size={16} color="#64748b" />
-                        </TouchableOpacity>
-                    </View>
+                {loading ? (
+                    <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
+                ) : (
+                    <>
+                        {/* My Folders Section */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>My Folders</Text>
+                                <TouchableOpacity style={styles.sortBtn} onPress={() => router.push({ pathname: '/create-folder', params: { type: 'NOTE' } })}>
+                                    <Ionicons name="add-circle" size={20} color="#6366f1" />
+                                    <Text style={[styles.sortText, { color: '#6366f1' }]}>New Folder</Text>
+                                </TouchableOpacity>
+                            </View>
 
-                    {FOLDERS.map((folder) => (
-                        <TouchableOpacity 
-                            key={folder.id} 
-                            style={styles.folderCard}
-                            onPress={() => router.push({ pathname: '/note-folder-view', params: { name: folder.name, count: folder.count } })}
-                        >
-                            <View style={[styles.folderIconBox, { backgroundColor: folder.color }]}>
-                                <MaterialCommunityIcons name="folder" size={24} color="#fff" />
-                            </View>
-                            <View style={styles.folderInfo}>
-                                <Text style={styles.folderName}>{folder.name}</Text>
-                                <Text style={styles.folderSub}>{folder.count} Notes</Text>
-                            </View>
-                            <View style={styles.folderRight}>
-                                <Text style={styles.folderDate}>{folder.date}</Text>
-                                <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                            {folders.length === 0 ? (
+                                <Text style={styles.emptyText}>No folders yet. Create one!</Text>
+                            ) : (
+                                folders.map((folder) => (
+                                    <TouchableOpacity 
+                                        key={folder.id} 
+                                        style={styles.folderCard}
+                                        onPress={() => router.push({ pathname: '/note-folder-view', params: { id: folder.id, name: folder.name, count: folder._count?.pages || 0 } })}
+                                    >
+                                        <View style={[styles.folderIconBox, { backgroundColor: folder.color || '#6366f1' }]}>
+                                            <MaterialCommunityIcons name="folder" size={24} color="#fff" />
+                                        </View>
+                                        <View style={styles.folderInfo}>
+                                            <Text style={styles.folderName}>{folder.name}</Text>
+                                            <Text style={styles.folderSub}>{folder._count?.pages || 0} Notes</Text>
+                                        </View>
+                                        <View style={styles.folderRight}>
+                                            <Text style={styles.folderDate}>{new Date(folder.updatedAt).toLocaleDateString()}</Text>
+                                            <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))
+                            )}
+                        </View>
 
-                {/* Shared with Me Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Shared with Me</Text>
-                    {SHARED.map((item) => (
-                        <TouchableOpacity key={item.id} style={styles.folderCard}>
-                            <View style={[styles.folderIconBox, { backgroundColor: item.color }]}>
-                                <MaterialCommunityIcons name="account-group" size={24} color="#fff" />
+                        {/* Shared with Me Section */}
+                        {sharedItems.length > 0 && (
+                            <View style={[styles.section, { marginTop: 32 }]}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={styles.sectionTitle}>Shared with Me</Text>
+                                </View>
+                                {sharedItems.map((item) => (
+                                    <TouchableOpacity 
+                                        key={item.id} 
+                                        style={styles.folderCard}
+                                        onPress={() => {
+                                            if (item.folder) {
+                                                router.push({ pathname: '/note-folder-view', params: { id: item.folder.id, name: item.folder.name, isShared: 'true' } });
+                                            } else if (item.page) {
+                                                router.push({ pathname: '/create-note', params: { id: item.page.id, title: item.page.title, body: item.page.content, isShared: 'true' } });
+                                            }
+                                        }}
+                                    >
+                                        <View style={[styles.folderIconBox, { backgroundColor: '#94a3b8' }]}>
+                                            <MaterialCommunityIcons name={item.folder ? "folder-account" : "file-document-outline"} size={24} color="#fff" />
+                                        </View>
+                                        <View style={styles.folderInfo}>
+                                            <Text style={styles.folderName}>{item.folder?.name || item.page?.title}</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                                <Image source={{ uri: item.user?.profileImage || 'https://i.pravatar.cc/100?u=' + item.user?.id }} style={{ width: 16, height: 16, borderRadius: 8 }} />
+                                                <Text style={[styles.folderSub, { marginLeft: 6 }]}>Shared by {item.user?.fullName || item.user?.profileName}</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.folderRight}>
+                                            <Text style={styles.folderDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
-                            <View style={styles.folderInfo}>
-                                <Text style={styles.folderName}>{item.name}</Text>
-                                <Text style={styles.folderSub}>{item.count} Notes</Text>
-                                <Text style={styles.sharedBy}>Shared by {item.sharedBy}</Text>
-                            </View>
-                            <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                        )}
+                    </>
+                )}
             </ScrollView>
 
             {/* FAB */}
@@ -159,4 +201,5 @@ const styles = StyleSheet.create({
     folderDate: { fontSize: 11, color: '#64748b' },
 
     fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
 });

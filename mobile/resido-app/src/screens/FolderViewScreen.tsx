@@ -1,28 +1,111 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions, Image
+    TextInput, SafeAreaView, StatusBar, Dimensions, Image,
+    ActivityIndicator, Alert, Modal
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import BottomNav from '../components/BottomNav';
+import { mySpaceApi, authApi } from '../services/api';
+import axios from 'axios';
 
-const { width } = Dimensions.get('window');
-
-const DOCUMENTS = [
-    { id: '1', name: 'Project Brief.pdf', size: '2.4 MB', date: 'Today, 10:30 AM', type: 'PDF', color: '#ef4444' },
-    { id: '2', name: 'Design Guidelines.docx', size: '1.8 MB', date: 'Today, 9:15 AM', type: 'WORD', color: '#3b82f6' },
-    { id: '3', name: 'Budget Planning.xlsx', size: '980 KB', date: 'Yesterday, 4:45 PM', type: 'EXCEL', color: '#10b981' },
-    { id: '4', name: 'Meeting Notes - 12 May.pdf', size: '1.2 MB', date: 'May 12, 2025', type: 'PDF', color: '#ef4444' },
-    { id: '5', name: 'Presentation.pptx', size: '5.3 MB', date: 'May 11, 2025', type: 'PPT', color: '#f59e0b' },
-    { id: '6', name: 'Client Feedback.docx', size: '1.6 MB', date: 'May 11, 2025', type: 'WORD', color: '#3b82f6' },
-    { id: '7', name: 'To-Do List.xlsx', size: '450 KB', date: 'May 10, 2025', type: 'EXCEL', color: '#10b981' },
-    { id: '8', name: 'Marketing Strategy.pdf', size: '2.7 MB', date: 'May 9, 2025', type: 'PDF', color: '#ef4444' },
-];
+const { width, height } = Dimensions.get('window');
 
 export default function FolderViewScreen() {
     const router = useRouter();
-    const { name, count } = useLocalSearchParams();
+    const { id, name } = useLocalSearchParams();
+    const [files, setFiles] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (id) loadFiles();
+        }, [id])
+    );
+
+    const loadFiles = async () => {
+        try {
+            setLoading(true);
+            const { data } = await mySpaceApi.getDocumentFolder(id as string);
+            setFiles(data.files || []);
+        } catch (error) {
+            console.error('Failed to load files', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFileUpload = async (type: 'IMAGE' | 'FILE') => {
+        try {
+            let result: any;
+            if (type === 'IMAGE') {
+                result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    quality: 0.8,
+                });
+            } else {
+                result = await DocumentPicker.getDocumentAsync({
+                    type: '*/*',
+                    copyToCacheDirectory: true
+                });
+            }
+
+            if (result.canceled) return;
+
+            const asset = type === 'IMAGE' ? result.assets[0] : result.assets[0];
+            const fileName = asset.name || `file_${Date.now()}`;
+            const mimeType = asset.mimeType || 'application/octet-stream';
+
+            setUploading(true);
+            setUploadProgress(0.1);
+
+            // 1. Get presigned URL
+            const { data: { uploadUrl, fileUrl } } = await authApi.getPresignedUrl(fileName, mimeType, 'DOCUMENTS');
+
+            // 2. Upload to R2
+            const response = await fetch(asset.uri);
+            const blob = await response.blob();
+
+            await axios.put(uploadUrl, blob, {
+                headers: { 'Content-Type': mimeType },
+                onUploadProgress: (progressEvent) => {
+                    const progress = progressEvent.loaded / (progressEvent.total || 1);
+                    setUploadProgress(0.2 + progress * 0.7);
+                }
+            });
+
+            // 3. Save to backend
+            await mySpaceApi.addDocumentFile({
+                folderId: id as string,
+                name: fileName,
+                url: fileUrl,
+                type: type,
+                size: asset.size
+            });
+
+            setUploadProgress(1);
+            setTimeout(() => {
+                setUploading(false);
+                loadFiles();
+            }, 500);
+
+        } catch (error) {
+            console.error('Upload failed', error);
+            Alert.alert('Error', 'Upload failed');
+            setUploading(false);
+        }
+    };
+
+    const getFileColor = (type: string) => {
+        if (type === 'IMAGE') return '#3b82f6';
+        if (type.includes('pdf')) return '#ef4444';
+        return '#6366f1';
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -35,11 +118,14 @@ export default function FolderViewScreen() {
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text style={styles.headerTitle}>{name || 'Work'}</Text>
-                        <Text style={styles.headerSub}>{count || 28} Documents</Text>
+                        <Text style={styles.headerTitle}>{name || 'Folder'}</Text>
+                        <Text style={styles.headerSub}>{files.length} Documents</Text>
                     </View>
                     <View style={styles.headerActions}>
                         <TouchableOpacity style={styles.iconBtn}><Ionicons name="search" size={22} color="#fff" /></TouchableOpacity>
+                        <TouchableOpacity style={styles.iconBtn} onPress={() => router.push({ pathname: '/share-doc', params: { folderId: id, name } })}>
+                            <Ionicons name="share-social" size={22} color="#fff" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -48,7 +134,7 @@ export default function FolderViewScreen() {
                     <View style={styles.searchBar}>
                         <Ionicons name="search" size={20} color="#64748b" />
                         <TextInput 
-                            placeholder={`Search documents in ${name || 'Work'}`} 
+                            placeholder={`Search documents in ${name || 'Folder'}`} 
                             style={styles.searchInput}
                             placeholderTextColor="#94a3b8"
                         />
@@ -58,30 +144,54 @@ export default function FolderViewScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-                <View style={styles.listContainer}>
-                    {DOCUMENTS.map((doc) => (
-                        <TouchableOpacity 
-                            key={doc.id} 
-                            style={styles.docCard}
-                            onPress={() => router.push({ pathname: '/share-doc', params: { name: doc.name, size: doc.size, folder: name } })}
-                        >
-                            <View style={[styles.typeIconBox, { backgroundColor: doc.color }]}>
-                                <Text style={styles.typeText}>{doc.type}</Text>
-                            </View>
-                            <View style={styles.docInfo}>
-                                <Text style={styles.docName}>{doc.name}</Text>
-                                <Text style={styles.docSub}>{doc.size} • {doc.date}</Text>
-                            </View>
-                            <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                {loading ? (
+                    <ActivityIndicator color="#6366f1" style={{ marginTop: 40 }} />
+                ) : files.length === 0 ? (
+                    <Text style={styles.emptyText}>No documents here yet. Upload one!</Text>
+                ) : (
+                    <View style={styles.listContainer}>
+                        {files.map((doc) => (
+                            <TouchableOpacity 
+                                key={doc.id} 
+                                style={styles.docCard}
+                                onPress={() => router.push({ pathname: '/share-doc', params: { id: doc.id, name: doc.name, url: doc.url } })}
+                            >
+                                <View style={[styles.typeIconBox, { backgroundColor: getFileColor(doc.type) }]}>
+                                    <Text style={styles.typeText}>{doc.type === 'IMAGE' ? 'IMG' : 'DOC'}</Text>
+                                </View>
+                                <View style={styles.docInfo}>
+                                    <Text style={styles.docName}>{doc.name}</Text>
+                                    <Text style={styles.docSub}>{doc.size ? (doc.size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size'} • {new Date(doc.updatedAt).toLocaleDateString()}</Text>
+                                </View>
+                                <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </ScrollView>
 
-            {/* FAB */}
-            <TouchableOpacity style={styles.fab}>
-                <Ionicons name="add" size={32} color="#fff" />
-            </TouchableOpacity>
+            {/* FAB Options */}
+            <View style={styles.fabContainer}>
+                <TouchableOpacity style={[styles.fabMini, { bottom: 170 }]} onPress={() => handleFileUpload('FILE')}>
+                    <Ionicons name="document-text" size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.fabMini, { bottom: 100 }]} onPress={() => handleFileUpload('IMAGE')}>
+                    <Ionicons name="image" size={24} color="#fff" />
+                </TouchableOpacity>
+            </View>
+
+            {/* Uploading Overlay */}
+            <Modal transparent visible={uploading}>
+                <View style={styles.overlay}>
+                    <View style={styles.progressBox}>
+                        <ActivityIndicator size="large" color="#6366f1" />
+                        <Text style={styles.progressText}>Uploading... {Math.round(uploadProgress * 100)}%</Text>
+                        <View style={styles.progressBarBg}>
+                            <View style={[styles.progressBar, { width: `${uploadProgress * 100}%` }]} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>
@@ -110,5 +220,13 @@ const styles = StyleSheet.create({
     docName: { fontSize: 15, fontWeight: '800', color: '#fff' },
     docSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
 
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
+    fabContainer: { position: 'absolute', bottom: 0, right: 20 },
+    fabMini: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
+    progressBox: { backgroundColor: '#1e293b', padding: 30, borderRadius: 24, alignItems: 'center', width: width * 0.8 },
+    progressText: { color: '#fff', fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 15 },
+    progressBarBg: { width: '100%', height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+    progressBar: { height: '100%', backgroundColor: '#6366f1' }
 });

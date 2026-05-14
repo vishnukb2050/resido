@@ -1,27 +1,40 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions, FlatList
+    TextInput, SafeAreaView, StatusBar, Dimensions, FlatList,
+    ActivityIndicator
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const columnWidth = (width - 50) / 2;
 
-const NOTES = [
-    { id: '1', title: 'Project Brief', body: 'Discuss project objectives, deliverables and timeline with the team before we start the development phase.', date: 'Today, 10:30 AM', color: '#6366f1', pinned: true },
-    { id: '2', title: 'Meeting Notes - 12 May', body: '- Discussed about new feature rollout\n- Assigned tasks to...', date: 'May 12, 2025', color: '#fef08a', pinned: false },
-    { id: '3', title: 'Client Feedback', body: 'Received positive feedback on the new design. They loved the color scheme and...', date: 'May 11, 2025', color: '#dcfce7', pinned: false },
-    { id: '4', title: 'To-Do List', body: '☑ Review design\n☑ Update proposal\n☐ Client call\n☐ Final presentation', date: 'May 10, 2025', color: '#e0e7ff', pinned: false },
-    { id: '5', title: 'Budget Planning', body: 'Q2 Budget breakdown and planning for upcoming marketing campaign.', date: 'May 9, 2025', color: '#fee2e2', pinned: false },
-    { id: '6', title: 'Ideas Brainstorm', body: 'Ideas for the new campaign:\n- Social media focus\n- Influencer collab...', date: 'May 8, 2025', color: '#f5f3ff', pinned: false },
-];
-
 export default function NoteFolderViewScreen() {
     const router = useRouter();
-    const { name, count } = useLocalSearchParams();
+    const { id, name } = useLocalSearchParams();
+    const [pages, setPages] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (id) loadPages();
+        }, [id])
+    );
+
+    const loadPages = async () => {
+        try {
+            setLoading(true);
+            const { data } = await mySpaceApi.getNoteFolder(id as string);
+            setPages(data.pages || []);
+        } catch (error) {
+            console.error('Failed to load note pages', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -34,11 +47,14 @@ export default function NoteFolderViewScreen() {
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text style={styles.headerTitle}>{name || 'Work'}</Text>
-                        <Text style={styles.headerSub}>{count || 24} Notes</Text>
+                        <Text style={styles.headerTitle}>{name || 'Folder'}</Text>
+                        <Text style={styles.headerSub}>{pages.length} Notes</Text>
                     </View>
                     <View style={styles.headerActions}>
                         <TouchableOpacity style={styles.iconBtn}><Ionicons name="search" size={22} color="#fff" /></TouchableOpacity>
+                        <TouchableOpacity style={styles.iconBtn} onPress={() => router.push({ pathname: '/share-note', params: { folderId: id, name } })}>
+                            <Ionicons name="share-social" size={22} color="#fff" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -47,7 +63,7 @@ export default function NoteFolderViewScreen() {
                     <View style={styles.searchBar}>
                         <Ionicons name="search" size={20} color="#64748b" />
                         <TextInput 
-                            placeholder={`Search notes in ${name || 'Work'}`} 
+                            placeholder={`Search notes in ${name || 'Folder'}`} 
                             style={styles.searchInput}
                             placeholderTextColor="#94a3b8"
                         />
@@ -57,31 +73,36 @@ export default function NoteFolderViewScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-                <View style={styles.gridContainer}>
-                    {NOTES.map((note) => (
-                        <TouchableOpacity 
-                            key={note.id} 
-                            style={[styles.noteCard, { backgroundColor: note.color === '#6366f1' ? '#6366f1' : note.color }]}
-                            onPress={() => router.push({ pathname: '/create-note', params: { id: note.id, title: note.title, body: note.body } })}
-                        >
-                            <View style={styles.cardHeader}>
-                                <Text style={[styles.noteTitle, note.color === '#6366f1' && { color: '#fff' }]}>{note.title}</Text>
-                                {note.pinned && <MaterialCommunityIcons name="pin" size={16} color={note.color === '#6366f1' ? '#fff' : '#6366f1'} />}
-                            </View>
-                            <Text 
-                                style={[styles.noteBody, note.color === '#6366f1' && { color: 'rgba(255,255,255,0.8)' }]} 
-                                numberOfLines={5}
+                {loading ? (
+                    <ActivityIndicator color="#6366f1" style={{ marginTop: 40 }} />
+                ) : pages.length === 0 ? (
+                    <Text style={styles.emptyText}>No notes here yet. Create one!</Text>
+                ) : (
+                    <View style={styles.gridContainer}>
+                        {pages.map((note) => (
+                            <TouchableOpacity 
+                                key={note.id} 
+                                style={[styles.noteCard, { backgroundColor: note.color || '#fff' }]}
+                                onPress={() => router.push({ pathname: '/create-note', params: { id: note.id, folderId: id, title: note.title, body: note.content } })}
                             >
-                                {note.body}
-                            </Text>
-                            <Text style={[styles.noteDate, note.color === '#6366f1' && { color: 'rgba(255,255,255,0.6)' }]}>{note.date}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                                <View style={styles.cardHeader}>
+                                    <Text style={[styles.noteTitle, note.color === '#6366f1' && { color: '#fff' }]}>{note.title}</Text>
+                                </View>
+                                <Text 
+                                    style={[styles.noteBody, note.color === '#6366f1' && { color: 'rgba(255,255,255,0.8)' }]} 
+                                    numberOfLines={5}
+                                >
+                                    {note.content}
+                                </Text>
+                                <Text style={[styles.noteDate, note.color === '#6366f1' && { color: 'rgba(255,255,255,0.6)' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </ScrollView>
 
             {/* FAB */}
-            <TouchableOpacity style={styles.fab} onPress={() => router.push('/create-note')}>
+            <TouchableOpacity style={styles.fab} onPress={() => router.push({ pathname: '/create-note', params: { folderId: id } })}>
                 <Ionicons name="add" size={32} color="#fff" />
             </TouchableOpacity>
 
@@ -111,5 +132,6 @@ const styles = StyleSheet.create({
     noteBody: { fontSize: 13, color: '#475569', lineHeight: 18 },
     noteDate: { fontSize: 11, color: '#64748b', marginTop: 12, fontWeight: '600' },
 
+    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
     fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
 });

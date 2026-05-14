@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Query, UseGuards, Req, Param, Delete, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Body, Query, UseGuards, Req, Param, Delete, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -120,5 +120,107 @@ export class ProfileController {
             req.user.userId,
             resourceType
         );
+    }
+
+    // --- Notes & Documents (My Space) ---
+
+    @UseGuards(JwtAuthGuard)
+    @Get('notes/folders')
+    async getNoteFolders(@Req() req: any) {
+        return this.profileService.getNoteFolders(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('notes/folders')
+    async createNoteFolder(@Req() req: any, @Body() body: { name: string }) {
+        return this.profileService.createNoteFolder(req.user.userId, body.name);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('notes/folders/:id')
+    async getNoteFolder(@Param('id') id: string) {
+        return this.profileService.getNoteFolder(id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('notes/pages')
+    async createNotePage(@Body() body: { folderId: string, title: string, content: string, color?: string }) {
+        return this.profileService.createNotePage(body.folderId, body.title, body.content, body.color);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch('notes/pages/:id')
+    async updateNotePage(@Param('id') id: string, @Body() body: { title?: string, content?: string, color?: string }) {
+        return this.profileService.updateNotePage(id, body);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('documents/folders')
+    async getDocumentFolders(@Req() req: any) {
+        return this.profileService.getDocumentFolders(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('documents/folders')
+    async createDocumentFolder(@Req() req: any, @Body() body: { name: string, color?: string, icon?: string }) {
+        return this.profileService.createDocumentFolder(req.user.userId, body.name, body.color, body.icon);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('documents/folders/:id')
+    async getDocumentFolder(@Param('id') id: string) {
+        return this.profileService.getDocumentFolder(id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('documents/files')
+    async addDocumentFile(@Body() body: { folderId: string, name: string, url: string, type: string, size?: number }) {
+        return this.profileService.addDocumentFile(body.folderId, body.name, body.url, body.type, body.size);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('share')
+    async shareItem(
+        @Req() req: any, 
+        @Body() body: { type: 'NOTE' | 'DOC', itemId: string, targetType: 'COMMUNITY' | 'GROUP' | 'CONTACT', targetId: string, isFolder: boolean }
+    ) {
+        return this.profileService.shareItem(req.user.userId, body.type, body.itemId, body.targetType, body.targetId, body.isFolder);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('notes/shared')
+    async getSharedNotes(@Req() req: any) {
+        return this.profileService.getSharedNotes(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('documents/shared')
+    async getSharedDocuments(@Req() req: any) {
+        return this.profileService.getSharedDocuments(req.user.userId);
+    }
+
+    // --- Finance (Personal) ---
+
+    @UseGuards(JwtAuthGuard)
+    @Post('finance/income')
+    async addIncome(@Req() req: any, @Body() data: any) {
+        return this.profileService.addIncome(req.user.userId, data);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('finance/expense')
+    async addExpense(@Req() req: any, @Body() data: any) {
+        return this.profileService.addExpense(req.user.userId, data);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('finance/report')
+    async getFinanceReport(
+        @Req() req: any, 
+        @Query('period') period: string,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string
+    ) {
+        return this.profileService.getFinanceReport(req.user.userId, period, startDate, endDate);
     }
 }

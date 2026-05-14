@@ -483,4 +483,182 @@ export class ProfileService implements OnModuleInit {
     async getPresignedUrl(fileName: string, contentType: string, tenantId: string, userId: string, resourceType?: string) {
         return this.storageService.getPresignedUrl(fileName, contentType, tenantId, userId, resourceType);
     }
+
+    // --- Notes & Documents (My Space) ---
+
+    async getNoteFolders(userId: string) {
+        return this.prisma.userRead.noteFolder.findMany({
+            where: { userId },
+            include: { 
+                _count: { select: { pages: true } }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+    }
+
+    async createNoteFolder(userId: string, name: string) {
+        return this.prisma.userClient.noteFolder.create({
+            data: { userId, name }
+        });
+    }
+
+    async getNoteFolder(folderId: string) {
+        return this.prisma.userRead.noteFolder.findUnique({
+            where: { id: folderId },
+            include: { pages: { orderBy: { createdAt: 'desc' } } }
+        });
+    }
+
+    async createNotePage(folderId: string, title: string, content: string, color?: string) {
+        return this.prisma.userClient.notePage.create({
+            data: { folderId, title, content, color }
+        });
+    }
+
+    async updateNotePage(pageId: string, data: { title?: string, content?: string, color?: string }) {
+        return this.prisma.userClient.notePage.update({
+            where: { id: pageId },
+            data: data
+        });
+    }
+
+    async getDocumentFolders(userId: string) {
+        return this.prisma.userRead.documentFolder.findMany({
+            where: { userId },
+            include: { 
+                _count: { select: { files: true } }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+    }
+
+    async createDocumentFolder(userId: string, name: string, color?: string, icon?: string) {
+        return this.prisma.userClient.documentFolder.create({
+            data: { userId, name, color, icon }
+        });
+    }
+
+    async getDocumentFolder(folderId: string) {
+        return this.prisma.userRead.documentFolder.findUnique({
+            where: { id: folderId },
+            include: { files: { orderBy: { createdAt: 'desc' } } }
+        });
+    }
+
+    async addDocumentFile(folderId: string, name: string, url: string, type: string, size?: number) {
+        return this.prisma.userClient.documentFile.create({
+            data: { folderId, name, url, type, size }
+        });
+    }
+
+    async shareItem(userId: string, type: 'NOTE' | 'DOC', itemId: string, targetType: 'COMMUNITY' | 'GROUP' | 'CONTACT', targetId: string, isFolder: boolean) {
+        if (type === 'NOTE') {
+            return this.prisma.userClient.noteShare.create({
+                data: {
+                    userId,
+                    targetType,
+                    targetId,
+                    [isFolder ? 'folderId' : 'pageId']: itemId
+                }
+            });
+        } else {
+            return this.prisma.userClient.documentShare.create({
+                data: {
+                    userId,
+                    targetType,
+                    targetId,
+                    [isFolder ? 'folderId' : 'fileId']: itemId
+                }
+            });
+        }
+    }
+
+    async getSharedNotes(userId: string) {
+        return this.prisma.userRead.noteShare.findMany({
+            where: {
+                targetType: 'CONTACT',
+                targetId: userId
+            },
+            include: {
+                user: { select: { id: true, fullName: true, profileName: true, profileImage: true } },
+                folder: true,
+                page: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async getSharedDocuments(userId: string) {
+        return this.prisma.userRead.documentShare.findMany({
+            where: {
+                targetType: 'CONTACT',
+                targetId: userId
+            },
+            include: {
+                user: { select: { id: true, fullName: true, profileName: true, profileImage: true } },
+                folder: true,
+                file: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async addIncome(userId: string, data: { source: string, amount: number, date: string }) {
+        return this.prisma.userClient.personalIncome.create({
+            data: { 
+                source: data.source,
+                amount: data.amount,
+                date: new Date(data.date),
+                userId 
+            }
+        });
+    }
+
+    async addExpense(userId: string, data: { amount: number, category: string, date: string, paymentMethod: string, description?: string, billUrl?: string }) {
+        return this.prisma.userClient.personalExpense.create({
+            data: { 
+                amount: data.amount,
+                category: data.category,
+                date: new Date(data.date),
+                paymentMethod: data.paymentMethod,
+                description: data.description,
+                billUrl: data.billUrl,
+                userId 
+            }
+        });
+    }
+
+    async getFinanceReport(userId: string, period: string, startDate?: string, endDate?: string) {
+        let where: any = { userId };
+        
+        if (period === 'WEEK') {
+            const start = new Date();
+            start.setDate(start.getDate() - 7);
+            where.date = { gte: start };
+        } else if (period === 'MONTH') {
+            const start = new Date();
+            start.setMonth(start.getMonth() - 1);
+            where.date = { gte: start };
+        } else if (period === 'CUSTOM' && startDate && endDate) {
+            where.date = { gte: new Date(startDate), lte: new Date(endDate) };
+        }
+
+        const [incomes, expenses] = await Promise.all([
+            this.prisma.userRead.personalIncome.findMany({ where, orderBy: { date: 'desc' } }),
+            this.prisma.userRead.personalExpense.findMany({ where, orderBy: { date: 'desc' } })
+        ]);
+
+        const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
+        const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+        return {
+            summary: {
+                totalIncome,
+                totalExpense,
+                balance: totalIncome - totalExpense
+            },
+            incomes,
+            expenses
+        };
+    }
 }

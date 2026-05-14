@@ -1,18 +1,51 @@
 import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions, KeyboardAvoidingView, Platform
+    TextInput, SafeAreaView, StatusBar, Dimensions, KeyboardAvoidingView, Platform,
+    ActivityIndicator, Alert
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
 export default function CreateNoteScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const [title, setTitle] = useState(params.title as string || 'Project Brief');
-    const [body, setBody] = useState(params.body as string || 'Discuss project objectives, deliverables and timeline with the team before we start the development phase.\n\nObjectives\n• Build a user-friendly platform\n• Improve performance\n• Enhance security\n\nDeliverables\n• UI/UX Design\n• Frontend Development\n• Backend API\n• Testing\n\nTimeline\n• Week 1-2: Planning\n• Week 3-6: Development\n• Week 7: Testing & Review');
+    const [title, setTitle] = useState(params.title as string || '');
+    const [body, setBody] = useState(params.body as string || '');
+    const [loading, setLoading] = useState(false);
+
+    const handleSave = async () => {
+        if (!title.trim() || !body.trim()) {
+            Alert.alert('Error', 'Please enter title and content');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            if (params.id) {
+                // Update existing page (Need to add this to api.ts)
+                await mySpaceApi.updateNotePage(params.id as string, {
+                    title: title.trim(),
+                    content: body.trim(),
+                });
+            } else {
+                await mySpaceApi.createNotePage({
+                    folderId: params.folderId as string,
+                    title: title.trim(),
+                    content: body.trim(),
+                });
+            }
+            router.back();
+        } catch (error) {
+            console.error('Failed to save note', error);
+            Alert.alert('Error', 'Failed to save note');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -20,12 +53,12 @@ export default function CreateNoteScreen() {
             
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} disabled={loading}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{params.id ? 'Edit Note' : 'New Note'}</Text>
-                <TouchableOpacity onPress={() => router.back()} style={styles.saveBtn}>
-                    <Ionicons name="checkmark" size={24} color="#fff" />
+                <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={loading}>
+                    {loading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="checkmark" size={24} color="#fff" />}
                 </TouchableOpacity>
             </View>
 
@@ -45,13 +78,12 @@ export default function CreateNoteScreen() {
                     />
 
                     {/* Folder Selector */}
-                    <TouchableOpacity style={styles.folderSelector} onPress={() => router.push('/share-note')}>
+                    <View style={styles.folderSelector}>
                         <View style={[styles.folderIconBox, { backgroundColor: '#f59e0b' }]}>
                             <MaterialCommunityIcons name="folder" size={16} color="#fff" />
                         </View>
-                        <Text style={styles.folderName}>Work</Text>
-                        <Ionicons name="chevron-down" size={16} color="#64748b" />
-                    </TouchableOpacity>
+                        <Text style={styles.folderName}>{params.folderName || 'General'}</Text>
+                    </View>
 
                     {/* Body Input */}
                     <TextInput 

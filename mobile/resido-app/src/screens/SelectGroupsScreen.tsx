@@ -1,29 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions
+    TextInput, SafeAreaView, StatusBar, Dimensions, ActivityIndicator, Alert
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-
-const GROUPS = [
-    { id: '1', name: 'Design Team', members: 8, color: '#3b82f6' },
-    { id: '2', name: 'Marketing Team', members: 12, color: '#6366f1' },
-    { id: '3', name: 'Project Alpha', members: 6, color: '#ef4444' },
-    { id: '4', name: 'Family Group', members: 5, color: '#ec4899' },
-    { id: '5', name: 'Friends Circle', members: 9, color: '#8b5cf6' },
-    { id: '6', name: 'Work Buddies', members: 7, color: '#f59e0b' },
-    { id: '7', name: 'Resido Community', members: 24, color: '#10b981' },
-];
+import { mySpaceApi, chatApi } from '../services/api';
 
 export default function SelectGroupsScreen() {
     const router = useRouter();
-    const [selected, setSelected] = useState<string[]>(['1', '2']);
+    const params = useLocalSearchParams();
+    const [groups, setGroups] = useState<any[]>([]);
+    const [selected, setSelected] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [sharing, setSharing] = useState(false);
+    const [search, setSearch] = useState('');
+
+    useEffect(() => {
+        loadGroups();
+    }, []);
+
+    const loadGroups = async () => {
+        try {
+            setLoading(true);
+            const { data } = await chatApi.getConversations();
+            // Filter for groups (conversations with names or many members)
+            const groupList = data.filter((c: any) => c.isGroup || c.name);
+            setGroups(groupList);
+        } catch (error) {
+            console.error('Failed to load groups', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const toggleSelect = (id: string) => {
         if (selected.includes(id)) setSelected(selected.filter(i => i !== id));
         else setSelected([...selected, id]);
     };
+
+    const handleShare = async () => {
+        if (selected.length === 0) return;
+
+        try {
+            setSharing(true);
+            const shareType = params.shareType as 'NOTE' | 'DOC';
+            const itemId = params.itemId as string;
+            const isFolder = params.isFolder === 'true';
+
+            for (const targetId of selected) {
+                await mySpaceApi.shareItem({
+                    type: shareType,
+                    itemId: itemId,
+                    targetType: 'GROUP',
+                    targetId: targetId,
+                    isFolder: isFolder
+                });
+            }
+
+            Alert.alert('Success', 'Shared with groups successfully');
+            router.back();
+        } catch (error) {
+            console.error('Sharing failed', error);
+            Alert.alert('Error', 'Sharing failed');
+        } finally {
+            setSharing(false);
+        }
+    };
+
+    const filteredGroups = groups.filter(g => 
+        g.name?.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <SafeAreaView style={styles.container}>
@@ -31,7 +78,7 @@ export default function SelectGroupsScreen() {
             
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} disabled={sharing}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Select Group</Text>
@@ -45,35 +92,47 @@ export default function SelectGroupsScreen() {
                         placeholder="Search groups" 
                         style={styles.searchInput}
                         placeholderTextColor="#94a3b8"
+                        value={search}
+                        onChangeText={setSearch}
                     />
                 </View>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-                {GROUPS.map(group => (
-                    <TouchableOpacity 
-                        key={group.id} 
-                        style={styles.groupItem}
-                        onPress={() => toggleSelect(group.id)}
-                    >
-                        <View style={[styles.groupIconBox, { backgroundColor: group.color }]}>
-                            <Ionicons name="people" size={22} color="#fff" />
-                        </View>
-                        <View style={styles.groupInfo}>
-                            <Text style={styles.groupName}>{group.name}</Text>
-                            <Text style={styles.groupSub}>{group.members} Members</Text>
-                        </View>
-                        <View style={[styles.checkbox, selected.includes(group.id) && styles.checkboxActive]}>
-                            {selected.includes(group.id) && <Ionicons name="checkmark" size={14} color="#fff" />}
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                {loading ? (
+                    <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
+                ) : filteredGroups.length === 0 ? (
+                    <Text style={styles.emptyText}>No groups found</Text>
+                ) : (
+                    filteredGroups.map(group => (
+                        <TouchableOpacity 
+                            key={group.id} 
+                            style={styles.groupItem}
+                            onPress={() => toggleSelect(group.id)}
+                        >
+                            <View style={[styles.groupIconBox, { backgroundColor: '#6366f1' }]}>
+                                <Ionicons name="people" size={22} color="#fff" />
+                            </View>
+                            <View style={styles.groupInfo}>
+                                <Text style={styles.groupName}>{group.name || 'Unnamed Group'}</Text>
+                                <Text style={styles.groupSub}>{group.memberCount || group.members?.length || 0} Members</Text>
+                            </View>
+                            <View style={[styles.checkbox, selected.includes(group.id) && styles.checkboxActive]}>
+                                {selected.includes(group.id) && <Ionicons name="checkmark" size={14} color="#fff" />}
+                            </View>
+                        </TouchableOpacity>
+                    ))
+                )}
             </ScrollView>
 
             {/* Action Button */}
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.shareButton} onPress={() => router.back()}>
-                    <Text style={styles.shareButtonText}>Share with Group</Text>
+                <TouchableOpacity 
+                    style={[styles.shareButton, selected.length === 0 && { opacity: 0.5 }]} 
+                    onPress={handleShare}
+                    disabled={selected.length === 0 || sharing}
+                >
+                    {sharing ? <ActivityIndicator color="#fff" /> : <Text style={styles.shareButtonText}>Share with Group ({selected.length})</Text>}
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -98,6 +157,7 @@ const styles = StyleSheet.create({
     checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
     checkboxActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
 
+    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
     footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, paddingBottom: 30, backgroundColor: '#0f172a' },
     shareButton: { backgroundColor: '#6366f1', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     shareButtonText: { color: '#fff', fontWeight: '900', fontSize: 16 }

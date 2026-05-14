@@ -8,7 +8,18 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ShareDocScreen() {
     const router = useRouter();
-    const { name, size, folder } = useLocalSearchParams();
+    const { id, folderId, name, isFolder, size } = useLocalSearchParams();
+
+    const handleSharePress = (targetType: 'CONTACT' | 'GROUP') => {
+        router.push({
+            pathname: targetType === 'CONTACT' ? '/select-contacts' : '/select-groups',
+            params: {
+                shareType: 'DOC',
+                itemId: id || folderId,
+                isFolder: isFolder ? 'true' : 'false'
+            }
+        });
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -26,11 +37,11 @@ export default function ShareDocScreen() {
                 {/* File Preview Card */}
                 <View style={styles.fileCard}>
                     <View style={styles.fileIconBox}>
-                        <Text style={styles.fileTypeText}>PDF</Text>
+                        <MaterialCommunityIcons name="file-document" size={32} color="#fff" />
                     </View>
                     <View style={styles.fileInfo}>
-                        <Text style={styles.fileName}>{name || 'Project Brief.pdf'}</Text>
-                        <Text style={styles.fileSub}>{size || '2.4 MB'} • {folder || 'Work'}</Text>
+                        <Text style={styles.fileName}>{name || 'Document'}</Text>
+                        <Text style={styles.fileSub}>{isFolder === 'true' ? 'Folder' : (size || 'File')}</Text>
                     </View>
                 </View>
 
@@ -39,14 +50,14 @@ export default function ShareDocScreen() {
                 <ShareOption 
                     icon="person-outline" 
                     title="Contacts" 
-                    desc="Share with your contacts" 
-                    onPress={() => router.push('/select-contacts')}
+                    desc="Share with your contacts or search by profile name" 
+                    onPress={() => handleSharePress('CONTACT')}
                 />
                 <ShareOption 
                     icon="people-outline" 
                     title="Groups" 
                     desc="Share with your groups" 
-                    onPress={() => router.push('/select-groups')}
+                    onPress={() => handleSharePress('GROUP')}
                 />
                 <ShareOption 
                     icon="link-outline" 
@@ -54,7 +65,7 @@ export default function ShareDocScreen() {
                     desc="Anyone with link can view" 
                 />
 
-                {/* People with access */}
+                {/* People with access (Static for now) */}
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>People with access</Text>
                 <AccessItem 
                     name="Aman Verma" 
@@ -62,17 +73,6 @@ export default function ShareDocScreen() {
                     image="https://i.pravatar.cc/100?u=aman" 
                     isOwner 
                 />
-                <AccessItem 
-                    name="Priya Singh" 
-                    role="Can edit" 
-                    image="https://i.pravatar.cc/100?u=priya" 
-                />
-                <AccessItem 
-                    name="Design Team" 
-                    role="Can view" 
-                    isGroup
-                />
-
             </ScrollView>
         </SafeAreaView>
     );
@@ -98,7 +98,7 @@ const AccessItem = ({ name, role, image, isOwner, isGroup }: any) => (
                 <Ionicons name="people" size={20} color="#fff" />
             </View>
         ) : (
-            <Image source={{ uri: image }} style={styles.avatar} />
+            <Image source={{ uri: image || 'https://i.pravatar.cc/100?u=user' }} style={styles.avatar} />
         )}
         <View style={styles.accessContent}>
             <Text style={styles.accessName}>{name} {isOwner && '(You)'}</Text>

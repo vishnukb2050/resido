@@ -8,7 +8,18 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ShareNoteScreen() {
     const router = useRouter();
-    const { title, folder } = useLocalSearchParams();
+    const { id, folderId, name, isFolder } = useLocalSearchParams();
+
+    const handleSharePress = (targetType: 'CONTACT' | 'GROUP') => {
+        router.push({
+            pathname: targetType === 'CONTACT' ? '/select-contacts' : '/select-groups',
+            params: {
+                shareType: 'NOTE',
+                itemId: id || folderId,
+                isFolder: isFolder ? 'true' : 'false'
+            }
+        });
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -25,14 +36,11 @@ export default function ShareNoteScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Note Preview Card */}
                 <View style={styles.noteCard}>
-                    <Text style={styles.noteTitle}>{title || 'Project Brief'}</Text>
+                    <Text style={styles.noteTitle}>{name || 'Untitled Note'}</Text>
                     <View style={styles.folderRow}>
                         <MaterialCommunityIcons name="folder" size={14} color="#f59e0b" />
-                        <Text style={styles.folderName}>{folder || 'Work'}</Text>
+                        <Text style={styles.folderName}>{isFolder === 'true' ? 'Folder' : 'Note'}</Text>
                     </View>
-                    <Text style={styles.noteSnippet} numberOfLines={3}>
-                        Discuss project objectives, deliverables and timeline with the team before we start the development phase.
-                    </Text>
                 </View>
 
                 {/* Share Options */}
@@ -40,14 +48,14 @@ export default function ShareNoteScreen() {
                 <ShareOption 
                     icon="person-outline" 
                     title="Contacts" 
-                    desc="Share with your contacts" 
-                    onPress={() => router.push('/select-contacts')}
+                    desc="Share with your contacts or search by profile name" 
+                    onPress={() => handleSharePress('CONTACT')}
                 />
                 <ShareOption 
                     icon="people-outline" 
                     title="Groups" 
                     desc="Share with your groups" 
-                    onPress={() => router.push('/select-groups')}
+                    onPress={() => handleSharePress('GROUP')}
                 />
                 <ShareOption 
                     icon="link-outline" 
@@ -55,7 +63,7 @@ export default function ShareNoteScreen() {
                     desc="Anyone with link can view" 
                 />
 
-                {/* People with access */}
+                {/* People with access (Static for now) */}
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>People with access</Text>
                 <AccessItem 
                     name="Aman Verma" 
@@ -63,17 +71,6 @@ export default function ShareNoteScreen() {
                     image="https://i.pravatar.cc/100?u=aman" 
                     isOwner 
                 />
-                <AccessItem 
-                    name="Priya Singh" 
-                    role="Can edit" 
-                    image="https://i.pravatar.cc/100?u=priya" 
-                />
-                <AccessItem 
-                    name="Design Team" 
-                    role="Can view" 
-                    isGroup
-                />
-
             </ScrollView>
         </SafeAreaView>
     );
@@ -99,7 +96,7 @@ const AccessItem = ({ name, role, image, isOwner, isGroup }: any) => (
                 <Ionicons name="people" size={20} color="#fff" />
             </View>
         ) : (
-            <Image source={{ uri: image }} style={styles.avatar} />
+            <Image source={{ uri: image || 'https://i.pravatar.cc/100?u=user' }} style={styles.avatar} />
         )}
         <View style={styles.accessContent}>
             <Text style={styles.accessName}>{name} {isOwner && '(You)'}</Text>

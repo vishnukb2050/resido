@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions
+    TextInput, SafeAreaView, StatusBar, Dimensions, ActivityIndicator, Alert
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -12,9 +13,39 @@ const COLORS = ['#f59e0b', '#10b981', '#6366f1', '#f97316', '#3b82f6', '#ec4899'
 
 export default function CreateFolderScreen() {
     const router = useRouter();
-    const [name, setName] = useState('Marketing Materials');
-    const [desc, setDesc] = useState('All marketing related documents, assets, and brand guidelines.');
+    const params = useLocalSearchParams();
+    const type = params.type as 'NOTE' | 'DOC' || 'NOTE';
+    
+    const [name, setName] = useState('');
+    const [desc, setDesc] = useState('');
     const [selectedColor, setSelectedColor] = useState('#6366f1');
+    const [loading, setLoading] = useState(false);
+
+    const handleCreate = async () => {
+        if (!name.trim()) {
+            Alert.alert('Error', 'Please enter a folder name');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            if (type === 'NOTE') {
+                await mySpaceApi.createNoteFolder(name.trim());
+            } else {
+                await mySpaceApi.createDocumentFolder({
+                    name: name.trim(),
+                    color: selectedColor,
+                    icon: 'folder'
+                });
+            }
+            router.back();
+        } catch (error) {
+            console.error('Failed to create folder', error);
+            Alert.alert('Error', 'Failed to create folder');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -22,12 +53,12 @@ export default function CreateFolderScreen() {
             
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} disabled={loading}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>New Folder</Text>
-                <TouchableOpacity onPress={() => router.back()} style={styles.saveBtn}>
-                    <Ionicons name="checkmark" size={24} color="#fff" />
+                <Text style={styles.headerTitle}>New {type === 'NOTE' ? 'Note' : 'Doc'} Folder</Text>
+                <TouchableOpacity onPress={handleCreate} style={styles.saveBtn} disabled={loading}>
+                    {loading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="checkmark" size={24} color="#fff" />}
                 </TouchableOpacity>
             </View>
 
@@ -36,9 +67,6 @@ export default function CreateFolderScreen() {
                 <View style={styles.iconSection}>
                     <View style={[styles.largeFolderIcon, { backgroundColor: selectedColor }]}>
                         <MaterialCommunityIcons name="folder" size={100} color="#fff" />
-                        <TouchableOpacity style={styles.editIconBtn}>
-                            <MaterialCommunityIcons name="pencil" size={16} color="#fff" />
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -49,21 +77,11 @@ export default function CreateFolderScreen() {
                         style={styles.input} 
                         value={name}
                         onChangeText={setName}
+                        placeholder="e.g. Marketing Materials"
+                        placeholderTextColor="#64748b"
                         maxLength={50}
                     />
                     <Text style={styles.charCount}>{name.length}/50</Text>
-                </View>
-
-                <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Description (Optional)</Text>
-                    <TextInput 
-                        style={[styles.input, styles.textArea]} 
-                        value={desc}
-                        onChangeText={setDesc}
-                        multiline
-                        maxLength={200}
-                    />
-                    <Text style={styles.charCount}>{desc.length}/200</Text>
                 </View>
 
                 {/* Color Picker */}
@@ -78,7 +96,7 @@ export default function CreateFolderScreen() {
                     ))}
                 </View>
 
-                {/* Permissions */}
+                {/* Permissions (Static for now) */}
                 <Text style={styles.sectionTitle}>Who can access</Text>
                 <TouchableOpacity style={styles.permissionCard}>
                     <View style={styles.lockIconBox}>
@@ -88,7 +106,6 @@ export default function CreateFolderScreen() {
                         <Text style={styles.permTitle}>Only me</Text>
                         <Text style={styles.permSub}>Private folder</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
                 </TouchableOpacity>
 
             </ScrollView>
@@ -106,12 +123,10 @@ const styles = StyleSheet.create({
     scrollContent: { padding: 20 },
     iconSection: { alignItems: 'center', marginTop: 20, marginBottom: 40 },
     largeFolderIcon: { width: 160, height: 160, borderRadius: 80, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-    editIconBtn: { position: 'absolute', bottom: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0f172a' },
 
     inputGroup: { marginBottom: 24 },
     inputLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', marginBottom: 12 },
     input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 18, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    textArea: { height: 100, textAlignVertical: 'top' },
     charCount: { alignSelf: 'flex-end', fontSize: 11, color: '#64748b', marginTop: 8 },
 
     sectionTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 16 },

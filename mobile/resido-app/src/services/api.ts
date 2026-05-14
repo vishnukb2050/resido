@@ -50,6 +50,7 @@ export const authApi = {
     getUser: (id: string) => api.get(`/auth/users/${id}`),
     toggleFollow: (id: string, isFollowing: boolean) => isFollowing ? api.delete(`/profile/follow/${id}`) : api.post(`/profile/follow/${id}`),
     getFollowing: () => api.get('/profile/following'),
+    getProfile: () => api.get('/profile/user'),
     updateProfile: (data: any) => api.put('/profile/user', data),
     getPresignedUrl: (fileName: string, contentType: string, resourceType?: string) => 
         api.get('/profile/storage/presigned-url', { params: { fileName, contentType, resourceType } }),
@@ -146,4 +147,26 @@ export const complaintApi = {
     createComplaint: (data: any) => api.post('/complaint/complaints', data),
     updateStatus: (id: string, status: string) => api.patch(`/complaint/complaints/${id}/status`, { status }),
     addComment: (id: string, message: string) => api.post(`/complaint/complaints/${id}/comments`, { message }),
+};
+
+// My Space APIs
+export const mySpaceApi = {
+    getNoteFolders: () => api.get('/profile/notes/folders'),
+    createNoteFolder: (name: string) => api.post('/profile/notes/folders', { name }),
+    getNoteFolder: (id: string) => api.get(`/profile/notes/folders/${id}`),
+    createNotePage: (data: { folderId: string, title: string, content: string, color?: string }) => api.post('/profile/notes/pages', data),
+    updateNotePage: (id: string, data: { title?: string, content?: string, color?: string }) => api.patch(`/profile/notes/pages/${id}`, data),
+    
+    getDocumentFolders: () => api.get('/profile/documents/folders'),
+    createDocumentFolder: (data: { name: string, color?: string, icon?: string }) => api.post('/profile/documents/folders', data),
+    getDocumentFolder: (id: string) => api.get(`/profile/documents/folders/${id}`),
+    addDocumentFile: (data: { folderId: string, name: string, url: string, type: string, size?: number }) => api.post('/profile/documents/files', data),
+    
+    shareItem: (data: { type: 'NOTE' | 'DOC', itemId: string, targetType: 'COMMUNITY' | 'GROUP' | 'CONTACT', targetId: string, isFolder: boolean }) => api.post('/profile/share', data),
+    getSharedNotes: () => api.get('/profile/notes/shared'),
+    getSharedDocuments: () => api.get('/profile/documents/shared'),
+
+    addIncome: (data: { source: string, amount: number, date: string }) => api.post('/profile/finance/income', data),
+    addExpense: (data: { amount: number, category: string, date: string, paymentMethod: string, description?: string, billUrl?: string }) => api.post('/profile/finance/expense', data),
+    getFinanceReport: (params: { period: string, startDate?: string, endDate?: string }) => api.get('/profile/finance/report', { params }),
 };
