@@ -580,7 +580,7 @@ export class ProfileService implements OnModuleInit {
                 targetId: userId
             },
             include: {
-                user: { select: { id: true, fullName: true, profileName: true, profileImage: true } },
+                user: { select: { id: true, name: true, profileName: true, profilePhoto: true } },
                 folder: true,
                 page: true
             },
@@ -595,7 +595,7 @@ export class ProfileService implements OnModuleInit {
                 targetId: userId
             },
             include: {
-                user: { select: { id: true, fullName: true, profileName: true, profileImage: true } },
+                user: { select: { id: true, name: true, profileName: true, profilePhoto: true } },
                 folder: true,
                 file: true
             },
