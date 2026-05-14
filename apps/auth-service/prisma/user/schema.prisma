@@ -44,9 +44,6 @@ enum VisibilityType {
   COMMUNITY
   GROUPS
   CONTACTS
-  PRIVATE
-}
-
 model JobProfile {
   id          String   @id @default(cuid())
   userId      String   @unique
@@ -60,6 +57,17 @@ model JobProfile {
   expertise   String
   images      String[]
   isActive    Boolean  @default(true)
+  
+  businessName String?
+  businessType String?
+  experience   String?
+  phone        String?
+  email        String?
+  website      String?
+  instagram    String?
+  linkedin     String?
+  workingHours Json?      // Store { days, from, to }
+  services     Json?      // Store array of service objects: { name, description, price, pricingType, etc }
   
   // New: Tiered Service Reach
   latitude          Float?
@@ -78,6 +86,7 @@ model JobProfile {
   @@index([pincode])
   @@index([district])
   @@index([state])
+  @@index([businessName])
   @@map("job_profiles")
 }
 
@@ -86,6 +95,7 @@ enum ServiceAreaType {
   DISTRICT
   STATE
   PAN_INDIA
+  GLOBAL
 }
 
 

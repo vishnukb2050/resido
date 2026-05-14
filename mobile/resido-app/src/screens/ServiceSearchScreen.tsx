@@ -72,7 +72,9 @@ export default function ServiceSearchScreen() {
     const [activeCat, setActiveCat] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchLocation, setSearchLocation] = useState('');
+    const [selectedLocationName, setSelectedLocationName] = useState('');
     const [locationResults, setLocationResults] = useState<any[]>([]);
+    const [visibleCount, setVisibleCount] = useState(100); // Track how many results to show
     const [selectedLocation, setSelectedLocation] = useState<{ pincode?: string; district?: string; state?: string } | null>(null);
     const [showGlobalDropdown, setShowGlobalDropdown] = useState(false);
     const [showMapDropdown, setShowMapDropdown] = useState(false);
@@ -94,14 +96,25 @@ export default function ServiceSearchScreen() {
 
     React.useEffect(() => {
         fetchProfiles();
-    }, [activeCat, selectedLocation]);
+    }, [activeCat, selectedLocation, userLocation]);
 
     const handleLocationSearch = async (text: string) => {
         setSearchLocation(text);
         if (text.length > 2) {
             try {
                 const { data } = await authApi.searchLocations(text);
-                setLocationResults(data);
+                
+                // Filter to only show results that have valid coordinates
+                const validResults = data.filter((loc: any) => loc.latitude && loc.longitude);
+                
+                if (validResults.length === 0) {
+                    // If no valid results with coordinates, show the prompt
+                    setLocationResults([{ id: 'no-results', isNoResult: true }]);
+                } else {
+                    // Store valid results but start by showing first 100
+                    setLocationResults(validResults); 
+                    setVisibleCount(100); 
+                }
                 setShowGlobalDropdown(true);
             } catch (error) {
                 console.error('Location search failed', error);
@@ -143,6 +156,17 @@ export default function ServiceSearchScreen() {
         }
     };
 
+    const onRegionChangeComplete = (newRegion: any) => {
+        const latDiff = Math.abs(newRegion.latitude - mapRegion.latitude);
+        const lngDiff = Math.abs(newRegion.longitude - mapRegion.longitude);
+        const deltaDiff = Math.abs(newRegion.latitudeDelta - mapRegion.latitudeDelta);
+        
+        // Only update state if the movement is significant (prevents jitter during pinch)
+        if (latDiff > 0.005 || lngDiff > 0.005 || deltaDiff > 0.005) {
+            setMapRegion(newRegion);
+        }
+    };
+
     const onSelectMapPlace = (place: any) => {
         setMapSearchQuery(place.display_name);
         const latDelta = (searchRadius * 2.5) / 111;
@@ -174,7 +198,18 @@ export default function ServiceSearchScreen() {
     };
 
     const onSelectLocation = (loc: any) => {
-        setSearchLocation(`${loc.placeName} (${loc.pincode})`);
+        if (loc.isNoResult) {
+            Alert.alert(
+                "Location Not Found",
+                "We couldn't find that area. Please try entering a 6-digit Pincode (e.g., 682021) for a more accurate search.",
+                [{ text: "OK", onPress: () => setShowGlobalDropdown(false) }]
+            );
+            return;
+        }
+
+        console.log('Selected location:', loc.placeName, 'Lat:', loc.latitude, 'Lng:', loc.longitude);
+        setSearchLocation(''); // Clear search input to avoid confusion
+        setSelectedLocationName(`${loc.placeName} (${loc.pincode})`); // Dedicated state for display
         setSelectedLocation({
             pincode: loc.pincode,
             district: loc.district,
@@ -183,46 +218,48 @@ export default function ServiceSearchScreen() {
         setUserLocation(null); 
         setShowGlobalDropdown(false);
         
-        // Move map to selected location if it has coordinates
+        // Always switch to MAP view immediately
+        setViewMode('MAP');
+
         if (loc.latitude && loc.longitude) {
             const latDelta = (searchRadius * 2.5) / 111;
             setMapRegion({
-                latitude: loc.latitude,
-                longitude: loc.longitude,
+                latitude: Number(loc.latitude),
+                longitude: Number(loc.longitude),
                 latitudeDelta: latDelta,
                 longitudeDelta: latDelta
             });
-            setSelectedPin({ latitude: loc.latitude, longitude: loc.longitude });
+            setSelectedPin({ latitude: Number(loc.latitude), longitude: Number(loc.longitude) });
         }
     };
 
-    const handleNearMe = async () => {
+    const handleUseCurrentLocation = async () => {
         setLoading(true);
         try {
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Denied', 'Allow location access to find services near you.');
+                alert('Permission to access location was denied');
                 return;
             }
+
             let location = await Location.getCurrentPositionAsync({});
             const coords = {
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
-                radius: searchRadius
             };
-            setUserLocation(coords);
-            setSelectedPin({ latitude: coords.latitude, longitude: coords.longitude });
-            const latDelta = (searchRadius * 2.5) / 111;
+
+            setSelectedPin(coords);
+            setSearchRadius(5); 
             setMapRegion({
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                latitudeDelta: latDelta,
-                longitudeDelta: latDelta
+                ...coords,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
             });
-            setSelectedLocation(null); // Clear admin filters
-            setSearchLocation('Near Me (GPS)');
+
+            // Assuming a helper or similar logic
+            setSelectedLocationName('Near Me (GPS)');
         } catch (error) {
-            Alert.alert('Error', 'Failed to get current location');
+            console.error('Error getting current location:', error);
         } finally {
             setLoading(false);
         }
@@ -234,7 +271,9 @@ export default function ServiceSearchScreen() {
             ...coord,
             radius: searchRadius
         });
-        setSearchLocation(`Custom Location (${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)})`);
+        // Sync with the top display badge
+        setSelectedLocationName(`Custom: ${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)}`);
+        setSelectedLocation(null); // Clear pincode search as we are now using GPS coords
     };
 
     const handleRadiusChange = (radius: number) => {
@@ -262,11 +301,19 @@ export default function ServiceSearchScreen() {
                 if (cat) params.category = cat.name;
             }
             
-            if (userLocation) {
+            // 1. Coordinates (Pin takes priority over GPS)
+            if (selectedPin) {
+                params.lat = selectedPin.latitude;
+                params.lng = selectedPin.longitude;
+                params.radius = searchRadius;
+            } else if (userLocation) {
                 params.lat = userLocation.latitude;
                 params.lng = userLocation.longitude;
                 params.radius = userLocation.radius;
-            } else if (selectedLocation) {
+            }
+
+            // 2. Administrative Context (Dropdown selection)
+            if (selectedLocation) {
                 params.pincode = selectedLocation.pincode;
                 params.district = selectedLocation.district;
                 params.state = selectedLocation.state;
@@ -286,7 +333,6 @@ export default function ServiceSearchScreen() {
             <StatusBar barStyle="dark-content" />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 
-                {/* Header */}
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.headerTitle}>Services</Text>
@@ -298,7 +344,6 @@ export default function ServiceSearchScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Search Bar */}
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBar}>
                         <Ionicons name="search" size={20} color="#94a3b8" />
@@ -309,18 +354,29 @@ export default function ServiceSearchScreen() {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
-                        <TouchableOpacity style={styles.nearMeBtn} onPress={handleNearMe}>
+                        <TouchableOpacity style={styles.nearMeBtn} onPress={handleUseCurrentLocation}>
                             <MaterialCommunityIcons name="google-maps" size={18} color="#6366f1" />
                             <Text style={styles.nearMeText}>Near Me</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.filterBtn} onPress={() => setViewMode(viewMode === 'LIST' ? 'MAP' : 'LIST')}>
-                            <Ionicons name={viewMode === 'LIST' ? "map" : "list-outline"} size={20} color="#64748b" />
                         </TouchableOpacity>
                     </View>
                     
                     <View style={{ zIndex: 100 }}>
-                        <View style={[styles.searchBar, { marginTop: 12, height: 48 }]}>
-                            <Ionicons name="location" size={18} color="#6366f1" />
+                        {selectedLocationName ? (
+                            <View style={styles.selectedAreaHeader}>
+                                <View style={styles.selectedAreaBadge}>
+                                    <Ionicons name="location" size={16} color="#6366f1" />
+                                    <Text style={styles.selectedAreaText}>{selectedLocationName}</Text>
+                                    <TouchableOpacity onPress={() => {
+                                        setSelectedLocationName('');
+                                        setSelectedLocation(null);
+                                    }}>
+                                        <Ionicons name="close-circle" size={16} color="#94a3b8" style={{ marginLeft: 8 }} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ) : null}
+                        <View style={[styles.searchBar, { marginTop: selectedLocationName ? 8 : 12, height: 48 }]}>
+                            <Ionicons name="location" size={18} color="#94a3b8" />
                             <TextInput 
                                 placeholder="Search by area/location..." 
                                 style={styles.searchInput}
@@ -329,45 +385,10 @@ export default function ServiceSearchScreen() {
                                 onChangeText={handleLocationSearch}
                                 onBlur={() => setTimeout(() => setShowGlobalDropdown(false), 200)}
                             />
-                            {searchLocation.length > 0 && (
-                                <TouchableOpacity onPress={() => {
-                                    setSearchLocation('');
-                                    setSelectedLocation(null);
-                                }}>
-                                    <Ionicons name="close-circle" size={18} color="#cbd5e1" />
-                                </TouchableOpacity>
-                            )}
                         </View>
-
-                        {showGlobalDropdown && locationResults.length > 0 && (
-                            <View style={styles.dropdownContainer}>
-                                {locationResults.map((loc, idx) => (
-                                    <TouchableOpacity 
-                                        key={idx} 
-                                        style={styles.dropdownItem}
-                                        onPress={() => onSelectLocation(loc)}
-                                    >
-                                        <Ionicons name="location-outline" size={16} color="#64748b" />
-                                        <View style={{ marginLeft: 10 }}>
-                                            <Text style={styles.dropdownPlace}>{loc.placeName} ({loc.pincode})</Text>
-                                            <Text style={styles.dropdownSub}>{loc.district}, {loc.state}</Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        )}
-                        
-                        {showGlobalDropdown && searchLocation.length > 2 && locationResults.length === 0 && (
-                            <View style={styles.dropdownContainer}>
-                                <View style={styles.noResultItem}>
-                                    <Text style={styles.noResultText}>No location found. Please enter pincode.</Text>
-                                </View>
-                            </View>
-                        )}
                     </View>
                 </View>
 
-                {/* Categories */}
                 <ScrollView 
                     horizontal 
                     showsHorizontalScrollIndicator={false} 
@@ -388,13 +409,12 @@ export default function ServiceSearchScreen() {
                     ))}
                 </ScrollView>
 
-                {/* Map View Toggle Area (Conditional) */}
                 {viewMode === 'MAP' && (
                     <View style={styles.mapViewContainer}>
                         <OSMMap
                             style={styles.map}
                             region={mapRegion}
-                            onRegionChangeComplete={setMapRegion}
+                            onRegionChangeComplete={onRegionChangeComplete}
                             draggableMarker={selectedPin || undefined}
                             onMarkerDragEnd={handleMarkerDragEnd}
                             circle={selectedPin ? {
@@ -410,7 +430,6 @@ export default function ServiceSearchScreen() {
                             }))}
                         />
 
-                        {/* Radius Selector Overlay */}
                         <View style={styles.radiusSelector}>
                             {[5, 10, 20].map(r => (
                                 <TouchableOpacity 
@@ -422,46 +441,17 @@ export default function ServiceSearchScreen() {
                                 </TouchableOpacity>
                             ))}
                         </View>
-                        
-                        {/* Map Overlay Controls */}
-                        <View style={styles.mapOverlayHeader}>
-                            <View style={styles.mapSearchBox}>
-                                <Ionicons name="search" size={18} color="#94a3b8" />
-                                <TextInput 
-                                    placeholder="Search real places, shops, roads..." 
-                                    style={styles.mapSearchInput}
-                                    placeholderTextColor="#94a3b8"
-                                    value={mapSearchQuery}
-                                    onChangeText={handleMapPlaceSearch}
-                                />
-                                {isMapSearching && <ActivityIndicator size="small" color="#6366f1" style={{ marginRight: 8 }} />}
-                                {mapSearchQuery.length > 0 && (
-                                    <TouchableOpacity onPress={() => { setMapSearchQuery(''); setMapSearchResults([]); }}>
-                                        <Ionicons name="close-circle" size={18} color="#cbd5e1" />
-                                    </TouchableOpacity>
-                                )}
-                            </View>
 
-                            {showMapDropdown && mapSearchResults.length > 0 && (
-                                <View style={[styles.dropdownContainer, { top: 55 }]}>
-                                    {mapSearchResults.map((place, idx) => (
-                                        <TouchableOpacity 
-                                            key={idx} 
-                                            style={styles.dropdownItem}
-                                            onPress={() => onSelectMapPlace(place)}
-                                        >
-                                            <Ionicons name="business-outline" size={16} color="#6366f1" />
-                                            <View style={{ marginLeft: 10, flex: 1 }}>
-                                                <Text style={styles.dropdownPlace} numberOfLines={1}>{place.display_name.split(',')[0]}</Text>
-                                                <Text style={styles.dropdownSub} numberOfLines={1}>{place.display_name.split(',').slice(1).join(',').trim()}</Text>
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            )}
+                        <View style={styles.mapOverlayHeader}>
+                            <View style={styles.selectedLocationBadge}>
+                                <Ionicons name="location" size={18} color="#6366f1" />
+                                <Text style={styles.selectedLocationText} numberOfLines={1}>
+                                    {selectedLocationName || 'Current Location'}
+                                </Text>
+                            </View>
                         </View>
 
-                        <TouchableOpacity style={styles.mapGpsBtn} onPress={handleNearMe}>
+                        <TouchableOpacity style={styles.mapGpsBtn} onPress={handleUseCurrentLocation}>
                             <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#6366f1" />
                         </TouchableOpacity>
 
@@ -477,7 +467,6 @@ export default function ServiceSearchScreen() {
                     </View>
                 )}
 
-                {/* Verified Banner */}
                 <View style={styles.verifiedBanner}>
                     <View style={styles.verifiedIconContainer}>
                         <View style={styles.shieldIcon}>
@@ -496,7 +485,6 @@ export default function ServiceSearchScreen() {
                     </View>
                 </View>
 
-                {/* Popular Services */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Popular Services</Text>
                     <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
@@ -524,7 +512,6 @@ export default function ServiceSearchScreen() {
                     ))}
                 </ScrollView>
 
-                {/* Top Professionals / Search Results */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>
                         {activeCat === 'all' && !searchLocation ? 'Top Professionals' : 'Search Results'}
@@ -573,7 +560,6 @@ export default function ServiceSearchScreen() {
                     </View>
                 )}
 
-                {/* Feature Icons */}
                 <View style={styles.featuresRow}>
                     <FeatureItem icon="shield-checkmark-outline" label="Verified" sub="Background verified" />
                     <FeatureItem icon="star-outline" label="Ratings" sub="Real customer reviews" />
@@ -581,7 +567,6 @@ export default function ServiceSearchScreen() {
                     <FeatureItem icon="headset-outline" label="Support" sub="24/7 customer support" />
                 </View>
 
-                {/* Post a Job Footer */}
                 <View style={styles.postJobCard}>
                     <View style={styles.postJobIcon}>
                         <Ionicons name="pricetag" size={24} color="#6366f1" />
@@ -599,6 +584,39 @@ export default function ServiceSearchScreen() {
             </ScrollView>
 
             <BottomNav activeTab="Home" />
+
+            {showGlobalDropdown && locationResults.length > 0 && (
+                <View style={[styles.dropdownContainer, { top: 180, left: 20, right: 20 }]}>
+                    <ScrollView keyboardShouldPersistTaps="handled">
+                        {locationResults.slice(0, visibleCount).map((loc, idx) => (
+                            <TouchableOpacity 
+                                key={idx} 
+                                style={styles.dropdownItem}
+                                onPress={() => onSelectLocation(loc)}
+                            >
+                                <Ionicons name={loc.isNoResult ? "help-circle-outline" : "location-outline"} size={16} color={loc.isNoResult ? "#94a3b8" : "#6366f1"} />
+                                <View style={{ marginLeft: 10, flex: 1 }}>
+                                    <Text style={[styles.dropdownPlace, loc.isNoResult && { color: '#94a3b8', fontStyle: 'italic' }]}>
+                                        {loc.isNoResult ? "Location not found" : `${loc.placeName} (${loc.pincode})`}
+                                    </Text>
+                                    {!loc.isNoResult && <Text style={styles.dropdownSub}>{loc.district}, {loc.state}</Text>}
+                                    {loc.isNoResult && <Text style={styles.dropdownSub}>Try searching by Pincode</Text>}
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                        {locationResults.length > visibleCount && (
+                            <TouchableOpacity 
+                                style={[styles.dropdownItem, { justifyContent: 'center', backgroundColor: '#f8fafc' }]}
+                                onPress={() => setVisibleCount(prev => prev + 100)}
+                            >
+                                <Text style={{ color: '#6366f1', fontWeight: '700', fontSize: 13 }}>
+                                    Show More Results ({locationResults.length - visibleCount} remaining)
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </ScrollView>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -695,12 +713,12 @@ const styles = StyleSheet.create({
 
     dropdownContainer: {
         position: 'absolute',
-        top: 60,
+        top: 200, // Lowered to clear the double search bar area
         left: 20,
         right: 20,
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        maxHeight: 300,
+        maxHeight: 350,
         zIndex: 9999,
         elevation: 10,
         borderWidth: 1,
@@ -757,6 +775,51 @@ const styles = StyleSheet.create({
     radiusText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     radiusTextActive: { color: '#fff' },
     markerContainer: { alignItems: 'center', justifyContent: 'center' },
-    markerCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
-    markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#6366f1', marginTop: -1 },
+    markerCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
+    markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 10, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#ef4444', marginTop: -2 },
+    selectedLocationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 25,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 10,
+        maxWidth: '90%',
+    },
+    selectedLocationText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginLeft: 8,
+    },
+    selectedAreaHeader: {
+        marginBottom: 8,
+        flexDirection: 'row',
+    },
+    selectedAreaBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#eef2ff',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e0e7ff',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    selectedAreaText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#6366f1',
+        marginLeft: 8,
+    },
 });

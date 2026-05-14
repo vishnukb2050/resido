@@ -19,6 +19,12 @@ npx prisma db push --schema=prisma/user/schema.prisma --accept-data-loss
 npx prisma db push --schema=prisma/core/schema.prisma --accept-data-loss
 npx prisma db push --schema=prisma/geo/schema.prisma --accept-data-loss
 
+echo "⚙️  Generating prisma clients..."
+npx prisma generate --schema=prisma/master/schema.prisma
+npx prisma generate --schema=prisma/user/schema.prisma
+npx prisma generate --schema=prisma/core/schema.prisma
+npx prisma generate --schema=prisma/geo/schema.prisma
+
 # 3. Enable PostGIS
 echo "🐘 Enabling PostGIS..."
 node enable-postgis.js

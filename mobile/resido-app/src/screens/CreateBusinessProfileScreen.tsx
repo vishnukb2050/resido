@@ -216,7 +216,7 @@ export default function CreateBusinessProfileScreen() {
             });
         }
         setLocQuery('');
-        setShowLocDropdown(false);
+        setShowGlobalDropdown(false);
     };
 
     const removeServiceArea = (val: string) => {
@@ -668,7 +668,7 @@ export default function CreateBusinessProfileScreen() {
             <Text style={styles.subText}>Define where you provide your services. Customers in these areas will see your profile.</Text>
             
             <View style={styles.reachTabs}>
-                {['PINCODE', 'DISTRICT', 'STATE', 'PAN_INDIA'].map(type => (
+                {['PINCODE', 'DISTRICT', 'STATE', 'PAN_INDIA', 'GLOBAL'].map(type => (
                     <TouchableOpacity 
                         key={type} 
                         style={[styles.reachTab, formData.serviceAreaType === type && styles.reachTabActive]}
@@ -724,8 +724,15 @@ export default function CreateBusinessProfileScreen() {
 
             {formData.serviceAreaType === 'PAN_INDIA' && (
                 <View style={styles.infoBox}>
-                    <Ionicons name="globe-outline" size={20} color="#6366f1" />
+                    <Ionicons name="flag-outline" size={20} color="#6366f1" />
                     <Text style={styles.infoText}>Your profile will be visible to users across all of India.</Text>
+                </View>
+            )}
+
+            {formData.serviceAreaType === 'GLOBAL' && (
+                <View style={styles.infoBox}>
+                    <Ionicons name="globe-outline" size={20} color="#6366f1" />
+                    <Text style={styles.infoText}>Your profile will be visible to users worldwide.</Text>
                 </View>
             )}
 
@@ -791,15 +798,27 @@ export default function CreateBusinessProfileScreen() {
     const handlePublish = async () => {
         setLoading(true);
         try {
+            // Include all business details in the payload
+            const payload = {
+                ...formData,
+                pincode: formData.location, // Mapping for backend
+                city: formData.area,        // Mapping for backend
+                expertise: formData.experience,
+                description: formData.about,
+                images: formData.logo ? [formData.logo] : [], // Use logo as primary image
+                services: formData.services // Ensure services list is sent
+            };
+
             if (id) {
-                await businessApi.updateProfile(id as string, formData);
+                await businessApi.updateProfile(id as string, payload);
             } else {
-                await businessApi.createProfile(formData);
+                await businessApi.createProfile(payload);
             }
             Alert.alert('Success', 'Profile published successfully! 🚀');
             router.replace('/business-profiles');
         } catch (error) {
-            Alert.alert('Error', 'Failed to publish profile');
+            console.error('Publish error:', error);
+            Alert.alert('Error', 'Failed to publish profile. Please check your network and try again.');
         } finally {
             setLoading(false);
         }

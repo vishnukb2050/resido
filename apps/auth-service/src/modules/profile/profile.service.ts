@@ -201,35 +201,55 @@ export class ProfileService implements OnModuleInit {
             where: { userId },
             update: {
                 category: data.category,
-                description: data.description,
-                pincode: data.pincode,
-                city: data.city,
+                description: data.about || data.description,
+                pincode: data.pincode || data.location,
+                city: data.city || data.area,
                 district: data.district,
                 state: data.state,
-                expertise: data.expertise,
+                expertise: data.expertise || data.experience,
                 images: data.images,
                 latitude: data.latitude,
                 longitude: data.longitude,
                 serviceRadiusKm: data.serviceRadiusKm,
                 serviceAreaType: data.serviceAreaType,
                 serviceAreaValues: data.serviceAreaValues,
+                businessName: data.businessName,
+                businessType: data.businessType,
+                experience: data.experience,
+                phone: data.phone,
+                email: data.email,
+                website: data.website,
+                instagram: data.instagram,
+                linkedin: data.linkedin,
+                workingHours: data.workingHours,
+                services: data.services,
                 isActive: true
             } as any,
             create: {
                 userId,
                 category: data.category,
-                description: data.description,
-                pincode: data.pincode,
-                city: data.city,
+                description: data.about || data.description,
+                pincode: data.pincode || data.location,
+                city: data.city || data.area,
                 district: data.district,
                 state: data.state,
-                expertise: data.expertise,
+                expertise: data.expertise || data.experience,
                 images: data.images,
                 latitude: data.latitude,
                 longitude: data.longitude,
                 serviceRadiusKm: data.serviceRadiusKm,
                 serviceAreaType: data.serviceAreaType,
-                serviceAreaValues: data.serviceAreaValues
+                serviceAreaValues: data.serviceAreaValues,
+                businessName: data.businessName,
+                businessType: data.businessType,
+                experience: data.experience,
+                phone: data.phone,
+                email: data.email,
+                website: data.website,
+                instagram: data.instagram,
+                linkedin: data.linkedin,
+                workingHours: data.workingHours,
+                services: data.services
             } as any
         });
     }
@@ -278,7 +298,8 @@ export class ProfileService implements OnModuleInit {
             AND j.category = '${category}'
             AND (
                 -- Administrative Matches
-                "serviceAreaType" = 'PAN_INDIA'
+                "serviceAreaType" = 'GLOBAL'
+                OR "serviceAreaType" = 'PAN_INDIA'
                 ${state ? `OR ("serviceAreaType" = 'STATE' AND '${state}' = ANY("serviceAreaValues"))` : ''}
                 ${district ? `OR ("serviceAreaType" = 'DISTRICT' AND '${district}' = ANY("serviceAreaValues"))` : ''}
                 ${pincode ? `OR ("serviceAreaType" = 'PINCODE' AND '${pincode}' = ANY("serviceAreaValues"))` : ''}

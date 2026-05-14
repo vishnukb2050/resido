@@ -37,17 +37,16 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
     useEffect(() => {
         if (!isLoaded.current) return;
         
-        // Update map view ONLY if the change is significant (external selection)
-        // We use a small threshold to avoid feedback loops from minor drag/pinch events
+        // Update map view ONLY if the center changed significantly (new location selected)
+        // We do NOT update based on zoom/delta changes here because that fights with pinch-to-zoom
         const latDiff = Math.abs(region.latitude - lastRegionRef.current.latitude);
         const lngDiff = Math.abs(region.longitude - lastRegionRef.current.longitude);
-        const deltaDiff = Math.abs(region.latitudeDelta - lastRegionRef.current.latitudeDelta);
 
-        if (latDiff > 0.0001 || lngDiff > 0.0001 || deltaDiff > 0.001) {
+        if (latDiff > 0.01 || lngDiff > 0.01) {
             const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
             const js = `
                 if (typeof map !== 'undefined') {
-                    map.setView([${region.latitude}, ${region.longitude}], ${zoom});
+                    map.setView([${region.latitude}, ${region.longitude}], ${zoom}, { animate: true });
                 }
             `;
             webViewRef.current?.injectJavaScript(js);
@@ -221,9 +220,49 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'onLoad') {
                 isLoaded.current = true;
-                // Force initial updates
+                // Force initial updates for view, marker, and circle
                 const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
-                webViewRef.current?.injectJavaScript(`map.setView([${region.latitude}, ${region.longitude}], ${zoom});`);
+                let initialJs = `map.setView([${region.latitude}, ${region.longitude}], ${zoom});`;
+                
+                if (draggableMarker) {
+                    initialJs += `
+                        const redIcon = L.icon({
+                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                            popupAnchor: [1, -34],
+                            shadowSize: [41, 41]
+                        });
+                        if (!window.dragMarker) {
+                            window.dragMarker = L.marker([${draggableMarker.latitude}, ${draggableMarker.longitude}], {
+                                draggable: true,
+                                icon: redIcon
+                            }).addTo(map);
+                            window.dragMarker.on('dragend', function(e) {
+                                window.ReactNativeWebView.postMessage(JSON.stringify({
+                                    type: 'onMarkerDragEnd',
+                                    coordinate: { latitude: e.target.getLatLng().lat, longitude: e.target.getLatLng().lng }
+                                }));
+                            });
+                        }
+                    `;
+                }
+
+                if (circle) {
+                    initialJs += `
+                        if (!window.radiusCircle) {
+                            window.radiusCircle = L.circle([${circle.center.latitude}, ${circle.center.longitude}], {
+                                color: '#6366f1',
+                                fillColor: '#6366f1',
+                                fillOpacity: 0.1,
+                                radius: ${circle.radius}
+                            }).addTo(map);
+                        }
+                    `;
+                }
+                
+                webViewRef.current?.injectJavaScript(initialJs);
             } else if (data.type === 'onPress' && onPress) {
                 onPress(data.coordinate);
             } else if (data.type === 'onRegionChangeComplete' && onRegionChangeComplete) {
