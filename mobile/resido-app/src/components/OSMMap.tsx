@@ -37,11 +37,13 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
     useEffect(() => {
         if (!isLoaded.current) return;
         
-        // Update map view via JS to avoid full WebView reload
-        if (
-            region.latitude !== lastRegionRef.current.latitude ||
-            region.longitude !== lastRegionRef.current.longitude
-        ) {
+        // Update map view ONLY if the change is significant (external selection)
+        // We use a small threshold to avoid feedback loops from minor drag/pinch events
+        const latDiff = Math.abs(region.latitude - lastRegionRef.current.latitude);
+        const lngDiff = Math.abs(region.longitude - lastRegionRef.current.longitude);
+        const deltaDiff = Math.abs(region.latitudeDelta - lastRegionRef.current.latitudeDelta);
+
+        if (latDiff > 0.0001 || lngDiff > 0.0001 || deltaDiff > 0.001) {
             const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
             const js = `
                 if (typeof map !== 'undefined') {
@@ -158,7 +160,7 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
             <!DOCTYPE html>
             <html>
             <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
                 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
                 <style>

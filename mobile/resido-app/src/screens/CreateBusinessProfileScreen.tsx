@@ -145,15 +145,18 @@ export default function CreateBusinessProfileScreen() {
                 console.log('Searching business map places for:', text);
                 const { data } = await authApi.searchLocations(text);
                 console.log('Found business places:', data.length);
-                setMapSearchResults(data.map((item: any, idx: number) => ({
+                const results = data.map((item: any, idx: number) => ({
                     id: item.id || `loc_${idx}`,
                     display_name: `${item.placeName}, ${item.district} (${item.pincode})`,
                     latitude: item.latitude,
                     longitude: item.longitude,
                     type: 'area',
                     pincode: item.pincode
-                })).filter((item: any) => item.latitude && item.longitude));
-                setShowMapDropdown(true);
+                })).filter((item: any) => item.latitude && item.longitude);
+                
+                console.log('Filtered business map results:', results.length);
+                setMapSearchResults(results);
+                setShowMapDropdown(results.length > 0);
             } catch (error) {
                 console.error('Map place search error:', error);
             } finally {
@@ -976,6 +979,35 @@ const pickerStyles = StyleSheet.create({
     modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '60%' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    dropdownContainer: {
+        position: 'absolute',
+        top: 60,
+        left: 20,
+        right: 20,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        maxHeight: 300,
+        zIndex: 9999,
+        elevation: 10,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+    },
+    dropdownItem: {
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    dropdownText: {
+        fontSize: 14,
+        color: '#1E293B',
+        flex: 1,
+    },
     optionItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
     optionText: { fontSize: 16, color: '#fff' }
 });

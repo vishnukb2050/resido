@@ -120,15 +120,18 @@ export default function ServiceSearchScreen() {
                 console.log('Searching map places for:', text);
                 const { data } = await authApi.searchLocations(text);
                 console.log('Found places:', data.length);
-                setMapSearchResults(data.map((item: any, idx: number) => ({
+                const results = data.map((item: any, idx: number) => ({
                     id: item.id || `loc_${idx}`,
                     display_name: `${item.placeName}, ${item.district} (${item.pincode})`,
                     latitude: item.latitude,
                     longitude: item.longitude,
                     type: 'area',
                     pincode: item.pincode
-                })).filter((item: any) => item.latitude && item.longitude)); 
-                setShowMapDropdown(true);
+                })).filter((item: any) => item.latitude && item.longitude);
+                
+                console.log('Filtered map results:', results.length);
+                setMapSearchResults(results);
+                setShowMapDropdown(results.length > 0);
             } catch (error) {
                 console.error('Map place search error:', error);
             } finally {
@@ -324,7 +327,7 @@ export default function ServiceSearchScreen() {
                                 placeholderTextColor="#94a3b8"
                                 value={searchLocation}
                                 onChangeText={handleLocationSearch}
-                                onBlur={() => setTimeout(() => setShowLocDropdown(false), 200)}
+                                onBlur={() => setTimeout(() => setShowGlobalDropdown(false), 200)}
                             />
                             {searchLocation.length > 0 && (
                                 <TouchableOpacity onPress={() => {
@@ -337,7 +340,7 @@ export default function ServiceSearchScreen() {
                         </View>
 
                         {showGlobalDropdown && locationResults.length > 0 && (
-                            <View style={styles.dropdown}>
+                            <View style={styles.dropdownContainer}>
                                 {locationResults.map((loc, idx) => (
                                     <TouchableOpacity 
                                         key={idx} 
@@ -355,7 +358,7 @@ export default function ServiceSearchScreen() {
                         )}
                         
                         {showGlobalDropdown && searchLocation.length > 2 && locationResults.length === 0 && (
-                            <View style={styles.dropdown}>
+                            <View style={styles.dropdownContainer}>
                                 <View style={styles.noResultItem}>
                                     <Text style={styles.noResultText}>No location found. Please enter pincode.</Text>
                                 </View>
@@ -440,7 +443,7 @@ export default function ServiceSearchScreen() {
                             </View>
 
                             {showMapDropdown && mapSearchResults.length > 0 && (
-                                <View style={[styles.dropdown, { top: 55 }]}>
+                                <View style={[styles.dropdownContainer, { top: 55 }]}>
                                     {mapSearchResults.map((place, idx) => (
                                         <TouchableOpacity 
                                             key={idx} 
@@ -690,39 +693,44 @@ const styles = StyleSheet.create({
     postJobBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
     postJobBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
-    dropdown: {
+    dropdownContainer: {
         position: 'absolute',
         top: 60,
-        left: 0,
-        right: 0,
-        backgroundColor: '#fff',
+        left: 20,
+        right: 20,
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
+        maxHeight: 300,
+        zIndex: 9999,
         elevation: 10,
-        zIndex: 1000,
-        padding: 8
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
     },
     dropdownItem: {
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f8fafc'
+    },
+    dropdownText: {
+        fontSize: 14,
+        color: '#1E293B',
+        flex: 1,
     },
     dropdownPlace: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#1e293b'
+        color: '#1E293B',
     },
     dropdownSub: {
         fontSize: 11,
-        color: '#64748b',
-        marginTop: 1
+        color: '#64748B',
+        marginTop: 2,
     },
     noResultItem: {
         padding: 15,
