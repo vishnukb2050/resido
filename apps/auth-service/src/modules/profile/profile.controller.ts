@@ -144,8 +144,8 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Post('notes/pages')
-    async createNotePage(@Body() body: { folderId: string, title: string, content: string, color?: string }) {
-        return this.profileService.createNotePage(body.folderId, body.title, body.content, body.color);
+    async createNotePage(@Req() req: any, @Body() body: { folderId?: string, title: string, content: string, color?: string }) {
+        return this.profileService.createNotePage(req.user.userId, body.folderId, body.title, body.content, body.color);
     }
 
     @UseGuards(JwtAuthGuard)

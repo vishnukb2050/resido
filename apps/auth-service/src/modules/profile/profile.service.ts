@@ -155,18 +155,18 @@ export class ProfileService implements OnModuleInit {
         const user = await this.prisma.userClient.user.update({
             where: { id: userId },
             data: {
-                name: data.name,
-                email: data.email,
-                phone: data.phone,
+                name: data.name || undefined,
+                email: data.email || undefined,
+                phone: data.phone || undefined,
                 age: data.age && !isNaN(parseInt(data.age)) ? parseInt(data.age) : undefined,
-                description: data.description,
-                profilePhoto: profilePhotoUrl,
-                profileName: data.profileName,
-                phoneVisibility: data.phoneVisibility,
-                instagram: data.instagram,
-                linkedin: data.linkedin,
-                website: data.website,
-                location: data.location,
+                description: data.description || undefined,
+                profilePhoto: profilePhotoUrl || undefined,
+                profileName: data.profileName || undefined,
+                phoneVisibility: data.phoneVisibility || undefined,
+                instagram: data.instagram || undefined,
+                linkedin: data.linkedin || undefined,
+                website: data.website || undefined,
+                location: data.location || undefined,
             }
         });
 
@@ -509,9 +509,25 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
-    async createNotePage(folderId: string, title: string, content: string, color?: string) {
+    async createNotePage(userId: string, folderId: string | undefined, title: string, content: string, color?: string) {
+        let targetFolderId = folderId;
+
+        if (!targetFolderId) {
+            // Find or create "General" folder
+            let generalFolder = await this.prisma.userRead.noteFolder.findFirst({
+                where: { userId, name: 'General' }
+            });
+
+            if (!generalFolder) {
+                generalFolder = await this.prisma.userClient.noteFolder.create({
+                    data: { userId, name: 'General' }
+                });
+            }
+            targetFolderId = generalFolder.id;
+        }
+
         return this.prisma.userClient.notePage.create({
-            data: { folderId, title, content, color }
+            data: { folderId: targetFolderId, title, content, color }
         });
     }
 

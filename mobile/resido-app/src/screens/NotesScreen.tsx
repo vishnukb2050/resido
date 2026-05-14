@@ -143,8 +143,8 @@ export default function NotesScreen() {
                                         <View style={styles.folderInfo}>
                                             <Text style={styles.folderName}>{item.folder?.name || item.page?.title}</Text>
                                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                                                <Image source={{ uri: item.user?.profileImage || 'https://i.pravatar.cc/100?u=' + item.user?.id }} style={{ width: 16, height: 16, borderRadius: 8 }} />
-                                                <Text style={[styles.folderSub, { marginLeft: 6 }]}>Shared by {item.user?.fullName || item.user?.profileName}</Text>
+                                                <Image source={{ uri: item.user?.profilePhoto || 'https://i.pravatar.cc/100?u=' + item.user?.id }} style={{ width: 16, height: 16, borderRadius: 8 }} />
+                                                <Text style={[styles.folderSub, { marginLeft: 6 }]}>Shared by {item.user?.name || item.user?.profileName}</Text>
                                             </View>
                                         </View>
                                         <View style={styles.folderRight}>
