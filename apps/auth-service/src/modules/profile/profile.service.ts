@@ -61,6 +61,11 @@ export class ProfileService implements OnModuleInit {
                 const rawGeo = JSON.parse(fs.readFileSync(geoPath, 'utf8'));
                 if (Array.isArray(rawGeo)) {
                     this.logger.log(`📥 Ingesting ${rawGeo.length} high-precision South India locations...`);
+                    
+                    // Clear existing geo entries to ensure coordinates are updated
+                    await this.prisma.geoClient.locationMaster.deleteMany({
+                        where: { id: { startsWith: 'geo_' } }
+                    });
 
                     const BATCH_SIZE = 5000;
                     for (let i = 0; i < rawGeo.length; i += BATCH_SIZE) {
@@ -92,6 +97,11 @@ export class ProfileService implements OnModuleInit {
                 if (Array.isArray(rawOsm)) {
                     this.logger.log(`📥 Ingesting ${rawOsm.length} granular OSM locations for Kerala & TN...`);
                     
+                    // Clear existing osm entries to ensure coordinates are updated
+                    await this.prisma.geoClient.locationMaster.deleteMany({
+                        where: { id: { startsWith: 'osm_' } }
+                    });
+
                     const BATCH_SIZE = 5000;
                     for (let i = 0; i < rawOsm.length; i += BATCH_SIZE) {
                         const batch = rawOsm.slice(i, i + BATCH_SIZE);
