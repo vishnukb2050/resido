@@ -74,11 +74,17 @@ export default function ServiceSearchScreen() {
     const [searchLocation, setSearchLocation] = useState('');
     const [locationResults, setLocationResults] = useState<any[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<{ pincode?: string; district?: string; state?: string } | null>(null);
-    const [showLocDropdown, setShowLocDropdown] = useState(false);
+    const [showGlobalDropdown, setShowGlobalDropdown] = useState(false);
+    const [showMapDropdown, setShowMapDropdown] = useState(false);
+    const [mapSearchQuery, setMapSearchQuery] = useState('');
     const [profiles, setProfiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState<'LIST' | 'MAP'>('LIST');
     const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number, radius: number } | null>(null);
+    const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
+    const [isMapSearching, setIsMapSearching] = useState(false);
+    const [searchRadius, setSearchRadius] = useState(10); // Default 10km
+    const [selectedPin, setSelectedPin] = useState<{ latitude: number, longitude: number } | null>(null);
     const [mapRegion, setMapRegion] = useState({
         latitude: 20.5937,
         longitude: 78.9629,
@@ -96,14 +102,70 @@ export default function ServiceSearchScreen() {
             try {
                 const { data } = await authApi.searchLocations(text);
                 setLocationResults(data);
-                setShowLocDropdown(true);
+                setShowGlobalDropdown(true);
             } catch (error) {
                 console.error('Location search failed', error);
             }
         } else {
             setLocationResults([]);
-            setShowLocDropdown(false);
+            setShowGlobalDropdown(false);
         }
+    };
+
+    const handleMapPlaceSearch = async (text: string) => {
+        setMapSearchQuery(text);
+        if (text.length > 2) {
+            setIsMapSearching(true);
+            try {
+                const { data } = await authApi.searchLocations(text);
+                setMapSearchResults(data.map((item: any, idx: number) => ({
+                    id: item.id || `loc_${idx}`,
+                    display_name: `${item.placeName}, ${item.district} (${item.pincode})`,
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                    type: 'area',
+                    pincode: item.pincode
+                })).filter((item: any) => item.latitude && item.longitude)); // Only show items with coordinates
+                setShowMapDropdown(true);
+            } catch (error) {
+                console.error('Map place search error:', error);
+            } finally {
+                setIsMapSearching(false);
+            }
+        } else {
+            setMapSearchResults([]);
+            setShowMapDropdown(false);
+        }
+    };
+
+    const onSelectMapPlace = (place: any) => {
+        setMapSearchQuery(place.display_name);
+        const latDelta = (searchRadius * 2.5) / 111;
+        setMapRegion({
+            latitude: place.latitude,
+            longitude: place.longitude,
+            latitudeDelta: latDelta,
+            longitudeDelta: latDelta
+        });
+        setSelectedPin({ latitude: place.latitude, longitude: place.longitude });
+        
+        if (place.pincode) {
+            setSelectedLocation({
+                pincode: place.pincode,
+                district: '', 
+                state: ''
+            });
+        } else {
+            setUserLocation({
+                latitude: place.latitude,
+                longitude: place.longitude,
+                radius: 5
+            });
+            setSelectedLocation(null);
+        }
+        
+        setShowMapDropdown(false);
+        setMapSearchResults([]);
     };
 
     const onSelectLocation = (loc: any) => {
@@ -114,15 +176,18 @@ export default function ServiceSearchScreen() {
             state: loc.state
         });
         setUserLocation(null); 
-        setShowLocDropdown(false);
+        setShowGlobalDropdown(false);
         
         // Move map to selected location if it has coordinates
         if (loc.latitude && loc.longitude) {
+            const latDelta = (searchRadius * 2.5) / 111;
             setMapRegion({
-                ...mapRegion,
                 latitude: loc.latitude,
                 longitude: loc.longitude,
+                latitudeDelta: latDelta,
+                longitudeDelta: latDelta
             });
+            setSelectedPin({ latitude: loc.latitude, longitude: loc.longitude });
         }
     };
 
@@ -138,13 +203,16 @@ export default function ServiceSearchScreen() {
             const coords = {
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
-                radius: 10 // Default 10km search
+                radius: searchRadius
             };
             setUserLocation(coords);
+            setSelectedPin({ latitude: coords.latitude, longitude: coords.longitude });
+            const latDelta = (searchRadius * 2.5) / 111;
             setMapRegion({
-                ...mapRegion,
                 latitude: coords.latitude,
                 longitude: coords.longitude,
+                latitudeDelta: latDelta,
+                longitudeDelta: latDelta
             });
             setSelectedLocation(null); // Clear admin filters
             setSearchLocation('Near Me (GPS)');
@@ -152,6 +220,31 @@ export default function ServiceSearchScreen() {
             Alert.alert('Error', 'Failed to get current location');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleMarkerDragEnd = (coord: { latitude: number, longitude: number }) => {
+        setSelectedPin(coord);
+        setUserLocation({
+            ...coord,
+            radius: searchRadius
+        });
+        setSearchLocation(`Custom Location (${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)})`);
+    };
+
+    const handleRadiusChange = (radius: number) => {
+        setSearchRadius(radius);
+        if (selectedPin) {
+            setUserLocation({
+                ...selectedPin,
+                radius: radius
+            });
+            const latDelta = (radius * 2.5) / 111;
+            setMapRegion({
+                ...mapRegion,
+                latitudeDelta: latDelta,
+                longitudeDelta: latDelta
+            });
         }
     };
 
@@ -241,7 +334,7 @@ export default function ServiceSearchScreen() {
                             )}
                         </View>
 
-                        {showLocDropdown && locationResults.length > 0 && (
+                        {showGlobalDropdown && locationResults.length > 0 && (
                             <View style={styles.dropdown}>
                                 {locationResults.map((loc, idx) => (
                                     <TouchableOpacity 
@@ -259,7 +352,7 @@ export default function ServiceSearchScreen() {
                             </View>
                         )}
                         
-                        {showLocDropdown && searchLocation.length > 2 && locationResults.length === 0 && (
+                        {showGlobalDropdown && searchLocation.length > 2 && locationResults.length === 0 && (
                             <View style={styles.dropdown}>
                                 <View style={styles.noResultItem}>
                                     <Text style={styles.noResultText}>No location found. Please enter pincode.</Text>
@@ -297,9 +390,11 @@ export default function ServiceSearchScreen() {
                             style={styles.map}
                             region={mapRegion}
                             onRegionChangeComplete={setMapRegion}
-                            circle={userLocation ? {
-                                center: { latitude: userLocation.latitude, longitude: userLocation.longitude },
-                                radius: userLocation.radius * 1000
+                            draggableMarker={selectedPin || undefined}
+                            onMarkerDragEnd={handleMarkerDragEnd}
+                            circle={selectedPin ? {
+                                center: selectedPin,
+                                radius: searchRadius * 1000
                             } : undefined}
                             markers={profiles.filter(p => p.latitude && p.longitude).map(pro => ({
                                 id: pro.id,
@@ -309,37 +404,51 @@ export default function ServiceSearchScreen() {
                                 description: pro.category
                             }))}
                         />
+
+                        {/* Radius Selector Overlay */}
+                        <View style={styles.radiusSelector}>
+                            {[5, 10, 20].map(r => (
+                                <TouchableOpacity 
+                                    key={r} 
+                                    style={[styles.radiusBtn, searchRadius === r && styles.radiusBtnActive]}
+                                    onPress={() => handleRadiusChange(r)}
+                                >
+                                    <Text style={[styles.radiusText, searchRadius === r && styles.radiusTextActive]}>{r}km</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                         
                         {/* Map Overlay Controls */}
                         <View style={styles.mapOverlayHeader}>
                             <View style={styles.mapSearchBox}>
                                 <Ionicons name="search" size={18} color="#94a3b8" />
                                 <TextInput 
-                                    placeholder="Search location in map..." 
+                                    placeholder="Search real places, shops, roads..." 
                                     style={styles.mapSearchInput}
                                     placeholderTextColor="#94a3b8"
-                                    value={searchLocation}
-                                    onChangeText={handleLocationSearch}
+                                    value={mapSearchQuery}
+                                    onChangeText={handleMapPlaceSearch}
                                 />
-                                {searchLocation.length > 0 && (
-                                    <TouchableOpacity onPress={() => { setSearchLocation(''); setSelectedLocation(null); }}>
+                                {isMapSearching && <ActivityIndicator size="small" color="#6366f1" style={{ marginRight: 8 }} />}
+                                {mapSearchQuery.length > 0 && (
+                                    <TouchableOpacity onPress={() => { setMapSearchQuery(''); setMapSearchResults([]); }}>
                                         <Ionicons name="close-circle" size={18} color="#cbd5e1" />
                                     </TouchableOpacity>
                                 )}
                             </View>
 
-                            {showLocDropdown && locationResults.length > 0 && (
+                            {showMapDropdown && mapSearchResults.length > 0 && (
                                 <View style={[styles.dropdown, { top: 55 }]}>
-                                    {locationResults.map((loc, idx) => (
+                                    {mapSearchResults.map((place, idx) => (
                                         <TouchableOpacity 
                                             key={idx} 
                                             style={styles.dropdownItem}
-                                            onPress={() => onSelectLocation(loc)}
+                                            onPress={() => onSelectMapPlace(place)}
                                         >
-                                            <Ionicons name="location-outline" size={16} color="#64748b" />
-                                            <View style={{ marginLeft: 10 }}>
-                                                <Text style={styles.dropdownPlace}>{loc.placeName} ({loc.pincode})</Text>
-                                                <Text style={styles.dropdownSub}>{loc.district}, {loc.state}</Text>
+                                            <Ionicons name="business-outline" size={16} color="#6366f1" />
+                                            <View style={{ marginLeft: 10, flex: 1 }}>
+                                                <Text style={styles.dropdownPlace} numberOfLines={1}>{place.display_name.split(',')[0]}</Text>
+                                                <Text style={styles.dropdownSub} numberOfLines={1}>{place.display_name.split(',').slice(1).join(',').trim()}</Text>
                                             </View>
                                         </TouchableOpacity>
                                     ))}
@@ -632,6 +741,11 @@ const styles = StyleSheet.create({
     mapGpsBtn: { position: 'absolute', right: 15, bottom: 85, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
     mapDoneBtn: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#6366f1', height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 8 },
     mapDoneText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    radiusSelector: { position: 'absolute', right: 15, top: 80, backgroundColor: '#fff', borderRadius: 12, padding: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+    radiusBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginBottom: 4 },
+    radiusBtnActive: { backgroundColor: '#6366f1' },
+    radiusText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
+    radiusTextActive: { color: '#fff' },
     markerContainer: { alignItems: 'center', justifyContent: 'center' },
     markerCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
     markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#6366f1', marginTop: -1 },

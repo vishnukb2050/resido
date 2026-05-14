@@ -23,21 +23,142 @@ interface OSMMapProps {
         center: { latitude: number, longitude: number };
         radius: number; // in meters
     };
+    draggableMarker?: { latitude: number, longitude: number };
+    onMarkerDragEnd?: (coordinate: { latitude: number, longitude: number }) => void;
     onRegionChangeComplete?: (region: { latitude: number, longitude: number, latitudeDelta: number, longitudeDelta: number }) => void;
     style?: any;
 }
 
-const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, onRegionChangeComplete, style }) => {
+const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, draggableMarker, onMarkerDragEnd, onRegionChangeComplete, style }) => {
     const webViewRef = useRef<WebView>(null);
+    const lastRegionRef = useRef(region);
+    const isLoaded = useRef(false);
 
-    const getHtml = () => {
+    useEffect(() => {
+        if (!isLoaded.current) return;
+        
+        // Update map view via JS to avoid full WebView reload
+        if (
+            region.latitude !== lastRegionRef.current.latitude ||
+            region.longitude !== lastRegionRef.current.longitude
+        ) {
+            const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
+            const js = `
+                if (typeof map !== 'undefined') {
+                    map.setView([${region.latitude}, ${region.longitude}], ${zoom});
+                }
+            `;
+            webViewRef.current?.injectJavaScript(js);
+            lastRegionRef.current = region;
+        }
+    }, [region.latitude, region.longitude, region.latitudeDelta]);
+
+    useEffect(() => {
+        if (!isLoaded.current) return;
+
+        if (draggableMarker && webViewRef.current) {
+            const js = `
+                if (window.dragMarker) {
+                    window.dragMarker.setLatLng([${draggableMarker.latitude}, ${draggableMarker.longitude}]);
+                } else if (typeof map !== 'undefined') {
+                    const redIcon = L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    });
+                    window.dragMarker = L.marker([${draggableMarker.latitude}, ${draggableMarker.longitude}], {
+                        draggable: true,
+                        icon: redIcon
+                    }).addTo(map);
+
+                    window.dragMarker.on('dragend', function(event) {
+                        const marker = event.target;
+                        const position = marker.getLatLng();
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'onMarkerDragEnd',
+                            coordinate: {
+                                latitude: position.lat,
+                                longitude: position.lng
+                            }
+                        }));
+                    });
+                }
+            `;
+            webViewRef.current.injectJavaScript(js);
+        } else if (!draggableMarker && webViewRef.current) {
+            webViewRef.current.injectJavaScript(`
+                if (window.dragMarker) {
+                    map.removeLayer(window.dragMarker);
+                    window.dragMarker = null;
+                }
+            `);
+        }
+    }, [draggableMarker?.latitude, draggableMarker?.longitude]);
+
+    useEffect(() => {
+        if (!isLoaded.current) return;
+
+        if (circle && webViewRef.current) {
+            const js = `
+                if (window.radiusCircle) {
+                    window.radiusCircle.setLatLng([${circle.center.latitude}, ${circle.center.longitude}]);
+                    window.radiusCircle.setRadius(${circle.radius});
+                } else if (typeof map !== 'undefined') {
+                    window.radiusCircle = L.circle([${circle.center.latitude}, ${circle.center.longitude}], {
+                        color: '#6366f1',
+                        fillColor: '#6366f1',
+                        fillOpacity: 0.1,
+                        radius: ${circle.radius}
+                    }).addTo(map);
+                }
+            `;
+            webViewRef.current.injectJavaScript(js);
+        } else if (!circle && webViewRef.current) {
+            webViewRef.current.injectJavaScript(`
+                if (window.radiusCircle) {
+                    map.removeLayer(window.radiusCircle);
+                    window.radiusCircle = null;
+                }
+            `);
+        }
+    }, [circle?.center.latitude, circle?.center.longitude, circle?.radius]);
+
+    useEffect(() => {
+        if (!isLoaded.current) return;
+
+        const js = `
+            if (typeof map !== 'undefined') {
+                if (window.staticMarkers) {
+                    window.staticMarkers.forEach(m => map.removeLayer(m));
+                }
+                window.staticMarkers = [];
+                ${markers.map(m => {
+                    const title = (m.title || '').replace(/'/g, "\\'");
+                    const desc = (m.description || '').replace(/'/g, "\\'");
+                    return `
+                        window.staticMarkers.push(
+                            L.marker([${m.latitude}, ${m.longitude}])
+                                .addTo(map)
+                                .bindPopup('<b>${title}</b><br>${desc}')
+                        );
+                    `;
+                }).join('')}
+            }
+        `;
+        webViewRef.current?.injectJavaScript(js);
+    }, [markers]);
+
+    const html = React.useMemo(() => {
         const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
         
         return `
             <!DOCTYPE html>
             <html>
             <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
                 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
                 <style>
@@ -50,29 +171,14 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
                 <div id="map"></div>
                 <script>
                     const map = L.map('map', {
-                        zoomControl: false
+                        zoomControl: false,
+                        pinchZoom: true,
+                        touchZoom: true,
+                        doubleClickZoom: true,
+                        scrollWheelZoom: true
                     }).setView([${region.latitude}, ${region.longitude}], ${zoom});
 
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-                    ${circle ? `
-                        L.circle([${circle.center.latitude}, ${circle.center.longitude}], {
-                            color: '#6366f1',
-                            fillColor: '#6366f1',
-                            fillOpacity: 0.1,
-                            radius: ${circle.radius}
-                        }).addTo(map);
-                    ` : ''}
-
-                    ${markers.map(m => {
-                        const title = (m.title || '').replace(/'/g, "\\'");
-                        const desc = (m.description || '').replace(/'/g, "\\'");
-                        return `
-                            L.marker([${m.latitude}, ${m.longitude}])
-                                .addTo(map)
-                                .bindPopup('<b>${title}</b><br>${desc}');
-                        `;
-                    }).join('')}
 
                     map.on('click', function(e) {
                         window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -86,7 +192,6 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
 
                     map.on('moveend', function() {
                         const center = map.getCenter();
-                        const zoom = map.getZoom();
                         const bounds = map.getBounds();
                         const latDelta = Math.abs(bounds.getNorth() - bounds.getSouth());
                         const lngDelta = Math.abs(bounds.getEast() - bounds.getWest());
@@ -102,21 +207,27 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
                         }));
                     });
 
-                    // Update markers/circle when props change would go here
-                    // For now we just recreate the HTML on each render which is fine for simple use
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'onLoad' }));
                 </script>
             </body>
             </html>
         `;
-    };
+    }, []); // Totally static HTML structure
 
     const handleMessage = (event: any) => {
         try {
             const data = JSON.parse(event.nativeEvent.data);
-            if (data.type === 'onPress' && onPress) {
+            if (data.type === 'onLoad') {
+                isLoaded.current = true;
+                // Force initial updates
+                const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
+                webViewRef.current?.injectJavaScript(`map.setView([${region.latitude}, ${region.longitude}], ${zoom});`);
+            } else if (data.type === 'onPress' && onPress) {
                 onPress(data.coordinate);
             } else if (data.type === 'onRegionChangeComplete' && onRegionChangeComplete) {
                 onRegionChangeComplete(data.region);
+            } else if (data.type === 'onMarkerDragEnd' && onMarkerDragEnd) {
+                onMarkerDragEnd(data.coordinate);
             }
         } catch (e) {
             console.error('Error parsing WebView message', e);
@@ -128,7 +239,7 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
             <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
-                source={{ html: getHtml() }}
+                source={{ html }}
                 onMessage={handleMessage}
                 style={styles.webview}
                 javaScriptEnabled={true}

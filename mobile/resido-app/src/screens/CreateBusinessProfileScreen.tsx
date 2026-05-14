@@ -89,6 +89,16 @@ export default function CreateBusinessProfileScreen() {
         try {
             const res = await businessApi.getProfile(id as string);
             setFormData(res.data);
+            if (res.data.latitude && res.data.longitude) {
+                const latDelta = (res.data.serviceRadiusKm * 2.5) / 111;
+                setMapRegion({
+                    latitude: res.data.latitude,
+                    longitude: res.data.longitude,
+                    latitudeDelta: latDelta,
+                    longitudeDelta: latDelta
+                });
+                setLocQuery('Saved Location');
+            }
         } catch (error) {
             Alert.alert('Error', 'Failed to load profile');
         } finally {
@@ -99,7 +109,18 @@ export default function CreateBusinessProfileScreen() {
     // Location Search Logic
     const [locQuery, setLocQuery] = useState('');
     const [locResults, setLocResults] = useState<any[]>([]);
-    const [showLocDropdown, setShowLocDropdown] = useState(false);
+    const [showGlobalDropdown, setShowGlobalDropdown] = useState(false);
+    const [showMapDropdown, setShowMapDropdown] = useState(false);
+    const [mapSearchQuery, setMapSearchQuery] = useState('');
+
+    const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
+    const [isMapSearching, setIsMapSearching] = useState(false);
+    const [mapRegion, setMapRegion] = useState({
+        latitude: 20.5937,
+        longitude: 78.9629,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    });
 
     const handleLocSearch = async (text: string) => {
         setLocQuery(text);
@@ -107,13 +128,74 @@ export default function CreateBusinessProfileScreen() {
             try {
                 const { data } = await authApi.searchLocations(text);
                 setLocResults(data);
-                setShowLocDropdown(true);
+                setShowGlobalDropdown(true);
             } catch (error) {
                 console.error(error);
             }
         } else {
-            setShowLocDropdown(false);
+            setShowGlobalDropdown(false);
         }
+    };
+
+    const handleMapPlaceSearch = async (text: string) => {
+        setMapSearchQuery(text);
+        if (text.length > 2) {
+            setIsMapSearching(true);
+            try {
+                const { data } = await authApi.searchLocations(text);
+                setMapSearchResults(data.map((item: any, idx: number) => ({
+                    id: item.id || `loc_${idx}`,
+                    display_name: `${item.placeName}, ${item.district} (${item.pincode})`,
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                    type: 'area',
+                    pincode: item.pincode
+                })).filter((item: any) => item.latitude && item.longitude));
+                setShowMapDropdown(true);
+            } catch (error) {
+                console.error('Map place search error:', error);
+            } finally {
+                setIsMapSearching(false);
+            }
+        } else {
+            setMapSearchResults([]);
+            setShowMapDropdown(false);
+        }
+    };
+
+    const onSelectMapPlace = (place: any) => {
+        setMapSearchQuery(place.display_name);
+        const latDelta = (formData.serviceRadiusKm * 2.5) / 111;
+        setMapRegion({
+            latitude: place.latitude,
+            longitude: place.longitude,
+            latitudeDelta: latDelta,
+            longitudeDelta: latDelta
+        });
+        setFormData({ 
+            ...formData, 
+            latitude: place.latitude, 
+            longitude: place.longitude,
+            area: place.display_name.split(',')[0],
+            location: place.pincode || formData.location
+        });
+        setShowMapDropdown(false);
+        setMapSearchResults([]);
+    };
+
+    const handleMarkerDragEnd = (coord: { latitude: number, longitude: number }) => {
+        setFormData({ ...formData, latitude: coord.latitude, longitude: coord.longitude });
+        setMapSearchQuery(`Picked Location (${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)})`);
+    };
+
+    const handleRadiusChange = (radius: number) => {
+        const latDelta = (radius * 2.5) / 111;
+        setMapRegion({
+            ...mapRegion,
+            latitudeDelta: latDelta,
+            longitudeDelta: latDelta
+        });
+        setFormData({ ...formData, serviceRadiusKm: radius });
     };
 
     const addServiceArea = (loc: any) => {
@@ -150,7 +232,15 @@ export default function CreateBusinessProfileScreen() {
 
             let location = await Location.getCurrentPositionAsync({});
             const { latitude, longitude } = location.coords;
+            const latDelta = (formData.serviceRadiusKm * 2.5) / 111;
+            setMapRegion({
+                latitude,
+                longitude,
+                latitudeDelta: latDelta,
+                longitudeDelta: latDelta
+            });
             setFormData({ ...formData, latitude, longitude });
+            setLocQuery('Current Location (GPS)');
         } catch (error) {
             Alert.alert('Error', 'Failed to get current location');
         } finally {
@@ -513,24 +603,21 @@ export default function CreateBusinessProfileScreen() {
                             style={styles.searchInput} 
                             placeholder="Search your office/shop location..." 
                             placeholderTextColor="#94a3b8"
-                            value={locQuery}
-                            onChangeText={handleLocSearch}
+                            value={mapSearchQuery}
+                            onChangeText={handleMapPlaceSearch}
                         />
+                        {isMapSearching && <ActivityIndicator size="small" color="#6366f1" style={{ marginRight: 8 }} />}
                     </View>
                     <TouchableOpacity style={styles.locationBtn} onPress={getCurrentLocation}>
                         <Ionicons name="navigate" size={18} color="#fff" />
                         <Text style={styles.locationBtnText}>GPS</Text>
                     </TouchableOpacity>
                 </View>
-                {showLocDropdown && (
+                {showMapDropdown && mapSearchResults.length > 0 && (
                     <View style={styles.dropdown}>
-                        {locResults.map((loc, idx) => (
-                            <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => {
-                                setFormData({ ...formData, baseLocation: loc, area: loc.placeName, location: loc.pincode });
-                                setLocQuery(`${loc.placeName} (${loc.pincode})`);
-                                setShowLocDropdown(false);
-                            }}>
-                                <Text style={styles.dropdownText}>{loc.placeName}, {loc.district} ({loc.pincode})</Text>
+                        {mapSearchResults.map((place, idx) => (
+                            <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => onSelectMapPlace(place)}>
+                                <Text style={styles.dropdownText}>{place.display_name}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -540,53 +627,19 @@ export default function CreateBusinessProfileScreen() {
             <View style={styles.mapContainer}>
                 <OSMMap
                     style={StyleSheet.absoluteFill}
-                    region={{
-                        latitude: formData.latitude || 20.5937,
-                        longitude: formData.longitude || 78.9629,
-                        latitudeDelta: 0.05,
-                        longitudeDelta: 0.05,
-                    }}
-                    onPress={(coordinate) => {
-                        setFormData({ ...formData, latitude: coordinate.latitude, longitude: coordinate.longitude });
-                    }}
+                    region={mapRegion}
+                    onRegionChangeComplete={setMapRegion}
+                    draggableMarker={formData.latitude ? { latitude: formData.latitude, longitude: formData.longitude } : undefined}
+                    onMarkerDragEnd={handleMarkerDragEnd}
                     circle={formData.latitude ? {
                         center: { latitude: formData.latitude, longitude: formData.longitude },
                         radius: formData.serviceRadiusKm * 1000
                     } : undefined}
-                    markers={formData.latitude ? [{
-                        id: 'current-pos',
-                        latitude: formData.latitude,
-                        longitude: formData.longitude,
-                        title: 'Your Location'
-                    }] : []}
+                    markers={[]}
                 />
                 
                 {/* Map Controls */}
-                <View style={styles.mapControls}>
-                    <TouchableOpacity 
-                        style={styles.mapControlBtn} 
-                        onPress={async () => {
-                            try {
-                                const { status } = await Location.requestForegroundPermissionsAsync();
-                                if (status !== 'granted') {
-                                    Alert.alert('Permission Denied', 'Please enable location permissions to use this feature.');
-                                    return;
-                                }
-                                const loc = await Location.getCurrentPositionAsync({});
-                                setFormData({ 
-                                    ...formData, 
-                                    latitude: loc.coords.latitude, 
-                                    longitude: loc.coords.longitude 
-                                });
-                            } catch (error) {
-                                Alert.alert('Error', 'Could not get current location.');
-                            }
-                        }}
-                    >
-                        <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#6366f1" />
-                    </TouchableOpacity>
                 </View>
-            </View>
 
             <View style={styles.inputGroup}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -598,7 +651,7 @@ export default function CreateBusinessProfileScreen() {
                         <TouchableOpacity 
                             key={r} 
                             style={[styles.radiusChip, formData.serviceRadiusKm === r && styles.radiusChipActive]}
-                            onPress={() => setFormData({ ...formData, serviceRadiusKm: r })}
+                            onPress={() => handleRadiusChange(r)}
                         >
                             <Text style={[styles.radiusChipText, formData.serviceRadiusKm === r && styles.radiusChipTextActive]}>{r}km</Text>
                         </TouchableOpacity>
@@ -628,6 +681,7 @@ export default function CreateBusinessProfileScreen() {
                         <TextInput 
                             style={styles.searchInput} 
                             placeholder={`Search ${formData.serviceAreaType.toLowerCase()} to add...`}
+                            value={locQuery}
                             onChangeText={handleLocSearch}
                         />
                         <TouchableOpacity style={{ padding: 8 }} onPress={() => {
@@ -637,10 +691,13 @@ export default function CreateBusinessProfileScreen() {
                         </TouchableOpacity>
                     </View>
                     
-                    {showLocDropdown && (
+                    {showGlobalDropdown && (
                         <View style={styles.dropdown}>
                             {locResults.map((loc, idx) => (
-                                <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => addServiceArea(loc)}>
+                                <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => {
+                                    addServiceArea(loc);
+                                    setShowGlobalDropdown(false);
+                                }}>
                                     <Text style={styles.dropdownText}>{loc.placeName}, {loc.district} ({loc.pincode})</Text>
                                 </TouchableOpacity>
                             ))}
