@@ -19,49 +19,48 @@ export class ProfileService implements OnModuleInit {
     }
 
     private async seedLocations() {
-        const count = await this.prisma.geoRead.locationMaster.count();
-        // If we already have a lot of data, we might just want to update the GPS ones
-        if (count > 100000) { 
-            this.logger.log('📍 Location database already populated.');
-            return;
-        }
-
-        this.logger.log('📍 Starting automatic location ingestion...');
         try {
-            // 1. Load standard pincodes
-            const pincodesPath = path.join(__dirname, '../../assets/pincodes.json');
-            if (fs.existsSync(pincodesPath)) {
-                const rawPincodes = JSON.parse(fs.readFileSync(pincodesPath, 'utf8'));
-                if (Array.isArray(rawPincodes)) {
-                    this.logger.log(`📥 Processing ${rawPincodes.length} pincodes...`);
-                    const BATCH_SIZE = 5000;
-                    for (let i = 0; i < rawPincodes.length; i += BATCH_SIZE) {
-                        const batch = rawPincodes.slice(i, i + BATCH_SIZE);
-                        const data = batch.map((item: any) => {
-                            const placeName = item.officename.replace(/ B\.O| S\.O| H\.O/g, '').trim();
-                            const pincode = String(item.pincode);
-                            return {
-                                placeName,
-                                pincode,
-                                district: item.Districtname,
-                                state: item.statename,
-                                searchStr: `${placeName} ${pincode} ${item.Districtname} ${item.statename}`.toLowerCase()
-                            };
-                        });
-                        await this.prisma.geoClient.locationMaster.createMany({
-                            data,
-                            skipDuplicates: true
-                        });
+            const count = await this.prisma.geoRead.locationMaster.count();
+            
+            // 1. Load standard pincodes if DB is empty
+            if (count < 50000) {
+                this.logger.log('📍 Starting automatic location ingestion (Standard Pincodes)...');
+                const pincodesPath = path.join(__dirname, '../../assets/pincodes.json');
+                if (fs.existsSync(pincodesPath)) {
+                    const rawPincodes = JSON.parse(fs.readFileSync(pincodesPath, 'utf8'));
+                    if (Array.isArray(rawPincodes)) {
+                        this.logger.log(`📥 Processing ${rawPincodes.length} pincodes...`);
+                        const BATCH_SIZE = 5000;
+                        for (let i = 0; i < rawPincodes.length; i += BATCH_SIZE) {
+                            const batch = rawPincodes.slice(i, i + BATCH_SIZE);
+                            const data = batch.map((item: any) => {
+                                const placeName = item.officename.replace(/ B\.O| S\.O| H\.O/g, '').trim();
+                                const pincode = String(item.pincode);
+                                return {
+                                    placeName,
+                                    pincode,
+                                    district: item.Districtname,
+                                    state: item.statename,
+                                    searchStr: `${placeName} ${pincode} ${item.Districtname} ${item.statename}`.toLowerCase()
+                                };
+                            });
+                            await this.prisma.geoClient.locationMaster.createMany({
+                                data,
+                                skipDuplicates: true
+                            });
+                        }
                     }
                 }
+            } else {
+                this.logger.log('📍 Location database already contains base data.');
             }
 
-            // 2. Load high-precision South India data with coordinates
+            // 2. ALWAYS Load high-precision South India data with coordinates (using upsert)
             const geoPath = path.join(__dirname, '../../assets/south_india_geo.json');
             if (fs.existsSync(geoPath)) {
                 const rawGeo = JSON.parse(fs.readFileSync(geoPath, 'utf8'));
                 if (Array.isArray(rawGeo)) {
-                    this.logger.log(`📥 Ingesting ${rawGeo.length} high-precision South India locations...`);
+                    this.logger.log(`📥 Syncing ${rawGeo.length} high-precision South India locations...`);
                     for (const item of rawGeo) {
                         await this.prisma.geoClient.locationMaster.upsert({
                             where: { id: `geo_${item.state}_${item.placeName}_${item.pincode}`.toLowerCase().replace(/\s/g, '_') },
@@ -84,7 +83,7 @@ export class ProfileService implements OnModuleInit {
                 }
             }
 
-            this.logger.log('🎉 Location database ingestion complete!');
+            this.logger.log('🎉 Location database sync complete!');
         } catch (error) {
             this.logger.error('❌ Failed to seed locations:', error);
         }
