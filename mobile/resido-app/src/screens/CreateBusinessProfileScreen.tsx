@@ -4,9 +4,10 @@ import {
     Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
     FlatList, Modal, ActivityIndicator, Switch, Dimensions, StatusBar
 } from 'react-native';
-import MapView, { Marker, Circle, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import OSMMap from '../components/OSMMap';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
 import { businessApi, authApi } from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
@@ -537,39 +538,28 @@ export default function CreateBusinessProfileScreen() {
             </View>
 
             <View style={styles.mapContainer}>
-                <MapView
+                <OSMMap
                     style={StyleSheet.absoluteFill}
-                    provider={PROVIDER_DEFAULT}
                     region={{
                         latitude: formData.latitude || 20.5937,
                         longitude: formData.longitude || 78.9629,
                         latitudeDelta: 0.05,
                         longitudeDelta: 0.05,
                     }}
-                    onPress={(e: any) => {
-                        const { latitude, longitude } = e.nativeEvent.coordinate;
-                        setFormData({ ...formData, latitude, longitude });
+                    onPress={(coordinate) => {
+                        setFormData({ ...formData, latitude: coordinate.latitude, longitude: coordinate.longitude });
                     }}
-                >
-                    {formData.latitude !== 0 && formData.latitude !== null && (
-                        <>
-                            <Marker 
-                                draggable
-                                coordinate={{ latitude: formData.latitude, longitude: formData.longitude }} 
-                                onDragEnd={(e: any) => {
-                                    const { latitude, longitude } = e.nativeEvent.coordinate;
-                                    setFormData({ ...formData, latitude, longitude });
-                                }}
-                            />
-                            <Circle 
-                                center={{ latitude: formData.latitude, longitude: formData.longitude }}
-                                radius={formData.serviceRadiusKm * 1000}
-                                fillColor="rgba(99, 102, 241, 0.2)"
-                                strokeColor="#6366f1"
-                            />
-                        </>
-                    )}
-                </MapView>
+                    circle={formData.latitude ? {
+                        center: { latitude: formData.latitude, longitude: formData.longitude },
+                        radius: formData.serviceRadiusKm * 1000
+                    } : undefined}
+                    markers={formData.latitude ? [{
+                        id: 'current-pos',
+                        latitude: formData.latitude,
+                        longitude: formData.longitude,
+                        title: 'Your Location'
+                    }] : []}
+                />
                 
                 {/* Map Controls */}
                 <View style={styles.mapControls}>

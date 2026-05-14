@@ -6,9 +6,10 @@ import {
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Modal } from 'react-native';
-import MapView, { Marker, Circle, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import BottomNav from '../components/BottomNav';
+import OSMMap from '../components/OSMMap';
 import { authApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -78,6 +79,12 @@ export default function ServiceSearchScreen() {
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState<'LIST' | 'MAP'>('LIST');
     const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number, radius: number } | null>(null);
+    const [mapRegion, setMapRegion] = useState({
+        latitude: 20.5937,
+        longitude: 78.9629,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    });
 
     React.useEffect(() => {
         fetchProfiles();
@@ -106,8 +113,17 @@ export default function ServiceSearchScreen() {
             district: loc.district,
             state: loc.state
         });
-        setUserLocation(null); // Clear GPS mode when choosing administrative location
+        setUserLocation(null); 
         setShowLocDropdown(false);
+        
+        // Move map to selected location if it has coordinates
+        if (loc.latitude && loc.longitude) {
+            setMapRegion({
+                ...mapRegion,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+            });
+        }
     };
 
     const handleNearMe = async () => {
@@ -119,10 +135,16 @@ export default function ServiceSearchScreen() {
                 return;
             }
             let location = await Location.getCurrentPositionAsync({});
-            setUserLocation({
+            const coords = {
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
                 radius: 10 // Default 10km search
+            };
+            setUserLocation(coords);
+            setMapRegion({
+                ...mapRegion,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
             });
             setSelectedLocation(null); // Clear admin filters
             setSearchLocation('Near Me (GPS)');
@@ -268,6 +290,79 @@ export default function ServiceSearchScreen() {
                     ))}
                 </ScrollView>
 
+                {/* Map View Toggle Area (Conditional) */}
+                {viewMode === 'MAP' && (
+                    <View style={styles.mapViewContainer}>
+                        <OSMMap
+                            style={styles.map}
+                            region={mapRegion}
+                            onRegionChangeComplete={setMapRegion}
+                            circle={userLocation ? {
+                                center: { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                                radius: userLocation.radius * 1000
+                            } : undefined}
+                            markers={profiles.filter(p => p.latitude && p.longitude).map(pro => ({
+                                id: pro.id,
+                                latitude: pro.latitude,
+                                longitude: pro.longitude,
+                                title: pro.businessName || pro.name,
+                                description: pro.category
+                            }))}
+                        />
+                        
+                        {/* Map Overlay Controls */}
+                        <View style={styles.mapOverlayHeader}>
+                            <View style={styles.mapSearchBox}>
+                                <Ionicons name="search" size={18} color="#94a3b8" />
+                                <TextInput 
+                                    placeholder="Search location in map..." 
+                                    style={styles.mapSearchInput}
+                                    placeholderTextColor="#94a3b8"
+                                    value={searchLocation}
+                                    onChangeText={handleLocationSearch}
+                                />
+                                {searchLocation.length > 0 && (
+                                    <TouchableOpacity onPress={() => { setSearchLocation(''); setSelectedLocation(null); }}>
+                                        <Ionicons name="close-circle" size={18} color="#cbd5e1" />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {showLocDropdown && locationResults.length > 0 && (
+                                <View style={[styles.dropdown, { top: 55 }]}>
+                                    {locationResults.map((loc, idx) => (
+                                        <TouchableOpacity 
+                                            key={idx} 
+                                            style={styles.dropdownItem}
+                                            onPress={() => onSelectLocation(loc)}
+                                        >
+                                            <Ionicons name="location-outline" size={16} color="#64748b" />
+                                            <View style={{ marginLeft: 10 }}>
+                                                <Text style={styles.dropdownPlace}>{loc.placeName} ({loc.pincode})</Text>
+                                                <Text style={styles.dropdownSub}>{loc.district}, {loc.state}</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+
+                        <TouchableOpacity style={styles.mapGpsBtn} onPress={handleNearMe}>
+                            <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#6366f1" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={styles.mapDoneBtn} 
+                            onPress={() => {
+                                setViewMode('LIST');
+                                fetchProfiles();
+                            }}
+                        >
+                            <Text style={styles.mapDoneText}>Save & Apply Location</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 {/* Verified Banner */}
                 <View style={styles.verifiedBanner}>
                     <View style={styles.verifiedIconContainer}>
@@ -327,44 +422,6 @@ export default function ServiceSearchScreen() {
                     <View style={{ padding: 40, alignItems: 'center' }}>
                         <ActivityIndicator color="#6366f1" size="large" />
                         <Text style={{ marginTop: 12, color: '#64748b' }}>Finding best matches...</Text>
-                    </View>
-                ) : viewMode === 'MAP' ? (
-                    <View style={styles.mapViewContainer}>
-                        <MapView
-                            style={styles.map}
-                            provider={PROVIDER_DEFAULT}
-                            region={{
-                                latitude: userLocation?.latitude || 20.5937,
-                                longitude: userLocation?.longitude || 78.9629,
-                                latitudeDelta: 0.05,
-                                longitudeDelta: 0.05,
-                            }}
-                        >
-                            {userLocation && (
-                                <Circle 
-                                    center={{ latitude: userLocation.latitude, longitude: userLocation.longitude }}
-                                    radius={userLocation.radius * 1000}
-                                    fillColor="rgba(99, 102, 241, 0.1)"
-                                    strokeColor="#6366f1"
-                                />
-                            )}
-                            {profiles.filter(p => p.latitude && p.longitude).map(pro => (
-                                <Marker 
-                                    key={pro.id}
-                                    coordinate={{ latitude: pro.latitude, longitude: pro.longitude }}
-                                    title={pro.businessName || pro.name}
-                                    description={pro.category}
-                                    onCalloutPress={() => router.push(`/business/${pro.id}`)}
-                                >
-                                    <View style={styles.markerContainer}>
-                                        <View style={styles.markerCircle}>
-                                            <Ionicons name="person" size={14} color="#fff" />
-                                        </View>
-                                        <View style={styles.markerArrow} />
-                                    </View>
-                                </Marker>
-                            ))}
-                        </MapView>
                     </View>
                 ) : (
                     <View style={styles.prosList}>
@@ -567,8 +624,14 @@ const styles = StyleSheet.create({
     },
     nearMeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f7ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginRight: 8, borderWidth: 1, borderColor: '#e0e7ff' },
     nearMeText: { fontSize: 12, fontWeight: '700', color: '#6366f1', marginLeft: 4 },
-    mapViewContainer: { height: 400, marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25 },
+    mapViewContainer: { height: 450, marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25, position: 'relative' },
     map: { ...StyleSheet.absoluteFillObject },
+    mapOverlayHeader: { position: 'absolute', top: 15, left: 15, right: 15, zIndex: 10 },
+    mapSearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 48, borderRadius: 12, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+    mapSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
+    mapGpsBtn: { position: 'absolute', right: 15, bottom: 85, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+    mapDoneBtn: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#6366f1', height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 8 },
+    mapDoneText: { color: '#fff', fontWeight: '800', fontSize: 15 },
     markerContainer: { alignItems: 'center', justifyContent: 'center' },
     markerCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
     markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#6366f1', marginTop: -1 },

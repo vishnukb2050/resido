@@ -17,7 +17,7 @@
     "@nestjs/platform-socket.io": "^10.0.0",
     "@nestjs/websockets": "^10.0.0",
     "socket.io": "^4.6.0",
-    "axios": "^1.6.0",
+    "@prisma/client": "^5.0.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0"
   },
