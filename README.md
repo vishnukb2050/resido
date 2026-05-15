@@ -98,26 +98,16 @@ resido/
 
 ## ✨ Recent Enhancements (May 2026)
 
-### 🎨 Mobile UI/UX Restoration
-- **Premium Dashboard**: Redesigned the top section to match high-fidelity specifications, featuring a side-by-side branding and announcement layout.
-- **Logo Integration**: Fixed asset background issues, ensuring the Resido logo blends seamlessly with the app's clean aesthetic.
+### 🏢 Multi-Community & RBAC Ecosystem (Latest)
+- **Role-Based Dashboards**: Implemented specialized, high-fidelity dashboards for **Admins**, **Cleaning Staff**, **Security Staff**, and **Maintenance Staff**.
+- **Workspace Navigation**: Added a "Workspace Bubble" navigation system allowing users with multiple roles across different communities (e.g., Security in Community A, Admin in Community B) to switch seamlessly.
+- **Automated Role Assignment**: Integrated backend logic to automatically provision global user accounts and assign specific workspace roles when added by a Community Admin.
+- **Advanced Staff Management**: Community Admins can now register staff with detailed profiles including **Age**, **Full Address**, and **Document Verification** (ID Proofs/Contracts).
 
-### 📝 Advanced Notes System
-- **Hierarchical Structure**: Refactored notes into a **Folder > Page** organization.
-- **Social Sharing**: Implemented sharing for both folders and pages, targeting **Communities**, **Groups**, or specific **Contacts**.
-
-### 🖼️ Organized Community Gallery
-- **Folder Support**: Residents can now create and manage media folders for better organization.
-- **Video Support**: The gallery now supports uploading and previewing videos alongside photos.
-
-### 📰 Social Blog Features
-- **Media-Rich Posts**: Support for both Image and Video content in community blogs.
-- **User Tagging**: Mention community members using `@tags` with automated **Real-time Notifications** for tagged individuals.
-
-### 🔍 Utility & Reliability
-- **QR Scanner**: Fully restored high-performance QR code scanning with a modern CameraView and a brand new **Scan History** feature to save and revisit scanned data.
-- **Backend Routing**: Hardened the API Gateway proxy logic to ensure complete multi-tenant context propagation (`x-tenant-id`), resolving folder creation errors in the Gallery and Notes modules.
-- **Auto-Sync DB**: All services are now hardened with startup logic that automatically synchronizes database schemas on remote servers.
+### 🛠️ UX & Reliability Fixes
+- **Layout Optimization**: Resolved visibility issues on Note and Document pages by optimizing top-padding for devices with notches and status bars.
+- **Authentication Propagation**: Hardened the API interceptors to ensure consistent token and tenant header injection across all modules, fixing folder and page creation errors.
+- **Seeding & Provisioning**: Created automated shell scripts for rapid provisioning of test environments and community staff memberships.
 
 ---
 

@@ -60,7 +60,7 @@ export class AuthController {
 
     @Public()
     @Post('sync-membership')
-    syncMembership(@Body() body: { phone: string; tenantId: string; tenantName: string; role: string }) {
-        return this.authService.syncMembership(body.phone, body.tenantId, body.tenantName, body.role);
+    syncMembership(@Body() body: { phone: string; tenantId: string; tenantName: string; role: string; name?: string; age?: number; address?: string }) {
+        return this.authService.syncMembership(body.phone, body.tenantId, body.tenantName, body.role, body.name, body.age, body.address);
     }
 }

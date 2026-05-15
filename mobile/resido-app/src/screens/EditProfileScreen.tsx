@@ -314,7 +314,7 @@ const SocialItem = ({ icon, label, value, color, isConnected }: any) => (
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 20 },
+    header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 80 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
     headerSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },

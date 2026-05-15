@@ -9,16 +9,17 @@ import { authApi } from '../services/api';
 export default function CreateCommunityScreen() {
     const [name, setName] = useState('');
     const [adminEmail, setAdminEmail] = useState('');
+    const [adminPhone, setAdminPhone] = useState('');
     const [adminPassword, setAdminPassword] = useState('');
     const [caretakerEmail, setCaretakerEmail] = useState('');
-    const [subAdminEmail, setSubAdminEmail] = useState('');
     const [memberPhones, setMemberPhones] = useState('');
+    const [residentPhones, setResidentPhones] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
     const handleCreate = async () => {
-        if (!name || !adminEmail || !adminPassword) {
-            Alert.alert('Error', 'Please enter community name, admin email and password.');
+        if (!name || !adminEmail || !adminPhone || !adminPassword) {
+            Alert.alert('Error', 'Please enter community name, admin email, phone and password.');
             return;
         }
 
@@ -27,13 +28,14 @@ export default function CreateCommunityScreen() {
             await authApi.createClient({
                 name,
                 adminEmail,
+                adminPhone,
                 adminPassword,
                 caretakerEmail,
-                subAdminEmail,
                 memberPhones: memberPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
+                residentPhones: residentPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 plan: 'BASIC'
             });
-            Alert.alert('Success', 'Community created successfully! You can now log in to the web dashboard with this email and password.', [
+            Alert.alert('Success', 'Community created successfully!', [
                 { text: 'OK', onPress: () => router.replace('/workspace-select') }
             ]);
         } catch (err: any) {
@@ -70,6 +72,18 @@ export default function CreateCommunityScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Admin Mobile Number</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="e.g. 9645859194"
+                            placeholderTextColor="#64748b"
+                            keyboardType="phone-pad"
+                            value={adminPhone}
+                            onChangeText={setAdminPhone}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
                         <Text style={styles.label}>Admin Email</Text>
                         <TextInput
                             style={styles.input}
@@ -80,7 +94,6 @@ export default function CreateCommunityScreen() {
                             value={adminEmail}
                             onChangeText={setAdminEmail}
                         />
-                        <Text style={styles.hint}>Full access to the web admin panel</Text>
                     </View>
 
                     <View style={styles.inputGroup}>
@@ -93,34 +106,31 @@ export default function CreateCommunityScreen() {
                             value={adminPassword}
                             onChangeText={setAdminPassword}
                         />
-                        <Text style={styles.hint}>Use this to login to the web dashboard</Text>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Caretaker Email (Optional)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="caretaker@example.com"
-                            placeholderTextColor="#64748b"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={caretakerEmail}
-                            onChangeText={setCaretakerEmail}
-                        />
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Member Mobile Numbers (Optional)</Text>
                         <TextInput
-                            style={[styles.input, { height: 100 }]}
-                            placeholder="e.g. 9645859194, 9876543210"
+                            style={styles.input}
+                            placeholder="e.g. 9876543210, 9988776655"
                             placeholderTextColor="#64748b"
-                            multiline
-                            numberOfLines={4}
                             value={memberPhones}
                             onChangeText={setMemberPhones}
                         />
-                        <Text style={styles.hint}>Comma separated 10-digit mobile numbers</Text>
+                        <Text style={styles.hint}>Comma separated staff/committee numbers</Text>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Resident Mobile Numbers (Optional)</Text>
+                        <TextInput
+                            style={[styles.input, { height: 80 }]}
+                            placeholder="e.g. 9123456789, 9234567890"
+                            placeholderTextColor="#64748b"
+                            multiline
+                            value={residentPhones}
+                            onChangeText={setResidentPhones}
+                        />
+                        <Text style={styles.hint}>Comma separated resident numbers</Text>
                     </View>
 
                     <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={loading}>

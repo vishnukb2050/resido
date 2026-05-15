@@ -106,6 +106,8 @@ model Member {
   profileName  String?
   phoneVisibility String @default("COMMUNITY")
   isActive     Boolean  @default(true)
+  age           Int?
+  docUrl        String?  // S3 key for staff documents
   occupancyType OccupancyType @default(RESIDENT)
   address       String?
   tenantName    String?
@@ -768,6 +770,8 @@ enum MemberRole {
   STAFF
   SERVICE_STAFF
   ACCOUNTS
+  MANAGER_STAFF
+  MEMBER
   NOT_APPLICABLE
 }
 

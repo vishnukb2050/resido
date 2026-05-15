@@ -16,6 +16,9 @@ export interface CreateClientDto {
     createdByMobile?: boolean;
     createdByUserId?: string;
     memberPhones?: string[];
+    residentPhones?: string[];
+    cleaningPhones?: string[];
+    securityPhones?: string[];
 }
 
 @Injectable()
@@ -75,37 +78,44 @@ export class ClientsService {
             });
         }
 
-        // Add initial members if provided
-        if (dto.memberPhones && dto.memberPhones.length > 0) {
-            for (const phone of dto.memberPhones) {
-                // Ensure user exists or create a shell user
-                let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
-                if (!user) {
-                    user = await this.prisma.userClient.user.create({
-                        data: {
-                            phone,
-                            role: 'RESIDENT' as Role,
-                            isActive: true
-                        }
-                    });
-                }
+        // Add initial residents and staff if provided
+        const roleMappings = [
+            { phones: dto.residentPhones, role: 'RESIDENT' as Role },
+            { phones: dto.memberPhones, role: 'RESIDENT' as Role },
+            { phones: dto.cleaningPhones, role: 'CLEANING_STAFF' as Role },
+            { phones: dto.securityPhones, role: 'SECURITY_STAFF' as Role },
+        ];
 
-                // Add membership if not already exists
-                const existingMember = await this.prisma.userRead.workspaceMembership.findUnique({
-                    where: { userId_tenantId: { userId: user.id, tenantId: client.id } }
-                });
+        for (const mapping of roleMappings) {
+            if (mapping.phones && mapping.phones.length > 0) {
+                for (const phone of [...new Set(mapping.phones)]) {
+                    let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
+                    if (!user) {
+                        user = await this.prisma.userClient.user.create({
+                            data: {
+                                phone,
+                                role: mapping.role,
+                                isActive: true
+                            }
+                        });
+                    }
 
-                if (!existingMember) {
-                    await this.prisma.userClient.workspaceMembership.create({
-                        data: {
-                            userId: user.id,
-                            tenantId: client.id,
-                            tenantName: client.name,
-                            role: 'RESIDENT' as Role,
-                            memberId: `mem-${phone.slice(-4)}`, // Placeholder memberId
-                            isActive: true
-                        }
+                    const existingMember = await this.prisma.userRead.workspaceMembership.findUnique({
+                        where: { userId_tenantId: { userId: user.id, tenantId: client.id } }
                     });
+
+                    if (!existingMember) {
+                        await this.prisma.userClient.workspaceMembership.create({
+                            data: {
+                                userId: user.id,
+                                tenantId: client.id,
+                                tenantName: client.name,
+                                role: mapping.role,
+                                memberId: `${mapping.role.slice(0, 3)}-${phone.slice(-4)}`.toLowerCase(),
+                                isActive: true
+                            }
+                        });
+                    }
                 }
             }
         }

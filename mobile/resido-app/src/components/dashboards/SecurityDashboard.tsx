@@ -5,242 +5,213 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 export default function SecurityDashboard() {
-    const { activeWorkspace, user } = useAuthStore();
+    const { activeWorkspace, user, workspaces, setActiveWorkspace } = useAuthStore();
     const router = useRouter();
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fcfcfd' }}>
-            {/* Custom Header */}
-            <View style={styles.topHeader}>
-                <TouchableOpacity>
-                    <Ionicons name="menu-outline" size={28} color="#1e293b" />
-                </TouchableOpacity>
-                <View style={{ flex: 1, marginLeft: 16 }}>
-                    <Text style={styles.headerTitle}>Security Staff</Text>
-                    <View style={styles.onlineBadge}>
-                        <View style={styles.onlineDot} />
-                        <Text style={styles.onlineText}>Online</Text>
-                    </View>
-                </View>
-                <View style={styles.headerActions}>
-                    <TouchableOpacity style={styles.notifBtn}>
-                        <Ionicons name="notifications-outline" size={24} color="#1e293b" />
-                        <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
-                    </TouchableOpacity>
-                    <Image 
-                        source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=security' }} 
-                        style={styles.avatar} 
-                    />
-                </View>
-            </View>
-
+        <SafeAreaView style={styles.safeArea}>
             <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-                {/* Community Selector Card */}
-                <TouchableOpacity style={styles.communityCard}>
-                    <View style={{ flex: 1 }}>
-                        <View style={styles.wsRow}>
-                            <Text style={styles.wsName}>{activeWorkspace?.tenantName || 'Green Valley Residency'}</Text>
-                            <Ionicons name="chevron-down" size={18} color="#fff" />
+                {/* Premium Header */}
+                <View style={styles.psHeader}>
+                    <View style={styles.psBrandInfo}>
+                        <View style={styles.psLogoBox}>
+                            <Image source={require('../../../assets/icon.png')} style={styles.psWorkspaceImg} />
                         </View>
-                        <View style={styles.gateRow}>
-                            <View style={styles.gateIconBox}>
-                                <Ionicons name="business" size={14} color="#fff" />
-                            </View>
-                            <Text style={styles.gateText}>Gate 1</Text>
+                        <View style={{ marginLeft: 15 }}>
+                            <Text style={styles.psBrandTitleText}>
+                                {activeWorkspace?.tenantName || "Resido Security"}
+                            </Text>
+                            <Text style={styles.psBrandTaglineText}>
+                                {activeWorkspace?.role || "SECURITY STAFF"}
+                            </Text>
                         </View>
                     </View>
-                    <View style={styles.commImgBox}>
-                        <Image source={require('../../../assets/icon.png')} style={styles.commImg} />
+                    <View style={styles.psHeaderActions}>
+                        <TouchableOpacity style={styles.psIconBtn}>
+                            <Ionicons name="notifications" size={22} color="#fff" />
+                        </TouchableOpacity>
+                        <View style={styles.profileBtn}>
+                            <Image 
+                                source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=security' }} 
+                                style={styles.profileImg} 
+                            />
+                        </View>
                     </View>
-                </TouchableOpacity>
-
-                {/* Quick Actions */}
-                <Text style={styles.sectionTitle}>Quick Actions</Text>
-                <View style={styles.grid}>
-                    <ActionItem icon="qr-code-outline" label="Scan QR" color="#8b5cf6" bg="#f5f3ff" />
-                    <ActionItem icon="person-add-outline" label="Visitor Entry" sub="Pre-approved" color="#10b981" bg="#f0fdf4" />
-                    <ActionItem icon="bicycle-outline" label="Delivery Entry" color="#f59e0b" bg="#fff7ed" />
-                    <ActionItem icon="car-outline" label="Cab Entry" color="#3b82f6" bg="#eff6ff" />
-                    <ActionItem icon="create-outline" label="Manual Entry" color="#6366f1" bg="#f5f3ff" />
-                    <ActionItem icon="list-outline" label="Today's Entries" color="#10b981" bg="#f0fdf4" onPress={() => router.push('/entries')} />
                 </View>
 
-                {/* Today's Summary */}
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Today's Summary</Text>
-                    <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.summaryScroll}>
-                    <SummaryCard label="Visitors" count="28" color="#3b82f6" icon="people" />
-                    <SummaryCard label="Deliveries" count="16" color="#f59e0b" icon="bicycle" />
-                    <SummaryCard label="Cabs" count="12" color="#3b82f6" icon="car" />
-                </ScrollView>
-
-                {/* Recent Entries */}
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Recent Entries</Text>
-                    <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
-                </View>
-                <View style={styles.recentList}>
-                    <EntryItem 
-                        name="Rahul Sharma" 
-                        sub="Flat A-203 • Visitor" 
-                        time="10:30 AM" 
-                        status="IN" 
-                        photo="https://i.pravatar.cc/100?u=1" 
-                    />
-                    <EntryItem 
-                        name="Swiggy Delivery" 
-                        sub="KL07CS1234 - Delivery" 
-                        time="10:22 AM" 
-                        status="IN" 
-                        icon="bicycle" 
-                    />
-                    <EntryItem 
-                        name="Uber - White Swift" 
-                        sub="KL07CP4567 - Cab" 
-                        time="10:15 AM" 
-                        status="IN" 
-                        icon="car" 
-                    />
+                {/* Premium Workspace Switcher (Bubbles) */}
+                <View style={styles.psWorkspaceSection}>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={styles.psWorkspaceScroll}
+                    >
+                        <WorkspaceBubble 
+                            label="My Space" 
+                            isActive={!activeWorkspace} 
+                            onPress={() => setActiveWorkspace(null as any, '')} 
+                            image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
+                        />
+                        {workspaces?.map((ws: any) => (
+                            <WorkspaceBubble 
+                                key={ws.tenantId} 
+                                label={ws.tenantName} 
+                                isActive={activeWorkspace?.tenantId === ws.tenantId} 
+                                onPress={() => setActiveWorkspace(ws, '')} 
+                                image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
+                            />
+                        ))}
+                    </ScrollView>
                 </View>
 
-                <TouchableOpacity style={styles.viewAllBtn}>
-                    <Text style={styles.viewAllBtnText}>View All Entries</Text>
-                </TouchableOpacity>
+                {/* Security Grid Icons (Matching Image) */}
+                <View style={styles.gridContainer}>
+                    <DashboardIcon icon="qr-code" label="Scan QR" color="#fff" bg="rgba(99, 102, 241, 0.2)" />
+                    <DashboardIcon icon="log-in" label="Entry" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/visitor-entry')} />
+                    <DashboardIcon icon="log-out" label="Exit" color="#fff" bg="rgba(245, 158, 11, 0.2)" />
+                    <DashboardIcon icon="list" label="Logs" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/entries')} />
+                    <DashboardIcon icon="videocam" label="CCTV" color="#fff" bg="rgba(139, 92, 246, 0.2)" />
+                </View>
+
+                {/* Security Stats Row */}
+                <View style={styles.statsRow}>
+                    <StatBox count="42" label="Entries" icon="walk" />
+                    <StatBox count="08" label="Deliveries" icon="bicycle" />
+                    <StatBox count="05" label="Cabs" icon="car" />
+                    <StatBox count="02" label="Alerts" icon="warning" />
+                </View>
+
+                {/* Restricted Access Banner */}
+                <View style={styles.restrictedBanner}>
+                    <View style={styles.lockIconBox}>
+                        <Ionicons name="lock-closed" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.restrictedText}>
+                        Community features like Notices, Chat, and Gallery are restricted for staff roles.
+                    </Text>
+                </View>
+
+                {/* Security Tools */}
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>Daily Operations</Text>
+                    <View style={styles.featureGrid}>
+                        <FeatureCard icon="shield-checkmark" title="Gate Access" color="#fff" bg="#3182ce" />
+                        <FeatureCard icon="people" title="Residents" color="#fff" bg="#38a169" />
+                        <FeatureCard icon="car-sport" title="Vehicle Log" color="#fff" bg="#2c5282" />
+                        <FeatureCard icon="megaphone" title="Emergency" color="#fff" bg="#744210" />
+                    </View>
+                </View>
+
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>Staff Tools</Text>
+                    <View style={styles.featureGrid}>
+                        <FeatureCard icon="scan" title="Scanner" color="#fff" bg="#4a5568" />
+                        <FeatureCard icon="document-text" title="Logs" color="#fff" bg="#2d3748" />
+                        <FeatureCard icon="chatbubble-ellipses" title="Staff Chat" color="#fff" bg="#1a365d" />
+                        <FeatureCard icon="settings" title="Profile" color="#fff" bg="#2d3748" />
+                    </View>
+                </View>
+
             </ScrollView>
-
-            {/* Bottom Nav */}
-            <View style={styles.bottomNav}>
-                <NavItem icon="home" label="Home" active />
-                <NavItem icon="log-in-outline" label="Entries" />
-                <NavItem icon="people-outline" label="Residents" />
-                <NavItem icon="document-text-outline" label="Logs" />
-                <NavItem icon="ellipsis-horizontal" label="More" />
-            </View>
         </SafeAreaView>
     );
 }
 
-function ActionItem({ icon, label, sub, color, bg, onPress }: any) {
+// Sub-components
+function WorkspaceBubble({ label, isActive, onPress, image }: any) {
     return (
-        <TouchableOpacity style={styles.actionItem} onPress={onPress}>
-            <View style={[styles.actionIconBox, { backgroundColor: bg }]}>
-                <Ionicons name={icon} size={24} color={color} />
+        <TouchableOpacity 
+            style={[styles.wsBubble, isActive && styles.wsBubbleActive]} 
+            onPress={onPress}
+        >
+            <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
+                <Image source={{ uri: image }} style={styles.wsBubbleImg} />
             </View>
-            <Text style={styles.actionLabel}>{label}</Text>
-            {sub && <Text style={styles.actionSub}>{sub}</Text>}
+            <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>{label}</Text>
         </TouchableOpacity>
     );
 }
 
-function SummaryCard({ label, count, color, icon }: any) {
+function DashboardIcon({ icon, label, color, bg, onPress }: any) {
     return (
-        <View style={styles.summaryCard}>
-            <View>
-                <Text style={[styles.summaryLabel, { color }]}>{label}</Text>
-                <Text style={styles.summaryCount}>{count}</Text>
-                <Text style={styles.summarySub}>Entries</Text>
+        <TouchableOpacity style={styles.dbIconItem} onPress={onPress}>
+            <View style={[styles.dbIconBox, { backgroundColor: bg }]}>
+                <Ionicons name={icon as any} size={28} color={color} />
             </View>
-            <View style={[styles.summaryIconBox, { backgroundColor: `${color}15` }]}>
-                <Ionicons name={icon} size={20} color={color} />
-            </View>
+            <Text style={styles.dbIconLabel}>{label}</Text>
+        </TouchableOpacity>
+    );
+}
+
+function StatBox({ count, label, icon }: any) {
+    return (
+        <View style={styles.statBox}>
+            <Ionicons name={icon as any} size={20} color="#fff" style={{ marginBottom: 4, opacity: 0.7 }} />
+            <Text style={styles.statBoxCount}>{count}</Text>
+            <Text style={styles.statBoxLabel}>{label}</Text>
         </View>
     );
 }
 
-function EntryItem({ name, sub, time, status, photo, icon }: any) {
+function FeatureCard({ icon, title, color, bg, onPress }: any) {
     return (
-        <View style={styles.entryItem}>
-            <View style={styles.entryAvatar}>
-                {photo ? (
-                    <Image source={{ uri: photo }} style={styles.entryAvatarImg} />
-                ) : (
-                    <View style={styles.entryIconBox}>
-                        <Ionicons name={icon} size={20} color="#64748b" />
-                    </View>
-                )}
+        <TouchableOpacity style={[styles.featureCard, { backgroundColor: bg }]} onPress={onPress}>
+            <View style={styles.fCardHeader}>
+                <Ionicons name={icon as any} size={24} color={color} />
             </View>
-            <View style={styles.entryContent}>
-                <Text style={styles.entryName}>{name}</Text>
-                <Text style={styles.entrySub}>{sub}</Text>
-            </View>
-            <View style={styles.entryRight}>
-                <View style={styles.inBadge}><Text style={styles.inBadgeText}>{status}</Text></View>
-                <Text style={styles.entryTime}>{time}</Text>
-            </View>
-        </View>
-    );
-}
-
-function NavItem({ icon, label, active }: any) {
-    return (
-        <TouchableOpacity style={styles.navItem}>
-            <Ionicons name={icon} size={22} color={active ? '#6366f1' : '#94a3b8'} />
-            <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
+            <Text style={styles.fCardTitle}>{title}</Text>
         </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: '#0f172a' },
     container: { flex: 1 },
-    content: { padding: 20, paddingBottom: 110 },
+    content: { paddingBottom: 110 },
     
-    topHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
-    onlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-    onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
-    onlineText: { fontSize: 11, color: '#10b981', fontWeight: '700' },
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-    notifBtn: { position: 'relative' },
-    badge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-    badgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
-    avatar: { width: 36, height: 36, borderRadius: 18 },
+    // Premium Header
+    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
+    psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
+    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
+    psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
+    
+    psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+    profileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    profileImg: { width: '100%', height: '100%' },
 
-    communityCard: { backgroundColor: '#6366f1', borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 25 },
-    wsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    wsName: { fontSize: 18, fontWeight: '800', color: '#fff' },
-    gateRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-    gateIconBox: { width: 24, height: 24, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-    gateText: { fontSize: 13, color: '#fff', fontWeight: '600' },
-    commImgBox: { width: 60, height: 60, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-    commImg: { width: 40, height: 40 },
+    // Workspace Bubbles
+    psWorkspaceSection: { marginBottom: 20 },
+    psWorkspaceScroll: { paddingHorizontal: 20, gap: 15 },
+    wsBubble: { alignItems: 'center', width: 70 },
+    wsBubbleActive: { width: 85 },
+    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 2, borderColor: 'transparent' },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#fff' },
+    wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
+    wsBubbleLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '800', marginTop: 8 },
+    wsBubbleLabelActive: { color: '#fff', fontSize: 11, fontWeight: '900' },
 
-    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#1e293b', marginBottom: 15 },
-    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 25 },
-    actionItem: { width: '31.5%', backgroundColor: '#fff', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' },
-    actionIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-    actionLabel: { fontSize: 12, fontWeight: '800', color: '#1e293b', textAlign: 'center' },
-    actionSub: { fontSize: 8, color: '#94a3b8', textAlign: 'center', marginTop: 2, fontWeight: '600' },
+    // Grid Icons
+    gridContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 25 },
+    dbIconItem: { width: '18%', alignItems: 'center' },
+    dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    viewAll: { fontSize: 12, color: '#6366f1', fontWeight: '800' },
+    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 30, backgroundColor: 'rgba(255,255,255,0.03)', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    statBox: { alignItems: 'center', flex: 1 },
+    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
 
-    summaryScroll: { marginBottom: 25 },
-    summaryCard: { width: 140, backgroundColor: '#fff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', marginRight: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    summaryLabel: { fontSize: 11, fontWeight: '800', marginBottom: 4 },
-    summaryCount: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-    summarySub: { fontSize: 10, color: '#94a3b8', fontWeight: '600' },
-    summaryIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
+    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+    restrictedText: { flex: 1, fontSize: 11, color: '#94a3b8', fontWeight: '600', lineHeight: 16 },
 
-    recentList: { gap: 12, marginBottom: 20 },
-    entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' },
-    entryAvatar: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden' },
-    entryAvatarImg: { width: '100%', height: '100%' },
-    entryIconBox: { flex: 1, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
-    entryContent: { flex: 1, marginLeft: 12 },
-    entryName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
-    entrySub: { fontSize: 11, color: '#64748b', marginTop: 2 },
-    entryRight: { alignItems: 'flex-end', gap: 6 },
-    inBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    inBadgeText: { fontSize: 9, color: '#10b981', fontWeight: '900' },
-    entryTime: { fontSize: 10, color: '#94a3b8', fontWeight: '600' },
-
-    viewAllBtn: { backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center', marginBottom: 20 },
-    viewAllBtnText: { fontSize: 14, fontWeight: '800', color: '#6366f1' },
-
-    bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 85, backgroundColor: '#fff', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 20, borderTopWidth: 1, borderTopColor: '#f1f5f9', borderTopLeftRadius: 30, borderTopRightRadius: 30, shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.04, shadowRadius: 15, elevation: 20 },
-    navItem: { alignItems: 'center', justifyContent: 'center' },
-    navLabel: { fontSize: 10, color: '#94a3b8', marginTop: 4, fontWeight: '700' },
-    navLabelActive: { color: '#6366f1' },
+    sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 15 },
+    featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
+    fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
+    fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
 });

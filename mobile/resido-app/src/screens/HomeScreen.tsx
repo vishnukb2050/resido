@@ -9,6 +9,7 @@ import SecurityDashboard from '../components/dashboards/SecurityDashboard';
 import ServiceStaffDashboard from '../components/dashboards/ServiceStaffDashboard';
 import DefaultDashboard from '../components/dashboards/DefaultDashboard';
 import CommunityDashboard from '../components/dashboards/CommunityDashboard';
+import MemberDashboard from '../components/dashboards/MemberDashboard';
 
 export default function HomeScreen() {
     const { activeWorkspace, isHydrated } = useAuthStore();
@@ -44,6 +45,10 @@ export default function HomeScreen() {
 
     if (role === 'RESIDENT') {
         return <DefaultDashboard />;
+    }
+
+    if (role === 'MEMBER') {
+        return <MemberDashboard />;
     }
 
     return <AdminDashboard />;

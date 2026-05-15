@@ -112,13 +112,13 @@ export default function CreateNoteScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    header: { padding: 20, paddingTop: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
     saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     
-    scrollContent: { padding: 20 },
-    titleInput: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 20, lineHeight: 32 },
+    scrollContent: { padding: 20, paddingTop: 10 },
+    titleInput: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 20, marginTop: 10, lineHeight: 32 },
     
     folderSelector: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     folderIconBox: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginRight: 10 },

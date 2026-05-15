@@ -7,15 +7,18 @@ import { useAuthStore } from '../store/authStore';
 
 export default function CreateMemberScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const [loading, setLoading] = useState(false);
     
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
         email: '',
-        role: 'RESIDENT',
+        role: params.mode === 'STAFF' ? 'SECURITY_STAFF' : 'RESIDENT',
         occupancyType: 'RESIDENT',
         address: '',
+        age: '',
+        documentUrl: '',
         tenantName: '',
         tenantPhone: '',
     });
@@ -29,19 +32,24 @@ export default function CreateMemberScreen() {
         setLoading(true);
         try {
             // 1. Create member in resident service (tenant DB)
-            const res = await residentApi.createMember(formData);
+            await residentApi.createMember({
+                ...formData,
+                age: formData.age ? parseInt(formData.age) : undefined
+            });
             
             // 2. Sync membership in auth service (master DB) 
-            // This ensures the user sees this community in their dropdown
             const activeWorkspace = useAuthStore.getState().activeWorkspace;
             await authApi.syncMembership({
                 phone: formData.phone,
                 tenantId: activeWorkspace?.tenantId || '',
                 tenantName: activeWorkspace?.tenantName || '',
-                role: formData.role
+                role: formData.role,
+                name: formData.name,
+                age: formData.age ? parseInt(formData.age) : undefined,
+                address: formData.address
             });
 
-            Alert.alert('Success', 'Member added successfully and linked to community');
+            Alert.alert('Success', `${params.mode === 'STAFF' ? 'Staff' : 'Member'} added successfully`);
             router.back();
         } catch (error: any) {
             Alert.alert('Error', error.response?.data?.message || 'Failed to add member');
@@ -56,7 +64,7 @@ export default function CreateMemberScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Add Resident</Text>
+                <Text style={styles.headerTitle}>{params.mode === 'STAFF' ? 'Add Staff' : 'Add Resident'}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -84,38 +92,44 @@ export default function CreateMemberScreen() {
                     />
                 </View>
 
-                <View style={styles.field}>
-                    <Text style={styles.label}>Email (Optional)</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        value={formData.email} 
-                        onChangeText={(t) => setFormData({ ...formData, email: t })}
-                        placeholder="Enter email address"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        placeholderTextColor="#94a3b8"
-                    />
-                </View>
-
-                <View style={styles.field}>
-                    <Text style={styles.label}>Classification</Text>
-                    <View style={styles.typeContainer}>
-                        <TouchableOpacity 
-                            style={[styles.typeOption, formData.occupancyType === 'RESIDENT' && styles.typeActive]}
-                            onPress={() => setFormData({ ...formData, occupancyType: 'RESIDENT' })}
-                        >
-                            <Ionicons name="home" size={20} color={formData.occupancyType === 'RESIDENT' ? '#fff' : '#6366f1'} />
-                            <Text style={[styles.typeText, formData.occupancyType === 'RESIDENT' && styles.typeTextActive]}>Resident (Owner)</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            style={[styles.typeOption, formData.occupancyType === 'RENTAL' && styles.typeActive]}
-                            onPress={() => setFormData({ ...formData, occupancyType: 'RENTAL' })}
-                        >
-                            <Ionicons name="key" size={20} color={formData.occupancyType === 'RENTAL' ? '#fff' : '#6366f1'} />
-                            <Text style={[styles.typeText, formData.occupancyType === 'RENTAL' && styles.typeTextActive]}>Rental</Text>
-                        </TouchableOpacity>
+                <View style={styles.row}>
+                    <View style={[styles.field, { flex: 1 }]}>
+                        <Text style={styles.label}>Age</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            value={formData.age} 
+                            onChangeText={(t) => setFormData({ ...formData, age: t })}
+                            placeholder="Age"
+                            keyboardType="numeric"
+                            placeholderTextColor="#94a3b8"
+                        />
+                    </View>
+                    <View style={[styles.field, { flex: 2 }]}>
+                        <Text style={styles.label}>Role / Category</Text>
+                        <View style={styles.pickerContainer}>
+                            <TouchableOpacity style={styles.pickerTrigger}>
+                                <Text style={styles.pickerText}>{formData.role.replace('_', ' ')}</Text>
+                                <Ionicons name="chevron-down" size={16} color="#64748b" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
+
+                {params.mode === 'STAFF' && (
+                    <View style={styles.staffRoles}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {['MEMBER', 'SECURITY_STAFF', 'CLEANING_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'ADMIN_STAFF'].map(r => (
+                                <TouchableOpacity 
+                                    key={r} 
+                                    style={[styles.roleChip, formData.role === r && styles.roleChipActive]}
+                                    onPress={() => setFormData({ ...formData, role: r })}
+                                >
+                                    <Text style={[styles.roleChipText, formData.role === r && styles.roleChipTextActive]}>{r.split('_')[0]}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
 
                 <View style={styles.field}>
                     <Text style={styles.label}>Address / Unit Info</Text>
@@ -123,42 +137,25 @@ export default function CreateMemberScreen() {
                         style={[styles.input, styles.textArea]} 
                         value={formData.address} 
                         onChangeText={(t) => setFormData({ ...formData, address: t })}
-                        placeholder="Enter unit number, block, etc."
+                        placeholder="Enter full address or unit details"
                         multiline
                         numberOfLines={3}
                         placeholderTextColor="#94a3b8"
                     />
                 </View>
 
-                {formData.occupancyType === 'RENTAL' && (
-                    <View style={styles.tenantSection}>
-                        <Text style={styles.sectionTitle}>Tenant Details</Text>
-                        <View style={styles.field}>
-                            <Text style={styles.label}>Tenant Name</Text>
-                            <TextInput 
-                                style={styles.input} 
-                                value={formData.tenantName} 
-                                onChangeText={(t) => setFormData({ ...formData, tenantName: t })}
-                                placeholder="Enter tenant name"
-                                placeholderTextColor="#94a3b8"
-                            />
-                        </View>
-                        <View style={styles.field}>
-                            <Text style={styles.label}>Tenant Phone</Text>
-                            <TextInput 
-                                style={styles.input} 
-                                value={formData.tenantPhone} 
-                                onChangeText={(t) => setFormData({ ...formData, tenantPhone: t })}
-                                placeholder="Enter tenant phone"
-                                keyboardType="phone-pad"
-                                placeholderTextColor="#94a3b8"
-                            />
-                        </View>
+                {params.mode === 'STAFF' && (
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Staff Documents (ID Proof/Contract)</Text>
+                        <TouchableOpacity style={styles.uploadBtn}>
+                            <Ionicons name="cloud-upload-outline" size={24} color="#6366f1" />
+                            <Text style={styles.uploadBtnText}>Upload PDF or Image</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
 
                 <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Add Resident</Text>}
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>{params.mode === 'STAFF' ? 'Register Staff' : 'Add Resident'}</Text>}
                 </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
@@ -167,21 +164,29 @@ export default function CreateMemberScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fcfcfd' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     form: { padding: 20 },
     field: { marginBottom: 20 },
+    row: { flexDirection: 'row', gap: 12 },
     label: { fontSize: 12, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
     input: { backgroundColor: '#fff', borderRadius: 12, padding: 14, fontSize: 16, color: '#1e293b', borderWidth: 1, borderColor: '#e2e8f0' },
     textArea: { height: 80, textAlignVertical: 'top' },
-    typeContainer: { flexDirection: 'row', gap: 12 },
-    typeOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', gap: 8 },
-    typeActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
-    typeText: { fontSize: 14, fontWeight: '700', color: '#6366f1' },
-    typeTextActive: { color: '#fff' },
-    tenantSection: { marginTop: 10, padding: 15, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 20 },
-    sectionTitle: { fontSize: 14, fontWeight: '800', color: '#6366f1', marginBottom: 15 },
-    submitBtn: { backgroundColor: '#6366f1', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 20, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+    
+    pickerContainer: { backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+    pickerTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
+    pickerText: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
+
+    staffRoles: { marginBottom: 20, flexDirection: 'row' },
+    roleChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+    roleChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+    roleChipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
+    roleChipTextActive: { color: '#fff' },
+
+    uploadBtn: { borderStyle: 'dashed', borderWidth: 2, borderColor: '#e2e8f0', borderRadius: 16, padding: 25, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#f8fafc' },
+    uploadBtnText: { color: '#6366f1', fontWeight: '700', fontSize: 14 },
+
+    submitBtn: { backgroundColor: '#6366f1', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 10, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

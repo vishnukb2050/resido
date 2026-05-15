@@ -172,20 +172,25 @@ export class ProfileService implements OnModuleInit {
 
         // Sync to resident-service members with same phone
         if (user.phone) {
-            await this.prisma.coreClient.member.updateMany({
-                where: { phone: user.phone },
-                data: {
-                    name: user.name,
-                    email: user.email,
-                    profileName: user.profileName,
-                    phoneVisibility: user.phoneVisibility,
-                    profilePhoto: user.profilePhoto,
-                    instagram: user.instagram,
-                    linkedin: user.linkedin,
-                    website: user.website,
-                    location: user.location,
-                }
-            });
+            try {
+                await this.prisma.coreClient.member.updateMany({
+                    where: { phone: user.phone },
+                    data: {
+                        name: user.name,
+                        email: user.email,
+                        profileName: user.profileName,
+                        phoneVisibility: user.phoneVisibility,
+                        profilePhoto: user.profilePhoto,
+                        instagram: user.instagram,
+                        linkedin: user.linkedin,
+                        website: user.website,
+                        location: user.location,
+                    }
+                });
+            } catch (syncError) {
+                this.logger.error(`Failed to sync member profile for phone ${user.phone}:`, syncError);
+                // We don't throw here to allow the primary user update to succeed
+            }
         }
 
         return user;

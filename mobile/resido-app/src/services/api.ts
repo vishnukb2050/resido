@@ -16,6 +16,9 @@ api.interceptors.request.use(async (config) => {
             
             if (state.token) {
                 config.headers.Authorization = `Bearer ${state.token}`;
+                // console.log(`[API Request] Token attached for ${config.url}`);
+            } else {
+                // console.warn(`[API Request] No token found for ${config.url}`);
             }
             
             if (state.user?.id) {
@@ -34,6 +37,18 @@ api.interceptors.request.use(async (config) => {
     }
     return config;
 });
+
+// Response interceptor for better error visibility
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            console.warn('[API Error] 401 Unauthorized - Token may be invalid or expired');
+        }
+        console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, error.response?.status, error.response?.data);
+        return Promise.reject(error);
+    }
+);
 
 // Auth APIs
 export const authApi = {

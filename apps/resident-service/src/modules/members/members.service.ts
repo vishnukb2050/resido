@@ -14,7 +14,13 @@ export class MembersService {
     }
 
     async createMember(data: any) {
-        return this.prisma.client.member.create({ data });
+        return this.prisma.client.member.create({
+            data: {
+                ...data,
+                // Ensure age is an Int if provided
+                age: data.age ? parseInt(data.age) : undefined
+            }
+        });
     }
 
     async updateProfilePhoto(id: string, profilePhoto: string) {

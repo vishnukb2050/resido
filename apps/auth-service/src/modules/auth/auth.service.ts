@@ -141,12 +141,28 @@ export class AuthService {
         }
     }
 
-    async syncMembership(phone: string, tenantId: string, tenantName: string, role: string) {
+    async syncMembership(phone: string, tenantId: string, tenantName: string, role: string, name?: string, age?: number, address?: string) {
         // 1. Ensure user exists
         let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
         if (!user) {
             user = await this.prisma.userClient.user.create({ 
-                data: { phone, isActive: true } 
+                data: { 
+                    phone, 
+                    name, 
+                    age, 
+                    location: address,
+                    isActive: true 
+                } 
+            });
+        } else {
+            // Update existing user details if provided
+            user = await this.prisma.userClient.user.update({
+                where: { id: user.id },
+                data: {
+                    name: name || user.name,
+                    age: age || user.age,
+                    location: address || user.location
+                }
             });
         }
 
