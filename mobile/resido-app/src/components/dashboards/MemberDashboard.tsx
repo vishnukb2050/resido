@@ -27,7 +27,7 @@ export default function MemberDashboard() {
         <View style={[styles.safeArea, { backgroundColor: theme.background }]}>
             <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Premium Header */}
-                <View style={styles.psHeader}>
+                <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
                     <View style={styles.psBrandInfo}>
                         <View style={styles.psLogoBox}>
                             <Image source={require('../../../assets/icon.png')} style={styles.psWorkspaceImg} />

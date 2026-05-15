@@ -9,17 +9,17 @@ export default function ServiceStaffDashboard() {
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
-            <View style={styles.headerRow}>
+            <View style={[styles.headerRow, { backgroundColor: theme.surface, padding: 15, borderRadius: 20 }]}>
                 <View style={styles.headerLeft}>
                     <View style={styles.avatar}>
                         <Text style={styles.avatarText}>{(user?.name || 'M')[0].toUpperCase()}</Text>
                     </View>
                     <View style={styles.headerTitles}>
-                        <Text style={styles.apartment}>{activeWorkspace?.tenantName || 'Maintenance Team'}</Text>
+                        <Text style={[styles.apartment, { color: '#fff' }]}>{activeWorkspace?.tenantName || 'Maintenance Team'}</Text>
                         <View style={styles.roleBadge}>
                             <Text style={styles.roleText}>Maintenance / Service Staff</Text>
                         </View>
-                        <Text style={styles.greeting}>Welcome, {user?.name || 'Staff Member'} 🛠️</Text>
+                        <Text style={[styles.greeting, { color: 'rgba(255,255,255,0.7)' }]}>Welcome, {user?.name || 'Staff Member'} 🛠️</Text>
                     </View>
                 </View>
             </View>

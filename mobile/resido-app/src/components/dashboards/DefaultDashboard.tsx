@@ -62,7 +62,7 @@ export default function DefaultDashboard() {
                 <View style={styles.content}>
                     <View style={styles.psWrapper}>
                         {/* Premium Header */}
-                        <View style={styles.psHeader}>
+                        <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
                             <View style={styles.psBrandInfo}>
                                 <View style={styles.psLogoBox}>
                                     <Image 
@@ -119,7 +119,7 @@ export default function DefaultDashboard() {
 
                         {/* Search Bar (Floating Style) */}
                         <View style={styles.psSearchSection}>
-                            <View style={styles.psSearchBar}>
+                            <View style={[styles.psSearchBar, { backgroundColor: theme.surface }]}>
                                 <Ionicons name="search" size={20} color="#94a3b8" />
                                 <TextInput 
                                     placeholder="Search for 'Coconut Water'..." 
@@ -130,7 +130,7 @@ export default function DefaultDashboard() {
                                     <Ionicons name="clipboard-outline" size={20} color="#94a3b8" />
                                 </View>
                             </View>
-                            <TouchableOpacity style={styles.psBookmarkBtn}>
+                            <TouchableOpacity style={[styles.psBookmarkBtn, { backgroundColor: theme.primary }]}>
                                 <Ionicons name="bookmark-outline" size={22} color="#fff" />
                             </TouchableOpacity>
                         </View>
@@ -140,16 +140,16 @@ export default function DefaultDashboard() {
                             <View style={styles.communityBody}>
                                 {/* Resident Overview (Basic) */}
                                 <View style={styles.gridContainer}>
-                                    <DashboardIcon icon="newspaper" label="Feed" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/thread')} />
-                                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/calendar')} />
-                                    <DashboardIcon icon="construct" label="Requests" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="newspaper" label="Feed" color="#fff" bg={theme.surface} onPress={() => router.push('/thread')} />
+                                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg={theme.surface} onPress={() => router.push('/calendar')} />
+                                    <DashboardIcon icon="construct" label="Requests" color="#fff" bg={theme.surface} onPress={() => router.push('/complaints')} />
                                 </View>
 
                                 {/* Small Stats Section */}
                                 <View style={styles.statsRow}>
-                                    <StatBox count="128" label="Families" icon="people" />
-                                    <StatBox count="24" label="Staff" icon="person-circle" />
-                                    <StatBox count="56" label="Visitors" icon="walk" />
+                                    <StatBox count="128" label="Families" icon="people" color={theme.accent} />
+                                    <StatBox count="24" label="Staff" icon="person-circle" color={theme.accent} />
+                                    <StatBox count="56" label="Visitors" icon="walk" color={theme.accent} />
                                 </View>
 
                                 {/* Featured Sections */}
@@ -239,10 +239,10 @@ function DashboardIcon({ icon, label, color, bg, onPress }: any) {
     );
 }
 
-function StatBox({ count, label, icon }: any) {
+function StatBox({ count, label, icon, color }: any) {
     return (
         <View style={styles.statBox}>
-            <Ionicons name={icon as any} size={20} color="#fff" style={{ marginBottom: 4, opacity: 0.7 }} />
+            <Ionicons name={icon as any} size={20} color={color || "#fff"} style={{ marginBottom: 4, opacity: 0.7 }} />
             <Text style={styles.statBoxCount}>{count}</Text>
             <Text style={styles.statBoxLabel}>{label}</Text>
         </View>

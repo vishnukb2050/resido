@@ -24,7 +24,7 @@ export default function CommunityDashboard() {
             <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
                     {/* Header */}
-                    <View style={styles.header}>
+                    <View style={[styles.header, { backgroundColor: theme.background }]}>
                         <View style={styles.brandInfo}>
                             <View style={styles.logoBox}>
                                 <Image source={require('../../../assets/resido_logo.jpg')} style={styles.logoMini} />
@@ -49,7 +49,7 @@ export default function CommunityDashboard() {
                     </View>
 
                     {/* Community Dashboard View */}
-                    <View style={styles.communityMainCard}>
+                    <View style={[styles.communityMainCard, { backgroundColor: theme.surface }]}>
                         <TouchableOpacity style={styles.cmHeaderRow} onPress={handleSwitchBack}>
                             <View style={styles.cmLogoBox}>
                                 <Image source={require('../../../assets/greenwoods_logo.jpg')} style={styles.cmLogo} />

@@ -27,7 +27,7 @@ export default function AdminDashboard() {
         <View style={[styles.safeArea, { backgroundColor: theme.background }]}>
             <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
                 {/* Premium Header */}
-                <View style={styles.psHeader}>
+                <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
                     <View style={styles.psBrandInfo}>
                         <View style={styles.psLogoBox}>
                             <Image source={require('../../../assets/icon.png')} style={styles.psWorkspaceImg} />
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
 
                 {/* Search Bar */}
                 <View style={styles.psSearchSection}>
-                    <View style={styles.psSearchBar}>
+                    <View style={[styles.psSearchBar, { backgroundColor: theme.surface }]}>
                         <Ionicons name="search" size={20} color="#94a3b8" />
                         <TextInput 
                             placeholder="Search management tools..." 
