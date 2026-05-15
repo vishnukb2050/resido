@@ -5,12 +5,14 @@ import { useAuthStore, Workspace } from '../../store/authStore';
 import { authApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
+import { getThemeColors } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
 
 export default function MemberDashboard() {
     const router = useRouter();
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
 
     const handleSwitch = async (ws: Workspace) => {
         try {
@@ -22,8 +24,8 @@ export default function MemberDashboard() {
     };
 
     return (
-        <View style={styles.safeArea}>
-            <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Premium Header */}
                 <View style={styles.psHeader}>
                     <View style={styles.psBrandInfo}>
@@ -145,7 +147,7 @@ function RuleItem({ icon, label }: any) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#0f172a' },
+    safeArea: { flex: 1 },
     container: { flex: 1 },
     content: { paddingBottom: 110 },
     psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },

@@ -4,12 +4,14 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
+import { getThemeColors } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
 
 export default function CommunityDashboard() {
     const router = useRouter();
     const { user, activeWorkspace, setActiveWorkspace } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
 
     const handleSwitchBack = () => {
         // @ts-ignore
@@ -18,8 +20,8 @@ export default function CommunityDashboard() {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
                     {/* Header */}
                     <View style={styles.header}>
@@ -177,8 +179,8 @@ function QACardCircular({ icon, title, color, bg, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#fff' },
-    container: { flex: 1, backgroundColor: '#fcfcfd' },
+    safeArea: { flex: 1 },
+    container: { flex: 1 },
     content: { paddingBottom: 120 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#fff' },
     brandInfo: { flexDirection: 'row', alignItems: 'center' },

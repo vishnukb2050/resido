@@ -5,10 +5,12 @@ import { useAuthStore, Workspace } from '../../store/authStore';
 import { authApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
+import { getThemeColors } from '../../utils/theme';
 
 export default function AdminDashboard() {
     const router = useRouter();
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
     const [showWS, setShowWS] = useState(false);
 
     const handleSwitch = async (ws: Workspace) => {
@@ -22,8 +24,8 @@ export default function AdminDashboard() {
     };
 
     return (
-        <View style={styles.safeArea}>
-            <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
                 {/* Premium Header */}
                 <View style={styles.psHeader}>
                     <View style={styles.psBrandInfo}>
@@ -175,7 +177,7 @@ function FeatureCard({ icon, title, color, bg, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#0f172a' },
+    safeArea: { flex: 1 },
     container: { flex: 1 },
     content: { paddingBottom: 110 },
     

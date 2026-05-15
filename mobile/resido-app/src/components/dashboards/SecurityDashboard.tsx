@@ -3,14 +3,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaVi
 import { useAuthStore } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { getThemeColors } from '../../utils/theme';
 
 export default function SecurityDashboard() {
     const { activeWorkspace, user, workspaces, setActiveWorkspace } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
     const router = useRouter();
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
                 {/* Premium Header */}
                 <View style={styles.psHeader}>
                     <View style={styles.psBrandInfo}>
@@ -165,7 +167,7 @@ function FeatureCard({ icon, title, color, bg, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#0f172a' },
+    safeArea: { flex: 1 },
     container: { flex: 1 },
     content: { paddingBottom: 110 },
     

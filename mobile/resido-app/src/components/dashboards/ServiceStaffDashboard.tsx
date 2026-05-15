@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
+import { getThemeColors } from '../../utils/theme';
 
 export default function ServiceStaffDashboard() {
     const { activeWorkspace, user } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
             <View style={styles.headerRow}>
                 <View style={styles.headerLeft}>
                     <View style={styles.avatar}>

@@ -3,14 +3,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaVi
 import { useAuthStore } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { getThemeColors } from '../../utils/theme';
 
 export default function CleaningDashboard() {
     const { activeWorkspace, user, setActiveWorkspace, workspaces } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
     const router = useRouter();
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
                 {/* Premium Header */}
                 <View style={styles.psHeader}>
                     <View style={styles.psBrandInfo}>

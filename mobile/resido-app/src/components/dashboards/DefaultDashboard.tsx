@@ -5,12 +5,14 @@ import { useAuthStore } from '../../store/authStore';
 import { threadApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
+import { getThemeColors } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
 
 export default function DefaultDashboard() {
     const router = useRouter();
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
     const [isSelectModalVisible, setIsSelectModalVisible] = React.useState(false);
     const [activeCategory, setActiveCategory] = React.useState('Electronics');
     const [contactFlares, setContactFlares] = React.useState<any[]>([]);
@@ -55,8 +57,8 @@ export default function DefaultDashboard() {
             </ScrollView>
         );
     }    return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
                     <View style={styles.psWrapper}>
                         {/* Premium Header */}
@@ -279,9 +281,10 @@ function StoryItem({ name, image, hasStory, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#0f172a' },
-    container: { flex: 1, backgroundColor: '#0f172a' },
+    safeArea: { flex: 1 },
+    container: { flex: 1 },
     content: { paddingBottom: 120 },
+    psWrapper: { flex: 1 },
     
     // Premium Header
     psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
