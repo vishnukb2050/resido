@@ -66,11 +66,11 @@ export default function SecurityDashboard() {
 
                 {/* Security Grid Icons (Matching Image) */}
                 <View style={styles.gridContainer}>
-                    <DashboardIcon icon="qr-code" label="Scan QR" color="#fff" bg="rgba(99, 102, 241, 0.2)" />
-                    <DashboardIcon icon="log-in" label="Entry" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/visitor-entry')} />
-                    <DashboardIcon icon="log-out" label="Exit" color="#fff" bg="rgba(245, 158, 11, 0.2)" />
-                    <DashboardIcon icon="list" label="Logs" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/entries')} />
-                    <DashboardIcon icon="videocam" label="CCTV" color="#fff" bg="rgba(139, 92, 246, 0.2)" />
+                    <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#6366f1" onPress={() => router.push('/gatepass-scanner')} />
+                    <DashboardIcon icon="person-add" label="Add Visitor" color="#fff" bg="#10b981" onPress={() => router.push('/add-visitor')} />
+                    <DashboardIcon icon="id-card" label="Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
+                    <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" />
+                    <DashboardIcon icon="warning" label="Alerts" color="#fff" bg="#ef4444" />
                 </View>
 
                 {/* Security Stats Row */}

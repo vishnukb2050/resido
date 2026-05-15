@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseInterceptors, Req, Patch, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseInterceptors, Req, Patch, Param, Query } from '@nestjs/common';
 import { MembersService } from './members.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
 
@@ -8,8 +8,13 @@ export class MembersController {
     constructor(private membersService: MembersService) {}
 
     @Get()
-    listMembers() {
-        return this.membersService.listMembers();
+    listMembers(@Query('role') role?: string) {
+        return this.membersService.listMembers(role);
+    }
+
+    @Get('units')
+    getUnits() {
+        return this.membersService.getUnits();
     }
 
     @Post()

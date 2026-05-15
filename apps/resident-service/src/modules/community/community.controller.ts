@@ -31,13 +31,23 @@ export class CommunityController {
 
     // Complaints
     @Get('complaints')
-    getComplaints(@Query('memberId') memberId: string) {
-        return this.communityService.getComplaints(memberId);
+    getComplaints(@Query('memberId') memberId?: string, @Query('staffId') staffId?: string) {
+        return this.communityService.getComplaints(memberId, staffId);
     }
 
     @Post('complaints')
     createComplaint(@Body() data: any) {
         return this.communityService.createComplaint(data.memberId, data);
+    }
+
+    @Post('complaints/:id/assign')
+    assignComplaint(@Param('id') id: string, @Body('staffId') staffId: string) {
+        return this.communityService.assignComplaint(id, staffId);
+    }
+
+    @Post('complaints/:id/status')
+    updateStatus(@Param('id') id: string, @Body('status') status: string) {
+        return this.communityService.updateComplaintStatus(id, status);
     }
 
     // Gatepass / Visitors
@@ -85,5 +95,16 @@ export class CommunityController {
     @Post('gallery/folders')
     createGalleryFolder(@Body() data: any) {
         return this.communityService.createGalleryFolder(data);
+    }
+
+    // Rules
+    @Get('rules')
+    getRules() {
+        return this.communityService.getRules();
+    }
+
+    @Post('rules')
+    createRule(@Body() data: any) {
+        return this.communityService.createRule(data);
     }
 }

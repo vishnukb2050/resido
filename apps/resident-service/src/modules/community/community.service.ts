@@ -32,9 +32,17 @@ export class CommunityService {
     }
 
     // ─── Complaints ─────────────────────────────────────────────
-    async getComplaints(memberId?: string) {
+    async getComplaints(memberId?: string, staffId?: string) {
         return this.prisma.reader.complaint.findMany({
-            where: memberId ? { memberId } : {},
+            where: {
+                OR: [
+                    memberId ? { memberId } : {},
+                    staffId ? { assignedTo: staffId } : {}
+                ].filter(o => Object.keys(o).length > 0)
+            },
+            include: {
+                member: { select: { name: true, phone: true } }
+            },
             orderBy: { createdAt: 'desc' }
         });
     }
@@ -42,6 +50,23 @@ export class CommunityService {
     async createComplaint(memberId: string, data: any) {
         return this.prisma.client.complaint.create({
             data: { ...data, memberId }
+        });
+    }
+
+    async assignComplaint(id: string, staffId: string) {
+        return this.prisma.client.complaint.update({
+            where: { id },
+            data: { 
+                assignedTo: staffId,
+                status: 'IN_PROGRESS'
+            }
+        });
+    }
+
+    async updateComplaintStatus(id: string, status: any) {
+        return this.prisma.client.complaint.update({
+            where: { id },
+            data: { status }
         });
     }
 
@@ -128,5 +153,18 @@ export class CommunityService {
                 tenantId: '' // Will be overridden
             } as any
         });
+    }
+
+    // ─── Rules ──────────────────────────────────────────────────
+    async getRules() {
+        return this.prisma.reader.rule.findMany({ orderBy: { title: 'asc' } });
+    }
+
+    async createRule(data: any) {
+        return this.prisma.client.rule.create({ data });
+    }
+
+    async deleteRule(id: string) {
+        return this.prisma.client.rule.delete({ where: { id } });
     }
 }

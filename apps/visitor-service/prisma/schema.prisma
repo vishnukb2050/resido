@@ -15,11 +15,42 @@ model VisitorEntry {
   phone       String?
   purpose     String?
   unitToVisit String
+  category    String?   // Visitor, Delivery, Maintenance & Repair
+  description String?
+  vehicleNumber String?
   photoUrl    String?   // S3 key
   inTime      DateTime  @default(now())
   outTime     DateTime?
   loggedBy    String    // security member id
+  gatepassId  String?   // Link to gatepass if used
   createdAt   DateTime  @default(now())
 
   @@map("visitor_entries")
+}
+
+model Gatepass {
+  id              String   @id @default(cuid())
+  visitorName     String
+  phone           String?
+  personsCount    Int      @default(1)
+  purpose         String?
+  vehicleNumber   String?
+  visitTime       String?
+  visitDate       String?
+  status          GatepassStatus @default(PENDING)
+  residentId      String   // ID of resident who created it
+  residentName    String?
+  residentUnit    String?
+  approvedAt      DateTime?
+  approvedBy      String?  // security member id
+  createdAt       DateTime @default(now())
+
+  @@map("gatepasses")
+}
+
+enum GatepassStatus {
+  PENDING
+  APPROVED
+  CANCELLED
+  EXPIRED
 }

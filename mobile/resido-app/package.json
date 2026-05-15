@@ -37,6 +37,7 @@
     "expo-status-bar": "~1.12.0",
     "react": "18.2.0",
     "react-native": "0.74.5",
+    "react-native-calendars": "^1.1314.0",
     "react-native-compressor": "^1.18.2",
     "react-native-gesture-handler": "~2.16.0",
     "react-native-image-picker": "^7.0.0",

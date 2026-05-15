@@ -64,18 +64,59 @@ export class ClientsService {
             await this.createStaffAccount(client.id, dto.subAdminEmail, 'ADMIN_STAFF');
         }
 
-        // If created by a mobile user, automatically link them as a member/admin
-        if (dto.createdByUserId) {
-            await this.prisma.userClient.workspaceMembership.create({
-                data: {
-                    userId: dto.createdByUserId,
-                    tenantId: client.id,
-                    tenantName: client.name,
-                    role: 'APARTMENT_ADMIN' as Role,
-                    memberId: 'admin-001',
-                    isActive: true
-                }
+        // Link the Admin Phone user as APARTMENT_ADMIN
+        if (dto.adminPhone) {
+            let adminUser = await this.prisma.userRead.user.findUnique({ where: { phone: dto.adminPhone } });
+            if (!adminUser) {
+                adminUser = await this.prisma.userClient.user.create({
+                    data: {
+                        phone: dto.adminPhone,
+                        email: dto.adminEmail,
+                        role: 'APARTMENT_ADMIN' as Role,
+                        isActive: true
+                    }
+                });
+            }
+
+            const existingAdminMember = await this.prisma.userRead.workspaceMembership.findUnique({
+                where: { userId_tenantId: { userId: adminUser.id, tenantId: client.id } }
             });
+
+            if (!existingAdminMember) {
+                await this.prisma.userClient.workspaceMembership.create({
+                    data: {
+                        userId: adminUser.id,
+                        tenantId: client.id,
+                        tenantName: client.name,
+                        role: 'APARTMENT_ADMIN' as Role,
+                        memberId: 'admin-001',
+                        isActive: true
+                    }
+                });
+            }
+        }
+
+        // If created by a different mobile user, also link them as a creator/admin
+        if (dto.createdByUserId) {
+            const creator = await this.prisma.userRead.user.findUnique({ where: { id: dto.createdByUserId } });
+            if (creator && creator.phone !== dto.adminPhone) {
+                const existingCreatorMember = await this.prisma.userRead.workspaceMembership.findUnique({
+                    where: { userId_tenantId: { userId: dto.createdByUserId, tenantId: client.id } }
+                });
+
+                if (!existingCreatorMember) {
+                    await this.prisma.userClient.workspaceMembership.create({
+                        data: {
+                            userId: dto.createdByUserId,
+                            tenantId: client.id,
+                            tenantName: client.name,
+                            role: 'APARTMENT_ADMIN' as Role,
+                            memberId: 'creator-001',
+                            isActive: true
+                        }
+                    });
+                }
+            }
         }
 
         // Add initial residents and staff if provided

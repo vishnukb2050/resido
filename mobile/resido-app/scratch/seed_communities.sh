@@ -1,47 +1,52 @@
 #!/bin/bash
 
-# Configuration
-API_URL="http://localhost:3001/clients"
+# Configuration - Change this to your server IP if not local
+API_URL="${1:-http://localhost:3001}/clients"
 USER_PHONE="9645859194"
 
-echo "Creating Demo Communities for user $USER_PHONE..."
+echo "------------------------------------------------"
+echo "RESIDO COMMUNITY SEEDING TOOL"
+echo "Targeting: $API_URL"
+echo "Target User: $USER_PHONE"
+echo "------------------------------------------------"
 
 # Community A (Cleaning Staff)
 echo "Creating Community A..."
-curl -X POST $API_URL \
+curl -s -X POST $API_URL \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"Community A\",
     \"adminEmail\": \"admin_a@resido.com\",
     \"adminPhone\": \"1111111111\",
     \"cleaningPhones\": [\"$USER_PHONE\"]
-  }"
-echo -e "\n"
+  }" | grep -q "success" || echo "Failed to create Community A"
 
 # Community B (Security Staff)
 echo "Creating Community B..."
-curl -X POST $API_URL \
+curl -s -X POST $API_URL \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"Community B\",
     \"adminEmail\": \"admin_b@resido.com\",
     \"adminPhone\": \"2222222222\",
     \"securityPhones\": [\"$USER_PHONE\"]
-  }"
-echo -e "\n"
+  }" | grep -q "success" || echo "Failed to create Community B"
 
 # Community C (Admin)
 echo "Creating Community C..."
-curl -X POST $API_URL \
+curl -s -X POST $API_URL \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"Community C\",
     \"adminEmail\": \"admin_c@resido.com\",
     \"adminPhone\": \"$USER_PHONE\"
-  }"
-echo -e "\n"
+  }" | grep -q "success" || echo "Failed to create Community C"
 
-echo "Done! User $USER_PHONE is now:"
-echo "- Cleaning Staff at Community A"
-echo "- Security Staff at Community B"
-echo "- Admin at Community C"
+echo -e "\n------------------------------------------------"
+echo "Provisioning Complete!"
+echo "User $USER_PHONE now has access to:"
+echo "1. Community A (Role: CLEANING_STAFF)"
+echo "2. Community B (Role: SECURITY_STAFF)"
+echo "3. Community C (Role: APARTMENT_ADMIN)"
+echo "------------------------------------------------"
+echo "NOTE: Please restart your mobile app to see the new workspaces."

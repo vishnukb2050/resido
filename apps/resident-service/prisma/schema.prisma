@@ -797,6 +797,20 @@ enum NotificationType {
   EVENT
 }
 
+// ─── Community Rules ──────────────────────────────────────────
+model Rule {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  description String   @db.Text
+  category    String?  // e.g. "Parking", "Pets", "Common Area"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("rules")
+}
+
 enum ComplaintStatus {
   OPEN
   IN_PROGRESS

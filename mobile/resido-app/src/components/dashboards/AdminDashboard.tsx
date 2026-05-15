@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore, Workspace } from '../../store/authStore';
 import { authApi } from '../../services/api';
@@ -93,10 +93,11 @@ export default function AdminDashboard() {
                 {/* Admin Grid (Matching Image) */}
                 <View style={styles.adminGrid}>
                     <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(99, 102, 241, 0.2)" />
-                    <DashboardIcon icon="people" label="Members" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/members')} />
+                    <DashboardIcon icon="people-circle" label="Manage" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/manage-members')} />
+                    <DashboardIcon icon="construct" label="Requests" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="shield-half" label="Security" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/staff')} />
                     <DashboardIcon icon="water" label="Cleaning" color="#fff" bg="rgba(14, 165, 233, 0.2)" onPress={() => router.push('/staff')} />
-                    <DashboardIcon icon="construct" label="Maintenance" color="#fff" bg="rgba(245, 158, 11, 0.2)" onPress={() => router.push('/staff')} />
+                    <DashboardIcon icon="book" label="Rules" color="#fff" bg="rgba(245, 158, 11, 0.2)" onPress={() => router.push('/rules')} />
                 </View>
 
                 {/* Management Sections */}
@@ -113,10 +114,10 @@ export default function AdminDashboard() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Community Tools</Text>
                     <View style={styles.featureGrid}>
+                        <FeatureCard icon="id-card" title="Visitor Reg" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
                         <FeatureCard icon="chatbubbles" title="Resident Chat" color="#fff" bg="#4a5568" onPress={() => router.push('/chat-list')} />
                         <FeatureCard icon="folder" title="Docs & Legal" color="#fff" bg="#2d3748" onPress={() => router.push('/documents')} />
                         <FeatureCard icon="newspaper" title="Feed Mgmt" color="#fff" bg="#1a365d" onPress={() => router.push('/thread')} />
-                        <FeatureCard icon="play-circle" title="Flare Reels" color="#fff" bg="#2c5282" onPress={() => router.push('/flares')} />
                     </View>
                 </View>
 

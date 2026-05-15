@@ -140,7 +140,7 @@ export default function DefaultDashboard() {
                                 <View style={styles.gridContainer}>
                                     <DashboardIcon icon="newspaper" label="Feed" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/thread')} />
                                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/calendar')} />
-                                    <DashboardIcon icon="warning" label="Alerts" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="construct" label="Requests" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/complaints')} />
                                 </View>
 
                                 {/* Small Stats Section */}
@@ -156,7 +156,7 @@ export default function DefaultDashboard() {
                                     <View style={styles.featureGrid}>
                                         <FeatureCard icon="people" title="Directory" color="#fff" bg="#38a169" onPress={() => router.push('/members')} />
                                         <FeatureCard icon="id-card" title="Staff" color="#fff" bg="#3182ce" onPress={() => router.push('/staff')} />
-                                        <FeatureCard icon="chatbubble" title="Help Desk" color="#fff" bg="#744210" onPress={() => router.push('/complaints')} />
+                                        <FeatureCard icon="chatbubble" title="Req & Complaints" color="#fff" bg="#744210" onPress={() => router.push('/complaints')} />
                                     </View>
                                 </View>
                             </View>

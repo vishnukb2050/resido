@@ -1,2 +1,2 @@
-import NoticeBoardScreen from '../src/screens/NoticeBoardScreen';
-export default function Page() { return <NoticeBoardScreen />; }
+import NoticeboardScreen from '../src/screens/NoticeboardScreen';
+export default function Page() { return <NoticeboardScreen />; }

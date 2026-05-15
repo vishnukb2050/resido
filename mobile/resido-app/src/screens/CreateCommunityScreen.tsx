@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    StyleSheet, KeyboardAvoidingView, Platform, Alert, ScrollView, ActivityIndicator
+    StyleSheet, KeyboardAvoidingView, Platform, Alert, ScrollView, ActivityIndicator,
+    SafeAreaView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authApi } from '../services/api';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CreateCommunityScreen() {
     const [name, setName] = useState('');
     const [adminEmail, setAdminEmail] = useState('');
     const [adminPhone, setAdminPhone] = useState('');
     const [adminPassword, setAdminPassword] = useState('');
-    const [caretakerEmail, setCaretakerEmail] = useState('');
     const [memberPhones, setMemberPhones] = useState('');
     const [residentPhones, setResidentPhones] = useState('');
     const [loading, setLoading] = useState(false);
@@ -19,7 +20,7 @@ export default function CreateCommunityScreen() {
 
     const handleCreate = async () => {
         if (!name || !adminEmail || !adminPhone || !adminPassword) {
-            Alert.alert('Error', 'Please enter community name, admin email, phone and password.');
+            Alert.alert('Error', 'Community Name, Admin Mobile, Email and Password are required.');
             return;
         }
 
@@ -30,12 +31,12 @@ export default function CreateCommunityScreen() {
                 adminEmail,
                 adminPhone,
                 adminPassword,
-                caretakerEmail,
                 memberPhones: memberPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 residentPhones: residentPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 plan: 'BASIC'
             });
-            Alert.alert('Success', 'Community created successfully!', [
+            
+            Alert.alert('Success', 'Community created successfully! You can now switch to this workspace.', [
                 { text: 'OK', onPress: () => router.replace('/workspace-select') }
             ]);
         } catch (err: any) {
@@ -46,128 +47,154 @@ export default function CreateCommunityScreen() {
     };
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+        <SafeAreaView style={styles.container}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Text style={styles.backBtn}>← Back</Text>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.title}>Create a Community</Text>
-                    <Text style={styles.subtitle}>Set up a new apartment complex on Resido</Text>
+                    <Text style={styles.headerTitle}>Launch Community</Text>
+                    <View style={{ width: 40 }} />
                 </View>
 
-                <View style={styles.form}>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Community Name</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. Greenwood Residency"
-                            placeholderTextColor="#64748b"
-                            value={name}
-                            onChangeText={setName}
-                        />
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <View style={styles.heroSection}>
+                        <View style={styles.heroIconBox}>
+                            <Ionicons name="business" size={40} color="#6366f1" />
+                        </View>
+                        <Text style={styles.title}>Start Your Community</Text>
+                        <Text style={styles.subtitle}>Enter details to initialize your smart apartment ecosystem</Text>
                     </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Admin Mobile Number</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. 9645859194"
-                            placeholderTextColor="#64748b"
-                            keyboardType="phone-pad"
-                            value={adminPhone}
-                            onChangeText={setAdminPhone}
-                        />
-                    </View>
+                    <View style={styles.form}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Community Name</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g. Greenwood Residency"
+                                placeholderTextColor="#64748b"
+                                value={name}
+                                onChangeText={setName}
+                            />
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Admin Email</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="admin@example.com"
-                            placeholderTextColor="#64748b"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={adminEmail}
-                            onChangeText={setAdminEmail}
-                        />
-                    </View>
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1 }]}>
+                                <Text style={styles.label}>Admin Mobile</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="9645859194"
+                                    placeholderTextColor="#64748b"
+                                    keyboardType="phone-pad"
+                                    value={adminPhone}
+                                    onChangeText={setAdminPhone}
+                                />
+                            </View>
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Admin Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Set a strong password"
-                            placeholderTextColor="#64748b"
-                            secureTextEntry
-                            value={adminPassword}
-                            onChangeText={setAdminPassword}
-                        />
-                    </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Admin Email</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="admin@resido.com"
+                                placeholderTextColor="#64748b"
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                value={adminEmail}
+                                onChangeText={setAdminEmail}
+                            />
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Member Mobile Numbers (Optional)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. 9876543210, 9988776655"
-                            placeholderTextColor="#64748b"
-                            value={memberPhones}
-                            onChangeText={setMemberPhones}
-                        />
-                        <Text style={styles.hint}>Comma separated staff/committee numbers</Text>
-                    </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Admin Password</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Secure password"
+                                placeholderTextColor="#64748b"
+                                secureTextEntry
+                                value={adminPassword}
+                                onChangeText={setAdminPassword}
+                            />
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Resident Mobile Numbers (Optional)</Text>
-                        <TextInput
-                            style={[styles.input, { height: 80 }]}
-                            placeholder="e.g. 9123456789, 9234567890"
-                            placeholderTextColor="#64748b"
-                            multiline
-                            value={residentPhones}
-                            onChangeText={setResidentPhones}
-                        />
-                        <Text style={styles.hint}>Comma separated resident numbers</Text>
-                    </View>
+                        <View style={styles.divider} />
 
-                    <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={loading}>
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Create Community</Text>}
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Member Mobile Numbers</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="9876543210, 9988776655"
+                                placeholderTextColor="#64748b"
+                                value={memberPhones}
+                                onChangeText={setMemberPhones}
+                            />
+                            <Text style={styles.hint}>Comma separated staff or committee numbers</Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Resident Mobile Numbers</Text>
+                            <TextInput
+                                style={[styles.input, { height: 100 }]}
+                                placeholder="9123456789, 9234567890"
+                                placeholderTextColor="#64748b"
+                                multiline
+                                textAlignVertical="top"
+                                value={residentPhones}
+                                onChangeText={setResidentPhones}
+                            />
+                            <Text style={styles.hint}>Comma separated resident mobile numbers</Text>
+                        </View>
+
+                        <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={loading}>
+                            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Create Community</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f0f1a' },
-    scrollContent: { padding: 24, paddingTop: 60 },
-    header: { marginBottom: 32 },
-    backBtn: { color: '#6366f1', fontSize: 16, marginBottom: 16 },
-    title: { fontSize: 28, fontWeight: '800', color: '#e2e8f0', letterSpacing: -0.5 },
-    subtitle: { fontSize: 14, color: '#64748b', marginTop: 4 },
-    form: { gap: 20 },
-    inputGroup: { gap: 8 },
-    label: { fontSize: 14, color: '#94a3b8', fontWeight: '600' },
+    container: { flex: 1, backgroundColor: '#0f172a' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 60 },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    scrollContent: { padding: 24, paddingBottom: 60 },
+    heroSection: { alignItems: 'center', marginBottom: 32 },
+    heroIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    title: { fontSize: 26, fontWeight: '900', color: '#fff', textAlign: 'center' },
+    subtitle: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 10, lineHeight: 22, paddingHorizontal: 20 },
+    form: { gap: 24 },
+    inputGroup: { gap: 10 },
+    row: { flexDirection: 'row', gap: 15 },
+    label: { fontSize: 13, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
     input: {
-        backgroundColor: '#1e1e2e',
-        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        color: '#e2e8f0',
-        padding: 14,
-        fontSize: 16
+        borderColor: 'rgba(255,255,255,0.1)',
+        color: '#fff',
+        padding: 16,
+        fontSize: 16,
+        fontWeight: '600'
     },
-    hint: { fontSize: 12, color: '#475569' },
+    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 10 },
+    hint: { fontSize: 12, color: '#475569', fontWeight: '500' },
     submitBtn: {
         backgroundColor: '#6366f1',
-        borderRadius: 12,
-        padding: 18,
+        borderRadius: 20,
+        padding: 20,
         alignItems: 'center',
-        marginTop: 12
+        marginTop: 20,
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 8
     },
-    submitText: { color: '#fff', fontWeight: '700', fontSize: 16 }
+    submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

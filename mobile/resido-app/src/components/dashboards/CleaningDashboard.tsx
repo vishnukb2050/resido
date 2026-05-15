@@ -67,10 +67,10 @@ export default function CleaningDashboard() {
                 {/* Task Grid (Matching Image) */}
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="clipboard" label="Register" color="#fff" bg="rgba(99, 102, 241, 0.2)" />
+                    <DashboardIcon icon="construct" label="My Tasks" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="camera" label="Photos" color="#fff" bg="rgba(16, 185, 129, 0.2)" />
                     <DashboardIcon icon="warning" label="Report" color="#fff" bg="rgba(245, 158, 11, 0.2)" />
                     <DashboardIcon icon="help-buoy" label="Support" color="#fff" bg="rgba(59, 130, 246, 0.2)" />
-                    <DashboardIcon icon="calendar" label="Schedule" color="#fff" bg="rgba(139, 92, 246, 0.2)" />
                 </View>
 
                 {/* Restricted Access Banner */}

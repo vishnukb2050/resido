@@ -5,12 +5,30 @@ import { PrismaService } from '../prisma/tenant-prisma.service';
 export class MembersService {
     constructor(private prisma: PrismaService) {}
 
-    async listMembers() {
-        const members = await this.prisma.reader.member.findMany();
+    async listMembers(role?: string) {
+        const where: any = {};
+        if (role) {
+            if (role === 'STAFF_GROUP') {
+                where.role = { in: ['CLEANING_STAFF', 'SECURITY_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'STAFF', 'SERVICE_STAFF'] };
+            } else {
+                where.role = role;
+            }
+        }
+        
+        const members = await this.prisma.reader.member.findMany({
+            where,
+            include: { family: { include: { unit: true } } }
+        });
         return members.map(m => ({
             ...m,
             phone: m.phoneVisibility === 'PRIVATE' ? '*******' : m.phone
         }));
+    }
+
+    async getUnits() {
+        return this.prisma.reader.unit.findMany({
+            include: { block: true }
+        });
     }
 
     async createMember(data: any) {

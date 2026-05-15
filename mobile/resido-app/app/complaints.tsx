@@ -1,2 +1,2 @@
-import RaiseComplaintScreen from '../src/screens/resident/RaiseComplaintScreen';
-export default function Page() { return <RaiseComplaintScreen />; }
+import ComplaintsListScreen from '../src/screens/ComplaintsListScreen';
+export default function Page() { return <ComplaintsListScreen />; }

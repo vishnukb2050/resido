@@ -78,8 +78,9 @@ export default function MemberDashboard() {
                     <DashboardIcon icon="notifications-circle" label="Announce" color="#fff" bg="#10b981" onPress={() => router.push('/thread')} />
                     <DashboardIcon icon="document-text" label="Notes" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notes')} />
                     <DashboardIcon icon="folder" label="Documents" color="#fff" bg="#3b82f6" onPress={() => router.push('/documents')} />
-                    <DashboardIcon icon="shield-checkmark" label="Gatepass" color="#fff" bg="#64748b" onPress={() => router.push('/visitor-entry')} />
-                    <DashboardIcon icon="book" label="Rules" color="#fff" bg="#475569" />
+                    <DashboardIcon icon="call" label="Contacts" color="#fff" bg="#10b981" onPress={() => router.push('/staff-contacts')} />
+                    <DashboardIcon icon="construct" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
+                    <DashboardIcon icon="book" label="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                 </View>
 
                 {/* Community Highlights */}

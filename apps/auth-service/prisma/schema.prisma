@@ -18,10 +18,16 @@ model User {
   age         Int?
   description String?
   profilePhoto String?
-  role        Role     @default(RESIDENT)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  role          Role     @default(RESIDENT)
+  isActive      Boolean  @default(true)
+  profileName   String?
+  phoneVisibility String?  @default("PUBLIC")
+  instagram     String?
+  linkedin      String?
+  website       String?
+  location      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   workspaceMemberships WorkspaceMembership[]
   otpLogs              OtpLog[]
