@@ -175,9 +175,10 @@ export class ProfileService implements OnModuleInit {
             await this.prisma.coreClient.member.updateMany({
                 where: { phone: user.phone },
                 data: {
+                    name: user.name,
+                    email: user.email,
                     profileName: user.profileName,
                     phoneVisibility: user.phoneVisibility,
-                    name: user.name,
                     profilePhoto: user.profilePhoto,
                     instagram: user.instagram,
                     linkedin: user.linkedin,

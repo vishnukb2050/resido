@@ -94,9 +94,10 @@ export default function FolderViewScreen() {
                 loadFiles();
             }, 500);
 
-        } catch (error) {
-            console.error('Upload failed', error);
-            Alert.alert('Error', 'Upload failed');
+        } catch (error: any) {
+            console.error('Upload failed:', error);
+            const errorMsg = error.response?.data?.message || 'Upload failed. Please try again.';
+            Alert.alert('Error', errorMsg);
             setUploading(false);
         }
     };

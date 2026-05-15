@@ -39,9 +39,10 @@ export default function CreateFolderScreen() {
                 });
             }
             router.back();
-        } catch (error) {
-            console.error('Failed to create folder', error);
-            Alert.alert('Error', 'Failed to create folder');
+        } catch (error: any) {
+            console.error('Create folder error:', error);
+            const errorMsg = error.response?.data?.message || 'Failed to create folder. Please try again.';
+            Alert.alert('Error', errorMsg);
         } finally {
             setLoading(false);
         }

@@ -39,9 +39,10 @@ export default function CreateNoteScreen() {
                 });
             }
             router.back();
-        } catch (error) {
-            console.error('Failed to save note', error);
-            Alert.alert('Error', 'Failed to save note');
+        } catch (error: any) {
+            console.error('Save note error:', error);
+            const errorMsg = error.response?.data?.message || 'Failed to save note. Please try again.';
+            Alert.alert('Error', errorMsg);
         } finally {
             setLoading(false);
         }

@@ -82,9 +82,10 @@ export default function EditProfileScreen() {
             updateUser(updatedUser);
             Alert.alert('Success', 'Profile updated successfully! ✨');
             router.back();
-        } catch (error) {
-            console.error('Profile update failed:', error);
-            Alert.alert('Error', 'Failed to update profile. Please check your connection.');
+        } catch (error: any) {
+            console.error('Update profile error:', error);
+            const errorMsg = error.response?.data?.message || 'Failed to update profile. Please check your connection.';
+            Alert.alert('Error', errorMsg);
         } finally {
             setLoading(false);
         }
