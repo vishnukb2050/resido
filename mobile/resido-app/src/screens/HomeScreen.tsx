@@ -44,7 +44,7 @@ export default function HomeScreen() {
     }
 
     if (role === 'RESIDENT') {
-        return <CommunityDashboard />;
+        return <DefaultDashboard />;
     }
 
     if ((role as string) === 'MEMBER') {

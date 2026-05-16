@@ -17,6 +17,7 @@ export default function DefaultDashboard() {
     const [activeCategory, setActiveCategory] = React.useState('Electronics');
     const [contactFlares, setContactFlares] = React.useState<any[]>([]);
     const [loadingFlares, setLoadingFlares] = React.useState(false);
+    const [touchStartX, setTouchStartX] = React.useState(0);
 
     React.useEffect(() => {
         if (!activeWorkspace && user) {
@@ -38,6 +39,14 @@ export default function DefaultDashboard() {
     };
 
     const isGuest = !user;
+    
+    // Premium My Space Theme (White & Dark Lavender)
+    const isMySpace = !activeWorkspace;
+    const mySpaceBg = '#FFFFFF';
+    const mySpaceText = '#2D2445';
+    const mySpaceSubText = '#7A6B9C';
+    const darkLavender = '#5B4B8A';
+    const lightLavender = '#F3F0F8';
 
     if (isGuest) {
         return (
@@ -56,37 +65,53 @@ export default function DefaultDashboard() {
                 </View>
             </ScrollView>
         );
-    }    return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
-            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
+    return (
+        <SafeAreaView 
+            style={[styles.safeArea, { backgroundColor: isMySpace ? mySpaceBg : theme.background }]}
+            onTouchStart={e => setTouchStartX(e.nativeEvent.pageX)}
+            onTouchEnd={e => {
+                const touchEndX = e.nativeEvent.pageX;
+                const dx = touchStartX - touchEndX;
+                if (dx > 80) { // Swiped left -> Go to Community
+                    if (!activeWorkspace && workspaces.length > 0) {
+                        setActiveWorkspace(workspaces[0], '');
+                    }
+                } else if (dx < -80) { // Swiped right -> Go to My Space
+                    if (activeWorkspace) {
+                        setActiveWorkspace(null as any, '');
+                    }
+                }
+            }}
+        >
+            <ScrollView style={[styles.container, { backgroundColor: isMySpace ? mySpaceBg : theme.background }]} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
                     <View style={styles.psWrapper}>
                         {/* Premium Header */}
-                        <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
+                        <View style={[styles.psHeader, { backgroundColor: isMySpace ? mySpaceBg : theme.background }]}>
                             <View style={styles.psBrandInfo}>
-                                <View style={styles.psLogoBox}>
+                                <View style={[styles.psLogoBox, isMySpace && { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
                                     <Image 
                                         source={activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg')} 
                                         style={styles.psWorkspaceImg} 
                                     />
                                 </View>
                                 <View style={{ marginLeft: 15 }}>
-                                    <Text style={styles.psBrandTitleText}>
+                                    <Text style={[styles.psBrandTitleText, isMySpace && { color: mySpaceText }]}>
                                         {activeWorkspace ? (activeWorkspace as any).tenantName : "Resido"}
                                     </Text>
-                                    <Text style={styles.psBrandTaglineText}>
+                                    <Text style={[styles.psBrandTaglineText, isMySpace && { color: mySpaceSubText }]}>
                                         {activeWorkspace ? (activeWorkspace as any).role : "PERSONAL SPACE"}
                                     </Text>
                                 </View>
                             </View>
                             <View style={styles.psHeaderActions}>
-                                <TouchableOpacity style={styles.psIconBtn}>
-                                    <Ionicons name="notifications" size={22} color="#fff" />
+                                <TouchableOpacity style={[styles.psIconBtn, isMySpace && { backgroundColor: lightLavender }]}>
+                                    <Ionicons name="notifications" size={22} color={isMySpace ? darkLavender : "#fff"} />
                                     <View style={styles.psNotifBadge}>
                                         <Text style={styles.psNotifCount}>3</Text>
                                     </View>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.psProfileBtn} onPress={() => router.push('/profile')}>
+                                <TouchableOpacity style={[styles.psProfileBtn, isMySpace && { borderColor: 'rgba(91, 75, 138, 0.2)' }]} onPress={() => router.push('/profile')}>
                                     <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=resido" }} style={styles.psProfileImg} />
                                 </TouchableOpacity>
                             </View>
@@ -119,18 +144,18 @@ export default function DefaultDashboard() {
 
                         {/* Search Bar (Floating Style) */}
                         <View style={styles.psSearchSection}>
-                            <View style={[styles.psSearchBar, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="search" size={20} color="#94a3b8" />
+                            <View style={[styles.psSearchBar, { backgroundColor: isMySpace ? lightLavender : theme.surface }]}>
+                                <Ionicons name="search" size={20} color={isMySpace ? darkLavender : "#94a3b8"} />
                                 <TextInput 
                                     placeholder="Search for 'Coconut Water'..." 
-                                    style={styles.psSearchInput}
-                                    placeholderTextColor="#64748b"
+                                    style={[styles.psSearchInput, { color: isMySpace ? mySpaceText : '#fff' }]}
+                                    placeholderTextColor={isMySpace ? mySpaceSubText : "#64748b"}
                                 />
                                 <View style={styles.psSearchIconsRight}>
-                                    <Ionicons name="clipboard-outline" size={20} color="#94a3b8" />
+                                    <Ionicons name="clipboard-outline" size={20} color={isMySpace ? darkLavender : "#94a3b8"} />
                                 </View>
                             </View>
-                            <TouchableOpacity style={[styles.psBookmarkBtn, { backgroundColor: theme.primary }]}>
+                            <TouchableOpacity style={[styles.psBookmarkBtn, { backgroundColor: isMySpace ? darkLavender : theme.primary }]}>
                                 <Ionicons name="bookmark-outline" size={22} color="#fff" />
                             </TouchableOpacity>
                         </View>
@@ -138,16 +163,17 @@ export default function DefaultDashboard() {
                         {/* Dashboard Body */}
                         {activeWorkspace ? (
                             <View style={styles.communityBody}>
-                                {/* Resident Overview (Basic) */}
                                 <View style={styles.gridContainer}>
-                                    <DashboardIcon icon="newspaper" label="Feed" color="#fff" bg={theme.surface} onPress={() => router.push('/thread')} />
-                                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg={theme.surface} onPress={() => router.push('/calendar')} />
-                                    <DashboardIcon icon="megaphone" label="Requests" color="#fff" bg={theme.surface} onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="newspaper" label="Feed" color={darkLavender} bg="#F3F0F8" onPress={() => router.push('/thread')} />
+                                    <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#F3F0F8" onPress={() => router.push('/calendar')} />
+                                    <DashboardIcon icon="megaphone" label="Requests" color={darkLavender} bg="#F3F0F8" onPress={() => router.push('/complaints')} />
                                 </View>
 
                                 {/* Small Stats Section */}
                                 <View style={styles.statsRow}>
-                                    <StatBox count="128" label="Families" icon="people" color={theme.accent} />
+                                    {activeWorkspace.role !== 'RESIDENT' && (
+                                        <StatBox count="128" label="Families" icon="people" color={theme.accent} />
+                                    )}
                                     <StatBox count="24" label="Staff" icon="person-circle" color={theme.accent} />
                                     <StatBox count="56" label="Visitors" icon="walk" color={theme.accent} />
                                 </View>
@@ -159,6 +185,15 @@ export default function DefaultDashboard() {
                                         <FeatureCard icon="people" title="Directory" color="#fff" bg="#38a169" onPress={() => router.push('/members')} />
                                         <FeatureCard icon="id-card" title="Staff" color="#fff" bg="#3182ce" onPress={() => router.push('/staff')} />
                                         <FeatureCard icon="chatbubble" title="Req & Complaints" color="#fff" bg="#744210" onPress={() => router.push('/complaints')} />
+                                        
+                                        {/* Additional icons for Resident if needed */}
+                                        {activeWorkspace.role === 'RESIDENT' && (
+                                            <>
+                                                <FeatureCard icon="id-card" title="Gate Pass" color="#fff" bg="#3b82f6" onPress={() => router.push('/gatepass')} />
+                                                <FeatureCard icon="document-text" title="Rules & Regs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/rules')} />
+                                                <FeatureCard icon="notifications" title="Announcements" color="#fff" bg="#f43f5e" onPress={() => router.push('/notices')} />
+                                            </>
+                                        )}
                                     </View>
                                 </View>
                             </View>
@@ -169,11 +204,11 @@ export default function DefaultDashboard() {
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psStoriesScroll}>
                                         {/* My Flare */}
                                         <TouchableOpacity style={styles.psStoryItem} onPress={() => router.push('/create-flare')}>
-                                            <View style={styles.psStoryCircle}>
+                                            <View style={[styles.psStoryCircle, { borderColor: darkLavender }]}>
                                                 <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=me" }} style={styles.psStoryImg} />
-                                                <View style={styles.psStoryAddBadge}><Ionicons name="add" size={12} color="#fff" /></View>
+                                                <View style={[styles.psStoryAddBadge, { backgroundColor: darkLavender }]}><Ionicons name="add" size={12} color="#fff" /></View>
                                             </View>
-                                            <Text style={styles.psStoryLabel}>My Space</Text>
+                                            <Text style={[styles.psStoryLabel, { color: mySpaceText }]}>My Space</Text>
                                         </TouchableOpacity>
                                         {/* Demo Flares */}
                                         <StoryItem name="Greenwoods" image="https://i.pravatar.cc/100?u=g" hasStory={true} />
@@ -183,27 +218,42 @@ export default function DefaultDashboard() {
 
                                 <View style={styles.psQuickAccessBar}>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll}>
-                                        <QuickAccessItem icon="business" label="Business" onPress={() => router.push('/business-profiles')} />
-                                        <QuickAccessItem icon="wallet" label="Finance" onPress={() => router.push('/finance')} />
-                                        <QuickAccessItem icon="grid" label="Services" onPress={() => router.push('/service-search')} />
-                                        <QuickAccessItem icon="document-text" label="Notes" onPress={() => router.push('/notes')} />
-                                        <QuickAccessItem icon="folder" label="Docs" onPress={() => router.push('/documents')} />
+                                        <QuickAccessItem icon="add-circle" label="Create Community" color={darkLavender} onPress={() => router.push('/create-community')} />
+                                        <QuickAccessItem icon="business" label="Business" color={darkLavender} onPress={() => router.push('/business-profiles')} />
+                                        <QuickAccessItem icon="wallet" label="Finance" color={darkLavender} onPress={() => router.push('/finance')} />
+                                        <QuickAccessItem icon="grid" label="Services" color={darkLavender} onPress={() => router.push('/service-search')} />
+                                        <QuickAccessItem icon="document-text" label="Notes" color={darkLavender} onPress={() => router.push('/notes')} />
+                                        <QuickAccessItem icon="folder" label="Docs" color={darkLavender} onPress={() => router.push('/documents')} />
                                     </ScrollView>
                                 </View>
 
-                                <View style={styles.psBusinessBanner}>
+                                {/* Community Creation Banner */}
+                                <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
                                     <View style={styles.psBannerContent}>
-                                        <View style={styles.psBannerIconBox}><Ionicons name="business" size={28} color="#fff" /></View>
+                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="people" size={26} color="#fff" /></View>
                                         <View style={styles.psBannerTextCol}>
-                                            <Text style={styles.psBannerTitle}>Manage Your Business</Text>
-                                            <Text style={styles.psBannerSub}>Create and grow your business profile</Text>
+                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Create Your Community</Text>
+                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.7)' }]}>Set up a new space for your apartment or area</Text>
                                         </View>
                                     </View>
-                                    <TouchableOpacity style={styles.psBannerBtn} onPress={() => router.push('/business-profiles')}>
-                                        <Text style={styles.psBannerBtnText}>Manage Business</Text>
+                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/create-community')}>
+                                        <Text style={[styles.psBannerBtnText, { color: darkLavender }]}>Create Community</Text>
                                     </TouchableOpacity>
                                 </View>
-                            </View>
+
+                                {/* Business Banner */}
+                                <View style={[styles.psBusinessBanner, { backgroundColor: '#4A3B70', borderColor: 'transparent' }]}>
+                                    <View style={styles.psBannerContent}>
+                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="business" size={26} color="#fff" /></View>
+                                        <View style={styles.psBannerTextCol}>
+                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Manage Your Business</Text>
+                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.7)' }]}>Create and grow your business profile</Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/business-profiles')}>
+                                        <Text style={[styles.psBannerBtnText, { color: '#4A3B70' }]}>Manage Business</Text>
+                                    </TouchableOpacity>
+                                </View>
                         )}
                     </View>
                 </View>
@@ -260,10 +310,12 @@ function FeatureCard({ icon, title, color, bg, onPress }: any) {
     );
 }
 
-function QuickAccessItem({ icon, label, onPress }: any) {
+function QuickAccessItem({ icon, label, color, onPress }: any) {
     return (
         <TouchableOpacity style={styles.psQuickAccessItem} onPress={onPress}>
-            <View style={styles.psQuickAccessIconBox}><Ionicons name={icon as any} size={24} color="#6366f1" /></View>
+            <View style={[styles.psQuickAccessIconBox, { backgroundColor: `${color}15`, borderColor: `${color}30` }]}>
+                <Ionicons name={icon as any} size={24} color={color} />
+            </View>
             <Text style={styles.psQuickAccessLabel}>{label}</Text>
         </TouchableOpacity>
     );
@@ -306,75 +358,75 @@ const styles = StyleSheet.create({
     psWorkspaceScroll: { paddingHorizontal: 20, gap: 15 },
     wsBubble: { alignItems: 'center', width: 70 },
     wsBubbleActive: { width: 85 },
-    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 2, borderColor: 'transparent' },
-    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#fff' },
+    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: '#F3F0F8', borderWidth: 2, borderColor: 'transparent' },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#5B4B8A' },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
-    wsBubbleLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '800', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    wsBubbleLabel: { color: '#7A6B9C', fontSize: 10, fontWeight: '800', marginTop: 8 },
+    wsBubbleLabelActive: { color: '#5B4B8A', fontSize: 11, fontWeight: '900' },
 
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
-    psSearchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#fff', fontWeight: '600' },
-    psSearchIconsRight: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.1)' },
-    psBookmarkBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    psSearchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#2D2445', fontWeight: '600' },
+    psSearchIconsRight: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: 'rgba(91, 75, 138, 0.1)' },
+    psBookmarkBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#F3F0F8', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
 
-    // Community Body (Matching Image)
+    // Community Body
     communityBody: { paddingHorizontal: 20 },
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 },
     dbIconItem: { width: '18%', alignItems: 'center' },
-    dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
+    dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    dbIconLabel: { color: '#2D2445', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
-    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: 'rgba(255,255,255,0.03)', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: '#F3F0F8', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     statBox: { alignItems: 'center', flex: 1 },
-    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#fff' },
-    statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
+    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
+    statBoxLabel: { fontSize: 9, color: '#7A6B9C', fontWeight: '700', marginTop: 2 },
 
     sectionContainer: { marginBottom: 25 },
-    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 15 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
     featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
     fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
     fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
-    announcementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    annIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(245, 158, 11, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    annTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
-    annSub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
+    announcementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    annIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(91, 75, 138, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    annTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    annSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
 
     // My Space Body
     mySpaceBody: { paddingHorizontal: 20 },
     psStoriesSection: { marginBottom: 25 },
     psStoriesScroll: { gap: 15 },
     psStoryItem: { alignItems: 'center', width: 70 },
-    psStoryCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#6366f1', padding: 2 },
-    psStoryCircleActive: { borderColor: '#6366f1' },
+    psStoryCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#5B4B8A', padding: 2 },
+    psStoryCircleActive: { borderColor: '#5B4B8A' },
     psStoryImg: { width: '100%', height: '100%', borderRadius: 30 },
-    psStoryAddBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0f172a' },
-    psStoryLabel: { color: '#fff', fontSize: 11, fontWeight: '700', marginTop: 6 },
+    psStoryAddBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#5B4B8A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    psStoryLabel: { color: '#2D2445', fontSize: 11, fontWeight: '700', marginTop: 6 },
 
     psQuickAccessBar: { marginBottom: 30 },
     psQuickAccessScroll: { gap: 15 },
     psQuickAccessItem: { alignItems: 'center', width: 70 },
-    psQuickAccessIconBox: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    psQuickAccessLabel: { color: '#fff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+    psQuickAccessIconBox: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1 },
+    psQuickAccessLabel: { color: '#2D2445', fontSize: 11, fontWeight: '800', textAlign: 'center' },
 
-    psBusinessBanner: { backgroundColor: '#4f46e5', borderRadius: 24, padding: 20, marginBottom: 20 },
+    psBusinessBanner: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 20, marginBottom: 15, borderWidth: 1 },
     psBannerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    psBannerIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    psBannerIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     psBannerTextCol: { marginLeft: 15, flex: 1 },
-    psBannerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
-    psBannerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
-    psBannerBtn: { backgroundColor: '#fff', paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
-    psBannerBtnText: { color: '#4f46e5', fontWeight: '900', fontSize: 14 },
+    psBannerTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    psBannerSub: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
+    psBannerBtn: { paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
+    psBannerBtnText: { fontWeight: '900', fontSize: 14 },
 
     guestContent: { flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center' },
     guestHero: { alignItems: 'center', marginBottom: 40 },
-    brandTitle: { fontSize: 36, fontWeight: '900', color: '#6366f1', marginBottom: 10 },
-    heroSub: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 15 },
-    heroDesc: { fontSize: 15, color: '#94a3b8', textAlign: 'center', lineHeight: 24 },
+    brandTitle: { fontSize: 36, fontWeight: '900', color: '#5B4B8A', marginBottom: 10 },
+    heroSub: { fontSize: 22, fontWeight: '800', color: '#2D2445', textAlign: 'center', marginBottom: 15 },
+    heroDesc: { fontSize: 15, color: '#7A6B9C', textAlign: 'center', lineHeight: 24 },
     actionSection: { width: '100%' },
-    primaryBtn: { backgroundColor: '#6366f1', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
+    primaryBtn: { backgroundColor: '#5B4B8A', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
     primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
 });
