@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { communityApi } from '../services/api';
 
 export default function RulesScreen() {
     const router = useRouter();
@@ -22,10 +22,8 @@ export default function RulesScreen() {
 
     const fetchRules = async () => {
         try {
-            const res = await axios.get(`http://localhost:3002/community/rules`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
-            setRules(res.data);
+            const { data } = await communityApi.getRules();
+            setRules(data);
         } catch (e) {
             console.error('Fetch rules failed', e);
         } finally {
@@ -36,10 +34,8 @@ export default function RulesScreen() {
     const handleCreate = async () => {
         if (!newRule.title || !newRule.description) return;
         try {
-            await axios.post(`http://localhost:3002/community/rules`, {
+            await communityApi.createRule({
                 ...newRule
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
             });
             setShowAdd(false);
             setNewRule({ title: '', description: '', category: 'General' });
@@ -71,18 +67,32 @@ export default function RulesScreen() {
                     data={rules}
                     keyExtractor={(item: any) => item.id}
                     contentContainerStyle={styles.listContent}
-                    renderItem={({ item }) => (
-                        <View style={styles.ruleCard}>
-                            <View style={styles.ruleHeader}>
-                                <View style={styles.categoryBadge}>
-                                    <Text style={styles.categoryText}>{item.category || 'General'}</Text>
+                    renderItem={({ item }: any) => {
+                        const getCategoryIcon = (cat: string) => {
+                            const c = cat.toLowerCase();
+                            if (c.includes('pet')) return 'paw';
+                            if (c.includes('park')) return 'car';
+                            if (c.includes('trash') || c.includes('waste')) return 'trash';
+                            if (c.includes('noise') || c.includes('quiet')) return 'volume-mute';
+                            if (c.includes('pool') || c.includes('swim')) return 'water';
+                            if (c.includes('party') || c.includes('event')) return 'people';
+                            return 'document-text';
+                        };
+
+                        return (
+                            <View style={styles.ruleCard}>
+                                <View style={styles.ruleHeader}>
+                                    <View style={styles.categoryBadge}>
+                                        <Ionicons name={getCategoryIcon(item.category) as any} size={14} color="#f59e0b" style={{ marginRight: 6 }} />
+                                        <Text style={styles.categoryText}>{item.category || 'General'}</Text>
+                                    </View>
+                                    <Ionicons name="bookmark" size={20} color="rgba(245, 158, 11, 0.3)" />
                                 </View>
-                                <Ionicons name="bookmark" size={20} color="#f59e0b" />
+                                <Text style={styles.ruleTitle}>{item.title}</Text>
+                                <Text style={styles.ruleDesc}>{item.description}</Text>
                             </View>
-                            <Text style={styles.ruleTitle}>{item.title}</Text>
-                            <Text style={styles.ruleDesc}>{item.description}</Text>
-                        </View>
-                    )}
+                        );
+                    }}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
                             <Ionicons name="book-outline" size={64} color="rgba(255,255,255,0.05)" />
@@ -143,8 +153,8 @@ const styles = StyleSheet.create({
     listContent: { padding: 20 },
     ruleCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     ruleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    categoryBadge: { backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    categoryText: { color: '#f59e0b', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+    categoryBadge: { backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
+    categoryText: { color: '#f59e0b', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
     ruleTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 8 },
     ruleDesc: { fontSize: 14, color: '#94a3b8', lineHeight: 22 },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },

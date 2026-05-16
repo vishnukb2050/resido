@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { communityApi } from '../services/api';
 
 export default function NoticeboardScreen() {
     const router = useRouter();
@@ -22,10 +22,8 @@ export default function NoticeboardScreen() {
 
     const fetchNotices = async () => {
         try {
-            const res = await axios.get(`http://localhost:3002/community/notices`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
-            setNotices(res.data);
+            const { data } = await communityApi.getNotices();
+            setNotices(data);
         } catch (e) {
             console.error('Fetch notices failed', e);
         } finally {
@@ -36,11 +34,9 @@ export default function NoticeboardScreen() {
     const handleCreate = async () => {
         if (!newNotice.title || !newNotice.body) return;
         try {
-            await axios.post(`http://localhost:3002/community/notices`, {
+            await communityApi.createNotice({
                 ...newNotice,
                 postedBy: user?.id
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
             });
             setShowAdd(false);
             setNewNotice({ title: '', body: '' });

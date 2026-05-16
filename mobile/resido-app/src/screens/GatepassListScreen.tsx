@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Act
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { visitorApi } from '../services/api';
 
 export default function GatepassListScreen() {
     const router = useRouter();
@@ -17,11 +17,8 @@ export default function GatepassListScreen() {
 
     const fetchGatepasses = async () => {
         try {
-            // Using placeholder URL - assuming visitor service is at :3003
-            const res = await axios.get(`http://localhost:3003/gatepass?residentId=${user?.id}`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
-            setGatepasses(res.data);
+            const { data } = await visitorApi.getEntries();
+            setGatepasses(data);
         } catch (e) {
             console.error('Fetch gatepasses failed', e);
         } finally {

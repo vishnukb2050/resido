@@ -14,71 +14,71 @@ export default function ProfileScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" />
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Profile Header Background */}
-                <View style={styles.headerBg}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+                {/* Profile Hero Header */}
+                <View style={styles.heroHeader}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <TouchableOpacity 
-                        style={styles.editBtnTop} 
+                        style={styles.settingsBtn} 
                         onPress={() => router.push('/edit-profile')}
                     >
-                        <Ionicons name="create-outline" size={20} color="#fff" />
-                        <Text style={styles.editBtnText}>Edit</Text>
+                        <Ionicons name="settings-outline" size={24} color="#fff" />
                     </TouchableOpacity>
                 </View>
 
-                {/* Profile Info Section */}
-                <View style={styles.profileSection}>
-                    <View style={styles.avatarWrapper}>
+                {/* Profile Identity Card */}
+                <View style={styles.identityCard}>
+                    <View style={styles.avatarContainer}>
                         <Image 
                             source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/150?u=" + user?.id }} 
-                            style={styles.avatar} 
+                            style={styles.mainAvatar} 
                         />
-                        <View style={styles.onlineBadge} />
+                        <View style={styles.verifiedBadge}>
+                            <Ionicons name="checkmark-circle" size={20} color="#6366f1" />
+                        </View>
                     </View>
+                    
+                    <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+                    <Text style={styles.profileHandle}>@{user?.profileName || 'username'}</Text>
+                    
+                    <TouchableOpacity style={styles.editProfileBtn} onPress={() => router.push('/edit-profile')}>
+                        <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+                    </TouchableOpacity>
 
-                    <Text style={styles.userName}>{user?.name || 'User'}</Text>
-                    <Text style={styles.userHandle}>@{user?.profileName || 'username'}</Text>
-
-                    <View style={styles.statsRow}>
-                        <StatItem label="Communities" count="3" />
-                        <View style={styles.statDivider} />
-                        <StatItem label="Connections" count="128" />
-                        <View style={styles.statDivider} />
-                        <StatItem label="Contributions" count="15" />
+                    <View style={styles.metricsRow}>
+                        <MetricItem value="3" label="Communities" />
+                        <View style={styles.metricSeparator} />
+                        <MetricItem value="128" label="Connections" />
+                        <View style={styles.metricSeparator} />
+                        <MetricItem value="15" label="Posts" />
                     </View>
                 </View>
 
-                {/* About Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>About</Text>
-                    <Text style={styles.bioText}>
+                {/* Info Sections */}
+                <View style={styles.infoSection}>
+                    <SectionHeader title="Bio" icon="information-circle-outline" />
+                    <Text style={styles.bioContent}>
                         {user?.description || 'No bio provided yet. Add a bio to tell the community more about yourself.'}
                     </Text>
                 </View>
 
-                {/* Contact Information */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Contact Information</Text>
-                    <InfoRow icon="mail-outline" label="Email" value={user?.email || 'Not provided'} color="#6366f1" />
-                    <InfoRow icon="call-outline" label="Phone" value={user?.phone || 'Not provided'} color="#10b981" />
-                    <InfoRow icon="location-outline" label="Location" value={user?.location || 'Not provided'} color="#f59e0b" />
+                <View style={styles.infoSection}>
+                    <SectionHeader title="Contact Details" icon="call-outline" />
+                    <ContactCard icon="mail" label="Email" value={user?.email || 'Not provided'} color="#6366f1" />
+                    <ContactCard icon="call" label="Phone" value={user?.phone || 'Not provided'} color="#10b981" />
+                    <ContactCard icon="location" label="Home" value={user?.location || 'Not provided'} color="#f59e0b" />
                 </View>
 
-                {/* Social Links */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Social Links</Text>
-                    {user?.instagram ? <InfoRow icon="logo-instagram" label="Instagram" value={`@${user.instagram}`} color="#E1306C" /> : null}
-                    {user?.linkedin ? <InfoRow icon="logo-linkedin" label="LinkedIn" value="View Profile" color="#0077B5" /> : null}
-                    {user?.website ? <InfoRow icon="globe-outline" label="Website" value={user.website} color="#6366f1" /> : null}
-                    {!user?.instagram && !user?.linkedin && !user?.website && (
-                        <Text style={styles.emptyText}>No social links added yet.</Text>
-                    )}
+                <View style={styles.infoSection}>
+                    <SectionHeader title="Social Presence" icon="share-social-outline" />
+                    <View style={styles.socialGrid}>
+                        <SocialBubble icon="logo-instagram" color="#E1306C" label="Instagram" isPresent={!!user?.instagram} />
+                        <SocialBubble icon="logo-linkedin" color="#0077B5" label="LinkedIn" isPresent={!!user?.linkedin} />
+                        <SocialBubble icon="globe-outline" color="#6366f1" label="Website" isPresent={!!user?.website} />
+                    </View>
                 </View>
-
-                <View style={{ height: 120 }} />
             </ScrollView>
 
             <BottomNav activeTab="Account" />
@@ -86,58 +86,84 @@ export default function ProfileScreen() {
     );
 }
 
-function StatItem({ label, count }: any) {
+function MetricItem({ value, label }: any) {
     return (
-        <View style={styles.statItem}>
-            <Text style={styles.statCount}>{count}</Text>
-            <Text style={styles.statLabel}>{label}</Text>
+        <View style={styles.metricItem}>
+            <Text style={styles.metricValue}>{value}</Text>
+            <Text style={styles.metricLabel}>{label}</Text>
         </View>
     );
 }
 
-function InfoRow({ icon, label, value, color }: any) {
+function SectionHeader({ title, icon }: any) {
     return (
-        <View style={styles.infoRow}>
-            <View style={[styles.infoIconBox, { backgroundColor: `${color}15` }]}>
-                <Ionicons name={icon} size={20} color={color} />
+        <View style={styles.sectionHeader}>
+            <Ionicons name={icon} size={20} color="#6366f1" />
+            <Text style={styles.sectionTitle}>{title}</Text>
+        </View>
+    );
+}
+
+function ContactCard({ icon, label, value, color }: any) {
+    return (
+        <View style={styles.contactCard}>
+            <View style={[styles.contactIconBox, { backgroundColor: color + '15' }]}>
+                <Ionicons name={icon as any} size={20} color={color} />
             </View>
-            <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>{label}</Text>
-                <Text style={styles.infoValue}>{value}</Text>
+            <View style={{ flex: 1, marginLeft: 15 }}>
+                <Text style={styles.contactLabel}>{label}</Text>
+                <Text style={styles.contactValue}>{value}</Text>
             </View>
+        </View>
+    );
+}
+
+function SocialBubble({ icon, color, label, isPresent }: any) {
+    return (
+        <View style={[styles.socialBubble, !isPresent && { opacity: 0.3 }]}>
+            <View style={[styles.socialIconCircle, { backgroundColor: color }]}>
+                <Ionicons name={icon} size={24} color="#fff" />
+            </View>
+            <Text style={styles.socialBubbleLabel}>{label}</Text>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
-    headerBg: { height: 160, backgroundColor: '#1e293b', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    editBtnTop: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#6366f1', paddingHorizontal: 15, height: 40, borderRadius: 20, gap: 8 },
-    editBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    heroHeader: { height: 240, backgroundColor: '#6366f1', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60 },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
     
-    profileSection: { alignItems: 'center', marginTop: -60, paddingHorizontal: 20 },
-    avatarWrapper: { width: 120, height: 120, borderRadius: 60, padding: 4, backgroundColor: '#0f172a' },
-    avatar: { width: '100%', height: '100%', borderRadius: 60, borderWidth: 3, borderColor: '#6366f1' },
-    onlineBadge: { position: 'absolute', bottom: 10, right: 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#10b981', borderWidth: 3, borderColor: '#0f172a' },
+    identityCard: { backgroundColor: '#1e293b', marginHorizontal: 20, marginTop: -100, borderRadius: 32, padding: 25, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
+    avatarContainer: { width: 110, height: 110, borderRadius: 55, padding: 4, backgroundColor: '#1e293b', marginTop: -80 },
+    mainAvatar: { width: '100%', height: '100%', borderRadius: 55, borderWidth: 4, borderColor: '#6366f1' },
+    verifiedBadge: { position: 'absolute', bottom: 5, right: 5, backgroundColor: '#fff', borderRadius: 12 },
     
-    userName: { fontSize: 24, fontWeight: '900', color: '#fff', marginTop: 15 },
-    userHandle: { fontSize: 14, color: '#6366f1', fontWeight: '700', marginTop: 4 },
+    profileName: { fontSize: 24, fontWeight: '900', color: '#fff', marginTop: 15 },
+    profileHandle: { fontSize: 14, color: '#6366f1', fontWeight: '700', marginTop: 4 },
     
-    statsRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginTop: 25, width: '100%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    statItem: { flex: 1, alignItems: 'center' },
-    statCount: { fontSize: 18, fontWeight: '900', color: '#fff' },
-    statLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
-    statDivider: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)' },
+    editProfileBtn: { backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 20, marginTop: 20, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
+    editProfileBtnText: { color: '#6366f1', fontWeight: '800', fontSize: 14 },
     
-    section: { paddingHorizontal: 20, marginTop: 30 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 15 },
-    bioText: { fontSize: 14, color: '#94a3b8', lineHeight: 22 },
+    metricsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 30, width: '100%', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 20 },
+    metricItem: { flex: 1, alignItems: 'center' },
+    metricValue: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    metricLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
+    metricSeparator: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.05)' },
     
-    infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
-    infoIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    infoContent: { marginLeft: 15, flex: 1 },
-    infoLabel: { fontSize: 11, color: '#64748b', fontWeight: '800', textTransform: 'uppercase' },
-    infoValue: { fontSize: 15, color: '#fff', fontWeight: '600', marginTop: 2 },
-    emptyText: { color: '#475569', fontSize: 14, fontStyle: 'italic' }
+    infoSection: { paddingHorizontal: 20, marginTop: 35 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 15 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    bioContent: { fontSize: 15, color: '#94a3b8', lineHeight: 24 },
+    
+    contactCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    contactIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    contactLabel: { fontSize: 11, color: '#64748b', fontWeight: '800', textTransform: 'uppercase' },
+    contactValue: { fontSize: 15, color: '#fff', fontWeight: '600', marginTop: 2 },
+    
+    socialGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
+    socialBubble: { alignItems: 'center', gap: 8 },
+    socialIconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+    socialBubbleLabel: { fontSize: 12, color: '#64748b', fontWeight: '700' }
 });

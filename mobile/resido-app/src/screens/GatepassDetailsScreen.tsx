@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Share, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Share, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
-import QRCode from 'react-native-qrcode-svg';
+import { communityApi } from '../services/api';
 
 export default function GatepassDetailsScreen() {
     const { id } = useLocalSearchParams();
@@ -19,10 +18,8 @@ export default function GatepassDetailsScreen() {
 
     const fetchDetails = async () => {
         try {
-            const res = await axios.get(`http://localhost:3003/gatepass/${id}`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
-            setGatepass(res.data);
+            const { data } = await communityApi.getGatepassDetails(id as string);
+            setGatepass(data);
         } catch (e) {
             console.error('Fetch failed', e);
         } finally {
@@ -58,15 +55,13 @@ export default function GatepassDetailsScreen() {
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.qrContainer}>
                     <View style={styles.qrBox}>
-                        <QRCode
-                            value={gatepass.id}
-                            size={200}
-                            color="#0f172a"
-                            backgroundColor="#fff"
-                        />
+                        <View style={styles.qrFallback}>
+                            <Ionicons name="qr-code-outline" size={100} color="#6366f1" />
+                            <Text style={styles.qrPassText}>{gatepass.id?.toUpperCase().slice(0, 8)}</Text>
+                        </View>
                     </View>
-                    <Text style={styles.passId}>PASS ID: {gatepass.id.toUpperCase()}</Text>
-                    <Text style={styles.scanHint}>Visitor must show this QR to the Security Guard</Text>
+                    <Text style={styles.passId}>PASS ID: {gatepass.id?.toUpperCase()}</Text>
+                    <Text style={styles.scanHint}>Show this pass code to the Security Guard</Text>
                 </View>
 
                 <View style={styles.detailsCard}>
@@ -112,7 +107,9 @@ const styles = StyleSheet.create({
     shareBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     content: { padding: 24, alignItems: 'center' },
     qrContainer: { alignItems: 'center', marginBottom: 32 },
-    qrBox: { padding: 20, backgroundColor: '#fff', borderRadius: 32, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
+    qrBox: { padding: 20, backgroundColor: '#1e293b', borderRadius: 32, borderWidth: 2, borderColor: '#6366f1', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
+    qrFallback: { width: 200, height: 200, alignItems: 'center', justifyContent: 'center', gap: 10 },
+    qrPassText: { fontSize: 18, color: '#6366f1', fontWeight: '900', letterSpacing: 3 },
     passId: { fontSize: 12, color: '#94a3b8', fontWeight: '800', marginTop: 20, letterSpacing: 2 },
     scanHint: { fontSize: 14, color: '#6366f1', fontWeight: '600', marginTop: 10, textAlign: 'center' },
     detailsCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },

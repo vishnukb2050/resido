@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { visitorApi } from '../services/api';
 
 export default function VisitorRegisterScreen() {
     const router = useRouter();
@@ -17,10 +17,8 @@ export default function VisitorRegisterScreen() {
 
     const fetchRegister = async () => {
         try {
-            const res = await axios.get(`http://localhost:3004/visitors/register`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
-            setEntries(res.data);
+            const { data } = await visitorApi.getRegister();
+            setEntries(data);
         } catch (e) {
             console.error('Fetch register failed', e);
         } finally {

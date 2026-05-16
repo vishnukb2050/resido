@@ -65,11 +65,17 @@ export default function CreateCommunityScreen() {
                         <View style={styles.heroIconBox}>
                             <Ionicons name="business" size={40} color="#6366f1" />
                         </View>
-                        <Text style={styles.title}>Start Your Community</Text>
-                        <Text style={styles.subtitle}>Enter details to initialize your smart apartment ecosystem</Text>
+                        <Text style={styles.title}>Launch Community</Text>
+                        <Text style={styles.subtitle}>Initialize your smart apartment ecosystem with administrative and resident access.</Text>
                     </View>
 
                     <View style={styles.form}>
+                        {/* Basic Info */}
+                        <View style={styles.sectionHeader}>
+                            <Ionicons name="information-circle-outline" size={18} color="#6366f1" />
+                            <Text style={styles.sectionHeaderText}>Basic Information</Text>
+                        </View>
+                        
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Community Name</Text>
                             <TextInput
@@ -81,25 +87,29 @@ export default function CreateCommunityScreen() {
                             />
                         </View>
 
-                        <View style={styles.row}>
-                            <View style={[styles.inputGroup, { flex: 1 }]}>
-                                <Text style={styles.label}>Admin Mobile</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="9645859194"
-                                    placeholderTextColor="#64748b"
-                                    keyboardType="phone-pad"
-                                    value={adminPhone}
-                                    onChangeText={setAdminPhone}
-                                />
-                            </View>
+                        {/* Admin Setup */}
+                        <View style={styles.sectionHeader}>
+                            <Ionicons name="shield-checkmark-outline" size={18} color="#10b981" />
+                            <Text style={styles.sectionHeaderText}>Admin Setup</Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Admin Mobile</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Admin Mobile Number"
+                                placeholderTextColor="#64748b"
+                                keyboardType="phone-pad"
+                                value={adminPhone}
+                                onChangeText={setAdminPhone}
+                            />
                         </View>
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Admin Email</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="admin@resido.com"
+                                placeholder="admin@community.com"
                                 placeholderTextColor="#64748b"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
@@ -112,7 +122,7 @@ export default function CreateCommunityScreen() {
                             <Text style={styles.label}>Admin Password</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Secure password"
+                                placeholder="••••••••"
                                 placeholderTextColor="#64748b"
                                 secureTextEntry
                                 value={adminPassword}
@@ -120,36 +130,44 @@ export default function CreateCommunityScreen() {
                             />
                         </View>
 
-                        <View style={styles.divider} />
+                        {/* Onboarding */}
+                        <View style={styles.sectionHeader}>
+                            <Ionicons name="people-outline" size={18} color="#f59e0b" />
+                            <Text style={styles.sectionHeaderText}>Initial Onboarding</Text>
+                        </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Member Mobile Numbers</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="9876543210, 9988776655"
-                                placeholderTextColor="#64748b"
-                                value={memberPhones}
-                                onChangeText={setMemberPhones}
-                            />
-                            <Text style={styles.hint}>Comma separated staff or committee numbers</Text>
+                            <Text style={styles.label}>Member Mobile Numbers (Admin Staff)</Text>
+                            <View style={styles.textAreaContainer}>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Enter mobile numbers separated by commas..."
+                                    placeholderTextColor="#64748b"
+                                    multiline
+                                    value={memberPhones}
+                                    onChangeText={setMemberPhones}
+                                />
+                            </View>
+                            <Text style={styles.hint}>Authorized to manage the community (Caretakers, Staff)</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Resident Mobile Numbers</Text>
-                            <TextInput
-                                style={[styles.input, { height: 100 }]}
-                                placeholder="9123456789, 9234567890"
-                                placeholderTextColor="#64748b"
-                                multiline
-                                textAlignVertical="top"
-                                value={residentPhones}
-                                onChangeText={setResidentPhones}
-                            />
-                            <Text style={styles.hint}>Comma separated resident mobile numbers</Text>
+                            <View style={styles.textAreaContainer}>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Enter resident mobile numbers separated by commas..."
+                                    placeholderTextColor="#64748b"
+                                    multiline
+                                    value={residentPhones}
+                                    onChangeText={setResidentPhones}
+                                />
+                            </View>
+                            <Text style={styles.hint}>Authorized to join as residents</Text>
                         </View>
 
                         <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={loading}>
-                            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Create Community</Text>}
+                            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Launch Community</Text>}
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
@@ -169,9 +187,10 @@ const styles = StyleSheet.create({
     title: { fontSize: 26, fontWeight: '900', color: '#fff', textAlign: 'center' },
     subtitle: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 10, lineHeight: 22, paddingHorizontal: 20 },
     form: { gap: 24 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: -10 },
+    sectionHeaderText: { fontSize: 14, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
     inputGroup: { gap: 10 },
-    row: { flexDirection: 'row', gap: 15 },
-    label: { fontSize: 13, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+    label: { fontSize: 12, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
     input: {
         backgroundColor: 'rgba(255,255,255,0.03)',
         borderRadius: 16,
@@ -182,8 +201,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600'
     },
-    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 10 },
-    hint: { fontSize: 12, color: '#475569', fontWeight: '500' },
+    textAreaContainer: { borderRadius: 16, overflow: 'hidden' },
+    textArea: { height: 100, textAlignVertical: 'top' },
+    hint: { fontSize: 11, color: '#475569', fontWeight: '500', marginTop: -4 },
     submitBtn: {
         backgroundColor: '#6366f1',
         borderRadius: 20,

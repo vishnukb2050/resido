@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { communityApi } from '../services/api';
 
 export default function EventsScreen() {
     const router = useRouter();
@@ -24,10 +24,7 @@ export default function EventsScreen() {
 
     const fetchEvents = async () => {
         try {
-            const res = await axios.get(`http://localhost:3002/community/events?memberId=${user?.id}`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
-            const fetchedEvents = res.data;
+            const { data: fetchedEvents } = await communityApi.getEvents(user?.id || '');
             setEvents(fetchedEvents);
 
             // Mark dates on calendar
@@ -62,13 +59,11 @@ export default function EventsScreen() {
     const handleCreate = async () => {
         if (!newEvent.title) return;
         try {
-            await axios.post(`http://localhost:3002/community/events`, {
+            await communityApi.createEvent({
                 ...newEvent,
                 startDate: new Date(selectedDate).toISOString(),
                 endDate: new Date(selectedDate).toISOString(),
                 memberId: user?.id,
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
             });
             setShowAdd(false);
             setNewEvent({ title: '', description: '', location: '' });

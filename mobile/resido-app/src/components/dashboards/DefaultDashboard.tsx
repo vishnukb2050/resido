@@ -142,7 +142,7 @@ export default function DefaultDashboard() {
                                 <View style={styles.gridContainer}>
                                     <DashboardIcon icon="newspaper" label="Feed" color="#fff" bg={theme.surface} onPress={() => router.push('/thread')} />
                                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg={theme.surface} onPress={() => router.push('/calendar')} />
-                                    <DashboardIcon icon="construct" label="Requests" color="#fff" bg={theme.surface} onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="megaphone" label="Requests" color="#fff" bg={theme.surface} onPress={() => router.push('/complaints')} />
                                 </View>
 
                                 {/* Small Stats Section */}

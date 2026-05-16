@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { complaintApi } from '../services/api';
 
 export default function ComplaintsListScreen() {
     const router = useRouter();
@@ -17,11 +17,8 @@ export default function ComplaintsListScreen() {
 
     const fetchComplaints = async () => {
         try {
-            // Using placeholder for resident service - usually :3002
-            const res = await axios.get(`http://localhost:3002/community/complaints?memberId=${user?.id}`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
-            setComplaints(res.data);
+            const { data } = await complaintApi.getComplaints();
+            setComplaints(data);
         } catch (e) {
             console.error('Fetch complaints failed', e);
         } finally {

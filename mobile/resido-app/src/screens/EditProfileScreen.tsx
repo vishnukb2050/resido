@@ -49,35 +49,48 @@ export default function EditProfileScreen() {
     const handleSave = async () => {
         setLoading(true);
         try {
-            const formDataToSubmit = new FormData();
+            const hasNewImage = formData.profilePhoto && (formData.profilePhoto.startsWith('file://') || formData.profilePhoto.startsWith('content://') || !formData.profilePhoto.startsWith('http'));
             
-            // Append basic info
-            formDataToSubmit.append('name', formData.name);
-            formDataToSubmit.append('profileName', formData.username); 
-            formDataToSubmit.append('email', formData.email);
-            formDataToSubmit.append('phone', formData.phone);
-            formDataToSubmit.append('description', formData.bio);
-            formDataToSubmit.append('instagram', formData.instagram);
-            formDataToSubmit.append('linkedin', formData.linkedin);
-            formDataToSubmit.append('website', formData.website);
-            formDataToSubmit.append('location', formData.location);
+            let dataToSubmit: any;
             
-            // Handle profile photo
-            const photoUrl = formData.profilePhoto;
-            if (photoUrl && (photoUrl.startsWith('file://') || photoUrl.startsWith('content://') || !photoUrl.startsWith('http'))) {
-                const uriParts = photoUrl.split('.');
+            if (hasNewImage) {
+                const formDataToSubmit = new FormData();
+                formDataToSubmit.append('name', formData.name);
+                formDataToSubmit.append('profileName', formData.username); 
+                formDataToSubmit.append('email', formData.email);
+                formDataToSubmit.append('phone', formData.phone);
+                formDataToSubmit.append('description', formData.bio);
+                formDataToSubmit.append('instagram', formData.instagram);
+                formDataToSubmit.append('linkedin', formData.linkedin);
+                formDataToSubmit.append('website', formData.website);
+                formDataToSubmit.append('location', formData.location);
+
+                const uriParts = formData.profilePhoto.split('.');
                 const fileType = uriParts[uriParts.length - 1];
                 
                 formDataToSubmit.append('file', {
-                    uri: photoUrl,
+                    uri: formData.profilePhoto,
                     name: `profile.${fileType}`,
                     type: `image/${fileType}`,
                 } as any);
+                
+                dataToSubmit = formDataToSubmit;
             } else {
-                formDataToSubmit.append('profilePhoto', photoUrl);
+                dataToSubmit = {
+                    name: formData.name,
+                    profileName: formData.username,
+                    email: formData.email,
+                    phone: formData.phone,
+                    description: formData.bio,
+                    instagram: formData.instagram,
+                    linkedin: formData.linkedin,
+                    website: formData.website,
+                    location: formData.location,
+                    profilePhoto: formData.profilePhoto
+                };
             }
 
-            const { data: updatedUser } = await authApi.updateProfile(formDataToSubmit);
+            const { data: updatedUser } = await authApi.updateProfile(dataToSubmit);
             
             updateUser(updatedUser);
             Alert.alert('Success', 'Profile updated successfully! ✨');

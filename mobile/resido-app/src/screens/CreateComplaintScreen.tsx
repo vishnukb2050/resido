@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { complaintApi } from '../services/api';
 
 const CATEGORIES = [
     'Plumbing', 'Electrical', 'Handyman', 'Lift', 'Kitchen', 
@@ -33,12 +33,10 @@ export default function CreateComplaintScreen() {
 
         setLoading(true);
         try {
-            await axios.post(`http://localhost:3002/community/complaints`, {
+            await complaintApi.createComplaint({
                 ...formData,
                 title: `${formData.category} Issue`,
                 memberId: user?.id,
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
             });
 
             Alert.alert('Success', 'Request raised successfully!', [

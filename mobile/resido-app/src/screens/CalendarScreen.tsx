@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dim
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import BottomNav from '../components/BottomNav';
+import { useAuthStore } from '../store/authStore';
+import { getThemeColors } from '../utils/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -52,56 +54,61 @@ const EVENTS = [
 
 export default function CalendarScreen() {
     const router = useRouter();
+    const { activeWorkspace } = useAuthStore();
+    const theme = getThemeColors(activeWorkspace?.tenantId);
     const [view, setView] = useState('Month');
+    
+    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle="light-content" />
             
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="#1e293b" />
+            <View style={[styles.header, { borderBottomColor: 'rgba(255,255,255,0.05)' }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
                     <TouchableOpacity style={styles.monthSelector}>
                         <Text style={styles.monthText}>May 2026</Text>
-                        <Ionicons name="chevron-down" size={16} color="#1e293b" style={{ marginLeft: 4 }} />
+                        <Ionicons name="chevron-down" size={16} color="#fff" style={{ marginLeft: 4 }} />
                     </TouchableOpacity>
-                    <Text style={styles.subtitleText}>Month View</Text>
+                    <Text style={styles.subtitleText}>{view} View</Text>
                 </View>
                 <View style={styles.headerIcons}>
-                    <TouchableOpacity><Ionicons name="calendar-outline" size={24} color="#1e293b" /></TouchableOpacity>
-                    <TouchableOpacity><Ionicons name="ellipsis-vertical" size={24} color="#1e293b" /></TouchableOpacity>
+                    <TouchableOpacity style={styles.headerIconBtn}><Ionicons name="search-outline" size={22} color="#fff" /></TouchableOpacity>
+                    <TouchableOpacity style={styles.headerIconBtn}><Ionicons name="ellipsis-vertical" size={22} color="#fff" /></TouchableOpacity>
                 </View>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* View Toggles */}
-                <View style={styles.viewToggleContainer}>
+                <View style={[styles.viewToggleContainer, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
                     {['Day', 'Week', 'Month', 'Year'].map(item => (
                         <TouchableOpacity 
                             key={item} 
-                            style={[styles.viewToggleButton, view === item && styles.viewToggleButtonActive]}
+                            style={[styles.viewToggleButton, view === item && { backgroundColor: theme.primary }]}
                             onPress={() => setView(item)}
                         >
-                            <Text style={[styles.viewToggleText, view === item && styles.viewToggleTextActive]}>{item}</Text>
+                            <Text style={[styles.viewToggleText, view === item && { color: '#fff' }]}>{item}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
 
                 {/* Calendar Grid */}
-                <View style={styles.calendarCard}>
+                <View style={[styles.calendarCard, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.05)' }]}>
                     <View style={styles.daysHeader}>
-                        {DAYS.map(day => <Text key={day} style={styles.dayHeaderText}>{day}</Text>)}
+                        {DAYS.map((day, idx) => <Text key={idx} style={styles.dayHeaderText}>{day}</Text>)}
                     </View>
                     <View style={styles.datesGrid}>
                         {CALENDAR_DATES.map((item, index) => (
-                            <TouchableOpacity key={index} style={[styles.dateCell, item.active && styles.dateCellActive]}>
+                            <TouchableOpacity key={index} style={[styles.dateCell, item.active && { backgroundColor: theme.primary + '20', borderColor: theme.primary, borderWidth: 1, borderRadius: 12 }]}>
                                 <Text style={[
                                     styles.dateNumber, 
-                                    item.active && styles.dateNumberActive, 
-                                    item.otherMonth && { color: '#cbd5e1' }
+                                    item.active && { color: theme.primary }, 
+                                    item.otherMonth && { color: '#475569' },
+                                    !item.active && !item.otherMonth && { color: '#fff' }
                                 ]}>
                                     {item.date}
                                 </Text>
@@ -110,11 +117,6 @@ export default function CalendarScreen() {
                                         <View key={idx} style={[styles.dot, { backgroundColor: color === 'blue' ? '#3b82f6' : color === 'green' ? '#10b981' : color === 'orange' ? '#f59e0b' : '#8b5cf6' }]} />
                                     ))}
                                 </View>
-                                {item.label && (
-                                    <View style={styles.dateLabel}>
-                                        <Text style={styles.dateLabelText}>{item.label}</Text>
-                                    </View>
-                                )}
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -131,18 +133,18 @@ export default function CalendarScreen() {
                 {/* Events Section */}
                 <View style={styles.eventsSection}>
                     <View style={styles.eventsHeader}>
-                        <Text style={styles.eventsTitle}>Events on May 7, 2026</Text>
-                        <Text style={styles.eventsCount}>3 Events</Text>
+                        <Text style={[styles.eventsTitle, { color: '#fff' }]}>Events on May 7, 2026</Text>
+                        <Text style={[styles.eventsCount, { color: theme.primary }]}>3 Events</Text>
                     </View>
 
                     {EVENTS.map(event => (
-                        <TouchableOpacity key={event.id} style={styles.eventCard}>
+                        <TouchableOpacity key={event.id} style={[styles.eventCard, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.05)' }]}>
                             <View style={[styles.eventIndicator, { backgroundColor: event.color }]} />
-                            <View style={styles.eventIconBox}>
+                            <View style={[styles.eventIconBox, { backgroundColor: 'rgba(255,255,255,0.03)' }]}>
                                 <Ionicons name={event.icon as any} size={22} color={event.color} />
                             </View>
                             <View style={styles.eventInfo}>
-                                <Text style={styles.eventTitleText}>{event.title}</Text>
+                                <Text style={[styles.eventTitleText, { color: '#fff' }]}>{event.title}</Text>
                                 <Text style={styles.eventTypeText}>{event.type}</Text>
                                 
                                 <View style={styles.eventDetailRow}>
@@ -151,20 +153,14 @@ export default function CalendarScreen() {
                                         <Text style={styles.detailText}>{event.time}</Text>
                                     </View>
                                 </View>
-                                <View style={styles.eventDetailRow}>
-                                    <View style={styles.detailItem}>
-                                        <Ionicons name={event.id === '2' ? "videocam-outline" : "location-outline"} size={14} color="#94a3b8" />
-                                        <Text style={styles.detailText}>{event.location}</Text>
-                                    </View>
-                                </View>
                             </View>
-                            <TouchableOpacity><Ionicons name="ellipsis-vertical" size={20} color="#94a3b8" /></TouchableOpacity>
+                            <TouchableOpacity><Ionicons name="ellipsis-vertical" size={20} color="#475569" /></TouchableOpacity>
                         </TouchableOpacity>
                     ))}
 
                     <TouchableOpacity style={styles.viewFullDay}>
-                        <Text style={styles.viewFullDayText}>View full day</Text>
-                        <Ionicons name="chevron-forward" size={16} color="#6366f1" />
+                        <Text style={[styles.viewFullDayText, { color: theme.primary }]}>View full day</Text>
+                        <Ionicons name="chevron-forward" size={16} color={theme.primary} />
                     </TouchableOpacity>
                 </View>
 
@@ -172,9 +168,11 @@ export default function CalendarScreen() {
             </ScrollView>
 
             {/* FAB */}
-            <TouchableOpacity style={styles.fab}>
-                <Ionicons name="add" size={32} color="#fff" />
-            </TouchableOpacity>
+            {isAdmin && (
+                <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
+                    <Ionicons name="add" size={32} color="#fff" />
+                </TouchableOpacity>
+            )}
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>
@@ -191,14 +189,16 @@ function LegendItem({ color, label }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, paddingTop: 65, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    container: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, paddingTop: 65, borderBottomWidth: 1 },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    headerIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitleContainer: { alignItems: 'center' },
     monthSelector: { flexDirection: 'row', alignItems: 'center' },
-    monthText: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
-    subtitleText: { fontSize: 12, color: '#6366f1', fontWeight: '600' },
-    headerIcons: { flexDirection: 'row', gap: 15 },
-    content: { flex: 1, backgroundColor: '#fcfcfd' },
+    monthText: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    subtitleText: { fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
+    headerIcons: { flexDirection: 'row', gap: 10 },
+    content: { flex: 1 },
     
     viewToggleContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, margin: 20, padding: 4 },
     viewToggleButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },

@@ -44,10 +44,10 @@ export default function HomeScreen() {
     }
 
     if (role === 'RESIDENT') {
-        return <DefaultDashboard />;
+        return <CommunityDashboard />;
     }
 
-    if (role === 'MEMBER') {
+    if ((role as string) === 'MEMBER') {
         return <MemberDashboard />;
     }
 

@@ -77,16 +77,28 @@ export const authApi = {
 // Community APIs
 export const communityApi = {
     getNotices: () => api.get('/community/notices'),
+    createNotice: (data: any) => api.post('/community/notices', data),
     getPolls: () => api.get('/community/polls'),
     votePoll: (memberId: string, optionId: string) => api.post('/community/polls/vote', { memberId, optionId }),
     getComplaints: (memberId: string) => api.get(`/community/complaints?memberId=${memberId}`),
     createComplaint: (data: any) => api.post('/community/complaints', data),
     getVisitors: (memberId: string) => api.get(`/community/visitors?memberId=${memberId}`),
     createGatepass: (data: any) => api.post('/community/visitors/gatepass', data),
+    getGatepassDetails: (id: string) => api.get(`/community/visitors/${id}`),
+    approveGatepassEntry: (id: string, securityMemberId: string) => api.patch(`/community/visitors/${id}/approve`, { securityMemberId }),
     getEvents: (memberId: string) => api.get(`/community/events?memberId=${memberId}`),
     createEvent: (data: any) => api.post('/community/events', data),
+    getRules: () => api.get('/community/rules'),
+    createRule: (data: any) => api.post('/community/rules', data),
     getMembers: () => api.get('/community/members'),
     getGallery: () => api.get('/community/gallery'),
+};
+
+export const visitorApi = {
+    verifyGatepass: (id: string) => api.get(`/visitors/gatepass/${id}`),
+    getRegister: () => api.get('/visitors/register'),
+    createEntry: (data: any) => api.post('/visitors/register', data),
+    getEntries: (params?: any) => api.get('/visitors/register', { params }),
 };
 
 // Resident APIs (Proxy to resident-service via /members, /community, etc)
@@ -149,11 +161,6 @@ export const chatApi = {
     sendMessage: (conversationId: string, data: { content: string }) => api.post(`/chat/conversations/${conversationId}/messages`, data),
     createConversation: (memberIds: string[]) => api.post('/chat/conversations', { memberIds }),
     votePoll: (pollId: string, optionId: string) => api.post(`/chat/polls/${pollId}/vote`, { optionId }),
-};
-// Visitor APIs
-export const visitorApi = {
-    createEntry: (data: any) => api.post('/visitor/entries', data),
-    getEntries: (params?: any) => api.get('/visitor/entries', { params }),
 };
 
 // Complaint APIs

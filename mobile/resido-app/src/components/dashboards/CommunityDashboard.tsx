@@ -13,11 +13,55 @@ export default function CommunityDashboard() {
     const { user, activeWorkspace, setActiveWorkspace } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
 
+    const role = activeWorkspace?.role || 'RESIDENT';
+    const isAdmin = ['APARTMENT_ADMIN', 'ADMIN_STAFF'].includes(role);
+
     const handleSwitchBack = () => {
         // @ts-ignore
         setActiveWorkspace(null, null);
         router.push('/');
     };
+
+    const getFeaturesByRole = () => {
+        const ALL_FEATURES = [
+            { id: 'notices', title: 'Noticeboard', icon: 'megaphone-outline', color: '#10b981', route: '/notices' },
+            { id: 'gatepass', title: 'Gate Pass', icon: 'id-card-outline', color: '#3b82f6', route: '/gatepass' },
+            { id: 'complaints', title: 'Requests & Complaints', icon: 'chatbubbles-outline', color: '#f59e0b', route: '/complaints' },
+            { id: 'contacts', title: 'Contacts', icon: 'people-outline', color: '#6366f1', route: '/contacts' },
+            { id: 'rules', title: 'Rules & Regulations', icon: 'document-text-outline', color: '#8b5cf6', route: '/rules' },
+            { id: 'announcements', title: 'Announcements', icon: 'notifications-outline', color: '#f43f5e', route: '/notices' },
+            { id: 'notes', title: 'Notes', icon: 'create-outline', color: '#f59e0b', route: '/notes' },
+            { id: 'documents', title: 'Documents', icon: 'folder-outline', color: '#10b981', route: '/documents' },
+            { id: 'staff', title: 'Staff Contacts', icon: 'call-outline', color: '#0ea5e9', route: '/staff-contacts' },
+            { id: 'events', title: 'Events', icon: 'calendar-outline', color: '#6366f1', route: '/calendar' },
+            { id: 'visitor_register', title: 'Visitor Register', icon: 'book-outline', color: '#10b981', route: '/visitor-register' },
+            { id: 'scanner', title: 'Scanner', icon: 'scan-outline', color: '#8b5cf6', route: '/gatepass-scanner' },
+            // Admin only features
+            { id: 'polls', title: 'Polls', icon: 'stats-chart-outline', color: '#6366f1', route: '/polls' },
+            { id: 'members', title: 'Members', icon: 'people-circle-outline', color: '#3b82f6', route: '/members' },
+            { id: 'gallery', title: 'Gallery', icon: 'images-outline', color: '#f59e0b', route: '/gallery' },
+            { id: 'chat', title: 'Chat', icon: 'chatbubble-ellipses-outline', color: '#3b82f6', route: '/chat-list' },
+            { id: 'settings', title: 'Settings', icon: 'settings-outline', color: '#64748b', route: '/settings' },
+        ];
+
+        if (isAdmin) return ALL_FEATURES;
+
+        if (role === 'SECURITY_STAFF') {
+            const ids = ['notices', 'announcements', 'gatepass', 'visitor_register', 'scanner', 'complaints', 'rules', 'events'];
+            return ALL_FEATURES.filter(f => ids.includes(f.id));
+        }
+
+        if (role === 'MAINTENANCE_STAFF' || (role as string) === 'MEMBER') {
+            const ids = ['notices', 'events', 'documents', 'announcements', 'gatepass', 'complaints'];
+            return ALL_FEATURES.filter(f => ids.includes(f.id));
+        }
+
+        // Default: RESIDENT
+        const residentIds = ['notices', 'gatepass', 'complaints', 'contacts', 'rules', 'announcements', 'notes', 'documents', 'staff', 'events'];
+        return ALL_FEATURES.filter(f => residentIds.includes(f.id));
+    };
+
+    const features = getFeaturesByRole();
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -27,110 +71,79 @@ export default function CommunityDashboard() {
                     <View style={[styles.header, { backgroundColor: theme.background }]}>
                         <View style={styles.brandInfo}>
                             <View style={styles.logoBox}>
-                                <Image source={require('../../../assets/resido_logo.jpg')} style={styles.logoMini} />
+                                <Image source={require('../../../assets/icon.png')} style={styles.logoMini} />
                             </View>
-                            <View>
-                                <Text style={styles.brandTitleText}>Resido</Text>
+                            <View style={{ marginLeft: 15 }}>
+                                <Text style={[styles.brandTitleText, { color: '#fff' }]}>Resido</Text>
                                 <Text style={styles.brandTaglineText}>Your Community Starts Here</Text>
                             </View>
                         </View>
                         <View style={styles.headerActions}>
-                            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/calendar')}>
-                                <Ionicons name="calendar" size={24} color="#6366f1" />
+                            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]} onPress={() => router.push('/calendar')}>
+                                <Ionicons name="calendar" size={22} color="#fff" />
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.iconBtn}>
-                                <Ionicons name="notifications" size={24} color="#6366f1" />
+                            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                                <Ionicons name="notifications" size={22} color="#fff" />
                                 <View style={styles.notifBadge} />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile')}>
-                                <Image source={{ uri: 'https://i.pravatar.cc/100?u=resido' }} style={styles.profileImg} />
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     {/* Community Dashboard View */}
-                    <View style={[styles.communityMainCard, { backgroundColor: theme.surface }]}>
+                    <View style={[styles.communityMainCard, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.05)' }]}>
                         <TouchableOpacity style={styles.cmHeaderRow} onPress={handleSwitchBack}>
                             <View style={styles.cmLogoBox}>
                                 <Image source={require('../../../assets/greenwoods_logo.jpg')} style={styles.cmLogo} />
                             </View>
                             <View style={styles.cmNameBox}>
-                                <Text style={styles.cmName} numberOfLines={1}>{activeWorkspace?.tenantName || 'Greenwoods Community'}</Text>
+                                <Text style={[styles.cmName, { color: '#fff' }]} numberOfLines={1}>{activeWorkspace?.tenantName || 'Greenwoods Community'}</Text>
                                 <Text style={styles.cmRoleText}>{activeWorkspace?.role || 'RESIDENT'}</Text>
                             </View>
-                            <Ionicons name="chevron-down" size={20} color="#cbd5e1" />
+                            <Ionicons name="chevron-down" size={20} color="#64748b" />
                         </TouchableOpacity>
 
                         {/* Stats Grid - Small 4-Column */}
-                        <View style={styles.statsGridSmall}>
-                            <SmallStatItem icon="people" count="128" label="Families" color="#10b981" bg="#ecfdf5" />
-                            <SmallStatItem icon="business" count="4" label="Blocks" color="#3b82f6" bg="#eff6ff" />
-                            <SmallStatItem icon="megaphone" count="5" label="Notices" color="#f59e0b" bg="#fffbeb" />
-                            <SmallStatItem icon="calendar" count="3" label="Events" color="#8b5cf6" bg="#f5f3ff" />
+                        <View style={[styles.statsGridSmall, role === 'RESIDENT' && { justifyContent: 'center', gap: 40 }]}>
+                            {role !== 'RESIDENT' && (
+                                <>
+                                    <SmallStatItem icon="people" count="128" label="Families" color="#10b981" bg="rgba(16, 185, 129, 0.1)" />
+                                    <SmallStatItem icon="business" count="4" label="Blocks" color="#3b82f6" bg="rgba(59, 130, 246, 0.1)" />
+                                </>
+                            )}
+                            <SmallStatItem icon="megaphone" count="5" label="Notices" color="#f59e0b" bg="rgba(245, 158, 11, 0.1)" />
+                            <SmallStatItem icon="calendar" count="3" label="Events" color="#8b5cf6" bg="rgba(139, 92, 246, 0.1)" />
                         </View>
 
                         {/* Quick Action Buttons */}
                         <View style={styles.cmActions}>
-                            <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/complaints')}>
-                                <View style={[styles.actionIconBox, { backgroundColor: '#f5f3ff' }]}>
+                            <TouchableOpacity style={[styles.actionRow, { backgroundColor: 'rgba(255,255,255,0.03)' }]} onPress={() => router.push('/complaints')}>
+                                <View style={[styles.actionIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.1)' }]}>
                                     <MaterialCommunityIcons name="hand-pointing-up" size={24} color="#6366f1" />
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 12 }}>
-                                    <Text style={styles.actionTitle}>Raise Request</Text>
+                                    <Text style={[styles.actionTitle, { color: '#fff' }]}>Raise Request</Text>
                                     <Text style={styles.actionSub}>Submit a request</Text>
                                 </View>
                                 <Ionicons name="chevron-forward" size={18} color="#6366f1" />
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/calendar')}>
-                                <View style={[styles.actionIconBox, { backgroundColor: '#f0f9ff' }]}>
-                                    <MaterialCommunityIcons name="calendar-month" size={24} color="#0ea5e9" />
-                                </View>
-                                <View style={{ flex: 1, marginLeft: 12 }}>
-                                    <Text style={styles.actionTitle}>View Calendar</Text>
-                                    <Text style={styles.actionSub}>Check upcoming events</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={18} color="#0ea5e9" />
-                            </TouchableOpacity>
                         </View>
                     </View>
 
-                    {/* Quick Access */}
+                    {/* Features Section */}
                     <View style={styles.sectionHeading}>
-                        <Text style={styles.sectionTitle}>Quick Access</Text>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.qaHorizontalScroll}>
-                        <QACardCircular icon="construct" title="Services" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/service-search')} />
-                        <QACardCircular icon="wallet" title="Finance" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/finance')} />
-                        <QACardCircular icon="document-text" title="Documents" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/documents')} />
-                        <QACardCircular icon="briefcase" title="Business" color="#f59e0b" bg="#fffbeb" onPress={() => router.push('/business-profile')} />
-                        <QACardCircular icon="people" title="Community" color="#8b5cf6" bg="#f5f3ff" onPress={() => router.push('/communities')} />
-                    </ScrollView>
-
-                    {/* Community Services Grid */}
-                    <View style={styles.sectionHeading}>
-                        <Text style={styles.sectionTitle}>Community Services</Text>
+                        <Text style={[styles.sectionTitle, { color: '#fff' }]}>Community Features</Text>
                     </View>
                     <View style={styles.featuresGrid}>
-                        <GridFeatureCard icon="megaphone-outline" title="Noticeboard" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/notices')} />
-                        <GridFeatureCard icon="id-card-outline" title="Gate Pass" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/gate-pass')} />
-                        <GridFeatureCard icon="chatbubbles-outline" title="Complaints" color="#f59e0b" bg="#fffbeb" onPress={() => router.push('/complaints')} />
-                        <GridFeatureCard icon="build-outline" title="Maintenance" color="#8b5cf6" bg="#f5f3ff" onPress={() => router.push('/maintenance')} />
-                    </View>
-
-                    {/* All Features Grid */}
-                    <View style={styles.sectionHeading}>
-                        <Text style={styles.sectionTitle}>All Features</Text>
-                    </View>
-                    <View style={styles.featuresGrid}>
-                        <GridFeatureCard icon="people" title="Contacts" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/contacts')} />
-                        <GridFeatureCard icon="scan" title="Scanner" color="#8b5cf6" bg="#f5f3ff" onPress={() => router.push('/scanner')} />
-                        <GridFeatureCard icon="folder" title="Documents" color="#10b981" bg="#ecfdf5" onPress={() => router.push('/documents')} />
-                        <GridFeatureCard icon="chatbubble-ellipses" title="Chat" color="#3b82f6" bg="#eff6ff" onPress={() => router.push('/chat-list')} />
-                        <GridFeatureCard icon="newspaper" title="Thread" color="#1e293b" bg="#f1f5f9" onPress={() => router.push('/thread')} />
-                        <GridFeatureCard icon="play-circle" title="Flares" color="#ef4444" bg="#fef2f2" onPress={() => router.push('/flares')} />
-                        <GridFeatureCard icon="calendar" title="Calendar" color="#6366f1" bg="#f5f3ff" onPress={() => router.push('/calendar')} />
-                        <GridFeatureCard icon="settings" title="Settings" color="#64748b" bg="#f8fafc" onPress={() => router.push('/settings')} />
-                        <GridFeatureCard icon="help-circle" title="Support" color="#0ea5e9" bg="#f0f9ff" onPress={() => router.push('/support')} />
+                        {features.map((item) => (
+                            <GridFeatureCard 
+                                key={item.id}
+                                icon={item.icon as any} 
+                                title={item.title} 
+                                color={item.color} 
+                                bg="transparent" 
+                                onPress={() => router.push(item.route as any)} 
+                            />
+                        ))}
                     </View>
                 </View>
             </ScrollView>
@@ -143,8 +156,8 @@ export default function CommunityDashboard() {
 function GridFeatureCard({ icon, title, color, bg, onPress }: any) {
     return (
         <TouchableOpacity style={styles.gridFeatureCard} onPress={onPress}>
-            <View style={[styles.gfIconBox, { backgroundColor: bg }]}><Ionicons name={icon} size={24} color={color} /></View>
-            <Text style={styles.gfTitle}>{title}</Text>
+            <View style={[styles.gfIconBox, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)' }]}><Ionicons name={icon} size={24} color={color} /></View>
+            <Text style={[styles.gfTitle, { color: '#94a3b8' }]}>{title}</Text>
         </TouchableOpacity>
     );
 }
@@ -153,7 +166,7 @@ function SmallStatItem({ icon, count, label, color, bg }: any) {
     return (
         <View style={styles.smallStatItem}>
             <View style={[styles.smallStatIconBox, { backgroundColor: bg }]}><Ionicons name={icon} size={24} color={color} /></View>
-            <Text style={styles.smallStatCount}>{count}</Text>
+            <Text style={[styles.smallStatCount, { color: '#fff' }]}>{count}</Text>
             <Text style={styles.smallStatLabel}>{label}</Text>
         </View>
     );
@@ -172,8 +185,8 @@ function ServiceGridItem({ icon, title, sub, color }: any) {
 function QACardCircular({ icon, title, color, bg, onPress }: any) {
     return (
         <TouchableOpacity style={styles.qaCardCircular} onPress={onPress}>
-            <View style={styles.qaIconBoxCircular}><Ionicons name={icon} size={24} color={color} /></View>
-            <Text style={styles.qaTitleCircular}>{title}</Text>
+            <View style={[styles.qaIconBoxCircular, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)', shadowOpacity: 0 }]}><Ionicons name={icon} size={24} color={color} /></View>
+            <Text style={[styles.qaTitleCircular, { color: '#94a3b8' }]}>{title}</Text>
         </TouchableOpacity>
     );
 }

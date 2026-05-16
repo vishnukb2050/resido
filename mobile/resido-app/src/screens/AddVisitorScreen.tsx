@@ -3,39 +3,43 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { visitorApi } from '../services/api';
 
 const CATEGORIES = ['Visitor', 'Delivery', 'Maintenance & Repair'];
 
 export default function AddVisitorScreen() {
     const router = useRouter();
-    const { activeWorkspace, user } = useAuthStore();
+    const { activeWorkspace } = useAuthStore();
     const [loading, setLoading] = useState(false);
-    const [showCats, setShowCats] = useState(false);
-
+    
     const [formData, setFormData] = useState({
-        visitorName: '',
-        phone: '',
+        name: '',
+        mobile: '',
         purpose: '',
-        unitToVisit: '',
         category: 'Visitor',
         description: '',
         vehicleNumber: '',
     });
 
+    const [showCategories, setShowCategories] = useState(false);
+
     const handleSave = async () => {
-        if (!formData.visitorName || !formData.unitToVisit) {
-            Alert.alert('Error', 'Visitor Name and Unit to Visit are required');
+        if (!formData.name || !formData.mobile) {
+            Alert.alert('Error', 'Name and Mobile are required');
             return;
         }
 
         setLoading(true);
         try {
-            await axios.post(`http://localhost:3004/visitors`, {
-                ...formData,
-                loggedBy: user?.id || 'security'
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
+            await visitorApi.createEntry({
+                visitorName: formData.name,
+                visitorPhone: formData.mobile,
+                purpose: formData.purpose,
+                category: formData.category,
+                description: formData.description,
+                vehicleNumber: formData.vehicleNumber,
+                entryTime: new Date().toISOString(),
+                status: 'ENTERED'
             });
 
             Alert.alert('Success', 'Visitor registered successfully!', [
@@ -43,6 +47,7 @@ export default function AddVisitorScreen() {
             ]);
         } catch (e) {
             Alert.alert('Error', 'Failed to register visitor');
+            console.error(e);
         } finally {
             setLoading(false);
         }
@@ -54,20 +59,46 @@ export default function AddVisitorScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Manual Registration</Text>
+                <Text style={styles.headerTitle}>Register Visitor</Text>
                 <View style={{ width: 44 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.form}>
                     <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Full Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Visitor Name"
+                            placeholderTextColor="#64748b"
+                            value={formData.name}
+                            onChangeText={(t) => setFormData({...formData, name: t})}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Mobile Number</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="+91 00000 00000"
+                            placeholderTextColor="#64748b"
+                            keyboardType="phone-pad"
+                            value={formData.mobile}
+                            onChangeText={(t) => setFormData({...formData, mobile: t})}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
                         <Text style={styles.label}>Category</Text>
-                        <TouchableOpacity style={styles.selector} onPress={() => setShowCats(!showCats)}>
+                        <TouchableOpacity 
+                            style={styles.selector} 
+                            onPress={() => setShowCategories(!showCategories)}
+                        >
                             <Text style={styles.selectorText}>{formData.category}</Text>
-                            <Ionicons name="chevron-down" size={20} color="#6366f1" />
+                            <Ionicons name="chevron-down" size={20} color="#10b981" />
                         </TouchableOpacity>
                         
-                        {showCats && (
+                        {showCategories && (
                             <View style={styles.dropdown}>
                                 {CATEGORIES.map(cat => (
                                     <TouchableOpacity 
@@ -75,7 +106,7 @@ export default function AddVisitorScreen() {
                                         style={styles.dropdownItem}
                                         onPress={() => {
                                             setFormData({...formData, category: cat});
-                                            setShowCats(false);
+                                            setShowCategories(false);
                                         }}
                                     >
                                         <Text style={[styles.dropdownItemText, formData.category === cat && styles.selectedItemText]}>{cat}</Text>
@@ -86,44 +117,10 @@ export default function AddVisitorScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Visitor Name</Text>
+                        <Text style={styles.label}>Purpose</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Full Name"
-                            placeholderTextColor="#64748b"
-                            value={formData.visitorName}
-                            onChangeText={(t) => setFormData({...formData, visitorName: t})}
-                        />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Mobile Number</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Primary Contact"
-                            placeholderTextColor="#64748b"
-                            keyboardType="phone-pad"
-                            value={formData.phone}
-                            onChangeText={(t) => setFormData({...formData, phone: t})}
-                        />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Unit to Visit</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. 101, Block A..."
-                            placeholderTextColor="#64748b"
-                            value={formData.unitToVisit}
-                            onChangeText={(t) => setFormData({...formData, unitToVisit: t})}
-                        />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Purpose of Visit</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. Delivery, Meeting"
+                            placeholder="Reason for visit"
                             placeholderTextColor="#64748b"
                             value={formData.purpose}
                             onChangeText={(t) => setFormData({...formData, purpose: t})}
@@ -134,8 +131,9 @@ export default function AddVisitorScreen() {
                         <Text style={styles.label}>Vehicle Number</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Optional"
+                            placeholder="KL-01-AB-1234"
                             placeholderTextColor="#64748b"
+                            autoCapitalize="characters"
                             value={formData.vehicleNumber}
                             onChangeText={(t) => setFormData({...formData, vehicleNumber: t})}
                         />
@@ -155,7 +153,7 @@ export default function AddVisitorScreen() {
                     </View>
 
                     <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={loading}>
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Save Entry</Text>}
+                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Complete Registration</Text>}
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -166,20 +164,20 @@ export default function AddVisitorScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     scrollContent: { padding: 24 },
-    form: { gap: 20 },
+    form: { gap: 24 },
     inputGroup: { gap: 10 },
-    label: { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
-    selector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    selectorText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-    dropdown: { backgroundColor: '#1e293b', borderRadius: 16, marginTop: 4, padding: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    dropdownItem: { padding: 15, borderRadius: 10 },
-    dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-    selectedItemText: { color: '#6366f1' },
+    label: { fontSize: 13, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },
     textArea: { height: 100, textAlignVertical: 'top' },
-    submitBtn: { backgroundColor: '#10b981', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 20 },
+    selector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    selectorText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+    dropdown: { backgroundColor: '#1e293b', borderRadius: 16, marginTop: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    dropdownItem: { padding: 15, borderRadius: 10 },
+    dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
+    selectedItemText: { color: '#10b981' },
+    submitBtn: { backgroundColor: '#10b981', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#10b981', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });
