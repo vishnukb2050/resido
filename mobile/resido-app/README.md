@@ -13,5 +13,7 @@ This is the source code for the Resido React Native application.
 - `ServiceSearchScreen`: Discovery engine for nearby pros.
 - `CreateCommunityScreen`: Admin tool for platform expansion.
 
-## 🛠 Build Command
-`bash build_apk.sh`
+## 🛠 Build Instructions
+See [BUILD_README.md](./BUILD_README.md) for detailed instructions on how to build the APK.
+
+

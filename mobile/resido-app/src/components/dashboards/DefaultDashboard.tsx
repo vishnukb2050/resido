@@ -9,6 +9,105 @@ import { getThemeColors } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
 
+const styles = StyleSheet.create({
+    safeArea: { flex: 1 },
+    container: { flex: 1 },
+    content: { paddingBottom: 120 },
+    psWrapper: { flex: 1 },
+    
+    // Premium Header
+    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
+    psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
+    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
+    psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
+    
+    psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#0f172a' },
+    psNotifCount: { color: '#fff', fontSize: 8, fontWeight: '900' },
+    psProfileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    psProfileImg: { width: '100%', height: '100%' },
+
+    // Workspace Bubbles (Matching Image)
+    psWorkspaceSection: { marginBottom: 20 },
+    psWorkspaceScroll: { paddingHorizontal: 20, gap: 15 },
+    wsBubble: { alignItems: 'center', width: 70 },
+    wsBubbleActive: { width: 85 },
+    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: '#F3F0F8', borderWidth: 2, borderColor: 'transparent' },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#5B4B8A' },
+    wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
+    wsBubbleLabel: { color: '#7A6B9C', fontSize: 10, fontWeight: '800', marginTop: 8 },
+    wsBubbleLabelActive: { color: '#5B4B8A', fontSize: 11, fontWeight: '900' },
+
+    // Search Section
+    psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
+    psSearchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#2D2445', fontWeight: '600' },
+    psSearchIconsRight: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: 'rgba(91, 75, 138, 0.1)' },
+    psBookmarkBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#F3F0F8', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+
+    // Community Body
+    communityBody: { paddingHorizontal: 20 },
+    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 },
+    dbIconItem: { width: '18%', alignItems: 'center' },
+    dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    dbIconLabel: { color: '#2D2445', fontSize: 9, fontWeight: '800', textAlign: 'center' },
+
+    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: '#F3F0F8', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    statBox: { alignItems: 'center', flex: 1 },
+    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
+    statBoxLabel: { fontSize: 9, color: '#7A6B9C', fontWeight: '700', marginTop: 2 },
+
+    sectionContainer: { marginBottom: 25 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
+    featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
+    fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
+    fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+    announcementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    annIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(91, 75, 138, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    annTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    annSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
+
+    // My Space Body
+    mySpaceBody: { paddingHorizontal: 20 },
+    psStoriesSection: { marginBottom: 25 },
+    psStoriesScroll: { gap: 15 },
+    psStoryItem: { alignItems: 'center', width: 70 },
+    psStoryCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#5B4B8A', padding: 2 },
+    psStoryCircleActive: { borderColor: '#5B4B8A' },
+    psStoryImg: { width: '100%', height: '100%', borderRadius: 30 },
+    psStoryAddBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#5B4B8A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    psStoryLabel: { color: '#2D2445', fontSize: 11, fontWeight: '700', marginTop: 6 },
+
+    psQuickAccessBar: { marginBottom: 30 },
+    psQuickAccessScroll: { gap: 15 },
+    psQuickAccessItem: { alignItems: 'center', width: 70 },
+    psQuickAccessIconBox: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1 },
+    psQuickAccessLabel: { color: '#2D2445', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+
+    psBusinessBanner: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 20, marginBottom: 15, borderWidth: 1 },
+    psBannerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+    psBannerIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+    psBannerTextCol: { marginLeft: 15, flex: 1 },
+    psBannerTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    psBannerSub: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
+    psBannerBtn: { paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
+    psBannerBtnText: { fontWeight: '900', fontSize: 14 },
+
+    guestContent: { flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center' },
+    guestHero: { alignItems: 'center', marginBottom: 40 },
+    brandTitle: { fontSize: 36, fontWeight: '900', color: '#5B4B8A', marginBottom: 10 },
+    heroSub: { fontSize: 22, fontWeight: '800', color: '#2D2445', textAlign: 'center', marginBottom: 15 },
+    heroDesc: { fontSize: 15, color: '#7A6B9C', textAlign: 'center', lineHeight: 24 },
+    actionSection: { width: '100%' },
+    primaryBtn: { backgroundColor: '#5B4B8A', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
+    primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
+});
+
 export default function DefaultDashboard() {
     const router = useRouter();
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
@@ -65,9 +164,10 @@ export default function DefaultDashboard() {
                 </View>
             </ScrollView>
         );
+    }
     return (
         <SafeAreaView 
-            style={[styles.safeArea, { backgroundColor: isMySpace ? mySpaceBg : theme.background }]}
+            style={[styles.safeArea, { backgroundColor: '#FFFFFF' }]}
             onTouchStart={e => setTouchStartX(e.nativeEvent.pageX)}
             onTouchEnd={e => {
                 const touchEndX = e.nativeEvent.pageX;
@@ -83,35 +183,35 @@ export default function DefaultDashboard() {
                 }
             }}
         >
-            <ScrollView style={[styles.container, { backgroundColor: isMySpace ? mySpaceBg : theme.background }]} showsVerticalScrollIndicator={false}>
+            <ScrollView style={[styles.container, { backgroundColor: '#FFFFFF' }]} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
                     <View style={styles.psWrapper}>
                         {/* Premium Header */}
-                        <View style={[styles.psHeader, { backgroundColor: isMySpace ? mySpaceBg : theme.background }]}>
+                        <View style={[styles.psHeader, { backgroundColor: '#FFFFFF' }]}>
                             <View style={styles.psBrandInfo}>
-                                <View style={[styles.psLogoBox, isMySpace && { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
+                                <View style={[styles.psLogoBox, { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
                                     <Image 
                                         source={activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg')} 
                                         style={styles.psWorkspaceImg} 
                                     />
                                 </View>
                                 <View style={{ marginLeft: 15 }}>
-                                    <Text style={[styles.psBrandTitleText, isMySpace && { color: mySpaceText }]}>
+                                    <Text style={[styles.psBrandTitleText, { color: mySpaceText }]}>
                                         {activeWorkspace ? (activeWorkspace as any).tenantName : "Resido"}
                                     </Text>
-                                    <Text style={[styles.psBrandTaglineText, isMySpace && { color: mySpaceSubText }]}>
+                                    <Text style={[styles.psBrandTaglineText, { color: mySpaceSubText }]}>
                                         {activeWorkspace ? (activeWorkspace as any).role : "PERSONAL SPACE"}
                                     </Text>
                                 </View>
                             </View>
                             <View style={styles.psHeaderActions}>
-                                <TouchableOpacity style={[styles.psIconBtn, isMySpace && { backgroundColor: lightLavender }]}>
-                                    <Ionicons name="notifications" size={22} color={isMySpace ? darkLavender : "#fff"} />
+                                <TouchableOpacity style={[styles.psIconBtn, { backgroundColor: lightLavender }]}>
+                                    <Ionicons name="notifications" size={22} color={darkLavender} />
                                     <View style={styles.psNotifBadge}>
                                         <Text style={styles.psNotifCount}>3</Text>
                                     </View>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={[styles.psProfileBtn, isMySpace && { borderColor: 'rgba(91, 75, 138, 0.2)' }]} onPress={() => router.push('/profile')}>
+                                <TouchableOpacity style={[styles.psProfileBtn, { borderColor: 'rgba(91, 75, 138, 0.2)' }]} onPress={() => router.push('/profile')}>
                                     <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=resido" }} style={styles.psProfileImg} />
                                 </TouchableOpacity>
                             </View>
@@ -254,6 +354,7 @@ export default function DefaultDashboard() {
                                         <Text style={[styles.psBannerBtnText, { color: '#4A3B70' }]}>Manage Business</Text>
                                     </TouchableOpacity>
                                 </View>
+                            </View>
                         )}
                     </View>
                 </View>
@@ -331,102 +432,3 @@ function StoryItem({ name, image, hasStory, onPress }: any) {
         </TouchableOpacity>
     );
 }
-
-const styles = StyleSheet.create({
-    safeArea: { flex: 1 },
-    container: { flex: 1 },
-    content: { paddingBottom: 120 },
-    psWrapper: { flex: 1 },
-    
-    // Premium Header
-    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
-    psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
-    psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-    psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
-    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
-    psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
-    
-    psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#0f172a' },
-    psNotifCount: { color: '#fff', fontSize: 8, fontWeight: '900' },
-    psProfileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-    psProfileImg: { width: '100%', height: '100%' },
-
-    // Workspace Bubbles (Matching Image)
-    psWorkspaceSection: { marginBottom: 20 },
-    psWorkspaceScroll: { paddingHorizontal: 20, gap: 15 },
-    wsBubble: { alignItems: 'center', width: 70 },
-    wsBubbleActive: { width: 85 },
-    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: '#F3F0F8', borderWidth: 2, borderColor: 'transparent' },
-    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#5B4B8A' },
-    wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
-    wsBubbleLabel: { color: '#7A6B9C', fontSize: 10, fontWeight: '800', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#5B4B8A', fontSize: 11, fontWeight: '900' },
-
-    // Search Section
-    psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
-    psSearchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
-    psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#2D2445', fontWeight: '600' },
-    psSearchIconsRight: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: 'rgba(91, 75, 138, 0.1)' },
-    psBookmarkBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#F3F0F8', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
-
-    // Community Body
-    communityBody: { paddingHorizontal: 20 },
-    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 },
-    dbIconItem: { width: '18%', alignItems: 'center' },
-    dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
-    dbIconLabel: { color: '#2D2445', fontSize: 9, fontWeight: '800', textAlign: 'center' },
-
-    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: '#F3F0F8', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
-    statBox: { alignItems: 'center', flex: 1 },
-    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
-    statBoxLabel: { fontSize: 9, color: '#7A6B9C', fontWeight: '700', marginTop: 2 },
-
-    sectionContainer: { marginBottom: 25 },
-    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
-    featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
-    fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
-    fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
-
-    announcementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
-    annIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(91, 75, 138, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    annTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
-    annSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
-
-    // My Space Body
-    mySpaceBody: { paddingHorizontal: 20 },
-    psStoriesSection: { marginBottom: 25 },
-    psStoriesScroll: { gap: 15 },
-    psStoryItem: { alignItems: 'center', width: 70 },
-    psStoryCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#5B4B8A', padding: 2 },
-    psStoryCircleActive: { borderColor: '#5B4B8A' },
-    psStoryImg: { width: '100%', height: '100%', borderRadius: 30 },
-    psStoryAddBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#5B4B8A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
-    psStoryLabel: { color: '#2D2445', fontSize: 11, fontWeight: '700', marginTop: 6 },
-
-    psQuickAccessBar: { marginBottom: 30 },
-    psQuickAccessScroll: { gap: 15 },
-    psQuickAccessItem: { alignItems: 'center', width: 70 },
-    psQuickAccessIconBox: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1 },
-    psQuickAccessLabel: { color: '#2D2445', fontSize: 11, fontWeight: '800', textAlign: 'center' },
-
-    psBusinessBanner: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 20, marginBottom: 15, borderWidth: 1 },
-    psBannerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    psBannerIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-    psBannerTextCol: { marginLeft: 15, flex: 1 },
-    psBannerTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
-    psBannerSub: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
-    psBannerBtn: { paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
-    psBannerBtnText: { fontWeight: '900', fontSize: 14 },
-
-    guestContent: { flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center' },
-    guestHero: { alignItems: 'center', marginBottom: 40 },
-    brandTitle: { fontSize: 36, fontWeight: '900', color: '#5B4B8A', marginBottom: 10 },
-    heroSub: { fontSize: 22, fontWeight: '800', color: '#2D2445', textAlign: 'center', marginBottom: 15 },
-    heroDesc: { fontSize: 15, color: '#7A6B9C', textAlign: 'center', lineHeight: 24 },
-    actionSection: { width: '100%' },
-    primaryBtn: { backgroundColor: '#5B4B8A', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
-    primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
-});

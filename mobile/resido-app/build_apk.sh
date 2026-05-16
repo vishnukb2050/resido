@@ -27,4 +27,10 @@ echo "Cleaning build..."
 ./gradlew clean
 echo "Assembling Release APK..."
 ./gradlew assembleRelease
-echo "DONE! APK LOCATED AT /home/vishnu/socwhiz/resido/mobile/resido-app/android/app/build/outputs/apk/release/app-release.apk"
+
+echo "Copying APKs to Windows Downloads..."
+cp android/app/build/outputs/apk/release/app-arm64-v8a-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v16_arm64.apk" || true
+cp android/app/build/outputs/apk/release/app-armeabi-v7a-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v16_arm.apk" || true
+
+echo "DONE! APKs copied to Windows Downloads folder."
+
