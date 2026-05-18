@@ -122,8 +122,8 @@ model Client {
   slug            String    @unique  // used as DB identifier
   dbName          String    @unique  // e.g. resido_greenwood
   s3Prefix        String    @unique  // S3 folder prefix
-  adminEmail      String    @unique  // bound to StaffAccount with APARTMENT_ADMIN
-  adminPhone      String    @unique  // mobile contact for notifications
+  adminEmail      String    // bound to StaffAccount with APARTMENT_ADMIN
+  adminPhone      String    // mobile contact for notifications
   caretakerEmail  String?   @unique  // bound to StaffAccount with CARETAKER
   subAdminEmail   String?   @unique  // bound to StaffAccount with ADMIN_STAFF
   plan            Plan      @default(BASIC)
