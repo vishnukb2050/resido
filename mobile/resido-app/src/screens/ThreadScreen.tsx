@@ -239,7 +239,7 @@ export default function ThreadScreen() {
                 <View style={styles.authorInfo}>
                     <View style={styles.authorRow}>
                         <Text style={styles.authorName}>{item.authorName || 'Anonymous'}</Text>
-                        {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#6366f1" style={{ marginLeft: 4 }} />}
+                        {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#0d9488" style={{ marginLeft: 4 }} />}
                     </View>
                     <Text style={styles.threadMeta}>{item.location || 'Resido Community'} • {dayjs(item.createdAt).fromNow()}</Text>
                 </View>
@@ -321,7 +321,7 @@ export default function ThreadScreen() {
                                         <Text style={styles.resultPercentage}>{percentage}%</Text>
                                     </View>
                                     <View style={styles.progressBg}>
-                                        <View style={[styles.progressFill, { width: `${percentage}%` }, isSelected && { backgroundColor: '#6366f1' }]} />
+                                        <View style={[styles.progressFill, { width: `${percentage}%` }, isSelected && { backgroundColor: '#0d9488' }]} />
                                     </View>
                                 </View>
                             );
@@ -475,7 +475,7 @@ export default function ThreadScreen() {
 
             {loading && !refreshing ? (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#6366f1" />
+                    <ActivityIndicator size="large" color="#0d9488" />
                 </View>
             ) : (
                 <FlatList
@@ -514,18 +514,18 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 28, fontWeight: '900', color: '#1e293b', marginTop: 4 },
     headerActions: { flexDirection: 'row', alignItems: 'center' },
     headerIcon: { marginRight: 15 },
-    createBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+    createBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
     
     tabBar: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15 },
     tab: { paddingVertical: 8, marginRight: 20, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-    activeTab: { borderBottomColor: '#6366f1' },
+    activeTab: { borderBottomColor: '#0d9488' },
     tabText: { fontSize: 15, fontWeight: '700', color: '#94a3b8' },
     activeTabText: { color: '#1e293b' },
 
     catWrapper: { marginBottom: 20 },
     catList: { paddingHorizontal: 20, gap: 10 },
     catPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
-    activeCatPill: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+    activeCatPill: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
     catIconActive: { marginRight: 8 },
     catText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
     activeCatText: { color: '#fff' },
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
         height: 72, 
         borderRadius: 36, 
         borderWidth: 2.5, 
-        borderColor: '#6366f1', 
+        borderColor: '#0d9488', 
         padding: 3, 
         position: 'relative',
         backgroundColor: '#fff'
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
         width: 22, 
         height: 22, 
         borderRadius: 11, 
-        backgroundColor: '#6366f1', 
+        backgroundColor: '#0d9488', 
         alignItems: 'center', 
         justifyContent: 'center',
         borderWidth: 2,
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
 
     tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 },
     tag: { backgroundColor: '#f8fafc', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-    tagText: { fontSize: 12, color: '#6366f1', fontWeight: '700' },
+    tagText: { fontSize: 12, color: '#0d9488', fontWeight: '700' },
 
     interactionBar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f8fafc', paddingTop: 15 },
     interactionBtn: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     pollContainer: { backgroundColor: '#f8fafc', borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: '#f1f5f9' },
     pollQuestion: { fontSize: 16, fontWeight: '800', color: '#1e293b', marginBottom: 15, lineHeight: 22 },
     pollOptionBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 15, marginBottom: 10, alignItems: 'center' },
-    pollOptionText: { fontSize: 14, fontWeight: '700', color: '#6366f1' },
+    pollOptionText: { fontSize: 14, fontWeight: '700', color: '#0d9488' },
     pollFooter: { marginTop: 10 },
     pollMeta: { fontSize: 11, color: '#94a3b8', fontWeight: '700' },
     
@@ -634,11 +634,11 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#6366f1',
+        backgroundColor: '#0d9488',
         alignItems: 'center',
         justifyContent: 'center',
         elevation: 8,
-        shadowColor: '#6366f1',
+        shadowColor: '#0d9488',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 8,

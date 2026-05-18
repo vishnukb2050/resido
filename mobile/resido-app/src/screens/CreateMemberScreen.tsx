@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { residentApi, authApi } from '../services/api';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
+import { residentApi, authApi, communityApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
 export default function CreateMemberScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const [loading, setLoading] = useState(false);
+    
+    const [blocks, setBlocks] = useState<any[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+    const [selectedBlockId, setSelectedBlockId] = useState('');
+    const [selectedUnitId, setSelectedUnitId] = useState('');
+    const [newBlockName, setNewBlockName] = useState('');
+    const [newUnitNumber, setNewUnitNumber] = useState('');
     
     const [formData, setFormData] = useState({
         name: '',
@@ -23,21 +31,89 @@ export default function CreateMemberScreen() {
         tenantPhone: '',
     });
 
+    React.useEffect(() => {
+        fetchBlocks();
+    }, []);
+
+    const fetchBlocks = async () => {
+        try {
+            const { data } = await communityApi.getBlocks();
+            setBlocks(data || []);
+        } catch (error) {
+            console.error('Failed to fetch blocks:', error);
+        }
+    };
+
+    const fetchUnits = async (blockId: string) => {
+        try {
+            const { data } = await communityApi.getUnits(blockId);
+            setUnits(data || []);
+        } catch (error) {
+            console.error('Failed to fetch units:', error);
+        }
+    };
+
+
     const handleCreate = async () => {
         if (!formData.name || !formData.phone) {
             Alert.alert('Error', 'Name and Phone are required');
             return;
         }
 
+        if (!selectedBlockId && !selectedUnitId) {
+            Alert.alert('Error', 'Either Block or Address is mandatory');
+            return;
+        }
+
         setLoading(true);
         try {
-            // 1. Create member in resident service (tenant DB)
+            let blockId = selectedBlockId;
+            let unitId = selectedUnitId;
+            let addressStr = '';
+
+            // 1. Create Block if new
+            if (blockId === 'NEW') {
+                if (!newBlockName) {
+                    Alert.alert('Error', 'Please enter a block name');
+                    setLoading(false);
+                    return;
+                }
+                const { data } = await communityApi.createBlock({ name: newBlockName });
+                blockId = data.id;
+                addressStr = newBlockName;
+            } else if (blockId) {
+                const b = blocks.find(x => x.id === blockId);
+                addressStr = b?.name || '';
+            }
+
+            // 2. Create Unit if new
+            if (unitId === 'NEW') {
+                if (!newUnitNumber) {
+                    Alert.alert('Error', 'Please enter a unit number');
+                    setLoading(false);
+                    return;
+                }
+                if (!blockId) {
+                    Alert.alert('Error', 'A block is required to create a unit');
+                    setLoading(false);
+                    return;
+                }
+                const { data } = await communityApi.createUnit({ number: newUnitNumber, blockId });
+                unitId = data.id;
+                addressStr += `, Unit ${newUnitNumber}`;
+            } else if (unitId) {
+                const u = units.find(x => x.id === unitId);
+                addressStr += `, Unit ${u?.number || ''}`;
+            }
+
+            // 3. Create member in resident service (tenant DB)
             await residentApi.createMember({
                 ...formData,
+                address: addressStr,
                 age: formData.age ? parseInt(formData.age) : undefined
             });
             
-            // 2. Sync membership in auth service (master DB) 
+            // 4. Sync membership in auth service (master DB) 
             const activeWorkspace = useAuthStore.getState().activeWorkspace;
             await authApi.syncMembership({
                 phone: formData.phone,
@@ -46,17 +122,19 @@ export default function CreateMemberScreen() {
                 role: formData.role,
                 name: formData.name,
                 age: formData.age ? parseInt(formData.age) : undefined,
-                address: formData.address
+                address: addressStr
             });
 
             Alert.alert('Success', `${params.mode === 'STAFF' ? 'Staff' : 'Member'} added successfully`);
             router.back();
         } catch (error: any) {
+            console.error('Failed to create member:', error);
             Alert.alert('Error', error.response?.data?.message || 'Failed to add member');
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -132,23 +210,76 @@ export default function CreateMemberScreen() {
                 )}
 
                 <View style={styles.field}>
-                    <Text style={styles.label}>Address / Unit Info</Text>
-                    <TextInput 
-                        style={[styles.input, styles.textArea]} 
-                        value={formData.address} 
-                        onChangeText={(t) => setFormData({ ...formData, address: t })}
-                        placeholder="Enter full address or unit details"
-                        multiline
-                        numberOfLines={3}
-                        placeholderTextColor="#94a3b8"
-                    />
+                    <Text style={styles.label}>Block Name</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                        {blocks.map(b => (
+                            <TouchableOpacity 
+                                key={b.id} 
+                                style={[styles.roleChip, selectedBlockId === b.id && styles.roleChipActive]}
+                                onPress={() => {
+                                    setSelectedBlockId(b.id);
+                                    fetchUnits(b.id);
+                                }}
+                            >
+                                <Text style={[styles.roleChipText, selectedBlockId === b.id && styles.roleChipTextActive]}>{b.name}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity 
+                            style={[styles.roleChip, selectedBlockId === 'NEW' && styles.roleChipActive]}
+                            onPress={() => setSelectedBlockId('NEW')}
+                        >
+                            <Text style={[styles.roleChipText, selectedBlockId === 'NEW' && styles.roleChipTextActive]}>+ Add New</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+
+                    {selectedBlockId === 'NEW' && (
+                        <TextInput 
+                            style={styles.input} 
+                            value={newBlockName} 
+                            onChangeText={setNewBlockName}
+                            placeholder="Enter new block name"
+                            placeholderTextColor="#94a3b8"
+                        />
+                    )}
                 </View>
+
+                <View style={styles.field}>
+                    <Text style={styles.label}>Address / Unit Number</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                        {units.map(u => (
+                            <TouchableOpacity 
+                                key={u.id} 
+                                style={[styles.roleChip, selectedUnitId === u.id && styles.roleChipActive]}
+                                onPress={() => setSelectedUnitId(u.id)}
+                            >
+                                <Text style={[styles.roleChipText, selectedUnitId === u.id && styles.roleChipTextActive]}>{u.number}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity 
+                            style={[styles.roleChip, selectedUnitId === 'NEW' && styles.roleChipActive]}
+                            onPress={() => setSelectedUnitId('NEW')}
+                        >
+                            <Text style={[styles.roleChipText, selectedUnitId === 'NEW' && styles.roleChipTextActive]}>+ Add New</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+
+                    {selectedUnitId === 'NEW' && (
+                        <TextInput 
+                            style={styles.input} 
+                            value={newUnitNumber} 
+                            onChangeText={setNewUnitNumber}
+                            placeholder="Enter new unit number"
+                            placeholderTextColor="#94a3b8"
+                        />
+                    )}
+                </View>
+
 
                 {params.mode === 'STAFF' && (
                     <View style={styles.field}>
                         <Text style={styles.label}>Staff Documents (ID Proof/Contract)</Text>
                         <TouchableOpacity style={styles.uploadBtn}>
-                            <Ionicons name="cloud-upload-outline" size={24} color="#6366f1" />
+                            <Ionicons name="cloud-upload-outline" size={24} color="#0d9488" />
                             <Text style={styles.uploadBtnText}>Upload PDF or Image</Text>
                         </TouchableOpacity>
                     </View>
@@ -180,13 +311,13 @@ const styles = StyleSheet.create({
 
     staffRoles: { marginBottom: 20, flexDirection: 'row' },
     roleChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
-    roleChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+    roleChipActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
     roleChipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     roleChipTextActive: { color: '#fff' },
 
     uploadBtn: { borderStyle: 'dashed', borderWidth: 2, borderColor: '#e2e8f0', borderRadius: 16, padding: 25, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#f8fafc' },
-    uploadBtnText: { color: '#6366f1', fontWeight: '700', fontSize: 14 },
+    uploadBtnText: { color: '#0d9488', fontWeight: '700', fontSize: 14 },
 
-    submitBtn: { backgroundColor: '#6366f1', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 10, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+    submitBtn: { backgroundColor: '#0d9488', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 10, shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

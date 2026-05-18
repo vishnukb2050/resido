@@ -80,7 +80,7 @@ export default function FinanceScreen() {
 
                 <View style={[styles.statCard, { marginTop: 12, width: '100%', flexDirection: 'row', alignItems: 'center' }]}>
                     <View style={styles.savingsIcon}>
-                        <FontAwesome5 name="piggy-bank" size={20} color="#6366f1" />
+                        <FontAwesome5 name="piggy-bank" size={20} color="#0d9488" />
                     </View>
                     <View style={{ marginLeft: 16 }}>
                         <Text style={styles.statLabel}>Net Savings</Text>
@@ -91,7 +91,7 @@ export default function FinanceScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {loading ? (
-                    <ActivityIndicator color="#6366f1" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#0d9488" style={{ marginTop: 40 }} />
                 ) : (
                     <>
                         {/* Shortcuts */}
@@ -100,7 +100,7 @@ export default function FinanceScreen() {
                             <View style={styles.shortcutGrid}>
                                 <ShortcutItem icon="plus" label="Add Income" color="#10b981" onPress={() => router.push('/add-income')} />
                                 <ShortcutItem icon="minus" label="Add Expense" color="#ef4444" onPress={() => router.push('/add-expense')} />
-                                <ShortcutItem icon="file-upload" label="Bills" color="#6366f1" onPress={() => router.push('/documents')} />
+                                <ShortcutItem icon="file-upload" label="Bills" color="#0d9488" onPress={() => router.push('/documents')} />
                                 <ShortcutItem icon="chart-bar" label="View Report" color="#94a3b8" onPress={() => router.push('/finance-report')} />
                             </View>
                         </View>
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     headerSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    profileImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#6366f1' },
+    profileImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#0d9488' },
     
     overviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 16 },
     overviewTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    viewAll: { fontSize: 13, color: '#6366f1', fontWeight: '700' },
+    viewAll: { fontSize: 13, color: '#0d9488', fontWeight: '700' },
 
     shortcutGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
     shortcutItem: { alignItems: 'center', flex: 1 },

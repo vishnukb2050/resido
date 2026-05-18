@@ -75,7 +75,7 @@ export default function FinanceReportScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {loading ? (
-                    <ActivityIndicator color="#6366f1" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#0d9488" style={{ marginTop: 40 }} />
                 ) : (
                     <>
                         {/* Summary Cards */}
@@ -137,7 +137,7 @@ export default function FinanceReportScreen() {
                                             </Text>
                                             {tx.billUrl && (
                                                 <TouchableOpacity onPress={() => Linking.openURL(tx.billUrl)} style={styles.billBtn}>
-                                                    <Ionicons name="receipt-outline" size={14} color="#6366f1" />
+                                                    <Ionicons name="receipt-outline" size={14} color="#0d9488" />
                                                     <Text style={styles.billBtnText}>View Bill</Text>
                                                 </TouchableOpacity>
                                             )}
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     
     periodContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 20, borderRadius: 14, padding: 4, marginBottom: 20 },
     periodTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activePeriodTab: { backgroundColor: '#6366f1' },
+    activePeriodTab: { backgroundColor: '#0d9488' },
     periodText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
     activePeriodText: { color: '#fff' },
 
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     txRight: { alignItems: 'flex-end', gap: 6 },
     txAmount: { fontSize: 15, fontWeight: '900' },
     billBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-    billBtnText: { fontSize: 10, color: '#6366f1', fontWeight: '800' },
+    billBtnText: { fontSize: 10, color: '#0d9488', fontWeight: '800' },
 
     emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 40, gap: 16 },
     emptyText: { fontSize: 15, color: '#475569', fontWeight: '600' }

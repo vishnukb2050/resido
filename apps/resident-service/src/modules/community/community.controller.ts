@@ -97,7 +97,29 @@ export class CommunityController {
         return this.communityService.createGalleryFolder(data);
     }
 
+    // Blocks & Units
+    @Get('blocks')
+    getBlocks() {
+        return this.communityService.getBlocks();
+    }
+
+    @Post('blocks')
+    createBlock(@Body() data: any) {
+        return this.communityService.createBlock(data);
+    }
+
+    @Get('units')
+    getUnits(@Query('blockId') blockId: string) {
+        return this.communityService.getUnits(blockId);
+    }
+
+    @Post('units')
+    createUnit(@Body() data: any) {
+        return this.communityService.createUnit(data);
+    }
+
     // Rules
+
     @Get('rules')
     getRules() {
         return this.communityService.getRules();

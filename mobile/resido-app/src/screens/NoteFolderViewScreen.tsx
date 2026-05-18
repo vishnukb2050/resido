@@ -74,7 +74,7 @@ export default function NoteFolderViewScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#6366f1" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#0d9488" style={{ marginTop: 40 }} />
                 ) : pages.length === 0 ? (
                     <Text style={styles.emptyText}>No notes here yet. Create one!</Text>
                 ) : (
@@ -86,15 +86,15 @@ export default function NoteFolderViewScreen() {
                                 onPress={() => router.push({ pathname: '/create-note', params: { id: note.id, folderId: id, title: note.title, body: note.content } })}
                             >
                                 <View style={styles.cardHeader}>
-                                    <Text style={[styles.noteTitle, note.color === '#6366f1' && { color: '#fff' }]}>{note.title}</Text>
+                                    <Text style={[styles.noteTitle, note.color === '#0d9488' && { color: '#fff' }]}>{note.title}</Text>
                                 </View>
                                 <Text 
-                                    style={[styles.noteBody, note.color === '#6366f1' && { color: 'rgba(255,255,255,0.8)' }]} 
+                                    style={[styles.noteBody, note.color === '#0d9488' && { color: 'rgba(255,255,255,0.8)' }]} 
                                     numberOfLines={5}
                                 >
                                     {note.content}
                                 </Text>
-                                <Text style={[styles.noteDate, note.color === '#6366f1' && { color: 'rgba(255,255,255,0.6)' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
+                                <Text style={[styles.noteDate, note.color === '#0d9488' && { color: 'rgba(255,255,255,0.6)' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -133,5 +133,5 @@ const styles = StyleSheet.create({
     noteDate: { fontSize: 11, color: '#64748b', marginTop: 12, fontWeight: '600' },
 
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
 });

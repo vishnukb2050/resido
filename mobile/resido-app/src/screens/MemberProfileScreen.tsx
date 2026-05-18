@@ -62,7 +62,7 @@ export default function MemberProfileScreen() {
         }
     };
 
-    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#6366f1" /></View>;
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#0d9488" /></View>;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     placeholderText: { fontSize: 40, fontWeight: '800', color: '#3b82f6' },
     name: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
-    alias: { fontSize: 14, color: '#6366f1', fontWeight: '700', marginTop: 4 },
+    alias: { fontSize: 14, color: '#0d9488', fontWeight: '700', marginTop: 4 },
     
     statsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 25, width: '100%', justifyContent: 'center' },
     statItem: { alignItems: 'center', flex: 1 },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     statLabel: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
     divider: { width: 1, height: 25, backgroundColor: '#f1f5f9', marginHorizontal: 15 },
     
-    followBtn: { marginTop: 25, width: '60%', height: 50, borderRadius: 25, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+    followBtn: { marginTop: 25, width: '60%', height: 50, borderRadius: 25, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     unfollowBtn: { backgroundColor: '#f1f5f9', shadowOpacity: 0, elevation: 0, borderWidth: 1, borderColor: '#e2e8f0' },
     followBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
     unfollowBtnText: { color: '#1e293b' },

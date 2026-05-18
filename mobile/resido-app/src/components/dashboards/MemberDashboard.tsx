@@ -76,7 +76,7 @@ export default function MemberDashboard() {
                 {/* Member Feature Grid (As Requested) */}
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
-                    <DashboardIcon icon="chatbubbles" label="Chats" color="#fff" bg="#6366f1" onPress={() => router.push('/chat-list')} />
+                    <DashboardIcon icon="chatbubbles" label="Chats" color="#fff" bg="#0d9488" onPress={() => router.push('/chat-list')} />
                     <DashboardIcon icon="notifications-circle" label="Announce" color="#fff" bg="#10b981" onPress={() => router.push('/thread')} />
                     <DashboardIcon icon="document-text" label="Notes" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notes')} />
                     <DashboardIcon icon="folder" label="Documents" color="#fff" bg="#3b82f6" onPress={() => router.push('/documents')} />
@@ -140,7 +140,7 @@ function DashboardIcon({ icon, label, color, bg, onPress }: any) {
 function RuleItem({ icon, label }: any) {
     return (
         <View style={styles.ruleItem}>
-            <Ionicons name={icon as any} size={18} color="#6366f1" />
+            <Ionicons name={icon as any} size={18} color="#0d9488" />
             <Text style={styles.ruleText}>{label}</Text>
         </View>
     );
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
     psBrandTitleText: { fontSize: 22, fontWeight: '900', color: '#fff' },
-    psBrandTaglineText: { fontSize: 10, color: '#6366f1', fontWeight: '800', letterSpacing: 1 },
+    psBrandTaglineText: { fontSize: 10, color: '#0d9488', fontWeight: '800', letterSpacing: 1 },
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     adminAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },

@@ -24,7 +24,7 @@ export const getThemeColors = (tenantId?: string) => {
         { primary: '#ef4444', background: '#450a0a', surface: '#7f1d1d', accent: '#f87171' }, // Red/Crimson
         { primary: '#06b6d4', background: '#083344', surface: '#164e63', accent: '#22d3ee' }, // Cyan/Teal
         { primary: '#84cc16', background: '#1a2e05', surface: '#365314', accent: '#a3e635' }, // Lime/Olive
-        { primary: '#6366f1', background: '#1e1b4b', surface: '#312e81', accent: '#818cf8' }, // Indigo
+        { primary: '#0d9488', background: '#1e1b4b', surface: '#312e81', accent: '#818cf8' }, // Indigo
         { primary: '#d946ef', background: '#4a044e', surface: '#701a75', accent: '#f0abfc' }, // Fuchsia
         { primary: '#0ea5e9', background: '#0c4a6e', surface: '#075985', accent: '#38bdf8' }, // Sky
     ];

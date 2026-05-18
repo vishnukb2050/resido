@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
 
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 20 },
     shareOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    shareIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+    shareIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
     shareContent: { flex: 1, marginLeft: 16 },
     shareTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
     shareSub: { fontSize: 12, color: '#64748b', marginTop: 2 },

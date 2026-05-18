@@ -23,7 +23,7 @@ export default function ManageMembersHubScreen() {
                     icon="shield-half" 
                     title="Manage Staff" 
                     sub="Security, Maintenance, Cleaning, etc."
-                    color="#6366f1"
+                    color="#0d9488"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'STAFF_GROUP' } })}
                 />
 
@@ -31,7 +31,7 @@ export default function ManageMembersHubScreen() {
                     icon="home" 
                     title="Manage Residents" 
                     sub="Apartment owners and tenants"
-                    color="#10b981"
+                    color="#0d9488"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'RESIDENT' } })}
                 />
 
@@ -39,7 +39,7 @@ export default function ManageMembersHubScreen() {
                     icon="shield-checkmark" 
                     title="Manage Admin Staff" 
                     sub="Staff with administrative access"
-                    color="#ec4899"
+                    color="#0d9488"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'ADMIN_STAFF' } })}
                 />
 
@@ -47,7 +47,7 @@ export default function ManageMembersHubScreen() {
                     icon="people" 
                     title="Manage Members" 
                     sub="General community members"
-                    color="#f59e0b"
+                    color="#0d9488"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'MEMBER' } })}
                 />
             </ScrollView>
@@ -71,8 +71,9 @@ function HubTile({ icon, title, sub, color, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
+
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     content: { padding: 24, gap: 20 },

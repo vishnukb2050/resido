@@ -15,7 +15,7 @@ import { authApi } from '../services/api';
 const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
-    { id: 'all', name: 'All', icon: 'apps', color: '#6366f1' },
+    { id: 'all', name: 'All', icon: 'apps', color: '#0d9488' },
     { id: '1', name: 'Plumber', icon: 'water', color: '#60a5fa' },
     { id: '2', name: 'Electrician', icon: 'flash', color: '#fbbf24' },
     { id: '3', name: 'Carpenter', icon: 'construct', color: '#d97706' },
@@ -355,7 +355,7 @@ export default function ServiceSearchScreen() {
                             onChangeText={setSearchQuery}
                         />
                         <TouchableOpacity style={styles.nearMeBtn} onPress={handleUseCurrentLocation}>
-                            <MaterialCommunityIcons name="google-maps" size={18} color="#6366f1" />
+                            <MaterialCommunityIcons name="google-maps" size={18} color="#0d9488" />
                             <Text style={styles.nearMeText}>Near Me</Text>
                         </TouchableOpacity>
                     </View>
@@ -364,7 +364,7 @@ export default function ServiceSearchScreen() {
                         {selectedLocationName ? (
                             <View style={styles.selectedAreaHeader}>
                                 <View style={styles.selectedAreaBadge}>
-                                    <Ionicons name="location" size={16} color="#6366f1" />
+                                    <Ionicons name="location" size={16} color="#0d9488" />
                                     <Text style={styles.selectedAreaText}>{selectedLocationName}</Text>
                                     <TouchableOpacity onPress={() => {
                                         setSelectedLocationName('');
@@ -444,7 +444,7 @@ export default function ServiceSearchScreen() {
 
                         <View style={styles.mapOverlayHeader}>
                             <View style={styles.selectedLocationBadge}>
-                                <Ionicons name="location" size={18} color="#6366f1" />
+                                <Ionicons name="location" size={18} color="#0d9488" />
                                 <Text style={styles.selectedLocationText} numberOfLines={1}>
                                     {selectedLocationName || 'Current Location'}
                                 </Text>
@@ -452,7 +452,7 @@ export default function ServiceSearchScreen() {
                         </View>
 
                         <TouchableOpacity style={styles.mapGpsBtn} onPress={handleUseCurrentLocation}>
-                            <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#6366f1" />
+                            <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#0d9488" />
                         </TouchableOpacity>
 
                         <TouchableOpacity 
@@ -478,7 +478,7 @@ export default function ServiceSearchScreen() {
                         <Text style={styles.verifiedSubtitle}>Background verified • Quality service • On-time</Text>
                     </View>
                     <View style={styles.verifiedBadgeContainer}>
-                        <MaterialCommunityIcons name="certificate" size={40} color="#6366f1" />
+                        <MaterialCommunityIcons name="certificate" size={40} color="#0d9488" />
                         <View style={styles.checkInner}>
                             <Ionicons name="checkmark" size={14} color="#fff" />
                         </View>
@@ -499,7 +499,7 @@ export default function ServiceSearchScreen() {
                         <TouchableOpacity key={item.id} style={styles.popularCard}>
                             <Image source={{ uri: item.image }} style={styles.popularImage} />
                             <View style={styles.popularIconOverlay}>
-                                <MaterialCommunityIcons name={item.icon as any} size={18} color="#6366f1" />
+                                <MaterialCommunityIcons name={item.icon as any} size={18} color="#0d9488" />
                             </View>
                             <View style={styles.popularInfo}>
                                 <Text style={styles.popularName}>{item.name}</Text>
@@ -521,7 +521,7 @@ export default function ServiceSearchScreen() {
 
                 {loading ? (
                     <View style={{ padding: 40, alignItems: 'center' }}>
-                        <ActivityIndicator color="#6366f1" size="large" />
+                        <ActivityIndicator color="#0d9488" size="large" />
                         <Text style={{ marginTop: 12, color: '#64748b' }}>Finding best matches...</Text>
                     </View>
                 ) : (
@@ -538,7 +538,7 @@ export default function ServiceSearchScreen() {
                                 <View style={styles.proInfo}>
                                     <View style={styles.proNameRow}>
                                         <Text style={styles.proName}>{pro.businessName || pro.name}</Text>
-                                        {pro.isVerified && <Ionicons name="checkmark-circle" size={16} color="#6366f1" />}
+                                        {pro.isVerified && <Ionicons name="checkmark-circle" size={16} color="#0d9488" />}
                                     </View>
                                     <Text style={styles.proCat}>{pro.category} • {pro.experience || 'Experienced'}</Text>
                                     <View style={styles.proLocRow}>
@@ -569,7 +569,7 @@ export default function ServiceSearchScreen() {
 
                 <View style={styles.postJobCard}>
                     <View style={styles.postJobIcon}>
-                        <Ionicons name="pricetag" size={24} color="#6366f1" />
+                        <Ionicons name="pricetag" size={24} color="#0d9488" />
                     </View>
                     <View style={styles.postJobText}>
                         <Text style={styles.postJobTitle}>Post a Job for Free</Text>
@@ -594,7 +594,7 @@ export default function ServiceSearchScreen() {
                                 style={styles.dropdownItem}
                                 onPress={() => onSelectLocation(loc)}
                             >
-                                <Ionicons name={loc.isNoResult ? "help-circle-outline" : "location-outline"} size={16} color={loc.isNoResult ? "#94a3b8" : "#6366f1"} />
+                                <Ionicons name={loc.isNoResult ? "help-circle-outline" : "location-outline"} size={16} color={loc.isNoResult ? "#94a3b8" : "#0d9488"} />
                                 <View style={{ marginLeft: 10, flex: 1 }}>
                                     <Text style={[styles.dropdownPlace, loc.isNoResult && { color: '#94a3b8', fontStyle: 'italic' }]}>
                                         {loc.isNoResult ? "Location not found" : `${loc.placeName} (${loc.pincode})`}
@@ -609,7 +609,7 @@ export default function ServiceSearchScreen() {
                                 style={[styles.dropdownItem, { justifyContent: 'center', backgroundColor: '#f8fafc' }]}
                                 onPress={() => setVisibleCount(prev => prev + 100)}
                             >
-                                <Text style={{ color: '#6366f1', fontWeight: '700', fontSize: 13 }}>
+                                <Text style={{ color: '#0d9488', fontWeight: '700', fontSize: 13 }}>
                                     Show More Results ({locationResults.length - visibleCount} remaining)
                                 </Text>
                             </TouchableOpacity>
@@ -657,17 +657,17 @@ const styles = StyleSheet.create({
     catName: { fontSize: 12, fontWeight: '700', color: '#475569' },
 
     verifiedBanner: { marginHorizontal: 20, backgroundColor: '#f5f7ff', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e0e7ff', marginBottom: 25 },
-    verifiedIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOpacity: 0.1 },
-    shieldIcon: { backgroundColor: '#6366f1', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    verifiedIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOpacity: 0.1 },
+    shieldIcon: { backgroundColor: '#0d9488', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     verifiedTextContent: { flex: 1, marginLeft: 12 },
-    verifiedTitle: { fontSize: 14, fontWeight: '800', color: '#6366f1' },
+    verifiedTitle: { fontSize: 14, fontWeight: '800', color: '#0d9488' },
     verifiedSubtitle: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
     verifiedBadgeContainer: { position: 'relative', width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-    checkInner: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', top: 11 },
+    checkInner: { position: 'absolute', width: 18, height: 18, borderRadius: 9, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', top: 11 },
 
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15 },
     sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
-    viewAll: { fontSize: 13, color: '#6366f1', fontWeight: '700' },
+    viewAll: { fontSize: 13, color: '#0d9488', fontWeight: '700' },
 
     popularScroll: { marginBottom: 25 },
     popularContent: { paddingHorizontal: 20 },
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
     proRatingText: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
     proReviews: { color: '#94a3b8', fontWeight: '500' },
     priceBadge: { backgroundColor: '#f5f7ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 6 },
-    priceText: { fontSize: 12, color: '#6366f1', fontWeight: '800' },
+    priceText: { fontSize: 12, color: '#0d9488', fontWeight: '800' },
     chatBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
 
     featuresRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 10, marginBottom: 25 },
@@ -706,9 +706,9 @@ const styles = StyleSheet.create({
     postJobCard: { marginHorizontal: 20, backgroundColor: '#f8fafc', borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
     postJobIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#eef2ff', alignItems: 'center', justifyContent: 'center' },
     postJobText: { flex: 1, marginLeft: 15 },
-    postJobTitle: { fontSize: 16, fontWeight: '900', color: '#6366f1' },
+    postJobTitle: { fontSize: 16, fontWeight: '900', color: '#0d9488' },
     postJobSubtitle: { fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 18 },
-    postJobBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+    postJobBtn: { backgroundColor: '#0d9488', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
     postJobBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
     dropdownContainer: {
@@ -760,18 +760,18 @@ const styles = StyleSheet.create({
         fontStyle: 'italic'
     },
     nearMeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f7ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginRight: 8, borderWidth: 1, borderColor: '#e0e7ff' },
-    nearMeText: { fontSize: 12, fontWeight: '700', color: '#6366f1', marginLeft: 4 },
+    nearMeText: { fontSize: 12, fontWeight: '700', color: '#0d9488', marginLeft: 4 },
     mapViewContainer: { height: 450, marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25, position: 'relative', zIndex: 1 },
     map: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
     mapOverlayHeader: { position: 'absolute', top: 15, left: 15, right: 15, zIndex: 9999 },
     mapSearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 48, borderRadius: 12, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 10000 },
     mapSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
     mapGpsBtn: { position: 'absolute', right: 15, bottom: 85, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
-    mapDoneBtn: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#6366f1', height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 8, zIndex: 100 },
+    mapDoneBtn: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#0d9488', height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 8, zIndex: 100 },
     mapDoneText: { color: '#fff', fontWeight: '800', fontSize: 15 },
     radiusSelector: { position: 'absolute', right: 15, top: 80, backgroundColor: '#fff', borderRadius: 12, padding: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
     radiusBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginBottom: 4 },
-    radiusBtnActive: { backgroundColor: '#6366f1' },
+    radiusBtnActive: { backgroundColor: '#0d9488' },
     radiusText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     radiusTextActive: { color: '#fff' },
     markerContainer: { alignItems: 'center', justifyContent: 'center' },
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#e0e7ff',
-        shadowColor: '#6366f1',
+        shadowColor: '#0d9488',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     selectedAreaText: {
         fontSize: 13,
         fontWeight: '800',
-        color: '#6366f1',
+        color: '#0d9488',
         marginLeft: 8,
     },
 });

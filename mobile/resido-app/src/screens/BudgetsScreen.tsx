@@ -11,7 +11,7 @@ const { width } = Dimensions.get('window');
 
 const BUDGETS = [
     { name: 'Groceries', spent: 12980, limit: 15000, percent: 86, color: '#10b981', icon: 'shopping-basket' },
-    { name: 'Utilities', spent: 6490, limit: 7000, percent: 93, color: '#6366f1', icon: 'bolt' },
+    { name: 'Utilities', spent: 6490, limit: 7000, percent: 93, color: '#0d9488', icon: 'bolt' },
     { name: 'Shopping', spent: 4870, limit: 6000, percent: 81, color: '#ec4899', icon: 'shopping-bag' },
     { name: 'Transport', spent: 3250, limit: 4000, percent: 81, color: '#3b82f6', icon: 'car' },
     { name: 'Food & Dining', spent: 2600, limit: 3000, percent: 87, color: '#f43f5e', icon: 'utensils' },
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     
     periodRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     periodText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-    editText: { fontSize: 13, color: '#6366f1', fontWeight: '700' },
+    editText: { fontSize: 13, color: '#0d9488', fontWeight: '700' },
 
     listContainer: { paddingHorizontal: 20, marginTop: 10 },
     budgetCard: { backgroundColor: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },

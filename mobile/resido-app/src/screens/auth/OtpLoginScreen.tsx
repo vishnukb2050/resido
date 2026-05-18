@@ -138,15 +138,15 @@ export default function OtpLoginScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f0f1a', justifyContent: 'center', padding: 24 },
     card: { backgroundColor: '#1e1e2e', borderRadius: 20, padding: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    logo: { fontSize: 36, fontWeight: '800', color: '#6366f1', textAlign: 'center', letterSpacing: -1 },
+    logo: { fontSize: 36, fontWeight: '800', color: '#0d9488', textAlign: 'center', letterSpacing: -1 },
     tagline: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 32, marginTop: 4 },
     label: { fontSize: 14, color: '#94a3b8', marginBottom: 12, fontWeight: '600' },
     phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16 },
     countryCode: { color: '#94a3b8', paddingHorizontal: 14, fontSize: 16, fontWeight: '600', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)' },
     input: { flex: 1, color: '#ffffff', padding: 14, fontSize: 18 },
     otpInput: { backgroundColor: '#ffffff', borderRadius: 12, padding: 14, color: '#000000', fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 20, height: 60 },
-    btn: { backgroundColor: '#6366f1', borderRadius: 12, padding: 16, alignItems: 'center' },
+    btn: { backgroundColor: '#0d9488', borderRadius: 12, padding: 16, alignItems: 'center' },
     btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
     backBtn: { marginTop: 16, alignItems: 'center' },
-    backText: { color: '#6366f1', fontSize: 14 },
+    backText: { color: '#0d9488', fontSize: 14 },
 });

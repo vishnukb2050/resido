@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b', fontWeight: '500' },
     filterList: { paddingHorizontal: 20, paddingBottom: 15, gap: 8, backgroundColor: '#fff' },
     filterChip: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
-    filterChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+    filterChipActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
     filterText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
     filterTextActive: { color: '#fff' },
     listContent: { padding: 20, gap: 12 },
@@ -132,5 +132,5 @@ const styles = StyleSheet.create({
     time: { fontSize: 10, color: '#94a3b8', fontWeight: '600' },
     footer: { padding: 20, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     totalText: { fontSize: 13, fontWeight: '700', color: '#1e293b' },
-    exportText: { fontSize: 13, fontWeight: '800', color: '#6366f1' },
+    exportText: { fontSize: 13, fontWeight: '800', color: '#0d9488' },
 });

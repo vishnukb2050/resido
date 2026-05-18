@@ -92,7 +92,14 @@ export const communityApi = {
     createRule: (data: any) => api.post('/community/rules', data),
     getMembers: () => api.get('/community/members'),
     getGallery: () => api.get('/community/gallery'),
+    
+    // Blocks & Units
+    getBlocks: () => api.get('/community/blocks'),
+    createBlock: (data: any) => api.post('/community/blocks', data),
+    getUnits: (blockId: string) => api.get(`/community/units`, { params: { blockId } }),
+    createUnit: (data: any) => api.post('/community/units', data),
 };
+
 
 export const visitorApi = {
     verifyGatepass: (id: string) => api.get(`/visitors/gatepass/${id}`),

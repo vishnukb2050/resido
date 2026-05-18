@@ -50,7 +50,7 @@ export default function WorkspaceSelectScreen() {
             <View style={{ gap: 12 }}>
                 {/* Default Personal Workspace */}
                 <TouchableOpacity 
-                    style={[styles.card, { borderColor: '#6366f1', borderWidth: 1, backgroundColor: 'rgba(99,102,241,0.05)' }]} 
+                    style={[styles.card, { borderColor: '#0d9488', borderWidth: 1, backgroundColor: 'rgba(99,102,241,0.05)' }]} 
                     onPress={() => {
                         setActiveWorkspace(null as any, token!);
                         router.replace('/(app)/home');
@@ -97,17 +97,17 @@ const styles = StyleSheet.create({
     icon: { fontSize: 28 },
     info: { flex: 1 },
     name: { fontSize: 16, fontWeight: '700', color: '#e2e8f0' },
-    role: { fontSize: 12, color: '#6366f1', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    role: { fontSize: 12, color: '#0d9488', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
     arrow: { fontSize: 18, color: '#64748b' },
     createBtn: {
         backgroundColor: 'rgba(99,102,241,0.1)',
         borderWidth: 1,
-        borderColor: '#6366f1',
+        borderColor: '#0d9488',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
         marginBottom: 24,
         borderStyle: 'dashed'
     },
-    createBtnText: { color: '#6366f1', fontWeight: '700', fontSize: 16 },
+    createBtnText: { color: '#0d9488', fontWeight: '700', fontSize: 16 },
 });

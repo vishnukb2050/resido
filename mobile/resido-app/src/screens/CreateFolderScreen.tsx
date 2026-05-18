@@ -9,7 +9,7 @@ import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
-const COLORS = ['#f59e0b', '#10b981', '#6366f1', '#f97316', '#3b82f6', '#ec4899', '#ef4444'];
+const COLORS = ['#f59e0b', '#10b981', '#0d9488', '#f97316', '#3b82f6', '#ec4899', '#ef4444'];
 
 export default function CreateFolderScreen() {
     const router = useRouter();
@@ -18,7 +18,7 @@ export default function CreateFolderScreen() {
     
     const [name, setName] = useState('');
     const [desc, setDesc] = useState('');
-    const [selectedColor, setSelectedColor] = useState('#6366f1');
+    const [selectedColor, setSelectedColor] = useState('#0d9488');
     const [loading, setLoading] = useState(false);
 
     const handleCreate = async () => {
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     header: { padding: 20, paddingTop: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
     
     scrollContent: { padding: 20, paddingTop: 10 },
     iconSection: { alignItems: 'center', marginTop: 20, marginBottom: 40 },

@@ -106,10 +106,14 @@ export default function AdminDashboard() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>People Management</Text>
                     <View style={styles.featureGrid}>
-                        <FeatureCard icon="person-add" title="Add Resident" color="#fff" bg="#3182ce" onPress={() => router.push({ pathname: '/create-member', params: { mode: 'RESIDENT' } })} />
-                        <FeatureCard icon="people-circle" title="Add Staff" color="#fff" bg="#10b981" onPress={() => router.push({ pathname: '/create-member', params: { mode: 'STAFF' } })} />
-                        <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#6366f1" />
+                        <FeatureCard icon="person-add" title="Add Resident" color="#fff" bg="#3182ce" onPress={() => router.push('/create-member?mode=RESIDENT')} />
+                        <FeatureCard icon="people-circle" title="Add Staff" color="#fff" bg="#10b981" onPress={() => router.push('/create-member?mode=STAFF')} />
+
+                        <FeatureCard icon="business" title="Blocks" color="#fff" bg="#d97706" onPress={() => router.push('/manage-blocks')} />
+                        <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/manage-blocks')} />
+                        <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#0d9488" />
                         <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/documents')} />
+
                     </View>
                 </View>
 

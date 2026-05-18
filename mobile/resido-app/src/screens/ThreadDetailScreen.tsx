@@ -140,7 +140,7 @@ export default function ThreadDetailScreen() {
 
     if (loading) return (
         <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366f1" />
+            <ActivityIndicator size="large" color="#0d9488" />
         </View>
     );
 
@@ -182,7 +182,7 @@ export default function ThreadDetailScreen() {
                                     <Text style={styles.timeText}>{dayjs(thread.createdAt).fromNow()}</Text>
                                 </View>
                                 <View style={styles.visibilityBadge}>
-                                    <Ionicons name="globe-outline" size={12} color="#6366f1" />
+                                    <Ionicons name="globe-outline" size={12} color="#0d9488" />
                                     <Text style={styles.visibilityText}>{thread.visibility}</Text>
                                 </View>
                             </View>
@@ -236,8 +236,8 @@ export default function ThreadDetailScreen() {
                                     <Text style={styles.statText}>Share</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={styles.statItem} onPress={() => router.push(`/chat-list?forwardContent=${encodeURIComponent(thread.title + '\n' + thread.content)}`)}>
-                                    <Ionicons name="chatbubbles-outline" size={22} color="#6366f1" />
-                                    <Text style={[styles.statText, { color: '#6366f1' }]}>Forward</Text>
+                                    <Ionicons name="chatbubbles-outline" size={22} color="#0d9488" />
+                                    <Text style={[styles.statText, { color: '#0d9488' }]}>Forward</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -306,7 +306,7 @@ export default function ThreadDetailScreen() {
                 <View style={styles.inputWrapper}>
                     <Image source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/100' }} style={styles.smallAvatar} />
                     <TouchableOpacity style={styles.commentPlusBtn} onPress={() => setShowPollBuilder(true)}>
-                        <Ionicons name="add" size={24} color="#6366f1" />
+                        <Ionicons name="add" size={24} color="#0d9488" />
                     </TouchableOpacity>
                     <View style={styles.inputContainer}>
                         <TextInput
@@ -322,7 +322,7 @@ export default function ThreadDetailScreen() {
                             disabled={sending || !newComment.trim()}
                             style={[styles.sendBtn, !newComment.trim() && { opacity: 0.5 }]}
                         >
-                            {sending ? <ActivityIndicator size="small" color="#6366f1" /> : <Ionicons name="send" size={20} color="#6366f1" />}
+                            {sending ? <ActivityIndicator size="small" color="#0d9488" /> : <Ionicons name="send" size={20} color="#0d9488" />}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     authorName: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
     timeText: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
     visibilityBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f3ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-    visibilityText: { fontSize: 10, fontWeight: '800', color: '#6366f1', marginLeft: 4, textTransform: 'uppercase' },
+    visibilityText: { fontSize: 10, fontWeight: '800', color: '#0d9488', marginLeft: 4, textTransform: 'uppercase' },
     title: { fontSize: 22, fontWeight: '900', color: '#1e293b', marginBottom: 12 },
     content: { fontSize: 16, color: '#475569', lineHeight: 24, marginBottom: 20 },
     media: { width: '100%', height: 250, borderRadius: 20, marginBottom: 20 },
@@ -378,28 +378,28 @@ const styles = StyleSheet.create({
     emptyCommentsText: { color: '#94a3b8', fontSize: 14 },
     errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     errorText: { fontSize: 16, color: '#94a3b8' },
-    backBtn: { marginTop: 20, backgroundColor: '#6366f1', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+    backBtn: { marginTop: 20, backgroundColor: '#0d9488', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
     backBtnText: { color: '#fff', fontWeight: '800' },
 
     // Poll Styles
     pollContainer: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 16, marginVertical: 15, borderWidth: 1, borderColor: '#f1f5f9' },
     pollQuestion: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 15 },
     pollOption: { backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    pollOptionSelected: { borderColor: '#6366f1', backgroundColor: '#f5f3ff' },
-    pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#6366f115' },
+    pollOptionSelected: { borderColor: '#0d9488', backgroundColor: '#f5f3ff' },
+    pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#0d948815' },
     pollOptionText: { fontSize: 14, fontWeight: '700', color: '#475569', zIndex: 1 },
-    pollOptionTextSelected: { color: '#6366f1' },
-    pollPercentage: { fontSize: 13, fontWeight: '800', color: '#6366f1', zIndex: 1 },
+    pollOptionTextSelected: { color: '#0d9488' },
+    pollPercentage: { fontSize: 13, fontWeight: '800', color: '#0d9488', zIndex: 1 },
     pollMeta: { fontSize: 12, color: '#94a3b8', marginTop: 5, fontWeight: '600' },
 
     commentPlusBtn: { marginLeft: 12, width: 32, height: 32, borderRadius: 16, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
     commentPollContainer: { backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, marginVertical: 8, borderWidth: 1, borderColor: '#f1f5f9' },
     commentPollQuestion: { fontSize: 14, fontWeight: '800', color: '#1e293b', marginBottom: 10 },
     commentPollOption: { backgroundColor: '#fff', padding: 8, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    commentPollOptionSelected: { borderColor: '#6366f1', backgroundColor: '#f5f3ff' },
-    commentPollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#6366f115' },
+    commentPollOptionSelected: { borderColor: '#0d9488', backgroundColor: '#f5f3ff' },
+    commentPollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#0d948815' },
     commentPollOptionText: { fontSize: 12, fontWeight: '700', color: '#475569', zIndex: 1 },
-    commentPollOptionTextSelected: { color: '#6366f1' },
-    commentPollPercentage: { fontSize: 11, fontWeight: '800', color: '#6366f1', zIndex: 1 },
+    commentPollOptionTextSelected: { color: '#0d9488' },
+    commentPollPercentage: { fontSize: 11, fontWeight: '800', color: '#0d9488', zIndex: 1 },
     commentPollMeta: { fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
 });

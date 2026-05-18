@@ -45,7 +45,7 @@ export default function StaffContactsScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={staff}
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     staffImg: { width: 64, height: 64, borderRadius: 22 },
     staffInfo: { flex: 1, marginLeft: 15 },
     staffName: { fontSize: 17, fontWeight: '800', color: '#fff' },
-    staffRole: { fontSize: 11, color: '#6366f1', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
+    staffRole: { fontSize: 11, color: '#0d9488', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
     staffDesc: { fontSize: 12, color: '#64748b', marginTop: 4, fontWeight: '600' },
     callBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
     disabledBtn: { backgroundColor: '#334155' },

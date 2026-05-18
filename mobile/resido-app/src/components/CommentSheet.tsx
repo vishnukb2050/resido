@@ -186,7 +186,7 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                 <Text style={styles.sheetTitle}>Comments</Text>
                 
                 {loading ? (
-                    <ActivityIndicator style={{ marginTop: 50 }} color="#6366f1" />
+                    <ActivityIndicator style={{ marginTop: 50 }} color="#0d9488" />
                 ) : (
                     <FlatList
                         data={comments}
@@ -216,7 +216,7 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                         
                         <View style={styles.inputRow}>
                             <TouchableOpacity onPress={() => setShowPollBuilder(true)} style={styles.plusBtn}>
-                                <Ionicons name="add" size={24} color="#6366f1" />
+                                <Ionicons name="add" size={24} color="#0d9488" />
                             </TouchableOpacity>
                             <Image 
                                 source={{ uri: user?.profilePhoto || 'https://randomuser.me/api/portraits/lego/1.jpg' }} 
@@ -233,7 +233,7 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                                 />
                                 <TouchableOpacity onPress={handleSend} disabled={sending}>
                                     {sending ? (
-                                        <ActivityIndicator size="small" color="#6366f1" />
+                                        <ActivityIndicator size="small" color="#0d9488" />
                                     ) : (
                                         <Text style={[styles.postBtn, !newComment.trim() && styles.postBtnDisabled]}>Post</Text>
                                     )}
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
         maxHeight: 100,
     },
     postBtn: {
-        color: '#6366f1',
+        color: '#0d9488',
         fontWeight: '700',
         marginLeft: 10,
     },
@@ -403,10 +403,10 @@ const styles = StyleSheet.create({
     pollContainer: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 12, marginVertical: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     pollQuestion: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 10 },
     pollOption: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 8, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    pollOptionSelected: { borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)' },
+    pollOptionSelected: { borderColor: '#0d9488', backgroundColor: 'rgba(99, 102, 241, 0.1)' },
     pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(99, 102, 241, 0.2)' },
     pollOptionText: { fontSize: 12, fontWeight: '700', color: '#e2e8f0', zIndex: 1 },
-    pollOptionTextSelected: { color: '#6366f1' },
-    pollPercentage: { fontSize: 11, fontWeight: '800', color: '#6366f1', zIndex: 1 },
+    pollOptionTextSelected: { color: '#0d9488' },
+    pollPercentage: { fontSize: 11, fontWeight: '800', color: '#0d9488', zIndex: 1 },
     pollMeta: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: '600' },
 });

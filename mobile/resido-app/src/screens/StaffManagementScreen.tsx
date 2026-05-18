@@ -35,7 +35,7 @@ export default function StaffManagementScreen() {
         }
     };
 
-    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#6366f1" /></View>;
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#0d9488" /></View>;
 
     return (
         <View style={styles.container}>
@@ -68,7 +68,7 @@ export default function StaffManagementScreen() {
                         <View style={styles.info}>
                             <Text style={styles.name}>{item.name}</Text>
                             <View style={styles.roleRow}>
-                                <View style={[styles.roleDot, { backgroundColor: item.role === 'CLEANING_STAFF' ? '#6366f1' : '#10b981' }]} />
+                                <View style={[styles.roleDot, { backgroundColor: item.role === 'CLEANING_STAFF' ? '#0d9488' : '#10b981' }]} />
                                 <Text style={styles.roleText}>{item.role.replace('_', ' ')}</Text>
                             </View>
                             <Text style={styles.phone}>{item.phone}</Text>
@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     header: { padding: 20, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: 24, fontWeight: '800', color: '#1e293b' },
-    subTitle: { fontSize: 13, color: '#6366f1', fontWeight: '600', marginTop: 2 },
-    addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+    subTitle: { fontSize: 13, color: '#0d9488', fontWeight: '600', marginTop: 2 },
+    addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 20, elevation: 1 },
     avatar: { width: 50, height: 50, borderRadius: 16, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     avatarImg: { width: '100%', height: '100%' },

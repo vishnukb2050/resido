@@ -93,7 +93,7 @@ export default function ContactsScreen() {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Contacts</Text>
                 <TouchableOpacity>
-                    <Ionicons name="person-add-outline" size={24} color="#6366f1" />
+                    <Ionicons name="person-add-outline" size={24} color="#0d9488" />
                 </TouchableOpacity>
             </View>
 
@@ -107,13 +107,13 @@ export default function ContactsScreen() {
                         value={search}
                         onChangeText={handleSearch}
                     />
-                    {isSearchingGlobal && <ActivityIndicator size="small" color="#6366f1" />}
+                    {isSearchingGlobal && <ActivityIndicator size="small" color="#0d9488" />}
                 </View>
             </View>
 
             {loading ? (
                 <View style={{ flex: 1, justifyContent: 'center' }}>
-                    <ActivityIndicator size="large" color="#6366f1" />
+                    <ActivityIndicator size="large" color="#0d9488" />
                 </View>
             ) : (
                 <FlatList
@@ -174,10 +174,10 @@ const styles = StyleSheet.create({
     info: { flex: 1, marginLeft: 14 },
     name: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 2 },
     phone: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-    chatBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-    inviteBtn: { borderWidth: 1, borderColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+    chatBtn: { backgroundColor: '#0d9488', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+    inviteBtn: { borderWidth: 1, borderColor: '#0d9488', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
     btnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-    inviteText: { color: '#6366f1', fontSize: 13, fontWeight: '800' },
+    inviteText: { color: '#0d9488', fontSize: 13, fontWeight: '800' },
     empty: { textAlign: 'center', color: '#94a3b8', marginTop: 48, fontSize: 15, fontWeight: '600' },
-    globalBadge: { fontSize: 10, color: '#6366f1', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' },
+    globalBadge: { fontSize: 10, color: '#0d9488', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' },
 });

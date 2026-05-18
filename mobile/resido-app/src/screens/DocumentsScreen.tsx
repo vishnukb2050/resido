@@ -81,7 +81,7 @@ export default function DocumentsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {loading ? (
-                    <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
+                    <ActivityIndicator color="#0d9488" style={{ marginTop: 20 }} />
                 ) : (
                     <>
                         {/* My Folders Section */}
@@ -89,8 +89,8 @@ export default function DocumentsScreen() {
                             <View style={styles.sectionHeader}>
                                 <Text style={styles.sectionTitle}>My Folders</Text>
                                 <TouchableOpacity style={styles.sortBtn} onPress={() => router.push({ pathname: '/create-folder', params: { type: 'DOC' } })}>
-                                    <Ionicons name="add-circle" size={20} color="#6366f1" />
-                                    <Text style={[styles.sortText, { color: '#6366f1' }]}>New Folder</Text>
+                                    <Ionicons name="add-circle" size={20} color="#0d9488" />
+                                    <Text style={[styles.sortText, { color: '#0d9488' }]}>New Folder</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -103,7 +103,7 @@ export default function DocumentsScreen() {
                                         style={styles.folderCard}
                                         onPress={() => router.push({ pathname: '/folder-view', params: { id: folder.id, name: folder.name, count: folder._count?.files || 0 } })}
                                     >
-                                        <View style={[styles.folderIconBox, { backgroundColor: folder.color || '#6366f1' }]}>
+                                        <View style={[styles.folderIconBox, { backgroundColor: folder.color || '#0d9488' }]}>
                                             <MaterialCommunityIcons name="folder" size={24} color="#fff" />
                                         </View>
                                         <View style={styles.folderInfo}>
@@ -181,13 +181,13 @@ const styles = StyleSheet.create({
     
     tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4 },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activeTab: { backgroundColor: '#6366f1' },
+    activeTab: { backgroundColor: '#0d9488' },
     tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
     activeTabText: { color: '#fff' },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#6366f1' },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0d9488' },
     sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     sortText: { fontSize: 13, color: '#64748b', fontWeight: '600' },
 
@@ -196,10 +196,10 @@ const styles = StyleSheet.create({
     folderInfo: { flex: 1, marginLeft: 16 },
     folderName: { fontSize: 16, fontWeight: '800', color: '#fff' },
     folderSub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
-    sharedBy: { fontSize: 11, color: '#6366f1', marginTop: 2, fontWeight: '700' },
+    sharedBy: { fontSize: 11, color: '#0d9488', marginTop: 2, fontWeight: '700' },
     folderRight: { alignItems: 'flex-end', gap: 8 },
     folderDate: { fontSize: 11, color: '#64748b' },
 
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
 });

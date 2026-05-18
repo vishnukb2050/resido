@@ -11,7 +11,7 @@ const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
     { name: 'Groceries', percent: 40, amount: 12980, color: '#10b981' },
-    { name: 'Utilities', percent: 20, amount: 6490, color: '#6366f1' },
+    { name: 'Utilities', percent: 20, amount: 6490, color: '#0d9488' },
     { name: 'Shopping', percent: 15, amount: 4870, color: '#ec4899' },
     { name: 'Transport', percent: 10, amount: 3250, color: '#3b82f6' },
     { name: 'Food & Dining', percent: 8, amount: 2600, color: '#f43f5e' },
@@ -74,7 +74,7 @@ export default function ReportsScreen() {
                     <View style={styles.summaryStats}>
                         <SummaryStat label="Income" value="₹ 48,750" color="#10b981" />
                         <SummaryStat label="Expense" value="₹ 32,450" color="#ef4444" />
-                        <SummaryStat label="Savings" value="₹ 16,300" color="#6366f1" />
+                        <SummaryStat label="Savings" value="₹ 16,300" color="#0d9488" />
                     </View>
                 </View>
 
@@ -167,13 +167,13 @@ const styles = StyleSheet.create({
     
     tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, marginBottom: 20 },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activeTab: { backgroundColor: '#6366f1' },
+    activeTab: { backgroundColor: '#0d9488' },
     tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
     activeTabText: { color: '#fff' },
 
     periodScroll: { flexDirection: 'row', gap: 10 },
     periodTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, marginRight: 10 },
-    activePeriodTab: { backgroundColor: '#6366f1' },
+    activePeriodTab: { backgroundColor: '#0d9488' },
     periodTabText: { fontSize: 13, color: '#94a3b8', fontWeight: '700' },
     activePeriodTabText: { color: '#fff' },
 
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 20 },
     
     donutContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    donutPlaceholder: { width: 120, height: 120, borderRadius: 60, borderWidth: 15, borderColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+    donutPlaceholder: { width: 120, height: 120, borderRadius: 60, borderWidth: 15, borderColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
     donutAmount: { fontSize: 16, fontWeight: '900', color: '#fff' },
     donutLabel: { fontSize: 10, color: '#64748b', marginTop: 2 },
     legendGrid: { flex: 1, marginLeft: 20, gap: 12 },

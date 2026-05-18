@@ -102,7 +102,7 @@ export default function SelectContactsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#6366f1" style={{ marginTop: 20 }} />
+                    <ActivityIndicator color="#0d9488" style={{ marginTop: 20 }} />
                 ) : filteredContacts.length === 0 ? (
                     <Text style={styles.emptyText}>No contacts found</Text>
                 ) : (
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     contactName: { fontSize: 16, fontWeight: '700', color: '#fff' },
     profileName: { fontSize: 13, color: '#64748b', marginTop: 2 },
     checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    checkboxActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+    checkboxActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
 
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
     bottomSummary: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     selectedCount: { color: '#fff', fontSize: 15, fontWeight: '800' },
     summaryContent: { flexDirection: 'row', alignItems: 'center' },
     selectedAvatars: { flex: 1 },
-    miniAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, borderWidth: 2, borderColor: '#6366f1' },
-    shareButton: { backgroundColor: '#6366f1', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
+    miniAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, borderWidth: 2, borderColor: '#0d9488' },
+    shareButton: { backgroundColor: '#0d9488', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
     shareButtonText: { color: '#fff', fontWeight: '900', fontSize: 15 }
 });

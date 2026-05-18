@@ -14,13 +14,14 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     const isMySpace = activeWorkspace === null;
 
     const themeStyles = {
-        background: isMySpace || activeTab === 'Flares' ? '#0f172a' : '#fff',
+        background: isMySpace || activeTab === 'Flares' ? '#000000' : '#fff',
         border: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
-        activeIcon: '#6366f1',
+        activeIcon: '#0d9488',
         inactiveIcon: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.4)' : '#64748b',
-        activeLabel: '#6366f1',
+        activeLabel: '#0d9488',
         inactiveLabel: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.4)' : '#64748b'
     };
+
 
     return (
         <View style={[styles.bottomNav, { backgroundColor: themeStyles.background, borderTopColor: themeStyles.border }]}>

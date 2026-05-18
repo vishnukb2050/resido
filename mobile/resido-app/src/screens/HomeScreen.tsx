@@ -18,7 +18,7 @@ export default function HomeScreen() {
     if (!isHydrated) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#6366f1" />
+                <ActivityIndicator size="large" color="#0d9488" />
             </View>
         );
     }

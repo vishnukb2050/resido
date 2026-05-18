@@ -55,7 +55,7 @@ export default function MemberListScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={members}
@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20 },
     memberCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     memberImg: { width: 56, height: 56, borderRadius: 20 },
     memberInfo: { flex: 1, marginLeft: 15 },
     memberName: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    memberRole: { fontSize: 11, color: '#6366f1', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
+    memberRole: { fontSize: 11, color: '#0d9488', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
     memberPhone: { fontSize: 13, color: '#64748b', marginTop: 4, fontWeight: '600' },
     unitBadge: { position: 'absolute', right: 0, top: 0, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
     unitText: { color: '#10b981', fontSize: 10, fontWeight: '900' },

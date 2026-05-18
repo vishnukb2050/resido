@@ -27,17 +27,17 @@ export default function CommunityDashboard() {
             { id: 'notices', title: 'Noticeboard', icon: 'megaphone-outline', color: '#10b981', route: '/notices' },
             { id: 'gatepass', title: 'Gate Pass', icon: 'id-card-outline', color: '#3b82f6', route: '/gatepass' },
             { id: 'complaints', title: 'Requests & Complaints', icon: 'chatbubbles-outline', color: '#f59e0b', route: '/complaints' },
-            { id: 'contacts', title: 'Contacts', icon: 'people-outline', color: '#6366f1', route: '/contacts' },
+            { id: 'contacts', title: 'Contacts', icon: 'people-outline', color: '#0d9488', route: '/contacts' },
             { id: 'rules', title: 'Rules & Regulations', icon: 'document-text-outline', color: '#8b5cf6', route: '/rules' },
             { id: 'announcements', title: 'Announcements', icon: 'notifications-outline', color: '#f43f5e', route: '/notices' },
             { id: 'notes', title: 'Notes', icon: 'create-outline', color: '#f59e0b', route: '/notes' },
             { id: 'documents', title: 'Documents', icon: 'folder-outline', color: '#10b981', route: '/documents' },
             { id: 'staff', title: 'Staff Contacts', icon: 'call-outline', color: '#0ea5e9', route: '/staff-contacts' },
-            { id: 'events', title: 'Events', icon: 'calendar-outline', color: '#6366f1', route: '/calendar' },
+            { id: 'events', title: 'Events', icon: 'calendar-outline', color: '#0d9488', route: '/calendar' },
             { id: 'visitor_register', title: 'Visitor Register', icon: 'book-outline', color: '#10b981', route: '/visitor-register' },
             { id: 'scanner', title: 'Scanner', icon: 'scan-outline', color: '#8b5cf6', route: '/gatepass-scanner' },
             // Admin only features
-            { id: 'polls', title: 'Polls', icon: 'stats-chart-outline', color: '#6366f1', route: '/polls' },
+            { id: 'polls', title: 'Polls', icon: 'stats-chart-outline', color: '#0d9488', route: '/polls' },
             { id: 'members', title: 'Members', icon: 'people-circle-outline', color: '#3b82f6', route: '/members' },
             { id: 'gallery', title: 'Gallery', icon: 'images-outline', color: '#f59e0b', route: '/gallery' },
             { id: 'chat', title: 'Chat', icon: 'chatbubble-ellipses-outline', color: '#3b82f6', route: '/chat-list' },
@@ -118,13 +118,13 @@ export default function CommunityDashboard() {
                         <View style={styles.cmActions}>
                             <TouchableOpacity style={[styles.actionRow, { backgroundColor: 'rgba(255,255,255,0.03)' }]} onPress={() => router.push('/complaints')}>
                                 <View style={[styles.actionIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.1)' }]}>
-                                    <MaterialCommunityIcons name="hand-pointing-up" size={24} color="#6366f1" />
+                                    <MaterialCommunityIcons name="hand-pointing-up" size={24} color="#0d9488" />
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 12 }}>
                                     <Text style={[styles.actionTitle, { color: '#fff' }]}>Raise Request</Text>
                                     <Text style={styles.actionSub}>Submit a request</Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={18} color="#6366f1" />
+                                <Ionicons name="chevron-forward" size={18} color="#0d9488" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     brandInfo: { flexDirection: 'row', alignItems: 'center' },
     logoBox: { width: 64, height: 64, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 4 },
     logoMini: { width: 50, height: 50, borderRadius: 12 },
-    brandTitleText: { fontSize: 28, fontWeight: '900', color: '#6366f1', marginLeft: 15 },
+    brandTitleText: { fontSize: 28, fontWeight: '900', color: '#0d9488', marginLeft: 15 },
     brandTaglineText: { fontSize: 13, color: '#94a3b8', fontWeight: '600', marginLeft: 15 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 15 },
     iconBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },

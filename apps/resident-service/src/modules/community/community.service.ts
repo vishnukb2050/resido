@@ -216,16 +216,87 @@ export class CommunityService {
         });
     }
 
+    // ─── Blocks & Units ────────────────────────────────────────
+    async getBlocks() {
+        const blocks = await this.prisma.reader.block.findMany({
+            include: { _count: { select: { units: true } } },
+            orderBy: { name: 'asc' }
+        });
+
+        if (blocks.length === 0) {
+            const unitsCount = await this.prisma.reader.unit.count();
+            return [{ id: 'default', name: 'Block 1', _count: { units: unitsCount } }];
+        }
+
+        return blocks;
+    }
+
+
+    async createBlock(data: any) {
+        // Find or create a default apartment for this tenant
+        let apartment = await this.prisma.reader.apartment.findFirst();
+        
+        if (!apartment) {
+            apartment = await this.prisma.client.apartment.create({
+                data: {
+                    tenantId: data.tenantId || '',
+                    name: 'Default Apartment',
+                    address: '',
+                    city: '',
+                    state: '',
+                    pincode: ''
+                }
+            });
+        }
+
+        return this.prisma.client.block.create({
+            data: {
+                name: data.name,
+                apartmentId: apartment.id,
+                tenantId: data.tenantId || ''
+            }
+        });
+    }
+
+    async getUnits(blockId: string) {
+        if (blockId === 'default') {
+            return this.prisma.reader.unit.findMany({
+                include: { families: { include: { members: true } } },
+                orderBy: { number: 'asc' }
+            });
+        }
+        return this.prisma.reader.unit.findMany({
+            where: { blockId },
+            include: { families: { include: { members: true } } },
+            orderBy: { number: 'asc' }
+        });
+    }
+
+
+
+    async createUnit(data: any) {
+        return this.prisma.client.unit.create({
+            data: {
+                number: data.number,
+                floor: parseInt(data.floor) || 0,
+                blockId: data.blockId,
+                tenantId: data.tenantId || ''
+            }
+        });
+    }
+
     // ─── Rules ──────────────────────────────────────────────────
+
     async getRules() {
-        return this.prisma.reader.rule.findMany({ orderBy: { title: 'asc' } });
+        return (this.prisma.reader as any).rule.findMany({ orderBy: { title: 'asc' } });
     }
 
     async createRule(data: any) {
-        return this.prisma.client.rule.create({ data });
+        return (this.prisma.client as any).rule.create({ data });
     }
 
     async deleteRule(id: string) {
-        return this.prisma.client.rule.delete({ where: { id } });
+        return (this.prisma.client as any).rule.delete({ where: { id } });
     }
+
 }

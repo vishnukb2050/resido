@@ -31,7 +31,7 @@ export default function NoticeBoardScreen() {
 
             {isLoading ? (
                 <View style={{ flex: 1, justifyContent: 'center' }}>
-                    <ActivityIndicator size="large" color="#6366f1" />
+                    <ActivityIndicator size="large" color="#0d9488" />
                 </View>
             ) : (
                 <FlatList
@@ -45,7 +45,7 @@ export default function NoticeBoardScreen() {
                             <View style={styles.cardHeader}>
                                 <View style={styles.titleRow}>
                                     <View style={styles.iconBox}>
-                                        <Ionicons name="megaphone" size={20} color="#6366f1" />
+                                        <Ionicons name="megaphone" size={20} color="#0d9488" />
                                     </View>
                                     <Text style={styles.noticeTitle}>{item.title}</Text>
                                 </View>
@@ -61,7 +61,7 @@ export default function NoticeBoardScreen() {
                                 <Text style={styles.date}>{dayjs(item.createdAt).format('DD MMM YYYY, HH:mm')}</Text>
                                 <TouchableOpacity style={styles.detailsBtn}>
                                     <Text style={styles.detailsBtnText}>Details</Text>
-                                    <Ionicons name="chevron-forward" size={14} color="#6366f1" />
+                                    <Ionicons name="chevron-forward" size={14} color="#0d9488" />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -90,6 +90,6 @@ const styles = StyleSheet.create({
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f8fafc', paddingTop: 12 },
     date: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
     detailsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    detailsBtnText: { fontSize: 13, color: '#6366f1', fontWeight: '800' },
+    detailsBtnText: { fontSize: 13, color: '#0d9488', fontWeight: '800' },
     empty: { textAlign: 'center', color: '#94a3b8', marginTop: 48, fontSize: 15, fontWeight: '600' },
 });
