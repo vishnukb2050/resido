@@ -17,9 +17,9 @@ export class WorkspaceService {
         adminPhone: string;
         plan?: string;
     }) {
-        const dbName = 'resido_core'; // All communities now use the shared core database
         const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
         const s3Prefix = slug;
+        const dbName = `resido_core_${slug}`; // Appended slug to satisfy the @unique constraint in schema
 
         const client = await this.prisma.masterClient.client.create({
             data: {
