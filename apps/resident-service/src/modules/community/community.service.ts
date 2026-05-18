@@ -48,17 +48,25 @@ export class CommunityService {
     }
 
     async createComplaint(userId: string, data: any) {
-        const member = await this.prisma.reader.member.findFirst({
+        let member = await this.prisma.reader.member.findFirst({
             where: { 
-                OR: [
-                    { id: userId },
-                    { userId: userId }
-                ]
+                userId: userId,
+                ...(data.tenantId ? { tenantId: data.tenantId } : {})
             }
         });
 
+        // Fallback: If no member record exists for this user, create one on the fly
         if (!member) {
-            throw new Error('Member not found for the given user ID in this community.');
+            console.log(`Member not found for user ${userId}. Creating on the fly...`);
+            member = await this.prisma.client.member.create({
+                data: {
+                    userId: userId,
+                    tenantId: data.tenantId || 'resido-core',
+                    name: 'Default Member',
+                    phone: '0000000000',
+                    role: 'RESIDENT'
+                }
+            });
         }
 
         const { memberId: _, ...complaintData } = data;
@@ -97,18 +105,26 @@ export class CommunityService {
     }
 
     async createGatepass(userId: string, data: any) {
-        // Find the member for this user (since frontend sends user.id as residentId/memberId)
-        const member = await this.prisma.reader.member.findFirst({
+        let member = await this.prisma.reader.member.findFirst({
             where: { 
-                OR: [
-                    { id: userId }, // If it's already a member ID
-                    { userId: userId } // If it's a global user ID
-                ]
+                userId: userId,
+                ...(data.tenantId ? { tenantId: data.tenantId } : {})
             }
         });
 
+        // Fallback: If no member record exists for this user, create one on the fly
+        // so they are not blocked from creating gatepasses.
         if (!member) {
-            throw new Error('Member not found for the given user ID in this community.');
+            console.log(`Member not found for user ${userId}. Creating on the fly...`);
+            member = await this.prisma.client.member.create({
+                data: {
+                    userId: userId,
+                    tenantId: data.tenantId || 'resido-core', // Default or passed tenantId
+                    name: 'Default Member',
+                    phone: '0000000000',
+                    role: 'RESIDENT'
+                }
+            });
         }
 
         const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();

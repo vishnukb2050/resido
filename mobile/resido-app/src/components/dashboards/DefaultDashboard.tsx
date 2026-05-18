@@ -281,19 +281,13 @@ export default function DefaultDashboard() {
                                 {/* Featured Sections */}
                                 <View style={styles.sectionContainer}>
                                     <Text style={styles.sectionTitle}>Community Services</Text>
-                                    <View style={styles.featureGrid}>
-                                        <FeatureCard icon="people" title="Directory" color="#fff" bg="#38a169" onPress={() => router.push('/members')} />
-                                        <FeatureCard icon="id-card" title="Staff" color="#fff" bg="#3182ce" onPress={() => router.push('/staff')} />
-                                        <FeatureCard icon="chatbubble" title="Req & Complaints" color="#fff" bg="#744210" onPress={() => router.push('/complaints')} />
-                                        
-                                        {/* Additional icons for Resident if needed */}
-                                        {activeWorkspace.role === 'RESIDENT' && (
-                                            <>
-                                                <FeatureCard icon="id-card" title="Gate Pass" color="#fff" bg="#3b82f6" onPress={() => router.push('/gatepass')} />
-                                                <FeatureCard icon="document-text" title="Rules & Regs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/rules')} />
-                                                <FeatureCard icon="notifications" title="Announcements" color="#fff" bg="#f43f5e" onPress={() => router.push('/notices')} />
-                                            </>
-                                        )}
+                                    <View style={[styles.gridContainer, { justifyContent: 'flex-start', gap: 12 }]}>
+                                        <DashboardIcon icon="people-outline" label="Directory" color="#10b981" bg="#10b98115" onPress={() => router.push('/members')} />
+                                        <DashboardIcon icon="id-card-outline" label="Staff" color="#06b6d4" bg="#06b6d415" onPress={() => router.push('/staff')} />
+                                        <DashboardIcon icon="chatbubbles-outline" label="Complaints" color="#f59e0b" bg="#f59e0b15" onPress={() => router.push('/complaints')} />
+                                        <DashboardIcon icon="qr-code-outline" label="Gate Pass" color="#6366f1" bg="#6366f115" onPress={() => router.push('/gatepass')} />
+                                        <DashboardIcon icon="document-text-outline" label="Rules" color="#8b5cf6" bg="#8b5cf615" onPress={() => router.push('/rules')} />
+                                        <DashboardIcon icon="megaphone-outline" label="Notices" color="#ec4899" bg="#ec489915" onPress={() => router.push('/notices')} />
                                     </View>
                                 </View>
                             </View>
@@ -318,12 +312,12 @@ export default function DefaultDashboard() {
 
                                 <View style={styles.psQuickAccessBar}>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll}>
-                                        <QuickAccessItem icon="add-circle" label="Create Community" color={darkLavender} onPress={() => router.push('/create-community')} />
-                                        <QuickAccessItem icon="business" label="Business" color={darkLavender} onPress={() => router.push('/business-profiles')} />
-                                        <QuickAccessItem icon="wallet" label="Finance" color={darkLavender} onPress={() => router.push('/finance')} />
-                                        <QuickAccessItem icon="grid" label="Services" color={darkLavender} onPress={() => router.push('/service-search')} />
-                                        <QuickAccessItem icon="document-text" label="Notes" color={darkLavender} onPress={() => router.push('/notes')} />
-                                        <QuickAccessItem icon="folder" label="Docs" color={darkLavender} onPress={() => router.push('/documents')} />
+                                        <QuickAccessItem icon="add-circle-outline" label="Create" color="#6366f1" onPress={() => router.push('/create-community')} />
+                                        <QuickAccessItem icon="storefront-outline" label="Business" color="#10b981" onPress={() => router.push('/business-profiles')} />
+                                        <QuickAccessItem icon="wallet-outline" label="Finance" color="#f59e0b" onPress={() => router.push('/finance')} />
+                                        <QuickAccessItem icon="construct-outline" label="Services" color="#06b6d4" onPress={() => router.push('/service-search')} />
+                                        <QuickAccessItem icon="journal-outline" label="Notes" color="#8b5cf6" onPress={() => router.push('/notes')} />
+                                        <QuickAccessItem icon="folder-outline" label="Docs" color="#ec4899" onPress={() => router.push('/documents')} />
                                     </ScrollView>
                                 </View>
 

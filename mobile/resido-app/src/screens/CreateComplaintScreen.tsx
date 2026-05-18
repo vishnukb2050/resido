@@ -37,6 +37,7 @@ export default function CreateComplaintScreen() {
                 ...formData,
                 title: `${formData.category} Issue`,
                 memberId: user?.id,
+                tenantId: activeWorkspace?.tenantId,
             });
 
             Alert.alert('Success', 'Request raised successfully!', [

@@ -7,7 +7,7 @@ import { communityApi } from '../services/api';
 
 export default function CreateGatepassScreen() {
     const router = useRouter();
-    const { user } = useAuthStore();
+    const { user, activeWorkspace } = useAuthStore();
     const [loading, setLoading] = useState(false);
     
     const now = new Date();
@@ -34,6 +34,7 @@ export default function CreateGatepassScreen() {
             const { data } = await communityApi.createGatepass({
                 ...formData,
                 residentId: user?.id,
+                tenantId: activeWorkspace?.tenantId,
                 residentName: user?.name,
                 residentUnit: 'N/A',
                 personsCount: parseInt(formData.personsCount) || 1,

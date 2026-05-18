@@ -12,18 +12,19 @@ export class WorkspaceService {
 
     async onboardClient(data: {
         name: string;
-        slug: string;
+        slug?: string;
         adminEmail: string;
         adminPhone: string;
         plan?: string;
     }) {
         const dbName = 'resido_core'; // All communities now use the shared core database
-        const s3Prefix = data.slug.toLowerCase();
+        const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        const s3Prefix = slug;
 
         const client = await this.prisma.masterClient.client.create({
             data: {
                 name: data.name,
-                slug: data.slug,
+                slug: slug,
                 adminEmail: data.adminEmail,
                 adminPhone: data.adminPhone,
                 dbName,
