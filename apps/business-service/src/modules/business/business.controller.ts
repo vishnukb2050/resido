@@ -23,7 +23,8 @@ export class BusinessController {
         @Query('state') state?: string,
         @Query('lat') lat?: string,
         @Query('lng') lng?: string,
-        @Query('radius') radius?: string
+        @Query('radius') radius?: string,
+        @Query('query') query?: string
     ) {
         return this.businessService.listProfiles({ 
             tenantId, 
@@ -33,9 +34,11 @@ export class BusinessController {
             state, 
             lat: lat ? parseFloat(lat) : undefined,
             lng: lng ? parseFloat(lng) : undefined,
-            radius: radius ? parseInt(radius) : undefined
+            radius: radius ? parseInt(radius) : undefined,
+            query
         });
     }
+
 
     @Get('profiles/my')
     getMyProfiles(@Headers('x-user-id') userId: string) {

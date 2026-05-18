@@ -106,8 +106,9 @@ export default function AdminDashboard() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>People Management</Text>
                     <View style={styles.featureGrid}>
-                        <FeatureCard icon="person-add" title="Add Resident" color="#fff" bg="#3182ce" onPress={() => router.push('/create-member?mode=RESIDENT')} />
+                        <FeatureCard icon="people" title="Manage Residents" color="#fff" bg="#3182ce" onPress={() => router.push('/manage-residents')} />
                         <FeatureCard icon="people-circle" title="Add Staff" color="#fff" bg="#10b981" onPress={() => router.push('/create-member?mode=STAFF')} />
+
 
                         <FeatureCard icon="business" title="Blocks" color="#fff" bg="#d97706" onPress={() => router.push('/manage-blocks')} />
                         <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/manage-blocks')} />

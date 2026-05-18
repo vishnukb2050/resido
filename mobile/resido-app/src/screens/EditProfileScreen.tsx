@@ -92,7 +92,8 @@ export default function EditProfileScreen() {
                 };
             }
 
-            const { data: updatedUser } = await authApi.updateProfile(dataToSubmit, hasNewImage ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined);
+            const { data: updatedUser } = await authApi.updateProfile(dataToSubmit);
+
             
             updateUser(updatedUser);
             Alert.alert('Success', 'Profile updated successfully! ✨');

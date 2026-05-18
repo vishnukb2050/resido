@@ -31,6 +31,7 @@ export class BusinessService {
             serviceAreaType: rest.serviceAreaType,
             serviceAreaValues: rest.serviceAreaValues,
             serviceRadiusKm: rest.serviceRadiusKm,
+            hashtags: rest.hashtags,
         };
 
         return this.prisma.businessProfile.create({
@@ -61,9 +62,10 @@ export class BusinessService {
         tenantId?: string,
         lat?: number,
         lng?: number,
-        radius?: number // User's search radius (optional)
+        radius?: number, // User's search radius (optional)
+        query?: string // Search keyword or hashtag
     }) {
-        const { category, pincode, district, state, tenantId, lat, lng, radius } = params;
+        const { category, pincode, district, state, tenantId, lat, lng, radius, query } = params;
 
         // Base query for administrative matches
         const adminConditions: any[] = [
@@ -97,6 +99,7 @@ export class BusinessService {
             WHERE b."isActive" = true
             ${category ? `AND b.category = '${category}'` : ''}
             ${tenantId ? `AND b."tenantId" = '${tenantId}'` : ''}
+            ${query ? `AND (b.category ILIKE '%${query}%' OR b."businessName" ILIKE '%${query}%' OR b.hashtags ILIKE '%${query}%')` : ''}
             AND (
                 -- Administrative Matches
                 "serviceAreaType" = 'PAN_INDIA'
@@ -179,6 +182,7 @@ export class BusinessService {
             serviceAreaType: rest.serviceAreaType,
             serviceAreaValues: rest.serviceAreaValues,
             serviceRadiusKm: rest.serviceRadiusKm,
+            hashtags: rest.hashtags,
         };
 
         // Remove undefined fields to prevent overwriting with null/undefined unless intended

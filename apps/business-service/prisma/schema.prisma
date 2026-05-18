@@ -30,8 +30,10 @@ model BusinessProfile {
   // Social Links
   instagram       String?
   linkedin        String?
+  hashtags        String?  // Comma-separated hashtags or space-separated
 
   // Location
+
   location        String?  // block/unit
   area            String?  // city/area
   fullAddress     String?

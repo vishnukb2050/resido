@@ -67,63 +67,33 @@ export default function CreateMemberScreen() {
 
         setLoading(true);
         try {
-            let blockId = selectedBlockId;
-            let unitId = selectedUnitId;
             let addressStr = '';
 
-            // 1. Create Block if new
-            if (blockId === 'NEW') {
-                if (!newBlockName) {
-                    Alert.alert('Error', 'Please enter a block name');
-                    setLoading(false);
-                    return;
-                }
-                const { data } = await communityApi.createBlock({ name: newBlockName });
-                blockId = data.id;
-                addressStr = newBlockName;
-            } else if (blockId) {
-                const b = blocks.find(x => x.id === blockId);
+            if (selectedBlockId) {
+                const b = blocks.find(x => x.id === selectedBlockId);
                 addressStr = b?.name || '';
             }
 
-            // 2. Create Unit if new
-            if (unitId === 'NEW') {
-                if (!newUnitNumber) {
-                    Alert.alert('Error', 'Please enter a unit number');
-                    setLoading(false);
-                    return;
-                }
-                if (!blockId) {
-                    Alert.alert('Error', 'A block is required to create a unit');
-                    setLoading(false);
-                    return;
-                }
-                const { data } = await communityApi.createUnit({ number: newUnitNumber, blockId });
-                unitId = data.id;
-                addressStr += `, Unit ${newUnitNumber}`;
-            } else if (unitId) {
-                const u = units.find(x => x.id === unitId);
-                addressStr += `, Unit ${u?.number || ''}`;
+            if (selectedUnitId) {
+                const u = units.find(x => x.id === selectedUnitId);
+                addressStr += addressStr ? `, Unit ${u?.number || ''}` : `Unit ${u?.number || ''}`;
             }
 
-            // 3. Create member in resident service (tenant DB)
+            // Create member in resident service (tenant DB)
             await residentApi.createMember({
                 ...formData,
                 address: addressStr,
                 age: formData.age ? parseInt(formData.age) : undefined
             });
             
-            // 4. Sync membership in auth service (master DB) 
             const activeWorkspace = useAuthStore.getState().activeWorkspace;
             await authApi.syncMembership({
                 phone: formData.phone,
                 tenantId: activeWorkspace?.tenantId || '',
-                tenantName: activeWorkspace?.tenantName || '',
-                role: formData.role,
-                name: formData.name,
-                age: formData.age ? parseInt(formData.age) : undefined,
-                address: addressStr
+                role: formData.role
             });
+
+
 
             Alert.alert('Success', `${params.mode === 'STAFF' ? 'Staff' : 'Member'} added successfully`);
             router.back();
@@ -210,8 +180,8 @@ export default function CreateMemberScreen() {
                 )}
 
                 <View style={styles.field}>
-                    <Text style={styles.label}>Block Name</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                    <Text style={styles.label}>Select Block</Text>
+                    <View style={styles.chipContainer}>
                         {blocks.map(b => (
                             <TouchableOpacity 
                                 key={b.id} 
@@ -224,28 +194,15 @@ export default function CreateMemberScreen() {
                                 <Text style={[styles.roleChipText, selectedBlockId === b.id && styles.roleChipTextActive]}>{b.name}</Text>
                             </TouchableOpacity>
                         ))}
-                        <TouchableOpacity 
-                            style={[styles.roleChip, selectedBlockId === 'NEW' && styles.roleChipActive]}
-                            onPress={() => setSelectedBlockId('NEW')}
-                        >
-                            <Text style={[styles.roleChipText, selectedBlockId === 'NEW' && styles.roleChipTextActive]}>+ Add New</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
-
-                    {selectedBlockId === 'NEW' && (
-                        <TextInput 
-                            style={styles.input} 
-                            value={newBlockName} 
-                            onChangeText={setNewBlockName}
-                            placeholder="Enter new block name"
-                            placeholderTextColor="#94a3b8"
-                        />
-                    )}
+                        {blocks.length === 0 && (
+                            <Text style={styles.emptyText}>No blocks created yet.</Text>
+                        )}
+                    </View>
                 </View>
 
                 <View style={styles.field}>
-                    <Text style={styles.label}>Address / Unit Number</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                    <Text style={styles.label}>Select Address / Unit</Text>
+                    <View style={styles.chipContainer}>
                         {units.map(u => (
                             <TouchableOpacity 
                                 key={u.id} 
@@ -255,24 +212,15 @@ export default function CreateMemberScreen() {
                                 <Text style={[styles.roleChipText, selectedUnitId === u.id && styles.roleChipTextActive]}>{u.number}</Text>
                             </TouchableOpacity>
                         ))}
-                        <TouchableOpacity 
-                            style={[styles.roleChip, selectedUnitId === 'NEW' && styles.roleChipActive]}
-                            onPress={() => setSelectedUnitId('NEW')}
-                        >
-                            <Text style={[styles.roleChipText, selectedUnitId === 'NEW' && styles.roleChipTextActive]}>+ Add New</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
-
-                    {selectedUnitId === 'NEW' && (
-                        <TextInput 
-                            style={styles.input} 
-                            value={newUnitNumber} 
-                            onChangeText={setNewUnitNumber}
-                            placeholder="Enter new unit number"
-                            placeholderTextColor="#94a3b8"
-                        />
-                    )}
+                        {units.length === 0 && (
+                            <Text style={styles.emptyText}>
+                                {selectedBlockId ? "No units in this block." : "Select a block to see units."}
+                            </Text>
+                        )}
+                    </View>
                 </View>
+
+
 
 
                 {params.mode === 'STAFF' && (
@@ -310,10 +258,13 @@ const styles = StyleSheet.create({
     pickerText: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
 
     staffRoles: { marginBottom: 20, flexDirection: 'row' },
-    roleChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+    roleChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0' },
     roleChipActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
     roleChipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     roleChipTextActive: { color: '#fff' },
+    
+    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 5 },
+    emptyText: { color: '#94a3b8', fontSize: 14, fontWeight: '600', fontStyle: 'italic', padding: 5 },
 
     uploadBtn: { borderStyle: 'dashed', borderWidth: 2, borderColor: '#e2e8f0', borderRadius: 16, padding: 25, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#f8fafc' },
     uploadBtnText: { color: '#0d9488', fontWeight: '700', fontSize: 14 },

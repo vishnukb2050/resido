@@ -45,6 +45,7 @@ export default function CreateBusinessProfileScreen() {
         website: '',
         instagram: '',
         linkedin: '',
+        hashtags: '',
         workingHours: { from: '08:00 AM', to: '06:00 PM', days: 'Mon - Sat' },
         
         // Location
@@ -348,6 +349,18 @@ export default function CreateBusinessProfileScreen() {
                     onChangeText={t => setFormData({...formData, about: t})}
                 />
                 <Text style={styles.charCount}>{formData.about.length}/250</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+                <Text style={styles.label}>Hashtags (Optional)</Text>
+                <TextInput 
+                    style={styles.input} 
+                    placeholder="e.g., #plumber #leak #emergency" 
+                    placeholderTextColor="#94a3b8"
+                    value={formData.hashtags}
+                    onChangeText={t => setFormData({...formData, hashtags: t})}
+                />
+                <Text style={styles.charCount}>Add hashtags separated by spaces or commas</Text>
             </View>
 
             <View style={styles.row}>
@@ -1165,7 +1178,6 @@ const styles = StyleSheet.create({
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     modalTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
 
-    dropdown: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, marginTop: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
     dropdownItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
     dropdownText: { color: '#fff', fontSize: 14 },
 

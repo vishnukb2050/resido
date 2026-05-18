@@ -30,7 +30,10 @@ api.interceptors.request.use(async (config) => {
             }
             if (state.activeWorkspace?.dbName) {
                 config.headers['x-db-name'] = state.activeWorkspace.dbName;
+            } else if (state.activeWorkspace?.tenantId) {
+                config.headers['x-db-name'] = state.activeWorkspace.tenantId;
             }
+
         }
     } catch (error) {
         console.error('Error reading auth state for interceptor:', error);

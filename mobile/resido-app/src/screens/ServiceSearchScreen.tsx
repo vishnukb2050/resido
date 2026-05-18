@@ -10,7 +10,7 @@ import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-
 import * as Location from 'expo-location';
 import BottomNav from '../components/BottomNav';
 import OSMMap from '../components/OSMMap';
-import { authApi } from '../services/api';
+import { authApi, businessApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -301,6 +301,10 @@ export default function ServiceSearchScreen() {
                 if (cat) params.category = cat.name;
             }
             
+            if (searchQuery) {
+                params.query = searchQuery;
+            }
+            
             // 1. Coordinates (Pin takes priority over GPS)
             if (selectedPin) {
                 params.lat = selectedPin.latitude;
@@ -319,7 +323,7 @@ export default function ServiceSearchScreen() {
                 params.state = selectedLocation.state;
             }
 
-            const { data } = await authApi.searchServiceProfiles(params);
+            const { data } = await businessApi.getProfiles(params);
             setProfiles(data);
         } catch (error) {
             console.error('Failed to fetch profiles', error);

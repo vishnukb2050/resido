@@ -41,9 +41,6 @@ const styles = StyleSheet.create({
     wsBubbleLabel: { color: '#94a3b8', fontSize: 10, fontWeight: '700', marginTop: 8 },
     wsBubbleLabelActive: { color: '#0d9488', fontSize: 12, fontWeight: '900' },
 
-
-
-
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
     psSearchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8E2F2', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
@@ -57,7 +54,6 @@ const styles = StyleSheet.create({
     dbIconItem: { width: '18%', alignItems: 'center' },
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     dbIconLabel: { color: '#ffffff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
-
 
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: '#E8E2F2', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     statBox: { alignItems: 'center', flex: 1 },
@@ -93,7 +89,6 @@ const styles = StyleSheet.create({
     psQuickAccessIconBox: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1 },
     psQuickAccessLabel: { color: '#ffffff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
 
-
     psBusinessBanner: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 20, marginBottom: 15, borderWidth: 1 },
     psBannerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
     psBannerIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
@@ -117,24 +112,13 @@ export default function DefaultDashboard() {
     const router = useRouter();
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
-    const [isSelectModalVisible, setIsSelectModalVisible] = React.useState(false);
-    const [activeCategory, setActiveCategory] = React.useState('Electronics');
-    const [contactFlares, setContactFlares] = React.useState<any[]>([]);
-    const [loadingFlares, setLoadingFlares] = React.useState(false);
     const [touchStartX, setTouchStartX] = React.useState(0);
     const { width: windowWidth } = Dimensions.get('window');
     const workspaceScrollRef = React.useRef<ScrollView>(null);
     const pageScrollRef = React.useRef<ScrollView>(null);
 
-
-
-
     React.useEffect(() => {
-        if (!activeWorkspace && user) {
-            fetchContactFlares();
-        }
-
-        // Fetch updated workspaces on mount without requiring re-login!
+        // Fetch updated workspaces on mount
         const fetchWorkspaces = async () => {
             try {
                 const res = await authApi.getWorkspaces();
@@ -147,31 +131,16 @@ export default function DefaultDashboard() {
         if (user) {
             fetchWorkspaces();
         }
-    }, [activeWorkspace, user]);
-
-    const fetchContactFlares = async () => {
-        try {
-            setLoadingFlares(true);
-            const { data } = await threadApi.getFlares();
-            // In a real app, filter by contacts. Here we show all recent flares in My Space mock.
-            setContactFlares(data || []);
-        } catch (error) {
-            console.error('Failed to fetch contact flares:', error);
-        } finally {
-            setLoadingFlares(false);
-        }
-    };
+    }, [user]);
 
     const isGuest = !user;
     
-    // Premium My Space Theme (White & Dark Lavender)
     const isMySpace = !activeWorkspace;
     const mySpaceBg = theme.background;
     const mySpaceText = theme.background === '#000000' ? '#ffffff' : '#2D2445';
     const mySpaceSubText = theme.background === '#000000' ? '#94a3b8' : '#7A6B9C';
     const darkLavender = theme.primary;
     const lightLavender = theme.accent;
-
 
     if (isGuest) {
         return (
@@ -191,37 +160,14 @@ export default function DefaultDashboard() {
             </ScrollView>
         );
     }
-    return (
-        <SafeAreaView 
-            style={[styles.safeArea, { backgroundColor: mySpaceBg }]}
-            onTouchStart={e => setTouchStartX(e.nativeEvent.pageX)}
-            onTouchEnd={e => {
-                const touchEndX = e.nativeEvent.pageX;
-                const dx = touchStartX - touchEndX;
-                if (Math.abs(dx) > 80) {
-                    const currentIndex = activeWorkspace ? workspaces.findIndex((ws: any) => ws.tenantId === activeWorkspace.tenantId) : -1;
-                    
-                    if (dx > 80) { // Swiped left -> Go to Next Community
-                        if (currentIndex < workspaces.length - 1) {
-                            setActiveWorkspace(workspaces[currentIndex + 1], '');
-                        }
-                    } else if (dx < -80) { // Swiped right -> Go to Previous Community or My Space
-                        if (currentIndex > 0) {
-                            setActiveWorkspace(workspaces[currentIndex - 1], '');
-                        } else if (currentIndex === 0) {
-                            setActiveWorkspace(null as any, '');
-                        }
-                    }
-                }
 
-            }}
-        >
+    return (
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: mySpaceBg }]}>
             <ScrollView style={[styles.container, { backgroundColor: mySpaceBg }]} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
                     <View style={styles.psWrapper}>
                         {/* Premium Header */}
                         <View style={[styles.psHeader, { backgroundColor: mySpaceBg }]}>
-
                             <View style={styles.psBrandInfo}>
                                 <View style={[styles.psLogoBox, { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
                                     <Image 
@@ -260,30 +206,35 @@ export default function DefaultDashboard() {
                                 contentContainerStyle={styles.psWorkspaceScroll}
                                 snapToInterval={100}
                                 decelerationRate="fast"
-
                                 onMomentumScrollEnd={e => {
                                     const index = Math.round(e.nativeEvent.contentOffset.x / 100);
                                     if (index === 0) {
                                         setActiveWorkspace(null as any, '');
+                                        pageScrollRef.current?.scrollTo({ x: 0, animated: true });
                                     } else if (index > 0 && index <= workspaces.length) {
                                         setActiveWorkspace(workspaces[index - 1], '');
+                                        pageScrollRef.current?.scrollTo({ x: index * windowWidth, animated: true });
                                     }
                                 }}
                             >
-
-
                                 <WorkspaceBubble 
                                     label="My Space" 
                                     isActive={!activeWorkspace} 
-                                    onPress={() => setActiveWorkspace(null as any, '')} 
+                                    onPress={() => {
+                                        setActiveWorkspace(null as any, '');
+                                        pageScrollRef.current?.scrollTo({ x: 0, animated: true });
+                                    }} 
                                     image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
                                 />
-                                {workspaces.map((ws: any) => (
+                                {workspaces.map((ws: any, idx: number) => (
                                     <WorkspaceBubble 
                                         key={ws.tenantId} 
                                         label={ws.tenantName} 
                                         isActive={activeWorkspace?.tenantId === ws.tenantId} 
-                                        onPress={() => setActiveWorkspace(ws, '')} 
+                                        onPress={() => {
+                                            setActiveWorkspace(ws, '');
+                                            pageScrollRef.current?.scrollTo({ x: (idx + 1) * windowWidth, animated: true });
+                                        }} 
                                         image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
                                     />
                                 ))}
@@ -299,7 +250,6 @@ export default function DefaultDashboard() {
                                     style={[styles.psSearchInput, { color: '#ffffff' }]}
                                     placeholderTextColor="rgba(255,255,255,0.6)"
                                 />
-
                                 <View style={styles.psSearchIconsRight}>
                                     <Ionicons name="clipboard-outline" size={20} color={isMySpace ? darkLavender : "#94a3b8"} />
                                 </View>
@@ -318,14 +268,7 @@ export default function DefaultDashboard() {
                             style={{ width: windowWidth }}
                             onMomentumScrollEnd={e => {
                                 const index = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
-                                const totalPages = workspaces.length + 2; // My Space + Communities + Clone
-                                
-                                if (index === workspaces.length + 1) { // We hit the clone at the end!
-                                    // Instantly jump back to the real My Space (index 0)!
-                                    pageScrollRef.current?.scrollTo({ x: 0, animated: false });
-                                    setActiveWorkspace(null as any, '');
-                                    workspaceScrollRef.current?.scrollTo({ x: 0, animated: false });
-                                } else if (index === 0) {
+                                if (index === 0) {
                                     setActiveWorkspace(null as any, '');
                                     workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
                                 } else if (index > 0 && index <= workspaces.length) {
@@ -338,7 +281,6 @@ export default function DefaultDashboard() {
                             <View style={{ width: windowWidth, paddingHorizontal: 20 }}>
                                 <View style={styles.psStoriesSection}>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psStoriesScroll}>
-                                        {/* My Flare */}
                                         <TouchableOpacity style={styles.psStoryItem} onPress={() => router.push('/create-flare')}>
                                             <View style={[styles.psStoryCircle, { borderColor: darkLavender }]}>
                                                 <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=me" }} style={styles.psStoryImg} />
@@ -346,7 +288,6 @@ export default function DefaultDashboard() {
                                             </View>
                                             <Text style={[styles.psStoryLabel, { color: mySpaceText }]}>My Space</Text>
                                         </TouchableOpacity>
-                                        {/* Demo Flares */}
                                         <StoryItem name="Greenwoods" image="https://i.pravatar.cc/100?u=g" hasStory={true} />
                                         <StoryItem name="Alex" image="https://i.pravatar.cc/100?u=a" hasStory={true} />
                                     </ScrollView>
@@ -362,7 +303,6 @@ export default function DefaultDashboard() {
                                         <QuickAccessItem icon="folder-outline" label="Docs" color={darkLavender} onPress={() => router.push('/documents')} />
                                     </ScrollView>
                                 </View>
-
 
                                 {/* Community Creation Banner */}
                                 <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
@@ -425,63 +365,7 @@ export default function DefaultDashboard() {
                                     </View>
                                 </View>
                             ))}
-                            
-                            {/* Clone of Page 1 (My Space) for Infinite Loop */}
-                            <View style={{ width: windowWidth, paddingHorizontal: 20 }}>
-                                <View style={styles.psStoriesSection}>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psStoriesScroll}>
-                                        <TouchableOpacity style={styles.psStoryItem} onPress={() => router.push('/create-flare')}>
-                                            <View style={[styles.psStoryCircle, { borderColor: darkLavender }]}>
-                                                <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=me" }} style={styles.psStoryImg} />
-                                                <View style={[styles.psStoryAddBadge, { backgroundColor: darkLavender }]}><Ionicons name="add" size={12} color="#fff" /></View>
-                                            </View>
-                                            <Text style={[styles.psStoryLabel, { color: mySpaceText }]}>My Space</Text>
-                                        </TouchableOpacity>
-                                        <StoryItem name="Greenwoods" image="https://i.pravatar.cc/100?u=g" hasStory={true} />
-                                        <StoryItem name="Alex" image="https://i.pravatar.cc/100?u=a" hasStory={true} />
-                                    </ScrollView>
-                                </View>
-
-                                <View style={styles.psQuickAccessBar}>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll} nestedScrollEnabled={true}>
-                                        <QuickAccessItem icon="add-circle-outline" label="Create" color={darkLavender} onPress={() => router.push('/create-community')} />
-                                        <QuickAccessItem icon="storefront-outline" label="Business" color={darkLavender} onPress={() => router.push('/business-profiles')} />
-                                        <QuickAccessItem icon="wallet-outline" label="Finance" color={darkLavender} onPress={() => router.push('/finance')} />
-                                        <QuickAccessItem icon="construct-outline" label="Services" color={darkLavender} onPress={() => router.push('/service-search')} />
-                                        <QuickAccessItem icon="journal-outline" label="Notes" color={darkLavender} onPress={() => router.push('/notes')} />
-                                        <QuickAccessItem icon="folder-outline" label="Docs" color={darkLavender} onPress={() => router.push('/documents')} />
-                                    </ScrollView>
-                                </View>
-
-                                <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
-                                    <View style={styles.psBannerContent}>
-                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="people" size={26} color="#fff" /></View>
-                                        <View style={styles.psBannerTextCol}>
-                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Create Your Community</Text>
-                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.7)' }]}>Set up a new space for your apartment or area</Text>
-                                        </View>
-                                    </View>
-                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/create-community')}>
-                                        <Text style={[styles.psBannerBtnText, { color: darkLavender }]}>Create Community</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
-                                    <View style={styles.psBannerContent}>
-                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="business" size={26} color="#fff" /></View>
-                                        <View style={styles.psBannerTextCol}>
-                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Manage Your Business</Text>
-                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.7)' }]}>Create and grow your business profile</Text>
-                                        </View>
-                                    </View>
-                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/business-profiles')}>
-                                        <Text style={[styles.psBannerBtnText, { color: darkLavender }]}>Manage Business</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
                         </ScrollView>
-
-
                     </View>
                 </View>
             </ScrollView>
@@ -493,10 +377,7 @@ export default function DefaultDashboard() {
 // Custom Sub-components for Premium UI
 function WorkspaceBubble({ label, isActive, onPress, image }: any) {
     return (
-        <TouchableOpacity 
-            style={[styles.wsBubble, isActive && styles.wsBubbleActive]} 
-            onPress={onPress}
-        >
+        <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
             <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
                 <Image source={{ uri: image }} style={styles.wsBubbleImg} />
             </View>
@@ -519,44 +400,33 @@ function DashboardIcon({ icon, label, color, bg, onPress }: any) {
 function StatBox({ count, label, icon, color }: any) {
     return (
         <View style={styles.statBox}>
-            <Ionicons name={icon as any} size={20} color={color || "#fff"} style={{ marginBottom: 4, opacity: 0.7 }} />
+            <View style={[styles.fCardHeader, { backgroundColor: 'rgba(91, 75, 138, 0.1)' }]}>
+                <Ionicons name={icon as any} size={20} color={color} />
+            </View>
             <Text style={styles.statBoxCount}>{count}</Text>
             <Text style={styles.statBoxLabel}>{label}</Text>
         </View>
     );
 }
 
-function FeatureCard({ icon, title, color, bg, onPress }: any) {
-    return (
-        <TouchableOpacity style={[styles.featureCard, { backgroundColor: bg }]} onPress={onPress}>
-            <View style={styles.fCardHeader}>
-                <Ionicons name={icon as any} size={24} color={color} />
-            </View>
-            <Text style={styles.fCardTitle}>{title}</Text>
-        </TouchableOpacity>
-    );
-}
-
 function QuickAccessItem({ icon, label, color, onPress }: any) {
     return (
         <TouchableOpacity style={styles.psQuickAccessItem} onPress={onPress}>
-            <View style={[styles.psQuickAccessIconBox, { backgroundColor: '#ccfbf1', borderColor: `${color}30` }]}>
-                <Ionicons name={icon as any} size={28} color={color} />
+            <View style={[styles.psQuickAccessIconBox, { backgroundColor: 'rgba(91, 75, 138, 0.05)', borderColor: 'rgba(91, 75, 138, 0.1)' }]}>
+                <Ionicons name={icon as any} size={24} color={color} />
             </View>
             <Text style={styles.psQuickAccessLabel}>{label}</Text>
         </TouchableOpacity>
     );
 }
 
-
-
-function StoryItem({ name, image, hasStory, onPress }: any) {
+function StoryItem({ name, image, hasStory }: any) {
     return (
-        <TouchableOpacity style={styles.psStoryItem} onPress={onPress}>
+        <TouchableOpacity style={styles.psStoryItem}>
             <View style={[styles.psStoryCircle, hasStory && styles.psStoryCircleActive]}>
                 <Image source={{ uri: image }} style={styles.psStoryImg} />
             </View>
-            <Text style={styles.psStoryLabel} numberOfLines={1}>{name}</Text>
+            <Text style={styles.psStoryLabel}>{name}</Text>
         </TouchableOpacity>
     );
 }
