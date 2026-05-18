@@ -44,7 +44,7 @@ export class WorkspaceService {
         });
 
         if (user) {
-            await (this.prisma.masterClient as any).workspaceMembership.create({
+            await (this.prisma.userClient as any).workspaceMembership.create({
                 data: {
                     userId: user.id,
                     tenantId: client.id,
