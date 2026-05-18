@@ -31,7 +31,7 @@ export class ClientsService {
     async createClient(dto: CreateClientDto) {
         await this.validateEmailsUnique(dto);
         const slug = this.slugify(dto.name);
-        const dbName = `resido_core`;
+        const dbName = `resido_${slug}`;
         const s3Prefix = slug;
 
         const existing = await this.prisma.masterRead.client.findUnique({ where: { slug } });

@@ -47,9 +47,27 @@ export class CommunityService {
         });
     }
 
-    async createComplaint(memberId: string, data: any) {
+    async createComplaint(userId: string, data: any) {
+        const member = await this.prisma.reader.member.findFirst({
+            where: { 
+                OR: [
+                    { id: userId },
+                    { userId: userId }
+                ]
+            }
+        });
+
+        if (!member) {
+            throw new Error('Member not found for the given user ID in this community.');
+        }
+
+        const { memberId: _, ...complaintData } = data;
+
         return this.prisma.client.complaint.create({
-            data: { ...data, memberId }
+            data: { 
+                ...complaintData, 
+                memberId: member.id 
+            }
         });
     }
 
@@ -78,10 +96,37 @@ export class CommunityService {
         });
     }
 
-    async createGatepass(memberId: string, data: any) {
+    async createGatepass(userId: string, data: any) {
+        // Find the member for this user (since frontend sends user.id as residentId/memberId)
+        const member = await this.prisma.reader.member.findFirst({
+            where: { 
+                OR: [
+                    { id: userId }, // If it's already a member ID
+                    { userId: userId } // If it's a global user ID
+                ]
+            }
+        });
+
+        if (!member) {
+            throw new Error('Member not found for the given user ID in this community.');
+        }
+
         const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        // Filter and map fields to match the Visitor schema
+        const visitorData = {
+            tenantId: member.tenantId,
+            name: data.visitorName || data.name,
+            phone: data.phone || '0000000000', // Default if not provided since it's required in schema
+            purpose: data.purpose,
+            passCode,
+            status: 'PENDING' as any,
+            memberId: member.id, // Use the looked-up member.id
+            vehicleNumber: data.vehicleNumber,
+        };
+
         return this.prisma.client.visitor.create({
-            data: { ...data, memberId, passCode }
+            data: visitorData
         });
     }
 

@@ -35,18 +35,18 @@ const styles = StyleSheet.create({
     psWorkspaceScroll: { paddingHorizontal: 20, gap: 15 },
     wsBubble: { alignItems: 'center', width: 70 },
     wsBubbleActive: { width: 85 },
-    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: '#F3F0F8', borderWidth: 2, borderColor: 'transparent' },
-    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#5B4B8A' },
+    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: '#E8E2F2', borderWidth: 2, borderColor: 'transparent' },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#A084CA' },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
     wsBubbleLabel: { color: '#7A6B9C', fontSize: 10, fontWeight: '800', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#5B4B8A', fontSize: 11, fontWeight: '900' },
+    wsBubbleLabelActive: { color: '#A084CA', fontSize: 11, fontWeight: '900' },
 
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
-    psSearchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    psSearchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8E2F2', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#2D2445', fontWeight: '600' },
     psSearchIconsRight: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: 'rgba(91, 75, 138, 0.1)' },
-    psBookmarkBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#F3F0F8', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    psBookmarkBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#E8E2F2', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
 
     // Community Body
     communityBody: { paddingHorizontal: 20 },
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     dbIconLabel: { color: '#2D2445', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
-    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: '#F3F0F8', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: '#E8E2F2', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     statBox: { alignItems: 'center', flex: 1 },
     statBoxCount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
     statBoxLabel: { fontSize: 9, color: '#7A6B9C', fontWeight: '700', marginTop: 2 },
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
     fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
-    announcementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F0F8', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    announcementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8E2F2', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     annIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(91, 75, 138, 0.1)', alignItems: 'center', justifyContent: 'center' },
     annTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     annSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
@@ -77,10 +77,10 @@ const styles = StyleSheet.create({
     psStoriesSection: { marginBottom: 25 },
     psStoriesScroll: { gap: 15 },
     psStoryItem: { alignItems: 'center', width: 70 },
-    psStoryCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#5B4B8A', padding: 2 },
-    psStoryCircleActive: { borderColor: '#5B4B8A' },
+    psStoryCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#A084CA', padding: 2 },
+    psStoryCircleActive: { borderColor: '#A084CA' },
     psStoryImg: { width: '100%', height: '100%', borderRadius: 30 },
-    psStoryAddBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#5B4B8A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    psStoryAddBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#A084CA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
     psStoryLabel: { color: '#2D2445', fontSize: 11, fontWeight: '700', marginTop: 6 },
 
     psQuickAccessBar: { marginBottom: 30 },
@@ -100,11 +100,11 @@ const styles = StyleSheet.create({
 
     guestContent: { flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center' },
     guestHero: { alignItems: 'center', marginBottom: 40 },
-    brandTitle: { fontSize: 36, fontWeight: '900', color: '#5B4B8A', marginBottom: 10 },
+    brandTitle: { fontSize: 36, fontWeight: '900', color: '#A084CA', marginBottom: 10 },
     heroSub: { fontSize: 22, fontWeight: '800', color: '#2D2445', textAlign: 'center', marginBottom: 15 },
     heroDesc: { fontSize: 15, color: '#7A6B9C', textAlign: 'center', lineHeight: 24 },
     actionSection: { width: '100%' },
-    primaryBtn: { backgroundColor: '#5B4B8A', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
+    primaryBtn: { backgroundColor: '#A084CA', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
     primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
 });
 
@@ -141,11 +141,11 @@ export default function DefaultDashboard() {
     
     // Premium My Space Theme (White & Dark Lavender)
     const isMySpace = !activeWorkspace;
-    const mySpaceBg = '#FFFFFF';
+    const mySpaceBg = '#F5F5F7';
     const mySpaceText = '#2D2445';
     const mySpaceSubText = '#7A6B9C';
-    const darkLavender = '#5B4B8A';
-    const lightLavender = '#F3F0F8';
+    const darkLavender = '#A084CA';
+    const lightLavender = '#E8E2F2';
 
     if (isGuest) {
         return (
@@ -167,7 +167,7 @@ export default function DefaultDashboard() {
     }
     return (
         <SafeAreaView 
-            style={[styles.safeArea, { backgroundColor: '#FFFFFF' }]}
+            style={[styles.safeArea, { backgroundColor: '#F5F5F7' }]}
             onTouchStart={e => setTouchStartX(e.nativeEvent.pageX)}
             onTouchEnd={e => {
                 const touchEndX = e.nativeEvent.pageX;
@@ -183,11 +183,11 @@ export default function DefaultDashboard() {
                 }
             }}
         >
-            <ScrollView style={[styles.container, { backgroundColor: '#FFFFFF' }]} showsVerticalScrollIndicator={false}>
+            <ScrollView style={[styles.container, { backgroundColor: '#F5F5F7' }]} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
                     <View style={styles.psWrapper}>
                         {/* Premium Header */}
-                        <View style={[styles.psHeader, { backgroundColor: '#FFFFFF' }]}>
+                        <View style={[styles.psHeader, { backgroundColor: '#F5F5F7' }]}>
                             <View style={styles.psBrandInfo}>
                                 <View style={[styles.psLogoBox, { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
                                     <Image 
@@ -264,9 +264,9 @@ export default function DefaultDashboard() {
                         {activeWorkspace ? (
                             <View style={styles.communityBody}>
                                 <View style={styles.gridContainer}>
-                                    <DashboardIcon icon="newspaper" label="Feed" color={darkLavender} bg="#F3F0F8" onPress={() => router.push('/thread')} />
-                                    <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#F3F0F8" onPress={() => router.push('/calendar')} />
-                                    <DashboardIcon icon="megaphone" label="Requests" color={darkLavender} bg="#F3F0F8" onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="newspaper" label="Feed" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/thread')} />
+                                    <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/calendar')} />
+                                    <DashboardIcon icon="megaphone" label="Requests" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/complaints')} />
                                 </View>
 
                                 {/* Small Stats Section */}

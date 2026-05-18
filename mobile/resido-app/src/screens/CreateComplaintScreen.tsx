@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import { complaintApi } from '../services/api';
+import { communityApi } from '../services/api';
 
 const CATEGORIES = [
     'Plumbing', 'Electrical', 'Handyman', 'Lift', 'Kitchen', 
@@ -33,7 +33,7 @@ export default function CreateComplaintScreen() {
 
         setLoading(true);
         try {
-            await complaintApi.createComplaint({
+            await communityApi.createComplaint({
                 ...formData,
                 title: `${formData.category} Issue`,
                 memberId: user?.id,

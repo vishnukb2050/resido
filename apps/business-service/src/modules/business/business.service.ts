@@ -6,8 +6,33 @@ export class BusinessService {
     constructor(private prisma: PrismaService) {}
 
     async createProfile(userId: string, tenantId: string, data: any) {
-        const { services, ...profileData } = data;
+        const { services, pincode, city, expertise, description, images, ...rest } = data;
         
+        const profileData = {
+            profileType: rest.profileType || 'BUSINESS',
+            businessName: rest.businessName,
+            category: rest.category,
+            subcategory: rest.subcategory,
+            businessType: rest.businessType || 'INDIVIDUAL',
+            about: rest.about || description || '',
+            logo: rest.logo || (images && images[0]) || null,
+            experience: rest.experience || expertise || null,
+            phone: rest.phone,
+            email: rest.email,
+            website: rest.website,
+            workingHours: rest.workingHours,
+            instagram: rest.instagram,
+            linkedin: rest.linkedin,
+            location: rest.location || pincode || null,
+            area: rest.area || city || null,
+            fullAddress: rest.fullAddress,
+            latitude: rest.latitude,
+            longitude: rest.longitude,
+            serviceAreaType: rest.serviceAreaType,
+            serviceAreaValues: rest.serviceAreaValues,
+            serviceRadiusKm: rest.serviceRadiusKm,
+        };
+
         return this.prisma.businessProfile.create({
             data: {
                 ...profileData,
@@ -129,7 +154,35 @@ export class BusinessService {
     }
 
     async updateProfile(id: string, data: any) {
-        const { services, ...profileData } = data;
+        const { services, pincode, city, expertise, description, images, ...rest } = data;
+        
+        const profileData = {
+            profileType: rest.profileType,
+            businessName: rest.businessName,
+            category: rest.category,
+            subcategory: rest.subcategory,
+            businessType: rest.businessType,
+            about: rest.about || description,
+            logo: rest.logo || (images && images[0]),
+            experience: rest.experience || expertise,
+            phone: rest.phone,
+            email: rest.email,
+            website: rest.website,
+            workingHours: rest.workingHours,
+            instagram: rest.instagram,
+            linkedin: rest.linkedin,
+            location: rest.location || pincode,
+            area: rest.area || city,
+            fullAddress: rest.fullAddress,
+            latitude: rest.latitude,
+            longitude: rest.longitude,
+            serviceAreaType: rest.serviceAreaType,
+            serviceAreaValues: rest.serviceAreaValues,
+            serviceRadiusKm: rest.serviceRadiusKm,
+        };
+
+        // Remove undefined fields to prevent overwriting with null/undefined unless intended
+        Object.keys(profileData).forEach(key => (profileData as any)[key] === undefined && delete (profileData as any)[key]);
 
         // If services are provided, we replace them
         if (services) {

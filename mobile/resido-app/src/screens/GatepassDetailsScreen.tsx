@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Share, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Share, ScrollView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
@@ -30,7 +30,7 @@ export default function GatepassDetailsScreen() {
     const handleShare = async () => {
         try {
             await Share.share({
-                message: `Resido Gatepass for ${gatepass.visitorName}\nDate: ${gatepass.visitDate}\nTime: ${gatepass.visitTime}\nPass ID: ${gatepass.id}\nPlease show this at the gate.`,
+                message: `Resido Gatepass for ${gatepass.visitorName}\nDate: ${gatepass.visitDate}\nTime: ${gatepass.visitTime}\nPass ID: ${gatepass.id}\n\nQR Code: https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.id}\n\nPlease show this at the gate.`,
             });
         } catch (error) {
             console.error(error);
@@ -55,10 +55,10 @@ export default function GatepassDetailsScreen() {
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.qrContainer}>
                     <View style={styles.qrBox}>
-                        <View style={styles.qrFallback}>
-                            <Ionicons name="qr-code-outline" size={100} color="#6366f1" />
-                            <Text style={styles.qrPassText}>{gatepass.id?.toUpperCase().slice(0, 8)}</Text>
-                        </View>
+                        <Image 
+                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.id}` }} 
+                            style={{ width: 200, height: 200, borderRadius: 16 }} 
+                        />
                     </View>
                     <Text style={styles.passId}>PASS ID: {gatepass.id?.toUpperCase()}</Text>
                     <Text style={styles.scanHint}>Show this pass code to the Security Guard</Text>
