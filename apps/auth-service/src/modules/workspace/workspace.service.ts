@@ -34,7 +34,7 @@ export class WorkspaceService {
         });
 
         // Link the creator to this workspace so they can see it and switch to it!
-        const user = await this.prisma.masterRead.user.findFirst({
+        const user = await (this.prisma.masterRead as any).user.findFirst({
             where: {
                 OR: [
                     { phone: data.adminPhone },
@@ -44,7 +44,7 @@ export class WorkspaceService {
         });
 
         if (user) {
-            await this.prisma.masterClient.workspaceMembership.create({
+            await (this.prisma.masterClient as any).workspaceMembership.create({
                 data: {
                     userId: user.id,
                     tenantId: client.id,
