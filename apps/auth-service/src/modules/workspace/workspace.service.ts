@@ -34,7 +34,7 @@ export class WorkspaceService {
         });
 
         // Link the creator to this workspace so they can see it and switch to it!
-        const user = await (this.prisma.masterRead as any).user.findFirst({
+        const user = await (this.prisma.userRead as any).user.findFirst({
             where: {
                 OR: [
                     { phone: data.adminPhone },
