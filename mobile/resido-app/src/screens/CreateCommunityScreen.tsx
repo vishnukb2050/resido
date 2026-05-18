@@ -7,6 +7,7 @@ import {
 import { useRouter } from 'expo-router';
 import { authApi } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../store/authStore';
 
 export default function CreateCommunityScreen() {
     const [name, setName] = useState('');
@@ -35,6 +36,14 @@ export default function CreateCommunityScreen() {
                 residentPhones: residentPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 plan: 'BASIC'
             });
+            
+            // Fetch updated workspaces without requiring re-login!
+            try {
+                const res = await authApi.getWorkspaces();
+                useAuthStore.getState().setWorkspaces(res.data);
+            } catch (e) {
+                console.warn('Failed to fetch workspaces after creation:', e);
+            }
             
             Alert.alert('Success', 'Community created successfully! You can now switch to this workspace.', [
                 { text: 'OK', onPress: () => router.replace('/workspace-select') }

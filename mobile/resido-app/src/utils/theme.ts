@@ -1,11 +1,11 @@
 export const getThemeColors = (tenantId?: string) => {
     if (!tenantId) {
-        // My Space - Blue Theme
+        // My Space - Black & Emerald Teal Theme
         return {
-            primary: '#6366f1',
-            background: '#0f172a',
-            surface: '#1e293b',
-            accent: '#38bdf8'
+            primary: '#0d9488', // Deep Emerald Teal
+            background: '#000000', // Pure Black
+            surface: '#121212', // Very Dark Gray
+            accent: '#2dd4bf' // Bright Teal
         };
     }
 

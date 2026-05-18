@@ -51,6 +51,7 @@ interface AuthState {
     }) => void;
     updateUser: (user: any) => void;
     setActiveWorkspace: (ws: Workspace, token: string) => void;
+    setWorkspaces: (workspaces: Workspace[]) => void;
     logout: () => void;
     setHasHydrated: (state: boolean) => void;
 }
@@ -79,6 +80,8 @@ export const useAuthStore = create<AuthState>()(
 
             setActiveWorkspace: (ws, token) =>
                 set({ activeWorkspace: ws, token }),
+
+            setWorkspaces: (workspaces) => set({ workspaces }),
 
             logout: () =>
                 set({

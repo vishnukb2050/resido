@@ -79,9 +79,10 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Get('users/search')
-    async searchUsers(@Query('query') query: string) {
-        return this.profileService.searchUsers(query);
+    async searchUsers(@Req() req: any, @Query('query') query: string) {
+        return this.profileService.searchUsers(req.user.userId, query);
     }
+
 
     @UseGuards(JwtAuthGuard)
     @Post('follow/:id')

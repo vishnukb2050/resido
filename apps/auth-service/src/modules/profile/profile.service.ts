@@ -433,10 +433,11 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
-    async searchUsers(query: string) {
+    async searchUsers(searcherId: string, query: string) {
         if (!query || query.length < 3) return [];
 
-        return this.prisma.userRead.user.findMany({
+        // Fetch potential matches
+        const users = await this.prisma.userRead.user.findMany({
             where: {
                 OR: [
                     { name: { contains: query, mode: 'insensitive' } },
@@ -445,16 +446,69 @@ export class ProfileService implements OnModuleInit {
                 ],
                 isActive: true
             },
-            select: {
-                id: true,
-                name: true,
-                phone: true,
-                profileName: true,
-                profilePhoto: true
+            include: {
+                workspaceMemberships: true
             },
-            take: 20
+            take: 50 // Fetch more to filter in memory
         });
+
+        const filteredUsers = [];
+        
+        // Fetch searcher's memberships once to optimize
+        const searcherMemberships = await this.prisma.userRead.workspaceMembership.findMany({
+            where: { userId: searcherId }
+        });
+
+        for (const user of users) {
+            // Always see yourself
+            if (user.id === searcherId) {
+                filteredUsers.push(user);
+                continue;
+            }
+
+            const visibility = user.phoneVisibility || "FOLLOWERS,CONTACTS,GROUPS,COMMUNITY";
+            const options = visibility.split(',').map(o => o.trim().toUpperCase());
+
+            if (options.includes('GLOBAL')) {
+                filteredUsers.push(user);
+                continue;
+            }
+
+            let isVisible = false;
+
+            // 1. Community Check (Shares a workspace)
+            if (options.includes('COMMUNITY')) {
+                const sharedWorkspace = user.workspaceMemberships.some(um => 
+                    searcherMemberships.some(sm => sm.tenantId === um.tenantId)
+                );
+                if (sharedWorkspace) isVisible = true;
+            }
+
+            // 2. Followers Check (Searcher follows user)
+            if (options.includes('FOLLOWERS') && !isVisible) {
+                const follow = await this.prisma.userRead.follow.findFirst({
+                    where: { followerId: searcherId, followingId: user.id }
+                });
+                if (follow) isVisible = true;
+            }
+
+            // 3. Contacts & Groups (Not explicitly in schema yet, but we allow them if we find a way later)
+            // For now, we fall back to false for these unless they also match Community or Followers.
+
+            if (isVisible) {
+                filteredUsers.push({
+                    id: user.id,
+                    name: user.name,
+                    phone: user.phone,
+                    profileName: user.profileName,
+                    profilePhoto: user.profilePhoto
+                });
+            }
+        }
+
+        return filteredUsers.slice(0, 20);
     }
+
 
     async followUser(followerId: string, followingId: string) {
         if (followerId === followingId) return;

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
     Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
-    ActivityIndicator, StatusBar, Dimensions
+    ActivityIndicator, StatusBar, Dimensions, Modal
 } from 'react-native';
+
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
@@ -18,6 +19,7 @@ export default function EditProfileScreen() {
     const router = useRouter();
     const { user, updateUser } = useAuthStore();
     const [loading, setLoading] = useState(false);
+    const [isVisibilityModalVisible, setIsVisibilityModalVisible] = useState(false);
 
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -90,7 +92,7 @@ export default function EditProfileScreen() {
                 };
             }
 
-            const { data: updatedUser } = await authApi.updateProfile(dataToSubmit);
+            const { data: updatedUser } = await authApi.updateProfile(dataToSubmit, hasNewImage ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined);
             
             updateUser(updatedUser);
             Alert.alert('Success', 'Profile updated successfully! ✨');
@@ -282,10 +284,11 @@ export default function EditProfileScreen() {
                             <Text style={styles.prefTitle}>Profile Visibility</Text>
                             <Text style={styles.prefSub}>Choose who can see your profile</Text>
                         </View>
-                        <TouchableOpacity style={styles.prefDropdown}>
+                        <TouchableOpacity style={styles.prefDropdown} onPress={() => setIsVisibilityModalVisible(true)}>
                             <Text style={styles.prefValue}>{formData.visibility}</Text>
                             <Ionicons name="chevron-down" size={16} color="#64748b" />
                         </TouchableOpacity>
+
                     </View>
 
                     {/* Action Buttons */}
@@ -304,8 +307,78 @@ export default function EditProfileScreen() {
 
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* Visibility Selection Modal */}
+            <Modal
+                visible={isVisibilityModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setIsVisibilityModalVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setIsVisibilityModalVisible(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Profile Visibility</Text>
+                            <TouchableOpacity onPress={() => setIsVisibilityModalVisible(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.modalSub}>Choose who can see your profile and contact information</Text>
+                        
+                        {['Community', 'Contacts', 'Groups', 'Followers', 'Global'].map((option) => {
+                            const selectedOptions = formData.visibility ? formData.visibility.split(',').map(o => o.trim()) : [];
+                            const isSelected = selectedOptions.includes(option);
+                            
+                            return (
+                                <TouchableOpacity 
+                                    key={option}
+                                    style={styles.modalOption}
+                                    onPress={() => {
+                                        let updated;
+                                        if (isSelected) {
+                                            updated = selectedOptions.filter(o => o !== option);
+                                        } else {
+                                            // If Global is selected, it clears others, or vice versa? 
+                                            // Let's just allow combining them.
+                                            updated = [...selectedOptions, option];
+                                        }
+                                        setFormData({ ...formData, visibility: updated.join(', ') });
+                                    }}
+                                >
+                                    <Text style={[
+                                        styles.modalOptionText, 
+                                        isSelected && { color: '#0d9488', fontWeight: '800' }
+                                    ]}>
+                                        {option}
+                                    </Text>
+                                    <View style={[
+                                        styles.checkbox,
+                                        isSelected && { backgroundColor: '#0d9488', borderColor: '#0d9488' }
+                                    ]}>
+                                        {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                        <TouchableOpacity 
+                            style={[styles.saveBtn, { marginTop: 20 }]} 
+                            onPress={() => setIsVisibilityModalVisible(false)}
+                        >
+                            <Text style={styles.saveBtnText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+
             <BottomNav activeTab="Account" />
         </SafeAreaView>
+
     );
 }
 
@@ -326,8 +399,9 @@ const SocialItem = ({ icon, label, value, color, isConnected }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 80 },
+
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
     headerSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
@@ -377,5 +451,17 @@ const styles = StyleSheet.create({
     saveBtn: { backgroundColor: '#6366f1', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 40, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
     deleteBtn: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 12, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)', flexDirection: 'row' },
-    deleteBtnText: { color: '#ef4444', fontSize: 16, fontWeight: '800' }
+    deleteBtnText: { color: '#ef4444', fontSize: 16, fontWeight: '800' },
+    
+    // Modal Styles
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#121212', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
+    modalSub: { fontSize: 14, color: '#94a3b8', marginBottom: 24, lineHeight: 20 },
+    modalOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    modalOptionText: { fontSize: 16, color: '#fff', fontWeight: '600' },
+    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#64748b', alignItems: 'center', justifyContent: 'center' }
 });
+
+

@@ -66,7 +66,7 @@ export const authApi = {
     toggleFollow: (id: string, isFollowing: boolean) => isFollowing ? api.delete(`/profile/follow/${id}`) : api.post(`/profile/follow/${id}`),
     getFollowing: () => api.get('/profile/following'),
     getProfile: () => api.get('/profile/user'),
-    updateProfile: (data: any) => api.put('/profile/user', data),
+    updateProfile: (data: any, config?: any) => api.put('/profile/user', data, config),
     getPresignedUrl: (fileName: string, contentType: string, resourceType?: string) => 
         api.get('/profile/storage/presigned-url', { params: { fileName, contentType, resourceType } }),
     searchLocations: (query: string) => api.get('/profile/locations/search', { params: { query } }),

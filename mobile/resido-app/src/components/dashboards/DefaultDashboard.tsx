@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
-import { threadApi } from '../../services/api';
+import { threadApi, authApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
 import { getThemeColors } from '../../utils/theme';
@@ -121,6 +121,20 @@ export default function DefaultDashboard() {
     React.useEffect(() => {
         if (!activeWorkspace && user) {
             fetchContactFlares();
+        }
+
+        // Fetch updated workspaces on mount without requiring re-login!
+        const fetchWorkspaces = async () => {
+            try {
+                const res = await authApi.getWorkspaces();
+                useAuthStore.getState().setWorkspaces(res.data);
+            } catch (e) {
+                console.warn('Failed to fetch workspaces on mount:', e);
+            }
+        };
+
+        if (user) {
+            fetchWorkspaces();
         }
     }, [activeWorkspace, user]);
 
