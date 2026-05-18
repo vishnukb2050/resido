@@ -49,7 +49,7 @@ export class WorkspaceService {
                     userId: user.id,
                     tenantId: client.id,
                     tenantName: client.name,
-                    role: 'ADMIN' as any, // Cast to any if enum is not matching perfectly
+                    role: 'APARTMENT_ADMIN' as any, // Changed from ADMIN to APARTMENT_ADMIN to match schema enum
                     memberId: `mem_${client.id.slice(0, 8)}`, // Fallback memberId
                     isActive: true
                 }
