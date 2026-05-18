@@ -33,6 +33,32 @@ export class WorkspaceService {
             },
         });
 
+        // Link the creator to this workspace so they can see it and switch to it!
+        const user = await this.prisma.masterRead.user.findFirst({
+            where: {
+                OR: [
+                    { phone: data.adminPhone },
+                    { email: data.adminEmail }
+                ]
+            }
+        });
+
+        if (user) {
+            await this.prisma.masterClient.workspaceMembership.create({
+                data: {
+                    userId: user.id,
+                    tenantId: client.id,
+                    tenantName: client.name,
+                    role: 'ADMIN' as any, // Cast to any if enum is not matching perfectly
+                    memberId: `mem_${client.id.slice(0, 8)}`, // Fallback memberId
+                    isActive: true
+                }
+            });
+            console.log(`Linked user ${user.id} to new workspace ${client.id} as ADMIN`);
+        } else {
+            console.warn(`User with phone ${data.adminPhone} or email ${data.adminEmail} not found. Could not link workspace.`);
+        }
+
         return client;
     }
 
