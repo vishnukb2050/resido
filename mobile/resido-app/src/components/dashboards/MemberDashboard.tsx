@@ -83,6 +83,7 @@ export default function MemberDashboard() {
                     <DashboardIcon icon="call" label="Contacts" color="#fff" bg="#10b981" onPress={() => router.push('/staff-contacts')} />
                     <DashboardIcon icon="construct" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
                     <DashboardIcon icon="book" label="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
+                    <DashboardIcon icon="cash" label="Payments" color="#fff" bg="#ec4899" onPress={() => router.push('/resident-payments')} />
                 </View>
 
                 {/* Community Highlights */}

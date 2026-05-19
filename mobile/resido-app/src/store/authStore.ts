@@ -38,6 +38,7 @@ export interface Workspace {
 interface AuthState {
     phone: string | null;
     token: string | null;
+    personalToken: string | null;
     refreshToken: string | null;
     user: { id: string; name?: string; username?: string; email?: string; profileName?: string; phoneVisibility?: string; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string; location?: string; instagram?: string; linkedin?: string; website?: string } | null;
     workspaces: Workspace[];
@@ -61,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             phone: null,
             token: null,
+            personalToken: null,
             refreshToken: null,
             user: null,
             workspaces: [],
@@ -70,6 +72,7 @@ export const useAuthStore = create<AuthState>()(
             setOtpVerified: (data) =>
                 set({
                     token: data.token,
+                    personalToken: data.token,
                     refreshToken: data.refreshToken,
                     user: data.user,
                     workspaces: data.workspaces,
@@ -79,7 +82,10 @@ export const useAuthStore = create<AuthState>()(
             updateUser: (user) => set({ user }),
 
             setActiveWorkspace: (ws, token) =>
-                set({ activeWorkspace: ws, token }),
+                set((state) => ({
+                    activeWorkspace: ws,
+                    token: ws === null ? state.personalToken || state.token : token
+                })),
 
             setWorkspaces: (workspaces) => set({ workspaces }),
 
@@ -87,6 +93,7 @@ export const useAuthStore = create<AuthState>()(
                 set({
                     phone: null,
                     token: null,
+                    personalToken: null,
                     refreshToken: null,
                     user: null,
                     workspaces: [],

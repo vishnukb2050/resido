@@ -113,6 +113,7 @@ export default function AdminDashboard() {
                         <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />
                         <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#4c1d95" />
                         <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/staff-documents')} />
+                        <FeatureCard icon="notifications" title="Reminders" color="#fff" bg="#6366f1" onPress={() => router.push('/admin-reminders')} />
 
                     </View>
                 </View>
@@ -128,17 +129,18 @@ export default function AdminDashboard() {
                         <FeatureCard icon="newspaper" title="Feed Mgmt" color="#fff" bg="#1a365d" onPress={() => router.push('/thread')} />
                         <FeatureCard icon="tennisball" title="Amenities" color="#fff" bg="#6366f1" onPress={() => router.push('/amenities')} />
                         <FeatureCard icon="settings" title="Manage Community" color="#fff" bg="#ec4899" onPress={() => router.push('/manage-community')} />
+                        <FeatureCard icon="cube" title="Community Assets" color="#fff" bg="#d97706" onPress={() => router.push('/admin-assets')} />
                     </View>
                 </View>
 
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Community Finance</Text>
                     <View style={styles.featureGrid}>
-                        <FeatureCard icon="cash" title="Maintenance" color="#fff" bg="#0ea5e9" />
-                        <FeatureCard icon="trending-up" title="Comm. Income" color="#fff" bg="#10b981" />
-                        <FeatureCard icon="trending-down" title="Comm. Expense" color="#fff" bg="#f43f5e" />
-                        <FeatureCard icon="pie-chart" title="Finance Report" color="#fff" bg="#8b5cf6" />
-                        <FeatureCard icon="alert-circle" title="Dues Report" color="#fff" bg="#f59e0b" />
+                        <FeatureCard icon="cash" title="Maintenance" color="#fff" bg="#0ea5e9" onPress={() => router.push('/admin-maintenance')} />
+                        <FeatureCard icon="trending-up" title="Comm. Income" color="#fff" bg="#10b981" onPress={() => router.push('/admin-finance')} />
+                        <FeatureCard icon="trending-down" title="Comm. Expense" color="#fff" bg="#f43f5e" onPress={() => router.push('/admin-finance')} />
+                        <FeatureCard icon="pie-chart" title="Finance Report" color="#fff" bg="#8b5cf6" onPress={() => router.push('/admin-finance')} />
+                        <FeatureCard icon="alert-circle" title="Dues Report" color="#fff" bg="#f59e0b" onPress={() => router.push('/admin-maintenance')} />
                     </View>
                 </View>
 

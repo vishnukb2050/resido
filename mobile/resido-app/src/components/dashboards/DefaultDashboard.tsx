@@ -131,25 +131,54 @@ export default function DefaultDashboard() {
         }
     }, [user]);
 
-    const handlePageScroll = (offsetX: number) => {
+    const handlePageScroll = async (offsetX: number) => {
         const index = Math.round(offsetX / windowWidth);
-        if (index === 0) {
-            setActiveWorkspace(null as any, '');
-            workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
-        } else if (index > 0 && index <= workspaces.length) {
-            setActiveWorkspace(workspaces[index - 1], '');
-            workspaceScrollRef.current?.scrollTo({ x: index * 100, animated: true });
+        try {
+            if (index === 0) {
+                setActiveWorkspace(null as any, '');
+                workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
+            } else if (index > 0 && index <= workspaces.length) {
+                const ws = workspaces[index - 1];
+                const res = await authApi.switchWorkspace(ws.tenantId);
+                setActiveWorkspace(ws, res.data.accessToken);
+                workspaceScrollRef.current?.scrollTo({ x: index * 100, animated: true });
+            }
+        } catch (e) {
+            console.error('Failed to switch workspace on page scroll:', e);
         }
     };
 
-    const handleWorkspaceScroll = (offsetX: number) => {
+    const handleWorkspaceScroll = async (offsetX: number) => {
         const index = Math.round(offsetX / 100);
-        if (index === 0) {
-            setActiveWorkspace(null as any, '');
-            pageScrollRef.current?.scrollTo({ x: 0, animated: true });
-        } else if (index > 0 && index <= workspaces.length) {
-            setActiveWorkspace(workspaces[index - 1], '');
-            pageScrollRef.current?.scrollTo({ x: index * windowWidth, animated: true });
+        try {
+            if (index === 0) {
+                setActiveWorkspace(null as any, '');
+                pageScrollRef.current?.scrollTo({ x: 0, animated: true });
+            } else if (index > 0 && index <= workspaces.length) {
+                const ws = workspaces[index - 1];
+                const res = await authApi.switchWorkspace(ws.tenantId);
+                setActiveWorkspace(ws, res.data.accessToken);
+                pageScrollRef.current?.scrollTo({ x: index * windowWidth, animated: true });
+            }
+        } catch (e) {
+            console.error('Failed to switch workspace on workspace scroll:', e);
+        }
+    };
+
+    const handleSelectWorkspace = async (ws: any, targetIndex: number) => {
+        try {
+            if (ws === null) {
+                setActiveWorkspace(null as any, '');
+                pageScrollRef.current?.scrollTo({ x: 0, animated: true });
+                workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
+            } else {
+                const res = await authApi.switchWorkspace(ws.tenantId);
+                setActiveWorkspace(ws, res.data.accessToken);
+                pageScrollRef.current?.scrollTo({ x: targetIndex * windowWidth, animated: true });
+                workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: true });
+            }
+        } catch (e) {
+            console.error('Failed to switch workspace on selection:', e);
         }
     };
 
@@ -161,7 +190,7 @@ export default function DefaultDashboard() {
     const mySpaceSubText = theme.background === '#000000' ? '#94a3b8' : '#7A6B9C';
     const darkLavender = theme.primary;
     const lightLavender = theme.accent;
-
+ 
     if (isGuest) {
         return (
             <ScrollView style={styles.container} contentContainerStyle={styles.guestContent}>
@@ -171,7 +200,7 @@ export default function DefaultDashboard() {
                     <Text style={styles.heroSub}>Smart Living for Modern Communities</Text>
                     <Text style={styles.heroDesc}>Manage apartments, connect with residents, and access local services—all in one app.</Text>
                 </View>
-
+ 
                 <View style={styles.actionSection}>
                     <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/otp-login')}>
                         <Text style={styles.primaryBtnText}>Get Started with OTP</Text>
@@ -180,7 +209,7 @@ export default function DefaultDashboard() {
             </ScrollView>
         );
     }
-
+ 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: mySpaceBg }]}>
             <ScrollView style={[styles.container, { backgroundColor: mySpaceBg }]} showsVerticalScrollIndicator={false}>
@@ -216,7 +245,7 @@ export default function DefaultDashboard() {
                                 </TouchableOpacity>
                             </View>
                         </View>
-
+ 
                         {/* Premium Workspace Switcher (Bubbles) */}
                         <View style={styles.psWorkspaceSection}>
                             <ScrollView 
@@ -232,10 +261,7 @@ export default function DefaultDashboard() {
                                 <WorkspaceBubble 
                                     label="My Space" 
                                     isActive={!activeWorkspace} 
-                                    onPress={() => {
-                                        setActiveWorkspace(null as any, '');
-                                        pageScrollRef.current?.scrollTo({ x: 0, animated: true });
-                                    }} 
+                                    onPress={() => handleSelectWorkspace(null, 0)} 
                                     image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
                                 />
                                 {workspaces.map((ws: any, idx: number) => (
@@ -243,10 +269,7 @@ export default function DefaultDashboard() {
                                         key={ws.tenantId} 
                                         label={ws.tenantName} 
                                         isActive={activeWorkspace?.tenantId === ws.tenantId} 
-                                        onPress={() => {
-                                            setActiveWorkspace(ws, '');
-                                            pageScrollRef.current?.scrollTo({ x: (idx + 1) * windowWidth, animated: true });
-                                        }} 
+                                        onPress={() => handleSelectWorkspace(ws, idx + 1)} 
                                         image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
                                     />
                                 ))}

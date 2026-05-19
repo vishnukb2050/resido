@@ -89,7 +89,7 @@ export class AmenitiesService {
       },
       include: {
         member: {
-          select: { name: true, unitId: true } // Assuming member has name and unitId
+          select: { name: true }
         }
       }
     });

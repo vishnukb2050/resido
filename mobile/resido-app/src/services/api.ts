@@ -223,3 +223,33 @@ export const mySpaceApi = {
     addExpense: (data: { amount: number, category: string, date: string, paymentMethod: string, description?: string, billUrl?: string }) => api.post('/profile/finance/expense', data),
     getFinanceReport: (params: { period: string, startDate?: string, endDate?: string }) => api.get('/profile/finance/report', { params }),
 };
+
+export const communityFinanceApi = {
+    getConfig: () => api.get('/community/finance/maintenance/config'),
+    updateConfig: (data: any) => api.post('/community/finance/maintenance/config', data),
+    getTransactions: (params?: any) => api.get('/community/finance/transactions', { params }),
+    addTransaction: (data: any) => api.post('/community/finance/transactions', data),
+    generateBills: (month: number, year: number) => api.post('/community/finance/maintenance/generate', { month, year }),
+    getStatus: (month: number, year: number) => api.get('/community/finance/maintenance/status', { params: { month, year } }),
+    getResidentBills: () => api.get('/community/finance/maintenance/my-bills'),
+    submitProof: (billId: string, data: { receiptUrl: string, paymentMethod: string, description?: string }) => 
+        api.post(`/community/finance/maintenance/submit-proof/${billId}`, data),
+    verifyPayment: (billId: string, action: 'APPROVE' | 'REJECT', rejectionReason?: string) => 
+        api.post(`/community/finance/maintenance/verify/${billId}`, { action, rejectionReason }),
+    getReports: (params: { period: 'day' | 'week' | 'month', year: number }) => api.get('/community/finance/reports', { params }),
+};
+
+export const communityAssetsApi = {
+    getAssets: (params?: any) => api.get('/community/assets', { params }),
+    getAsset: (id: string) => api.get(`/community/assets/${id}`),
+    createAsset: (data: any) => api.post('/community/assets', data),
+    updateAsset: (id: string, data: any) => api.patch(`/community/assets/${id}`, data),
+    deleteAsset: (id: string) => api.delete(`/community/assets/${id}`),
+};
+
+export const communityRemindersApi = {
+    getReminders: () => api.get('/community/reminders'),
+    createReminder: (data: any) => api.post('/community/reminders', data),
+    triggerReminder: (id: string) => api.post(`/community/reminders/${id}/trigger`),
+    deleteReminder: (id: string) => api.delete(`/community/reminders/${id}`),
+};
