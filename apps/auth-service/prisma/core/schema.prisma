@@ -47,6 +47,7 @@ model Unit {
   blockId  String
   block    Block   @relation(fields: [blockId], references: [id])
   families Family[]
+  maintenanceBills MaintenanceBill[]
 
   @@index([tenantId])
   @@map("units")
@@ -133,6 +134,7 @@ model Member {
   notePermissions       NotePermission[]
   financeTransactions   FinanceTransaction[]
   financeBudgets        FinanceBudget[]
+  amenityBookings       AmenityBooking[]
 
   @@index([tenantId])
   @@unique([tenantId, phone])
@@ -818,4 +820,188 @@ enum VisitorStatus {
 enum OccupancyType {
   RESIDENT
   RENTAL
+}
+
+// ─── Amenities ────────────────────────────────────────────────────────────────
+model Amenity {
+  id                     String   @id @default(cuid())
+  tenantId               String
+  name                   String
+  description            String?
+  rules                  String?
+  photoUrl               String?
+  maxPersons             Int      @default(1)
+  timeSlots              String[] // Array of time slots, e.g., ["09:00-10:00", "10:00-11:00"]
+  availableDates         String[] // Array of available dates, e.g., ["2023-10-01", "2023-10-02"]
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Dynamic scheduling extensions
+  scheduleType           String   @default("CUSTOM") // "WEEKLY", "MONTHLY", "CUSTOM"
+  scheduleConfig         String?  // JSON serialized config
+  allowRecurringBookings Boolean  @default(false)
+
+  bookings       AmenityBooking[]
+
+  @@index([tenantId])
+  @@map("amenities")
+}
+
+model AmenityBooking {
+  id              String   @id @default(cuid())
+  tenantId        String
+  amenityId       String
+  memberId        String
+  bookingDate     String   // YYYY-MM-DD
+  timeSlot        String
+  persons         Int      @default(1)
+  status          String   @default("CONFIRMED") // CONFIRMED, CANCELLED
+  createdAt       DateTime @default(now())
+
+  // Recurrence extensions
+  isRecurring     Boolean  @default(false)
+  recurringPeriod String?  // "WEEKLY", "MONTHLY"
+  parentBookingId String?
+
+  amenity     Amenity  @relation(fields: [amenityId], references: [id])
+  member      Member   @relation(fields: [memberId], references: [id])
+
+  @@index([tenantId])
+  @@map("amenity_bookings")
+}
+
+// ─── Community Finance Extension ───
+
+model CommunityTransaction {
+  id                String          @id @default(cuid())
+  tenantId          String
+  amount            Float
+  type              TransactionType @default(EXPENSE) // INCOME or EXPENSE
+  category          String          // "Maintenance", "Sinking Fund", "Staff Salary", "Electricity", "Events", "Repairs"
+  date              DateTime        @default(now())
+  description       String?
+  paymentMethod     String          @default("CASH") // "CASH", "UPI", "CARD", "BANK_TRANSFER"
+  billUrl           String?         // S3 key for invoice scan or payment receipt
+  addedById         String          // Member ID of the admin who logged it
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  maintenanceBillId String?         @unique
+  maintenanceBill   MaintenanceBill? @relation(fields: [maintenanceBillId], references: [id])
+
+  @@index([tenantId])
+  @@map("community_transactions")
+}
+
+model MaintenanceConfig {
+  id              String          @id @default(cuid())
+  tenantId        String          @unique
+  billingCycle    BillingCycle    @default(MONTHLY)
+  calculationType CalculationType @default(FLAT_RATE)
+  flatRateAmount  Float           @default(0)    // Used for FLAT_RATE calculation
+  ratePerSqFt     Float           @default(0)    // Used for AREA_BASED calculation (e.g. $0.20 / sq.ft.)
+  dueDateDay      Int             @default(10)   // Day of month when bills are due (1 to 28)
+  penaltyType     PenaltyType     @default(NONE)
+  penaltyAmount   Float           @default(0)    // Flat amount or percentage depending on penaltyType
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([tenantId])
+  @@map("maintenance_configs")
+}
+
+model MaintenanceBill {
+  id              String            @id @default(cuid())
+  tenantId        String
+  unitId          String
+  unit            Unit              @relation(fields: [unitId], references: [id])
+  month           Int               // 1-12
+  year            Int
+  baseAmount      Float             // Computed based on calculationType
+  otherCharges    Float             @default(0)   // Sinking fund, security cess, parking, etc.
+  penaltyAmount   Float             @default(0)   // Applied late fee penalty
+  totalAmount     Float             // baseAmount + otherCharges + penaltyAmount
+  status          BillStatus        @default(UNPAID)
+  dueDate         DateTime
+  paymentDate     DateTime?
+  paymentMethod   String?
+  receiptUrl      String?           // S3 receipt URL uploaded by resident/admin
+  description     String?           // Note entered by resident/admin during payment proof submission
+  rejectionReason String?           // Saved justification if rejected by admin
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  transaction     CommunityTransaction?
+
+  @@unique([unitId, month, year])
+  @@index([tenantId])
+  @@map("maintenance_bills")
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+enum CalculationType {
+  FLAT_RATE
+  AREA_BASED
+}
+
+enum BillStatus {
+  UNPAID
+  PENDING_VERIFICATION
+  PAID
+  OVERDUE
+}
+
+enum PenaltyType {
+  NONE
+  FLAT
+  PERCENTAGE
+}
+
+model CommunityAsset {
+  id             String    @id @default(cuid())
+  tenantId       String
+  name           String
+  category       String    // e.g. MACHINERY, ELECTRONICS, INFRASTRUCTURE, FURNITURE, OTHER
+  status         String    @default("ACTIVE") // ACTIVE, MAINTENANCE, BROKEN, REPLACED
+  serialNumber   String?
+  purchaseDate   DateTime?
+  purchaseCost   Float?
+  warrantyExpiry DateTime?
+  location       String?   // e.g. Block A Basement, Clubhouse, Main Gate
+  description    String?
+  photoUrl       String?   // Cloudflare R2 uploaded link
+  billUrl        String?   // Cloudflare R2 uploaded bill link
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@map("community_assets")
+}
+
+model Reminder {
+  id             String    @id @default(cuid())
+  tenantId       String
+  title          String
+  message        String
+  category       String    // e.g. MAINTENANCE, DUTY_ROSTER, EVENT, GENERAL
+  targetType     String    // e.g. ALL, SPECIFIC_UNITS, STAFF_ROLE, SPECIFIC_MEMBERS
+  targetRoles    String[]  // Targeted staff roles (e.g., ["SECURITY_STAFF", "MAINTENANCE_STAFF"])
+  targetUnits    String[]  // Targeted unit IDs (e.g., ["block-A-unit-101"])
+  targetMembers  String[]  // Targeted specific members/staff IDs (e.g., ["memberId1"])
+  scheduledAt    DateTime? // Null means send instantly, otherwise future timestamp
+  status         String    @default("PENDING") // PENDING, SENT, FAILED
+  sentAt         DateTime?
+  recurrence     String    @default("ONCE") // ONCE, WEEKLY, MONTHLY
+  recurrenceDetail Int?      // Day of week (0=Sunday to 6=Saturday) or Date of month (1 to 31)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@map("reminders")
 }
