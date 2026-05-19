@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
+import { authApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getThemeColors } from '../../utils/theme';
@@ -9,6 +10,15 @@ export default function SecurityDashboard() {
     const { activeWorkspace, user, workspaces, setActiveWorkspace } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const router = useRouter();
+
+    const handleSwitch = async (ws: any) => {
+        try {
+            const res = await authApi.switchWorkspace(ws.tenantId);
+            setActiveWorkspace(res.data.workspace, res.data.accessToken);
+        } catch (e) {
+            console.error('Switch failed', e);
+        }
+    };
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -59,7 +69,7 @@ export default function SecurityDashboard() {
                                 key={ws.tenantId} 
                                 label={ws.tenantName} 
                                 isActive={activeWorkspace?.tenantId === ws.tenantId} 
-                                onPress={() => setActiveWorkspace(ws, '')} 
+                                onPress={() => handleSwitch(ws)} 
                                 image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
                             />
                         ))}

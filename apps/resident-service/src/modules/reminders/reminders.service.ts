@@ -8,6 +8,31 @@ export class RemindersService {
     constructor(private prisma: PrismaService) {}
 
     async createReminder(tenantId: string, data: any) {
+        let calculatedSchedule: Date | null = null;
+        
+        if (data.scheduledAt) {
+            calculatedSchedule = new Date(data.scheduledAt);
+        } else if (data.recurrence === 'WEEKLY' && typeof data.recurrenceDetail === 'number') {
+            const nextDate = new Date();
+            const currentDay = nextDate.getDay();
+            const targetDay = data.recurrenceDetail;
+            let daysToAdd = targetDay - currentDay;
+            if (daysToAdd <= 0) {
+                daysToAdd += 7;
+            }
+            nextDate.setDate(nextDate.getDate() + daysToAdd);
+            nextDate.setHours(9, 0, 0, 0); // Default to 9 AM
+            calculatedSchedule = nextDate;
+        } else if (data.recurrence === 'MONTHLY' && typeof data.recurrenceDetail === 'number') {
+            const nextDate = new Date();
+            nextDate.setDate(data.recurrenceDetail);
+            if (nextDate <= new Date()) {
+                nextDate.setMonth(nextDate.getMonth() + 1);
+            }
+            nextDate.setHours(9, 0, 0, 0); // Default to 9 AM
+            calculatedSchedule = nextDate;
+        }
+
         const reminder = await this.prisma.client.reminder.create({
             data: {
                 tenantId,
@@ -18,13 +43,15 @@ export class RemindersService {
                 targetRoles: data.targetRoles || [],
                 targetUnits: data.targetUnits || [],
                 targetMembers: data.targetMembers || [],
-                scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+                scheduledAt: calculatedSchedule,
                 status: 'PENDING',
+                recurrence: data.recurrence || 'ONCE',
+                recurrenceDetail: data.recurrenceDetail || null,
             }
         });
 
-        // If no schedule date is specified, dispatch it instantly!
-        if (!reminder.scheduledAt) {
+        // If no schedule date is specified and it's once, dispatch it instantly!
+        if (!reminder.scheduledAt && reminder.recurrence === 'ONCE') {
             await this.dispatchReminder(tenantId, reminder.id);
         }
 
@@ -49,7 +76,7 @@ export class RemindersService {
             where: { id: reminderId }
         });
 
-        if (!reminder || reminder.status === 'SENT') {
+        if (!reminder || (reminder.status === 'SENT' && reminder.recurrence === 'ONCE')) {
             return;
         }
 
@@ -117,13 +144,38 @@ export class RemindersService {
                 }
             }
 
-            await this.prisma.client.reminder.update({
-                where: { id: reminderId },
-                data: {
-                    status: 'SENT',
-                    sentAt: new Date()
-                }
-            });
+            // Calculate next schedule for weekly / monthly recurrence
+            if (reminder.recurrence === 'WEEKLY' && reminder.scheduledAt) {
+                const nextSchedule = new Date(reminder.scheduledAt);
+                nextSchedule.setDate(nextSchedule.getDate() + 7);
+                
+                await this.prisma.client.reminder.update({
+                    where: { id: reminderId },
+                    data: {
+                        scheduledAt: nextSchedule,
+                        sentAt: new Date()
+                    }
+                });
+            } else if (reminder.recurrence === 'MONTHLY' && reminder.scheduledAt) {
+                const nextSchedule = new Date(reminder.scheduledAt);
+                nextSchedule.setMonth(nextSchedule.getMonth() + 1);
+                
+                await this.prisma.client.reminder.update({
+                    where: { id: reminderId },
+                    data: {
+                        scheduledAt: nextSchedule,
+                        sentAt: new Date()
+                    }
+                });
+            } else {
+                await this.prisma.client.reminder.update({
+                    where: { id: reminderId },
+                    data: {
+                        status: 'SENT',
+                        sentAt: new Date()
+                    }
+                });
+            }
 
             this.logger.log(`Reminder ${reminderId} dispatched to ${targetMemberIds.length} members successfully.`);
         } catch (e) {

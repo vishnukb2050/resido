@@ -1006,6 +1006,8 @@ model Reminder {
   scheduledAt    DateTime? // Null means send instantly, otherwise future timestamp
   status         String    @default("PENDING") // PENDING, SENT, FAILED
   sentAt         DateTime?
+  recurrence     String    @default("ONCE") // ONCE, WEEKLY, MONTHLY
+  recurrenceDetail Int?      // Day of week (0=Sunday to 6=Saturday) or Date of month (1 to 31)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

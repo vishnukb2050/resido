@@ -131,6 +131,21 @@ export default function DefaultDashboard() {
         }
     }, [user]);
 
+    // Align ScrollViews if default activeWorkspace is already selected on mount
+    React.useEffect(() => {
+        if (activeWorkspace && workspaces.length > 0) {
+            const idx = workspaces.findIndex(w => w.tenantId === activeWorkspace.tenantId);
+            if (idx !== -1) {
+                const targetIndex = idx + 1;
+                const timer = setTimeout(() => {
+                    pageScrollRef.current?.scrollTo({ x: targetIndex * windowWidth, animated: false });
+                    workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: false });
+                }, 150);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [activeWorkspace, workspaces]);
+
     const handlePageScroll = async (offsetX: number) => {
         const index = Math.round(offsetX / windowWidth);
         try {

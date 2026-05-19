@@ -8,6 +8,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { communityRemindersApi, membersApi, communityApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
+const DAYS_OF_WEEK = [
+    { label: 'Sun', value: 0 },
+    { label: 'Mon', value: 1 },
+    { label: 'Tue', value: 2 },
+    { label: 'Wed', value: 3 },
+    { label: 'Thu', value: 4 },
+    { label: 'Fri', value: 5 },
+    { label: 'Sat', value: 6 }
+];
+
 export default function AdminRemindersScreen() {
     const router = useRouter();
     const { activeWorkspace } = useAuthStore();
@@ -34,7 +44,11 @@ export default function AdminRemindersScreen() {
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
-    // Scheduling
+    // Scheduling & Recurrence
+    const [recurrence, setRecurrence] = useState<'ONCE' | 'WEEKLY' | 'MONTHLY'>('ONCE');
+    const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | null>(null);
+    const [dateOfMonth, setDateOfMonth] = useState<string>('');
+
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduledDateTime, setScheduledDateTime] = useState(''); // e.g. 2026-05-20 10:00
 
@@ -113,8 +127,25 @@ export default function AdminRemindersScreen() {
             return;
         }
 
+        let recurrenceDetailVal: number | null = null;
+        
+        if (recurrence === 'WEEKLY') {
+            if (selectedDayOfWeek === null) {
+                Alert.alert('Error', 'Please select a day of the week for weekly reminder.');
+                return;
+            }
+            recurrenceDetailVal = selectedDayOfWeek;
+        } else if (recurrence === 'MONTHLY') {
+            const parsedDate = parseInt(dateOfMonth, 10);
+            if (isNaN(parsedDate) || parsedDate < 1 || parsedDate > 31) {
+                Alert.alert('Error', 'Please enter a valid calendar date of the month (1 to 31).');
+                return;
+            }
+            recurrenceDetailVal = parsedDate;
+        }
+
         let scheduledAtDate: Date | null = null;
-        if (isScheduled) {
+        if (isScheduled && recurrence === 'ONCE') {
             if (!scheduledDateTime.trim()) {
                 Alert.alert('Error', 'Please specify a scheduled date and time.');
                 return;
@@ -140,14 +171,16 @@ export default function AdminRemindersScreen() {
                 targetRoles: selectedRoles,
                 targetUnits: selectedUnits,
                 targetMembers: selectedMembers,
+                recurrence,
+                recurrenceDetail: recurrenceDetailVal,
                 scheduledAt: scheduledAtDate ? scheduledAtDate.toISOString() : null
             });
 
             Alert.alert(
                 'Success', 
-                isScheduled 
-                    ? 'Reminder scheduled successfully!' 
-                    : 'Reminder triggered and dispatched instantly to targeted members!'
+                recurrence !== 'ONCE' 
+                    ? `Recurring ${recurrence.toLowerCase()} reminder schedule added successfully!` 
+                    : (isScheduled ? 'Scheduled reminder added successfully!' : 'Reminder triggered and dispatched instantly!')
             );
             
             // Reset form
@@ -158,6 +191,9 @@ export default function AdminRemindersScreen() {
             setSelectedMembers([]);
             setIsScheduled(false);
             setScheduledDateTime('');
+            setRecurrence('ONCE');
+            setSelectedDayOfWeek(null);
+            setDateOfMonth('');
             
             // Reload & switch tab
             loadData();
@@ -232,11 +268,25 @@ export default function AdminRemindersScreen() {
         );
     };
 
+    const getRecurrenceLabel = (rem: any) => {
+        if (rem.recurrence === 'ONCE') {
+            return rem.scheduledAt ? 'Scheduled Alert' : 'Instant Alert';
+        }
+        if (rem.recurrence === 'WEEKLY' && typeof rem.recurrenceDetail === 'number') {
+            const dayLabel = DAYS_OF_WEEK.find(d => d.value === rem.recurrenceDetail)?.label || '';
+            return `Weekly on ${dayLabel}s`;
+        }
+        if (rem.recurrence === 'MONTHLY' && typeof rem.recurrenceDetail === 'number') {
+            return `Monthly on the ${rem.recurrenceDetail}th`;
+        }
+        return rem.recurrence;
+    };
+
     // Metrics calculations
-    const scheduledReminders = reminders.filter(r => r.status === 'PENDING');
-    const sentRemindersCount = reminders.filter(r => r.status === 'SENT').length;
+    const scheduledReminders = reminders.filter(r => r.status === 'PENDING' || r.recurrence !== 'ONCE');
+    const sentRemindersCount = reminders.filter(r => r.status === 'SENT' || r.sentAt !== null).length;
     const successRate = reminders.length > 0 
-        ? Math.round((reminders.filter(r => r.status === 'SENT').length / reminders.length) * 100) 
+        ? Math.round((reminders.filter(r => r.status === 'SENT' || r.sentAt !== null).length / reminders.length) * 100) 
         : 100;
 
     return (
@@ -272,7 +322,7 @@ export default function AdminRemindersScreen() {
                     <View style={styles.metricsRow}>
                         <View style={styles.metricItem}>
                             <Text style={styles.metricVal}>{scheduledReminders.length}</Text>
-                            <Text style={styles.metricLabel}>Scheduled</Text>
+                            <Text style={styles.metricLabel}>Active Rules</Text>
                         </View>
                         <View style={styles.verticalDivider} />
                         <View style={styles.metricItem}>
@@ -301,7 +351,7 @@ export default function AdminRemindersScreen() {
                             onPress={() => setActiveTab('QUEUE')}
                         >
                             <Text style={[styles.tabText, activeTab === 'QUEUE' && styles.tabTextActive]}>
-                                Scheduled Queue ({reminders.length})
+                                Reminder Register ({reminders.length})
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -463,32 +513,91 @@ export default function AdminRemindersScreen() {
                                 </View>
                             )}
 
-                            {/* Schedule Config */}
-                            <View style={styles.scheduleRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.scheduleTitle}>Schedule for later</Text>
-                                    <Text style={styles.scheduleDesc}>Auto-send reminder at a designated future time</Text>
-                                </View>
-                                <Switch
-                                    value={isScheduled}
-                                    onValueChange={setIsScheduled}
-                                    trackColor={{ false: '#2d3748', true: '#d97706' }}
-                                    thumbColor={isScheduled ? '#fff' : '#cbd5e1'}
-                                />
+                            {/* Recurrence Toggles */}
+                            <Text style={styles.inputLabel}>Recurrence Pattern</Text>
+                            <View style={styles.selectorGrid}>
+                                {[
+                                    { label: 'One-Time', value: 'ONCE' },
+                                    { label: 'Weekly', value: 'WEEKLY' },
+                                    { label: 'Monthly', value: 'MONTHLY' }
+                                ].map(pattern => (
+                                    <TouchableOpacity 
+                                        key={pattern.value} 
+                                        style={[styles.selectorBtn, recurrence === pattern.value && styles.selectorActive, { flex: 1 }]}
+                                        onPress={() => setRecurrence(pattern.value as any)}
+                                    >
+                                        <Text style={[styles.selectorBtnText, recurrence === pattern.value && styles.selectorTextActive]}>
+                                            {pattern.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
 
-                            {isScheduled && (
-                                <View style={{ marginTop: 10 }}>
-                                    <Text style={styles.inputLabel}>Scheduled Time (YYYY-MM-DD HH:MM) *</Text>
+                            {/* Recurrence Specific Detail Selectors */}
+                            {recurrence === 'WEEKLY' && (
+                                <View style={styles.subSelectionCard}>
+                                    <Text style={styles.subTitle}>Select Weekly Day</Text>
+                                    <View style={styles.selectorGrid}>
+                                        {DAYS_OF_WEEK.map(day => (
+                                            <TouchableOpacity
+                                                key={day.value}
+                                                style={[styles.selectorBtn, selectedDayOfWeek === day.value && styles.selectorActive, { paddingHorizontal: 12 }]}
+                                                onPress={() => setSelectedDayOfWeek(day.value)}
+                                            >
+                                                <Text style={[styles.selectorBtnText, selectedDayOfWeek === day.value && styles.selectorTextActive]}>
+                                                    {day.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
+                            {recurrence === 'MONTHLY' && (
+                                <View style={styles.subSelectionCard}>
+                                    <Text style={styles.subTitle}>Specify Day of Month (1 - 31)</Text>
                                     <TextInput
                                         style={styles.textInput}
-                                        placeholder="e.g. 2026-05-20 14:30"
+                                        placeholder="e.g. 1 or 15"
                                         placeholderTextColor="#64748b"
-                                        value={scheduledDateTime}
-                                        onChangeText={setScheduledDateTime}
+                                        keyboardType="numeric"
+                                        value={dateOfMonth}
+                                        onChangeText={setDateOfMonth}
                                     />
-                                    <Text style={styles.infoHint}>Ensure time is formatted exactly as shown (24-hour style).</Text>
+                                    <Text style={styles.infoHint}>Reminder will run automatically on this date each month at 09:00 AM.</Text>
                                 </View>
+                            )}
+
+                            {/* Schedule Config (Only visible for one-time alerts) */}
+                            {recurrence === 'ONCE' && (
+                                <>
+                                    <View style={styles.scheduleRow}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.scheduleTitle}>Schedule for later</Text>
+                                            <Text style={styles.scheduleDesc}>Auto-send reminder at a designated future time</Text>
+                                        </View>
+                                        <Switch
+                                            value={isScheduled}
+                                            onValueChange={setIsScheduled}
+                                            trackColor={{ false: '#2d3748', true: '#d97706' }}
+                                            thumbColor={isScheduled ? '#fff' : '#cbd5e1'}
+                                        />
+                                    </View>
+
+                                    {isScheduled && (
+                                        <View style={{ marginTop: 10 }}>
+                                            <Text style={styles.inputLabel}>Scheduled Time (YYYY-MM-DD HH:MM) *</Text>
+                                            <TextInput
+                                                style={styles.textInput}
+                                                placeholder="e.g. 2026-05-20 14:30"
+                                                placeholderTextColor="#64748b"
+                                                value={scheduledDateTime}
+                                                onChangeText={setScheduledDateTime}
+                                            />
+                                            <Text style={styles.infoHint}>Ensure time is formatted exactly as shown (24-hour style).</Text>
+                                        </View>
+                                    )}
+                                </>
                             )}
 
                             <TouchableOpacity 
@@ -500,7 +609,9 @@ export default function AdminRemindersScreen() {
                                     <ActivityIndicator color="#fff" />
                                 ) : (
                                     <Text style={styles.submitBtnText}>
-                                        {isScheduled ? 'Schedule Reminder Job' : 'Send Reminder Instantly'}
+                                        {recurrence !== 'ONCE' 
+                                            ? `Schedule Recurring ${recurrence.toLowerCase()} Alert` 
+                                            : (isScheduled ? 'Schedule Reminder Job' : 'Send Reminder Instantly')}
                                     </Text>
                                 )}
                             </TouchableOpacity>
@@ -508,7 +619,7 @@ export default function AdminRemindersScreen() {
                         </View>
                     ) : (
                         <View style={styles.listContainer}>
-                            <Text style={styles.sectionTitle}>Reminder Queue ({reminders.length})</Text>
+                            <Text style={styles.sectionTitle}>Active Reminders Registry ({reminders.length})</Text>
                             {reminders.length === 0 ? (
                                 <View style={styles.emptyCard}>
                                     <Ionicons name="notifications-off-outline" size={40} color="#cbd5e1" />
@@ -532,17 +643,18 @@ export default function AdminRemindersScreen() {
                                         {/* Parameter rows */}
                                         <View style={styles.paramsGrid}>
                                             <DetailRow icon="people-outline" label="Target Filter" value={rem.targetType} />
+                                            <DetailRow icon="repeat-outline" label="Recurrence" value={getRecurrenceLabel(rem)} />
                                             {rem.scheduledAt && (
                                                 <DetailRow 
                                                     icon="time-outline" 
-                                                    label="Scheduled" 
+                                                    label="Next Schedule" 
                                                     value={new Date(rem.scheduledAt).toLocaleString()} 
                                                 />
                                             )}
                                             {rem.sentAt && (
                                                 <DetailRow 
                                                     icon="checkmark-circle-outline" 
-                                                    label="Sent At" 
+                                                    label="Last Sent" 
                                                     value={new Date(rem.sentAt).toLocaleString()} 
                                                 />
                                             )}
