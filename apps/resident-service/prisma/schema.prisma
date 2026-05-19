@@ -135,6 +135,7 @@ model Member {
   notePermissions       NotePermission[]
   financeTransactions   FinanceTransaction[]
   financeBudgets        FinanceBudget[]
+  amenityBookings       AmenityBooking[]
 
   @@index([tenantId])
   @@unique([tenantId, phone])
