@@ -169,11 +169,15 @@ export class AuthService {
         // 2. Create membership
         const membership = await this.prisma.userClient.workspaceMembership.upsert({
             where: { userId_tenantId: { userId: user.id, tenantId } },
-            update: { role: role as Role, isActive: true, tenantName },
+            update: { 
+                role: role as Role, 
+                isActive: true,
+                ...(tenantName ? { tenantName } : {}) 
+            },
             create: {
                 user: { connect: { id: user.id } },
                 tenantId,
-                tenantName,
+                tenantName: tenantName || 'Unknown Community',
                 role: role as Role,
                 memberId: `mem-${phone.slice(-4)}`,
                 isActive: true

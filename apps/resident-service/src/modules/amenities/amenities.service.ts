@@ -128,7 +128,13 @@ export class AmenitiesService {
   }
 
   // Bookings logic
-  async createBooking(tenantId: string, memberId: string, amenityId: string, data: any) {
+  async createBooking(tenantId: string, userId: string, amenityId: string, data: any) {
+    const member = await this.prisma.client.member.findFirst({
+      where: { userId, tenantId }
+    });
+    if (!member) throw new Error('Resident profile not found in this community.');
+    const actualMemberId = member.id;
+
     const amenity = await this.getAmenityById(amenityId, tenantId, data.bookingDate);
     const requestedPersons = data.persons || 1;
     const isRecurring = data.isRecurring || false;
@@ -153,7 +159,7 @@ export class AmenitiesService {
         data: {
           tenantId,
           amenityId,
-          memberId,
+          memberId: actualMemberId,
           bookingDate,
           timeSlot,
           persons: requestedPersons,
@@ -203,9 +209,14 @@ export class AmenitiesService {
     });
   }
 
-  async getMyBookings(tenantId: string, memberId: string) {
+  async getMyBookings(tenantId: string, userId: string) {
+    const member = await this.prisma.client.member.findFirst({
+      where: { userId, tenantId }
+    });
+    if (!member) return [];
+
     return this.prisma.client.amenityBooking.findMany({
-      where: { tenantId, memberId },
+      where: { tenantId, memberId: member.id },
       include: { amenity: true },
       orderBy: { createdAt: 'desc' }
     });

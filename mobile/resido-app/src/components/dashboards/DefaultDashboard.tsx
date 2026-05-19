@@ -429,19 +429,7 @@ export default function DefaultDashboard() {
                         >
                             {/* Page 1: My Space View (Flares + Quick Access) */}
                             <View style={{ width: windowWidth, paddingHorizontal: 20 }}>
-                                <View style={styles.psStoriesSection}>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psStoriesScroll}>
-                                        <TouchableOpacity style={styles.psStoryItem} onPress={() => router.push('/create-flare')}>
-                                            <View style={[styles.psStoryCircle, { borderColor: darkLavender }]}>
-                                                <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=me" }} style={styles.psStoryImg} />
-                                                <View style={[styles.psStoryAddBadge, { backgroundColor: darkLavender }]}><Ionicons name="add" size={12} color="#fff" /></View>
-                                            </View>
-                                            <Text style={[styles.psStoryLabel, { color: mySpaceText }]}>My Space</Text>
-                                        </TouchableOpacity>
-                                        <StoryItem name="Greenwoods" image="https://i.pravatar.cc/100?u=g" hasStory={true} />
-                                        <StoryItem name="Alex" image="https://i.pravatar.cc/100?u=a" hasStory={true} />
-                                    </ScrollView>
-                                </View>
+
 
                                 <View style={styles.psQuickAccessBar}>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll} nestedScrollEnabled={true}>

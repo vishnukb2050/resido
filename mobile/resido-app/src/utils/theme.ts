@@ -1,11 +1,11 @@
 export const getThemeColors = (tenantId?: string) => {
     if (!tenantId) {
-        // My Space - Charcoal Black & Emerald Teal Theme
+        // My Space - Charcoal Black & Dark Purple Theme
         return {
-            primary: '#4c1d95', // Deep Emerald Teal
+            primary: '#7c3aed', // Dark Purple
             background: '#242527', // Premium Muted Charcoal Black
             surface: '#1a1a1e', // Sleek dark surface
-            accent: '#2dd4bf' // Bright Teal
+            accent: '#7c3aed' // Dark Purple accent
         };
     }
 
