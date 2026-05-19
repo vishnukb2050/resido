@@ -32,13 +32,63 @@ export class MembersService {
     }
 
     async createMember(data: any) {
-        return this.prisma.client.member.create({
-            data: {
-                ...data,
-                // Ensure age is an Int if provided
-                age: data.age ? parseInt(data.age) : undefined
+        const { unitId, ...memberData } = data;
+
+        const tenantId = memberData.tenantId;
+        const phone = memberData.phone;
+
+        let member = await this.prisma.reader.member.findFirst({
+            where: {
+                tenantId,
+                phone
             }
         });
+
+        if (member) {
+            member = await this.prisma.client.member.update({
+                where: { id: member.id },
+                data: {
+                    name: memberData.name || member.name,
+                    role: memberData.role || member.role,
+                    isActive: true
+                }
+            });
+        } else {
+            member = await this.prisma.client.member.create({
+                data: {
+                    ...memberData,
+                    age: memberData.age ? parseInt(memberData.age) : undefined
+                }
+            });
+        }
+
+        if (unitId && member) {
+            let family = await this.prisma.reader.family.findFirst({
+                where: {
+                    tenantId,
+                    unitId
+                }
+            });
+
+            if (!family) {
+                family = await this.prisma.client.family.create({
+                    data: {
+                        tenantId,
+                        unitId,
+                        name: `${member.name}'s Family`
+                    }
+                });
+            }
+
+            member = await this.prisma.client.member.update({
+                where: { id: member.id },
+                data: {
+                    familyId: family.id
+                }
+            });
+        }
+
+        return member;
     }
 
     async updateProfilePhoto(id: string, profilePhoto: string) {

@@ -130,6 +130,7 @@ export const residentApi = {
     updateMember: (id: string, data: any) => api.patch(`/members/${id}`, data),
     deleteMember: (id: string) => api.delete(`/members/${id}`),
     getFamilies: () => api.get('/members/families'), // Adjust if needed
+    getUnits: () => api.get('/members/units'),
     getNotices: () => api.get('/community/notices'),
     createNotice: (data: any) => api.post('/community/notices', data),
     getPolls: () => api.get('/community/polls'),

@@ -26,7 +26,7 @@ export default function AddResidentScreen() {
 
     const fetchUnits = async () => {
         try {
-            const res = await communityApi.getUnits();
+            const res = await residentApi.getUnits();
             setUnits(res.data);
         } catch (e) {
             console.error('Fetch units failed', e);
@@ -56,12 +56,12 @@ export default function AddResidentScreen() {
         setLoading(true);
         try {
             // In Resido, residents are members linked to a family which is linked to a unit
-            // For simplicity in this mock, we add as a member with role RESIDENT
+            // We pass the unitId so that the backend can link this member to a Family of this Unit
             await residentApi.createMember({
                 ...formData,
                 role: 'RESIDENT',
                 tenantId: activeWorkspace?.tenantId,
-                // In real app, we would handle family/unit connection here
+                unitId: selectedUnit.id,
             });
 
             Alert.alert('Success', 'Resident added successfully!', [
