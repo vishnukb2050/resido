@@ -30,7 +30,7 @@ export default function GatepassDetailsScreen() {
     const handleShare = async () => {
         try {
             await Share.share({
-                message: `Resido Gatepass for ${gatepass.visitorName}\nDate: ${gatepass.visitDate}\nTime: ${gatepass.visitTime}\nPass ID: ${gatepass.id}\n\nQR Code: https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.id}\n\nPlease show this at the gate.`,
+                message: `Resido Gatepass for ${gatepass.visitorName}\nDate: ${gatepass.visitDate}\nTime: ${gatepass.visitTime}\nPass Code: ${gatepass.passCode}\n\nQR Code: https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.passCode}\n\nPlease show this at the gate.`,
             });
         } catch (error) {
             console.error(error);
@@ -56,11 +56,11 @@ export default function GatepassDetailsScreen() {
                 <View style={styles.qrContainer}>
                     <View style={styles.qrBox}>
                         <Image 
-                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.id}` }} 
+                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.passCode}` }} 
                             style={{ width: 200, height: 200, borderRadius: 16 }} 
                         />
                     </View>
-                    <Text style={styles.passId}>PASS ID: {gatepass.id?.toUpperCase()}</Text>
+                    <Text style={styles.passId}>PASS CODE: {gatepass.passCode}</Text>
                     <Text style={styles.scanHint}>Show this pass code to the Security Guard</Text>
                 </View>
 

@@ -130,11 +130,18 @@ export class CommunityService {
         });
     }
 
-    async getGatepassDetails(id: string) {
-        const visitor = await this.prisma.reader.visitor.findUnique({
-            where: { id },
+    async getGatepassDetails(idOrPassCode: string) {
+        let visitor = await this.prisma.reader.visitor.findUnique({
+            where: { id: idOrPassCode },
             include: { member: true }
         });
+
+        if (!visitor) {
+            visitor = await this.prisma.reader.visitor.findFirst({
+                where: { passCode: idOrPassCode },
+                include: { member: true }
+            });
+        }
 
         if (!visitor) {
             throw new NotFoundException('Gatepass not found');
@@ -186,18 +193,34 @@ export class CommunityService {
 
         if (!member) {
             console.log(`Member not found for user ${userId}. Creating on the fly...`);
+            const fallbackPhone = data.residentPhone || `dummy-${Math.random().toString().slice(2, 10)}`;
             member = await this.prisma.client.member.create({
                 data: {
                     userId: userId,
                     tenantId: data.tenantId || 'resido-core', 
                     name: data.residentName || 'Default Member',
-                    phone: '0000000000',
+                    phone: fallbackPhone,
                     role: 'RESIDENT'
                 }
             });
         }
 
-        const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        let passCode = '';
+        let isUnique = false;
+        while (!isUnique) {
+            passCode = Math.floor(1000 + Math.random() * 9000).toString();
+            const existing = await this.prisma.reader.visitor.findUnique({
+                where: {
+                    tenantId_passCode: {
+                        tenantId: member.tenantId,
+                        passCode
+                    }
+                }
+            });
+            if (!existing) {
+                isUnique = true;
+            }
+        }
         
         const visitorData = {
             tenantId: member.tenantId,
@@ -449,11 +472,11 @@ export class CommunityService {
         });
         const emptyUnits = Math.max(0, totalUnits - occupiedUnits);
 
-        const securityStaff = await this.prisma.reader.member.count({ where: { role: 'SECURITY' as any } });
-        const cleaningStaff = await this.prisma.reader.member.count({ where: { role: 'CLEANING' as any } });
-        const adminStaff = await this.prisma.reader.member.count({ where: { role: 'ADMIN' as any } });
+        const securityStaff = await this.prisma.reader.member.count({ where: { role: 'SECURITY_STAFF' as any } });
+        const cleaningStaff = await this.prisma.reader.member.count({ where: { role: 'CLEANING_STAFF' as any } });
+        const adminStaff = await this.prisma.reader.member.count({ where: { role: 'ADMIN_STAFF' as any } });
         const maintenanceStaff = await this.prisma.reader.member.count({
-            where: { role: { in: ['MAINTENANCE', 'STAFF'] as any } }
+            where: { role: { in: ['MAINTENANCE_STAFF', 'STAFF'] as any } }
         });
 
         const totalStaff = securityStaff + cleaningStaff + adminStaff + maintenanceStaff;

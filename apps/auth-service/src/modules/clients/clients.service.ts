@@ -291,6 +291,29 @@ export class ClientsService {
         });
         if (!client) throw new NotFoundException('Community not found');
 
+        const member = await this.prisma.coreClient.member.upsert({
+            where: {
+                tenantId_phone: {
+                    tenantId: clientId,
+                    phone: dto.phone,
+                }
+            },
+            update: {
+                name: dto.name || 'New Staff',
+                role: dto.role as any,
+                isActive: true,
+                userId: user.id
+            },
+            create: {
+                userId: user.id,
+                tenantId: clientId,
+                name: dto.name || 'New Staff',
+                phone: dto.phone,
+                role: dto.role as any,
+                isActive: true,
+            }
+        });
+
         const membership = await this.prisma.userClient.workspaceMembership.upsert({
             where: {
                 userId_tenantId: {
@@ -301,6 +324,7 @@ export class ClientsService {
             update: {
                 role: dto.role as any,
                 isActive: true,
+                memberId: member.id,
             },
             create: {
                 userId: user.id,
@@ -308,7 +332,7 @@ export class ClientsService {
                 tenantName: client.name,
                 role: dto.role as any,
                 photoUrl: client.photoUrl,
-                memberId: `staff-${dto.phone.slice(-4)}`,
+                memberId: member.id,
                 isActive: true,
             }
         });

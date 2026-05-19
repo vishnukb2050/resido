@@ -431,8 +431,8 @@ export default function ThreadScreen() {
                 </ScrollView>
             </View>
 
-            {/* Following Flares (Stories Style) - Only in MY/FOLLOWING tab */}
-            {(activeTab === 'MY' || activeTab === 'FOLLOWING') && (
+            {/* Following Flares (Stories Style) - Only in FOLLOWING tab */}
+            {activeTab === 'FOLLOWING' && (
                 <View style={styles.storiesContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesList}>
                         <TouchableOpacity style={styles.storyItem} onPress={() => router.push('/create-flare')}>

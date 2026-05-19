@@ -35,7 +35,7 @@ export class MembersService {
         const allowedKeys = [
             'tenantId', 'userId', 'name', 'phone', 'email', 'role',
             'profilePhoto', 'profileName', 'phoneVisibility', 'isActive',
-            'age', 'docUrl', 'occupancyType', 'address', 'tenantName',
+            'occupancyType', 'address', 'tenantName',
             'tenantPhone', 'familyId', 'instagram', 'linkedin', 'website',
             'location'
         ];
@@ -75,8 +75,7 @@ export class MembersService {
         } else {
             member = await this.prisma.client.member.create({
                 data: {
-                    ...sanitized,
-                    age: sanitized.age ? parseInt(sanitized.age) : undefined
+                    ...sanitized
                 }
             });
         }

@@ -37,6 +37,7 @@ export default function CreateGatepassScreen() {
                 residentId: user?.id,
                 tenantId: activeWorkspace?.tenantId,
                 residentName: user?.name,
+                residentPhone: user?.phone,
                 residentUnit: 'N/A',
                 personsCount: parseInt(formData.personsCount) || 1,
             });

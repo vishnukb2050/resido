@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { threadApi, authApi } from '../../services/api';
@@ -106,6 +106,31 @@ const styles = StyleSheet.create({
     actionSection: { width: '100%' },
     primaryBtn: { backgroundColor: '#A084CA', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
     primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
+
+    activitySection: { marginTop: 25, marginBottom: 40 },
+    activityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    activityTitleMain: { fontSize: 18, fontWeight: '900' },
+    activitySubMain: { fontSize: 12, marginTop: 2 },
+    activityCard: { borderRadius: 20, padding: 16, marginBottom: 15, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
+    activityCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    activityAvatar: { width: 38, height: 38, borderRadius: 19 },
+    activityAuthorInfo: { flex: 1, marginLeft: 10 },
+    activityAuthorRow: { flexDirection: 'row', alignItems: 'center' },
+    activityAuthorName: { fontSize: 14, fontWeight: '800' },
+    activityMeta: { fontSize: 11, marginTop: 2, fontWeight: '600' },
+    activityTypeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 0.5, alignItems: 'center', justifyContent: 'center' },
+    activityTypeText: { fontSize: 10, fontWeight: '800' },
+    activityVisBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, marginTop: 4, alignSelf: 'flex-end' },
+    activityVisText: { fontSize: 9, fontWeight: '700' },
+    activityCardBody: { marginTop: 4 },
+    activityTitle: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
+    activityContent: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
+    activityMediaWrapper: { width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', marginTop: 12, position: 'relative' },
+    activityMedia: { width: '100%', height: '100%' },
+    playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
+    activityEmptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 20, backgroundColor: 'rgba(91, 75, 138, 0.02)', borderRadius: 20, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.2)' },
+    activityEmptyText: { fontSize: 15, fontWeight: '800', marginTop: 10 },
+    activityEmptySub: { fontSize: 12, textAlign: 'center', marginTop: 6, lineHeight: 18 },
 });
 
 export default function DefaultDashboard() {
@@ -116,6 +141,89 @@ export default function DefaultDashboard() {
     const { width: windowWidth } = Dimensions.get('window');
     const workspaceScrollRef = React.useRef<ScrollView>(null);
     const pageScrollRef = React.useRef<ScrollView>(null);
+
+    const [items, setItems] = React.useState<any[]>([]);
+    const [loadingActivity, setLoadingActivity] = React.useState(false);
+
+    const timeAgo = (dateStr: string) => {
+        const now = new Date();
+        const date = new Date(dateStr);
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHrs = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHrs / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHrs < 24) return `${diffHrs}h ago`;
+        return `${diffDays}d ago`;
+    };
+
+    const fetchRecentActivity = async () => {
+        try {
+            setLoadingActivity(true);
+            
+            // 1. Fetch following list
+            let following: string[] = [];
+            try {
+                const { data: followList } = await authApi.getFollowing();
+                following = followList || [];
+            } catch (err) {
+                console.warn('Failed to fetch following users:', err);
+            }
+
+            // 2. Fetch following + public threads & flares
+            const promises = [
+                threadApi.getThreads({ feedType: 'FOLLOWING', followingIds: following }).catch(() => ({ data: [] })),
+                threadApi.getThreads({ feedType: 'PUBLIC' }).catch(() => ({ data: [] })),
+                threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: following }).catch(() => ({ data: [] })),
+                threadApi.getFlares({ feedType: 'PUBLIC' }).catch(() => ({ data: [] }))
+            ];
+
+            const [followingThreadsRes, publicThreadsRes, followingFlaresRes, publicFlaresRes] = await Promise.all(promises);
+
+            const allThreads = [...(followingThreadsRes.data || []), ...(publicThreadsRes.data || [])];
+            const allFlares = [...(followingFlaresRes.data || []), ...(publicFlaresRes.data || [])];
+
+            const threadsWithType = allThreads.map((t: any) => ({ ...t, itemType: 'THREAD' }));
+            const flaresWithType = allFlares.map((f: any) => ({ ...f, itemType: 'FLARE' }));
+
+            const combined = [...threadsWithType, ...flaresWithType];
+
+            // Remove duplicates by ID
+            const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+
+            // Prioritize: Contacts -> Followers -> Public -> Recent
+            unique.sort((a, b) => {
+                const getPriority = (item: any) => {
+                    if (item.visibility === 'CONTACTS') return 3;
+                    if (item.visibility === 'FOLLOWERS') return 2;
+                    return 1;
+                };
+
+                const priorityA = getPriority(a);
+                const priorityB = getPriority(b);
+
+                if (priorityA !== priorityB) {
+                    return priorityB - priorityA;
+                }
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+
+            setItems(unique);
+        } catch (e) {
+            console.error('Failed to load recent activity:', e);
+        } finally {
+            setLoadingActivity(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if (user) {
+            fetchRecentActivity();
+        }
+    }, [user]);
+
     React.useEffect(() => {
         const fetchWorkspaces = async () => {
             try {
@@ -235,7 +343,7 @@ export default function DefaultDashboard() {
                             <View style={styles.psBrandInfo}>
                                 <View style={[styles.psLogoBox, { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
                                     <Image 
-                                        source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : (activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg'))} 
+                                        source={(activeWorkspace as any)?.photoUrl ? { uri: (activeWorkspace as any).photoUrl } : (activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg'))} 
                                         style={styles.psWorkspaceImg} 
                                     />
                                 </View>
@@ -372,6 +480,96 @@ export default function DefaultDashboard() {
                                     <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/business-profiles')}>
                                         <Text style={[styles.psBannerBtnText, { color: darkLavender }]}>Manage Business</Text>
                                     </TouchableOpacity>
+                                </View>
+
+                                {/* Recent Activity Feed */}
+                                <View style={styles.activitySection}>
+                                    <View style={styles.activityHeader}>
+                                        <View>
+                                            <Text style={[styles.activityTitleMain, { color: mySpaceText }]}>Recent Feed</Text>
+                                            <Text style={[styles.activitySubMain, { color: mySpaceSubText }]}>Updates from your contacts, followers & community</Text>
+                                        </View>
+                                        {loadingActivity && <ActivityIndicator size="small" color={darkLavender} />}
+                                    </View>
+
+                                    {items.length === 0 ? (
+                                        <View style={styles.activityEmptyState}>
+                                            <Ionicons name="sparkles-outline" size={40} color={mySpaceSubText} style={{ opacity: 0.6 }} />
+                                            <Text style={[styles.activityEmptyText, { color: mySpaceText }]}>No recent activity yet</Text>
+                                            <Text style={[styles.activityEmptySub, { color: mySpaceSubText }]}>Follow people or sync contacts to see their private/public updates here!</Text>
+                                        </View>
+                                    ) : (
+                                        items.map(item => (
+                                            <View key={item.id} style={[styles.activityCard, { backgroundColor: mySpaceBg === '#000000' ? '#111827' : '#ffffff', borderColor: 'rgba(91, 75, 138, 0.1)' }]}>
+                                                {/* Header */}
+                                                <View style={styles.activityCardHeader}>
+                                                    <Image source={{ uri: item.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.activityAvatar} />
+                                                    <View style={styles.activityAuthorInfo}>
+                                                        <View style={styles.activityAuthorRow}>
+                                                            <Text style={[styles.activityAuthorName, { color: mySpaceText }]}>{item.authorName || 'Anonymous'}</Text>
+                                                            {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#be185d" style={{ marginLeft: 4 }} />}
+                                                        </View>
+                                                        <Text style={[styles.activityMeta, { color: mySpaceSubText }]}>
+                                                            {item.location || 'Resido'} • {timeAgo(item.createdAt)}
+                                                        </Text>
+                                                    </View>
+                                                    {/* Type specifier & Visibility badge */}
+                                                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                                                        <View style={[styles.activityTypeBadge, { backgroundColor: item.itemType === 'FLARE' ? '#fdf2f8' : '#f0fdf4', borderColor: item.itemType === 'FLARE' ? '#fbcfe8' : '#bbf7d0' }]}>
+                                                            <Text style={[styles.activityTypeText, { color: item.itemType === 'FLARE' ? '#be185d' : '#15803d' }]}>{item.itemType}</Text>
+                                                        </View>
+                                                        <View style={[
+                                                            styles.activityVisBadge,
+                                                            { 
+                                                                backgroundColor: item.visibility === 'CONTACTS' ? '#fef2f2' : item.visibility === 'FOLLOWERS' ? '#eff6ff' : '#f8fafc',
+                                                                borderColor: item.visibility === 'CONTACTS' ? '#fecaca' : item.visibility === 'FOLLOWERS' ? '#bfdbfe' : '#e2e8f0'
+                                                            }
+                                                        ]}>
+                                                            <Ionicons 
+                                                                name={item.visibility === 'CONTACTS' ? 'people' : item.visibility === 'FOLLOWERS' ? 'person-add' : 'globe-outline'} 
+                                                                size={10} 
+                                                                color={item.visibility === 'CONTACTS' ? '#dc2626' : item.visibility === 'FOLLOWERS' ? '#2563eb' : '#64748b'} 
+                                                                style={{ marginRight: 3 }}
+                                                            />
+                                                            <Text style={[
+                                                                styles.activityVisText,
+                                                                { color: item.visibility === 'CONTACTS' ? '#dc2626' : item.visibility === 'FOLLOWERS' ? '#2563eb' : '#64748b' }
+                                                            ]}>
+                                                                {item.visibility || 'PUBLIC'}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                </View>
+
+                                                {/* Body */}
+                                                <TouchableOpacity 
+                                                    onPress={() => {
+                                                        if (item.itemType === 'FLARE') {
+                                                            router.push({ pathname: '/flares', params: { initialId: item.id } });
+                                                        } else {
+                                                            router.push(`/thread/${item.id}`);
+                                                        }
+                                                    }}
+                                                    style={styles.activityCardBody}
+                                                >
+                                                    {item.title ? <Text style={[styles.activityTitle, { color: mySpaceText }]}>{item.title}</Text> : null}
+                                                    {item.content ? <Text style={[styles.activityContent, { color: mySpaceSubText }]} numberOfLines={3}>{item.content}</Text> : null}
+                                                    
+                                                    {/* Optional media preview */}
+                                                    {item.mediaUrls && item.mediaUrls.length > 0 && (
+                                                        <View style={styles.activityMediaWrapper}>
+                                                            <Image source={{ uri: item.mediaUrls[0] }} style={styles.activityMedia} />
+                                                            {item.itemType === 'FLARE' && (
+                                                                <View style={styles.playOverlay}>
+                                                                    <Ionicons name="play-circle" size={36} color="#fff" />
+                                                                </View>
+                                                            )}
+                                                        </View>
+                                                    )}
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))
+                                    )}
                                 </View>
                             </View>
 

@@ -350,7 +350,7 @@ export default function ServiceSearchScreen() {
 
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBar}>
-                        <Ionicons name="search" size={20} color="#94a3b8" />
+                        <Ionicons name="search" size={20} color="#be185d" />
                         <TextInput 
                             placeholder="Search services or professionals..." 
                             style={styles.searchInput}
@@ -380,7 +380,7 @@ export default function ServiceSearchScreen() {
                             </View>
                         ) : null}
                         <View style={[styles.searchBar, { marginTop: selectedLocationName ? 8 : 12, height: 48 }]}>
-                            <Ionicons name="location" size={18} color="#94a3b8" />
+                            <Ionicons name="location" size={18} color="#be185d" />
                             <TextInput 
                                 placeholder="Search by area/location..." 
                                 style={styles.searchInput}
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     notifBadge: { position: 'absolute', top: 10, right: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fcfcfd' },
     
     searchContainer: { paddingHorizontal: 20, marginBottom: 20 },
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 56, borderRadius: 18, paddingHorizontal: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 56, borderRadius: 18, paddingHorizontal: 16, borderWidth: 1.5, borderColor: '#be185d', shadowColor: '#be185d', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
     searchInput: { flex: 1, marginLeft: 12, fontSize: 15, color: '#1e293b', fontWeight: '500' },
     filterBtn: { padding: 4 },
 
