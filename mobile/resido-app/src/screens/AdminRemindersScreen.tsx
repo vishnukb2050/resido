@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { communityRemindersApi, membersApi, communityApi } from '../services/api';
+import { communityRemindersApi, communityApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
 const DAYS_OF_WEEK = [
@@ -68,7 +68,7 @@ export default function AdminRemindersScreen() {
             setReminders(remindersRes.data || []);
 
             // Load Members for targeted individual routing
-            const membersRes = await membersApi.getMembers();
+            const membersRes = await communityApi.getMembers();
             setAllMembers(membersRes.data || []);
 
             // Load Blocks to query targeted addresses
@@ -779,6 +779,7 @@ const styles = StyleSheet.create({
     emptyText: { color: '#cbd5e1', fontSize: 13, fontWeight: '700', marginTop: 12, textAlign: 'center' },
 
     reminderCard: { backgroundColor: '#2E3A42', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', padding: 20, marginBottom: 18 },
+    cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     remTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
     remCategory: { color: '#94a3b8', fontSize: 11, fontWeight: '700', marginTop: 2 },
     statusBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1 },
