@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { residentApi } from '../services/api';
 
 const CATEGORIES = [
     { label: 'Security', role: 'SECURITY_STAFF' },
@@ -37,11 +37,9 @@ export default function AddStaffScreen() {
 
         setLoading(true);
         try {
-            await axios.post(`http://localhost:3002/members`, {
+            await residentApi.createMember({
                 ...formData,
                 tenantId: activeWorkspace?.tenantId
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
             });
 
             Alert.alert('Success', 'Staff added successfully!', [

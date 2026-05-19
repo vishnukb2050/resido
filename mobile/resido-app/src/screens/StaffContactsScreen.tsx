@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { residentApi } from '../services/api';
 
 export default function StaffContactsScreen() {
     const router = useRouter();
@@ -18,9 +18,7 @@ export default function StaffContactsScreen() {
     const fetchStaff = async () => {
         try {
             // Fetching staff with role filtering (CARETAKER, MAINTENANCE_STAFF, etc.)
-            const res = await axios.get(`http://localhost:3002/members?role=STAFF_GROUP`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
+            const res = await residentApi.getMembers({ role: 'STAFF_GROUP' });
             setStaff(res.data);
         } catch (e) {
             console.error('Fetch staff failed', e);

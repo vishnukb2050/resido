@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { communityApi, residentApi } from '../services/api';
 
 export default function AddResidentScreen() {
     const router = useRouter();
@@ -26,9 +26,7 @@ export default function AddResidentScreen() {
 
     const fetchUnits = async () => {
         try {
-            const res = await axios.get(`http://localhost:3002/members/units`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
+            const res = await communityApi.getUnits();
             setUnits(res.data);
         } catch (e) {
             console.error('Fetch units failed', e);
@@ -59,13 +57,11 @@ export default function AddResidentScreen() {
         try {
             // In Resido, residents are members linked to a family which is linked to a unit
             // For simplicity in this mock, we add as a member with role RESIDENT
-            await axios.post(`http://localhost:3002/members`, {
+            await residentApi.createMember({
                 ...formData,
                 role: 'RESIDENT',
                 tenantId: activeWorkspace?.tenantId,
                 // In real app, we would handle family/unit connection here
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
             });
 
             Alert.alert('Success', 'Resident added successfully!', [

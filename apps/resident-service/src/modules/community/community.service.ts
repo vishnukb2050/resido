@@ -293,11 +293,44 @@ export class CommunityService {
 
 
     async createUnit(data: any) {
+        let blockId = data.blockId;
+
+        if (blockId === 'default') {
+            let block = await this.prisma.reader.block.findFirst({
+                where: { name: 'Block 1' }
+            });
+
+            if (!block) {
+                let apartment = await this.prisma.reader.apartment.findFirst();
+                if (!apartment) {
+                    apartment = await this.prisma.client.apartment.create({
+                        data: {
+                            tenantId: data.tenantId || '',
+                            name: 'Default Apartment',
+                            address: '',
+                            city: '',
+                            state: '',
+                            pincode: ''
+                        }
+                    });
+                }
+
+                block = await this.prisma.client.block.create({
+                    data: {
+                        name: 'Block 1',
+                        apartmentId: apartment.id,
+                        tenantId: data.tenantId || ''
+                    }
+                });
+            }
+            blockId = block.id;
+        }
+
         return this.prisma.client.unit.create({
             data: {
                 number: data.number,
                 floor: parseInt(data.floor) || 0,
-                blockId: data.blockId,
+                blockId: blockId,
                 tenantId: data.tenantId || ''
             }
         });

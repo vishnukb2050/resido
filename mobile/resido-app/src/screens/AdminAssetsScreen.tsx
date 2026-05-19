@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    SafeAreaView, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image
+    SafeAreaView, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, Linking
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { communityAssetsApi } from '../services/api';
 import { storageApi } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
@@ -21,6 +23,9 @@ export default function AdminAssetsScreen() {
     const [showCreate, setShowCreate] = useState(false);
     const [saving, setSaving] = useState(false);
     const [photoUri, setPhotoUri] = useState<string | null>(null);
+    const [billUri, setBillUri] = useState<string | null>(null);
+    const [billName, setBillName] = useState<string | null>(null);
+    const [billMime, setBillMime] = useState<string | null>(null);
 
     // Form inputs
     const [name, setName] = useState('');
@@ -29,9 +34,12 @@ export default function AdminAssetsScreen() {
     const [location, setLocation] = useState('');
     const [serialNumber, setSerialNumber] = useState('');
     const [purchaseCost, setPurchaseCost] = useState('');
-    const [purchaseDate, setPurchaseDate] = useState('');
-    const [warrantyExpiry, setWarrantyExpiry] = useState('');
+    const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
+    const [warrantyExpiry, setWarrantyExpiry] = useState<Date | null>(null);
     const [description, setDescription] = useState('');
+
+    const [showPurchasePicker, setShowPurchasePicker] = useState(false);
+    const [showWarrantyPicker, setShowWarrantyPicker] = useState(false);
 
     // Status modification state
     const [editingAsset, setEditingAsset] = useState<any | null>(null);
@@ -71,6 +79,39 @@ export default function AdminAssetsScreen() {
         }
     };
 
+    const handlePickBill = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['image/*', 'application/pdf'],
+                copyToCacheDirectory: true,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setBillUri(asset.uri);
+                setBillName(asset.name);
+                setBillMime(asset.mimeType || 'application/octet-stream');
+            }
+        } catch (error) {
+            console.error('Failed to pick document', error);
+            Alert.alert('Error', 'Failed to pick bill document.');
+        }
+    };
+
+    const onPurchaseDateChange = (event: any, selectedDate?: Date) => {
+        setShowPurchasePicker(false);
+        if (selectedDate) {
+            setPurchaseDate(selectedDate);
+        }
+    };
+
+    const onWarrantyExpiryChange = (event: any, selectedDate?: Date) => {
+        setShowWarrantyPicker(false);
+        if (selectedDate) {
+            setWarrantyExpiry(selectedDate);
+        }
+    };
+
     const handleCreateAsset = async () => {
         if (!name.trim()) {
             Alert.alert('Error', 'Please enter a name for the asset.');
@@ -91,6 +132,19 @@ export default function AdminAssetsScreen() {
                 uploadedPhotoUrl = res as string;
             }
 
+            let uploadedBillUrl = '';
+            if (billUri) {
+                // Upload bill document directly into R2 isolated environment
+                const extension = billName ? billName.split('.').pop() : 'pdf';
+                const res = await storageApi.uploadFile(
+                    billUri,
+                    `asset_bill_${Date.now()}.${extension}`,
+                    billMime || 'application/pdf',
+                    'assets'
+                );
+                uploadedBillUrl = res as string;
+            }
+
             await communityAssetsApi.createAsset({
                 name,
                 category,
@@ -98,10 +152,11 @@ export default function AdminAssetsScreen() {
                 location,
                 serialNumber: serialNumber || null,
                 purchaseCost: purchaseCost ? Number(purchaseCost) : null,
-                purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
-                warrantyExpiry: warrantyExpiry ? new Date(warrantyExpiry) : null,
+                purchaseDate: purchaseDate ? purchaseDate.toISOString() : null,
+                warrantyExpiry: warrantyExpiry ? warrantyExpiry.toISOString() : null,
                 description,
-                photoUrl: uploadedPhotoUrl || null
+                photoUrl: uploadedPhotoUrl || null,
+                billUrl: uploadedBillUrl || null
             });
 
             Alert.alert('Success', 'Community Asset added to physical inventory register successfully!');
@@ -109,6 +164,7 @@ export default function AdminAssetsScreen() {
             resetForm();
             loadAssets();
         } catch (e) {
+            console.error('Failed to create asset:', e);
             Alert.alert('Error', 'Failed to register asset. Please verify input formats.');
         } finally {
             setSaving(false);
@@ -155,10 +211,13 @@ export default function AdminAssetsScreen() {
         setLocation('');
         setSerialNumber('');
         setPurchaseCost('');
-        setPurchaseDate('');
-        setWarrantyExpiry('');
+        setPurchaseDate(null);
+        setWarrantyExpiry(null);
         setDescription('');
         setPhotoUri(null);
+        setBillUri(null);
+        setBillName(null);
+        setBillMime(null);
     };
 
     // Filters
@@ -270,6 +329,17 @@ export default function AdminAssetsScreen() {
                                         <DetailRow icon="calendar" label="Purchased" value={asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString() : 'N/A'} />
                                         <DetailRow icon="shield-checkmark" label="Warranty" value={asset.warrantyExpiry ? new Date(asset.warrantyExpiry).toLocaleDateString() : 'N/A'} />
                                     </View>
+
+                                    {asset.billUrl && (
+                                        <TouchableOpacity 
+                                            style={styles.billRow} 
+                                            onPress={() => Linking.openURL(asset.billUrl)}
+                                        >
+                                            <Ionicons name="document-text" size={14} color="#10b981" style={{ marginRight: 6 }} />
+                                            <Text style={styles.billLabel}>Invoice / Bill Uploaded</Text>
+                                            <Text style={styles.billValue}>View Bill ↗</Text>
+                                        </TouchableOpacity>
+                                    )}
 
                                     {asset.description && (
                                         <Text style={styles.assetDescription} numberOfLines={2}>{asset.description}</Text>
@@ -435,25 +505,66 @@ export default function AdminAssetsScreen() {
                                 onChangeText={setPurchaseCost}
                             />
 
+                            {/* Bill Picker */}
+                            <Text style={styles.inputLabel}>Purchase Invoice / Bill</Text>
+                            <TouchableOpacity style={styles.billPicker} onPress={handlePickBill}>
+                                {billUri ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                        <Ionicons name="document-attach" size={24} color="#10b981" />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.billPickerName} numberOfLines={1}>{billName}</Text>
+                                            <Text style={styles.billPickerSub}>Tap to change bill document</Text>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                        <Ionicons name="cloud-upload-outline" size={20} color="#cbd5e1" />
+                                        <Text style={styles.billPickerText}>Upload Bill (PDF or Image)</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+
                             {/* Purchase Date */}
-                            <Text style={styles.inputLabel}>Purchase Date (YYYY-MM-DD)</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="e.g. 2025-05-10"
-                                placeholderTextColor="#64748b"
-                                value={purchaseDate}
-                                onChangeText={setPurchaseDate}
-                            />
+                            <Text style={styles.inputLabel}>Purchase Date</Text>
+                            <TouchableOpacity 
+                                style={styles.textInputSelector} 
+                                onPress={() => setShowPurchasePicker(true)}
+                            >
+                                <Text style={[styles.selectorText, !purchaseDate && { color: '#64748b' }]}>
+                                    {purchaseDate ? purchaseDate.toLocaleDateString() : 'Select purchase date'}
+                                </Text>
+                                <Ionicons name="calendar-outline" size={20} color="#cbd5e1" />
+                            </TouchableOpacity>
 
                             {/* Warranty Expiry */}
-                            <Text style={styles.inputLabel}>Warranty Expiry Date (YYYY-MM-DD)</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="e.g. 2028-05-10"
-                                placeholderTextColor="#64748b"
-                                value={warrantyExpiry}
-                                onChangeText={setWarrantyExpiry}
-                            />
+                            <Text style={styles.inputLabel}>Warranty Expiry Date</Text>
+                            <TouchableOpacity 
+                                style={styles.textInputSelector} 
+                                onPress={() => setShowWarrantyPicker(true)}
+                            >
+                                <Text style={[styles.selectorText, !warrantyExpiry && { color: '#64748b' }]}>
+                                    {warrantyExpiry ? warrantyExpiry.toLocaleDateString() : 'Select warranty expiry date'}
+                                </Text>
+                                <Ionicons name="calendar-outline" size={20} color="#cbd5e1" />
+                            </TouchableOpacity>
+
+                            {showPurchasePicker && (
+                                <DateTimePicker
+                                    value={purchaseDate || new Date()}
+                                    mode="date"
+                                    display="default"
+                                    onChange={onPurchaseDateChange}
+                                />
+                            )}
+
+                            {showWarrantyPicker && (
+                                <DateTimePicker
+                                    value={warrantyExpiry || new Date()}
+                                    mode="date"
+                                    display="default"
+                                    onChange={onWarrantyExpiryChange}
+                                />
+                            )}
 
                             {/* Description */}
                             <Text style={styles.inputLabel}>Description Details</Text>
@@ -578,6 +689,15 @@ const styles = StyleSheet.create({
     photoPickerText: { fontSize: 12, color: '#cbd5e1', marginTop: 8, fontWeight: '600' },
 
     textInput: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 16, fontSize: 15, fontWeight: '600', marginBottom: 5 },
+    textInputSelector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 16, marginBottom: 5, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    selectorText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+    billPicker: { padding: 16, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.02)', marginBottom: 5 },
+    billPickerText: { fontSize: 13, color: '#cbd5e1', fontWeight: '700' },
+    billPickerName: { fontSize: 14, color: '#fff', fontWeight: '800' },
+    billPickerSub: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
+    billRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.15)', marginTop: 8 },
+    billLabel: { color: '#cbd5e1', fontSize: 11, fontWeight: '700', flex: 1 },
+    billValue: { color: '#10b981', fontSize: 12, fontWeight: '800' },
     submitBtn: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 25 },
     submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' }
 });

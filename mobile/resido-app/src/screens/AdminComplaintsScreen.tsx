@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import { communityApi } from '../services/api';
 
 export default function AdminComplaintsScreen() {
     const router = useRouter();
@@ -25,13 +25,8 @@ export default function AdminComplaintsScreen() {
 
     const fetchComplaints = async () => {
         try {
-            const url = isStaff 
-                ? `http://localhost:3002/community/complaints?staffId=${user?.id}`
-                : `http://localhost:3002/community/complaints`;
-            
-            const res = await axios.get(url, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
+            const params = isStaff ? { staffId: user?.id } : {};
+            const res = await communityApi.getComplaintsAdmin(params);
             setComplaints(res.data);
         } catch (e) {
             console.error('Fetch failed', e);
@@ -42,9 +37,7 @@ export default function AdminComplaintsScreen() {
 
     const fetchStaff = async () => {
         try {
-            const res = await axios.get(`http://localhost:3002/community/members`, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
+            const res = await communityApi.getMembers();
             // Filter only staff roles
             const staffList = res.data.filter((m: any) => 
                 ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER'].includes(m.role)
@@ -57,11 +50,7 @@ export default function AdminComplaintsScreen() {
 
     const handleAssign = async (staffId: string) => {
         try {
-            await axios.post(`http://localhost:3002/community/complaints/${selectedComplaint.id}/assign`, {
-                staffId
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
+            await communityApi.assignComplaint(selectedComplaint.id, staffId);
             Alert.alert('Success', 'Complaint assigned successfully');
             setShowAssign(false);
             fetchComplaints();
@@ -72,11 +61,7 @@ export default function AdminComplaintsScreen() {
 
     const handleUpdateStatus = async (status: string) => {
         try {
-            await axios.post(`http://localhost:3002/community/complaints/${selectedComplaint.id}/status`, {
-                status
-            }, {
-                headers: { 'x-tenant-id': activeWorkspace?.tenantId }
-            });
+            await communityApi.updateComplaintStatus(selectedComplaint.id, status);
             Alert.alert('Success', `Status updated to ${status}`);
             setShowStatus(false);
             fetchComplaints();

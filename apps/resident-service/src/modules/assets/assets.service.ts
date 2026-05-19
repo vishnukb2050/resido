@@ -6,6 +6,12 @@ export class AssetsService {
     constructor(private prisma: PrismaService) {}
 
     async createAsset(tenantId: string, data: any) {
+        const parseDate = (d: any) => {
+            if (!d) return null;
+            const parsed = new Date(d);
+            return isNaN(parsed.getTime()) ? null : parsed;
+        };
+
         return this.prisma.client.communityAsset.create({
             data: {
                 tenantId,
@@ -13,12 +19,13 @@ export class AssetsService {
                 category: data.category,
                 status: data.status || 'ACTIVE',
                 serialNumber: data.serialNumber,
-                purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
+                purchaseDate: parseDate(data.purchaseDate),
                 purchaseCost: data.purchaseCost ? Number(data.purchaseCost) : null,
-                warrantyExpiry: data.warrantyExpiry ? new Date(data.warrantyExpiry) : null,
+                warrantyExpiry: parseDate(data.warrantyExpiry),
                 location: data.location,
                 description: data.description,
                 photoUrl: data.photoUrl,
+                billUrl: data.billUrl,
             }
         });
     }
@@ -42,6 +49,13 @@ export class AssetsService {
     }
 
     async updateAsset(tenantId: string, id: string, data: any) {
+        const parseDate = (d: any) => {
+            if (d === undefined) return undefined;
+            if (!d) return null;
+            const parsed = new Date(d);
+            return isNaN(parsed.getTime()) ? null : parsed;
+        };
+
         return this.prisma.client.communityAsset.update({
             where: { id },
             data: {
@@ -49,12 +63,13 @@ export class AssetsService {
                 category: data.category,
                 status: data.status,
                 serialNumber: data.serialNumber,
-                purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : undefined,
+                purchaseDate: parseDate(data.purchaseDate),
                 purchaseCost: data.purchaseCost ? Number(data.purchaseCost) : undefined,
-                warrantyExpiry: data.warrantyExpiry ? new Date(data.warrantyExpiry) : undefined,
+                warrantyExpiry: parseDate(data.warrantyExpiry),
                 location: data.location,
                 description: data.description,
                 photoUrl: data.photoUrl,
+                billUrl: data.billUrl,
             }
         });
     }

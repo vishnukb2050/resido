@@ -986,6 +986,7 @@ model CommunityAsset {
   location       String?   // e.g. Block A Basement, Clubhouse, Main Gate
   description    String?
   photoUrl       String?   // Cloudflare R2 uploaded link
+  billUrl        String?   // Cloudflare R2 uploaded bill link
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
