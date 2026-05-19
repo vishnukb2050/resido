@@ -33,7 +33,7 @@ export default function ManageResidentsHub() {
                         icon="home" 
                         title="Create Units / Addresses" 
                         description="Add apartment numbers or house addresses under blocks"
-                        color="#0d9488"
+                        color="#4c1d95"
                         bg="#E8F5F5"
                         onPress={() => router.push('/manage-blocks?mode=UNIT')}
                     />

@@ -17,6 +17,7 @@ export default function ManageBlocksScreen() {
 
     const [newBlockName, setNewBlockName] = useState('');
     const [newUnitNumber, setNewUnitNumber] = useState('');
+    const [showBlockDropdown, setShowBlockDropdown] = useState(false);
 
     useEffect(() => {
         fetchBlocks();
@@ -137,13 +138,13 @@ export default function ManageBlocksScreen() {
                         <View style={styles.section}>
                             <Text style={styles.sectionHeader}>Existing Blocks</Text>
                             {loading ? (
-                                <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 20 }} />
+                                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 20 }} />
                             ) : (
                                 <View style={styles.list}>
                                     {blocks.map(block => (
                                         <View key={block.id} style={styles.card}>
                                             <View style={styles.cardIconBox}>
-                                                <Ionicons name="business" size={24} color="#0d9488" />
+                                                <Ionicons name="business" size={24} color="#4c1d95" />
                                             </View>
                                             <View style={styles.cardInfo}>
                                                 <Text style={styles.cardTitle}>{block.name}</Text>
@@ -169,19 +170,30 @@ export default function ManageBlocksScreen() {
                             <Text style={styles.sectionHeader}>Select Block & Add Units</Text>
                             
                             <Text style={styles.label}>Select Block</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
-                                {blocks.map(block => (
-                                    <TouchableOpacity 
-                                        key={block.id} 
-                                        style={[styles.chip, selectedBlockForUnit?.id === block.id && styles.chipActive]}
-                                        onPress={() => handleBlockSelectForUnit(block)}
-                                    >
-                                        <Text style={[styles.chipText, selectedBlockForUnit?.id === block.id && styles.chipTextActive]}>
-                                            {block.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
+                            <View style={styles.pickerContainer}>
+                                <TouchableOpacity style={styles.pickerTrigger} onPress={() => setShowBlockDropdown(!showBlockDropdown)}>
+                                    <Text style={[styles.pickerText, !selectedBlockForUnit && { color: '#94a3b8' }]}>
+                                        {selectedBlockForUnit ? selectedBlockForUnit.name : 'Select Block'}
+                                    </Text>
+                                    <Ionicons name="chevron-down" size={16} color="#64748b" />
+                                </TouchableOpacity>
+                            </View>
+                            {showBlockDropdown && (
+                                <View style={styles.dropdownList}>
+                                    {blocks.map(block => (
+                                        <TouchableOpacity 
+                                            key={block.id} 
+                                            style={styles.dropdownItem}
+                                            onPress={() => {
+                                                handleBlockSelectForUnit(block);
+                                                setShowBlockDropdown(false);
+                                            }}
+                                        >
+                                            <Text style={styles.dropdownText}>{block.name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
 
                             <View style={styles.addForm}>
                                 <TextInput 
@@ -204,13 +216,13 @@ export default function ManageBlocksScreen() {
                             </Text>
                             
                             {loading ? (
-                                <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 20 }} />
+                                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 20 }} />
                             ) : (
                                 <View style={styles.list}>
                                     {units.map(unit => (
                                         <View key={unit.id} style={styles.card}>
                                             <View style={styles.cardIconBox}>
-                                                <Ionicons name="home" size={24} color="#0d9488" />
+                                                <Ionicons name="home" size={24} color="#4c1d95" />
                                             </View>
                                             <View style={styles.cardInfo}>
                                                 <Text style={styles.cardTitle}>Unit {unit.number}</Text>
@@ -247,11 +259,18 @@ const styles = StyleSheet.create({
     
     addForm: { flexDirection: 'row', gap: 10 },
     input: { flex: 1, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 15, height: 48, fontSize: 14, color: '#1e293b' },
-    addBtn: { backgroundColor: '#0d9488', borderRadius: 12, paddingHorizontal: 20, justifyContent: 'center', alignItems: 'center' },
+    addBtn: { backgroundColor: '#4c1d95', borderRadius: 12, paddingHorizontal: 20, justifyContent: 'center', alignItems: 'center' },
     addBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
     
+    pickerContainer: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 15 },
+    pickerTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 48 },
+    pickerText: { fontSize: 14, color: '#1e293b' },
+    dropdownList: { backgroundColor: '#fff', borderRadius: 12, marginTop: -10, marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
+    dropdownItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    dropdownText: { color: '#1e293b', fontSize: 14, fontWeight: '600' },
+    
     chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
-    chipActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
+    chipActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
     chipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     chipTextActive: { color: '#fff' },
     

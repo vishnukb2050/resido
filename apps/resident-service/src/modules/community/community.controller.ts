@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseInterceptors, Req, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, UseInterceptors, Req, Query, Param } from '@nestjs/common';
 import { CommunityService } from './community.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
 
@@ -116,6 +116,26 @@ export class CommunityController {
     @Post('units')
     createUnit(@Body() data: any) {
         return this.communityService.createUnit(data);
+    }
+
+    @Patch('blocks/:id')
+    updateBlock(@Param('id') id: string, @Body() data: any) {
+        return this.communityService.updateBlock(id, data);
+    }
+
+    @Delete('blocks/:id')
+    deleteBlock(@Param('id') id: string) {
+        return this.communityService.deleteBlock(id);
+    }
+
+    @Patch('units/:id')
+    updateUnit(@Param('id') id: string, @Body() data: any) {
+        return this.communityService.updateUnit(id, data);
+    }
+
+    @Delete('units/:id')
+    deleteUnit(@Param('id') id: string) {
+        return this.communityService.deleteUnit(id);
     }
 
     // Rules

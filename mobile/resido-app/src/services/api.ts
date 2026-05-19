@@ -99,8 +99,12 @@ export const communityApi = {
     // Blocks & Units
     getBlocks: () => api.get('/community/blocks'),
     createBlock: (data: any) => api.post('/community/blocks', data),
+    updateBlock: (id: string, data: any) => api.patch(`/community/blocks/${id}`, data),
+    deleteBlock: (id: string) => api.delete(`/community/blocks/${id}`),
     getUnits: (blockId: string) => api.get(`/community/units`, { params: { blockId } }),
     createUnit: (data: any) => api.post('/community/units', data),
+    updateUnit: (id: string, data: any) => api.patch(`/community/units/${id}`, data),
+    deleteUnit: (id: string) => api.delete(`/community/units/${id}`),
 };
 
 
@@ -116,6 +120,8 @@ export const residentApi = {
     getMembers: () => api.get('/members'),
     getMember: (id: string) => api.get(`/members/${id}`),
     createMember: (data: any) => api.post('/members', data),
+    updateMember: (id: string, data: any) => api.patch(`/members/${id}`, data),
+    deleteMember: (id: string) => api.delete(`/members/${id}`),
     getFamilies: () => api.get('/members/families'), // Adjust if needed
     getNotices: () => api.get('/community/notices'),
     createNotice: (data: any) => api.post('/community/notices', data),

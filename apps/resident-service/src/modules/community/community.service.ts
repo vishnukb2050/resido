@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -258,6 +258,24 @@ export class CommunityService {
         });
     }
 
+    async updateBlock(id: string, data: any) {
+        return this.prisma.client.block.update({
+            where: { id },
+            data: { name: data.name }
+        });
+    }
+
+    async deleteBlock(id: string) {
+        const block = await this.prisma.reader.block.findUnique({
+            where: { id },
+            include: { _count: { select: { units: true } } }
+        });
+        if (block && block._count.units > 0) {
+            throw new BadRequestException('Cannot delete block with existing units. Please delete the units first.');
+        }
+        return this.prisma.client.block.delete({ where: { id } });
+    }
+
     async getUnits(blockId: string) {
         if (blockId === 'default') {
             return this.prisma.reader.unit.findMany({
@@ -283,6 +301,24 @@ export class CommunityService {
                 tenantId: data.tenantId || ''
             }
         });
+    }
+
+    async updateUnit(id: string, data: any) {
+        return this.prisma.client.unit.update({
+            where: { id },
+            data: { number: data.number }
+        });
+    }
+
+    async deleteUnit(id: string) {
+        const unit = await this.prisma.reader.unit.findUnique({
+            where: { id },
+            include: { _count: { select: { families: true } } }
+        });
+        if (unit && unit._count.families > 0) {
+            throw new BadRequestException('Cannot delete unit with registered residents. Please remove the residents first.');
+        }
+        return this.prisma.client.unit.delete({ where: { id } });
     }
 
     // ─── Rules ──────────────────────────────────────────────────

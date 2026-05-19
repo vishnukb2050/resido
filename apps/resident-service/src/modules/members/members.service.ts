@@ -54,4 +54,17 @@ export class MembersService {
             data: { isActive },
         });
     }
+
+    async updateMember(id: string, data: any) {
+        return this.prisma.client.member.update({
+            where: { id },
+            data
+        });
+    }
+
+    async deleteMember(id: string) {
+        return this.prisma.client.member.delete({
+            where: { id }
+        });
+    }
 }
