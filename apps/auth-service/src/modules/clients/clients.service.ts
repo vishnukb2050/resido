@@ -15,6 +15,7 @@ export interface CreateClientDto {
     plan?: 'BASIC' | 'STANDARD' | 'PREMIUM';
     createdByMobile?: boolean;
     createdByUserId?: string;
+    photoUrl?: string;
     memberPhones?: string[];
     residentPhones?: string[];
     cleaningPhones?: string[];
@@ -42,6 +43,7 @@ export class ClientsService {
         const client = await this.prisma.masterClient.client.create({
             data: {
                 name: dto.name,
+                photoUrl: dto.photoUrl || null,
                 slug,
                 dbName,
                 s3Prefix,
@@ -90,6 +92,7 @@ export class ClientsService {
                         tenantName: client.name,
                         role: 'APARTMENT_ADMIN' as Role,
                         memberId: 'admin-001',
+                        photoUrl: client.photoUrl,
                         isActive: true
                     }
                 });
@@ -112,6 +115,7 @@ export class ClientsService {
                             tenantName: client.name,
                             role: 'APARTMENT_ADMIN' as Role,
                             memberId: 'creator-001',
+                            photoUrl: client.photoUrl,
                             isActive: true
                         }
                     });
@@ -153,6 +157,7 @@ export class ClientsService {
                                 tenantName: client.name,
                                 role: mapping.role,
                                 memberId: `${mapping.role.slice(0, 3)}-${phone.slice(-4)}`.toLowerCase(),
+                                photoUrl: client.photoUrl,
                                 isActive: true
                             }
                         });
@@ -216,6 +221,107 @@ export class ClientsService {
     async toggleClient(id: string, isActive: boolean) {
         await this.prisma.masterClient.staffAccount.updateMany({ where: { clientId: id }, data: { isActive } });
         return this.prisma.masterClient.client.update({ where: { id }, data: { isActive } });
+    }
+
+    async updateClient(id: string, dto: { name?: string; photoUrl?: string }) {
+        const client = await this.prisma.masterClient.client.update({
+            where: { id },
+            data: {
+                name: dto.name,
+                photoUrl: dto.photoUrl,
+            }
+        });
+
+        // Sync to all workspace memberships
+        await this.prisma.userClient.workspaceMembership.updateMany({
+            where: { tenantId: id },
+            data: {
+                tenantName: dto.name,
+                photoUrl: dto.photoUrl,
+            }
+        });
+
+        return client;
+    }
+
+    async getClientStaff(clientId: string) {
+        return this.prisma.userRead.workspaceMembership.findMany({
+            where: {
+                tenantId: clientId,
+                role: {
+                    in: ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF']
+                }
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        phone: true,
+                        profilePhoto: true,
+                    }
+                }
+            }
+        });
+    }
+
+    async addClientStaff(clientId: string, dto: { phone: string; role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF'; name?: string }) {
+        let user = await this.prisma.userRead.user.findUnique({
+            where: { phone: dto.phone }
+        });
+
+        if (!user) {
+            user = await this.prisma.userClient.user.create({
+                data: {
+                    phone: dto.phone,
+                    name: dto.name || 'New Staff',
+                    role: dto.role as any,
+                    isActive: true,
+                }
+            });
+        } else if (dto.name) {
+            user = await this.prisma.userClient.user.update({
+                where: { id: user.id },
+                data: { name: dto.name }
+            });
+        }
+
+        const client = await this.prisma.masterRead.client.findUnique({
+            where: { id: clientId }
+        });
+        if (!client) throw new NotFoundException('Community not found');
+
+        const membership = await this.prisma.userClient.workspaceMembership.upsert({
+            where: {
+                userId_tenantId: {
+                    userId: user.id,
+                    tenantId: clientId,
+                }
+            },
+            update: {
+                role: dto.role as any,
+                isActive: true,
+            },
+            create: {
+                userId: user.id,
+                tenantId: clientId,
+                tenantName: client.name,
+                role: dto.role as any,
+                photoUrl: client.photoUrl,
+                memberId: `staff-${dto.phone.slice(-4)}`,
+                isActive: true,
+            }
+        });
+
+        return { user, membership };
+    }
+
+    async removeClientStaff(clientId: string, membershipId: string) {
+        return this.prisma.userClient.workspaceMembership.delete({
+            where: {
+                id: membershipId
+            }
+        });
     }
 
     private slugify(name: string): string {

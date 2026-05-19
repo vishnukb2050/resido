@@ -10,6 +10,7 @@ import { TenantMiddleware } from './middleware/tenant.middleware';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { AmenitiesModule } from './modules/amenities/amenities.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { FinanceModule } from './modules/finance/finance.module';
     DocumentsModule,
     NotesModule,
     FinanceModule,
+    AmenitiesModule,
   ],
 })
 export class AppModule implements NestModule {

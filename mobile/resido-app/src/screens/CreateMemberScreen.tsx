@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { residentApi, authApi, communityApi } from '../services/api';
+import { storageApi } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 
 export default function CreateMemberScreen() {
@@ -19,6 +22,11 @@ export default function CreateMemberScreen() {
     const [showUnitDropdown, setShowUnitDropdown] = useState(false);
     const [newBlockName, setNewBlockName] = useState('');
     const [newUnitNumber, setNewUnitNumber] = useState('');
+    const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const [profilePhotoUri, setProfilePhotoUri] = useState<string | null>(null);
+    const [docUri, setDocUri] = useState<string | null>(null);
+    const [docName, setDocName] = useState<string | null>(null);
+    const [docType, setDocType] = useState<string | null>(null);
     
     const [formData, setFormData] = useState({
         name: '',
@@ -56,14 +64,51 @@ export default function CreateMemberScreen() {
     };
 
 
+    const takePhoto = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Camera permission is required to take a live photo.');
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setProfilePhotoUri(result.assets[0].uri);
+        }
+    };
+
+    const pickDocument = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['application/pdf', 'image/*'],
+                copyToCacheDirectory: true,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setDocUri(asset.uri);
+                setDocName(asset.name);
+                setDocType(asset.mimeType || 'application/pdf');
+            }
+        } catch (error) {
+            console.error('Failed to pick document:', error);
+        }
+    };
+
     const handleCreate = async () => {
         if (!formData.name || !formData.phone) {
             Alert.alert('Error', 'Name and Phone are required');
             return;
         }
 
-        if (!selectedBlockId && !selectedUnitId) {
-            Alert.alert('Error', 'Either Block or Address is mandatory');
+        if (params.mode !== 'STAFF' && !selectedBlockId && !selectedUnitId) {
+            Alert.alert('Error', 'Either Block or Address is mandatory for residents');
             return;
         }
 
@@ -76,16 +121,29 @@ export default function CreateMemberScreen() {
                 addressStr = b?.name || '';
             }
 
-            if (selectedUnitId) {
+            if (selectedUnitId && params.mode !== 'STAFF') {
                 const u = units.find(x => x.id === selectedUnitId);
                 addressStr += addressStr ? `, Unit ${u?.number || ''}` : `Unit ${u?.number || ''}`;
+            }
+
+            let profilePhotoUrl = undefined;
+            let finalDocUrl = undefined;
+
+            if (profilePhotoUri) {
+                profilePhotoUrl = await storageApi.uploadFile(profilePhotoUri, `photo_${Date.now()}.jpg`, 'image/jpeg', 'profiles');
+            }
+
+            if (docUri && docName && docType) {
+                finalDocUrl = await storageApi.uploadFile(docUri, docName, docType, 'documents');
             }
 
             // Create member in resident service (tenant DB)
             await residentApi.createMember({
                 ...formData,
                 address: addressStr,
-                age: formData.age ? parseInt(formData.age) : undefined
+                age: formData.age ? parseInt(formData.age) : undefined,
+                profilePhoto: profilePhotoUrl,
+                docUrl: finalDocUrl,
             });
             
             const activeWorkspace = useAuthStore.getState().activeWorkspace;
@@ -119,6 +177,23 @@ export default function CreateMemberScreen() {
             </View>
 
             <ScrollView style={styles.form} contentContainerStyle={{ paddingBottom: 40 }}>
+                {/* Live Photo Capture Section */}
+                <View style={styles.avatarSection}>
+                    <TouchableOpacity style={styles.avatarWrapper} onPress={takePhoto}>
+                        {profilePhotoUri ? (
+                            <Image source={{ uri: profilePhotoUri }} style={styles.avatar} />
+                        ) : (
+                            <View style={styles.avatarPlaceholder}>
+                                <Ionicons name="camera" size={32} color="#94a3b8" />
+                            </View>
+                        )}
+                        <View style={styles.cameraBadge}>
+                            <Ionicons name="add" size={16} color="#fff" />
+                        </View>
+                    </TouchableOpacity>
+                    <Text style={styles.avatarHint}>Take Live Photo</Text>
+                </View>
+
                 <View style={styles.field}>
                     <Text style={styles.label}>Full Name</Text>
                     <TextInput 
@@ -142,7 +217,7 @@ export default function CreateMemberScreen() {
                     />
                 </View>
 
-                <View style={styles.row}>
+                <View style={[styles.row, { zIndex: 100 }]}>
                     <View style={[styles.field, { flex: 1 }]}>
                         <Text style={styles.label}>Age</Text>
                         <TextInput 
@@ -154,32 +229,35 @@ export default function CreateMemberScreen() {
                             placeholderTextColor="#94a3b8"
                         />
                     </View>
-                    <View style={[styles.field, { flex: 2 }]}>
+                    <View style={[styles.field, { flex: 2, position: 'relative' }]}>
                         <Text style={styles.label}>Role / Category</Text>
                         <View style={styles.pickerContainer}>
-                            <TouchableOpacity style={styles.pickerTrigger}>
+                            <TouchableOpacity 
+                                style={styles.pickerTrigger} 
+                                onPress={() => params.mode === 'STAFF' && setShowRoleDropdown(!showRoleDropdown)}
+                            >
                                 <Text style={styles.pickerText}>{formData.role.replace('_', ' ')}</Text>
                                 <Ionicons name="chevron-down" size={16} color="#64748b" />
                             </TouchableOpacity>
                         </View>
+                        {showRoleDropdown && params.mode === 'STAFF' && (
+                            <View style={[styles.dropdownList, { position: 'absolute', top: 75, left: 0, right: 0, zIndex: 100 }]}>
+                                {['SECURITY_STAFF', 'CLEANING_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'ADMIN_STAFF'].map(r => (
+                                    <TouchableOpacity 
+                                        key={r} 
+                                        style={styles.dropdownItem}
+                                        onPress={() => {
+                                            setFormData({ ...formData, role: r });
+                                            setShowRoleDropdown(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dropdownText}>{r.replace('_', ' ')}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
                     </View>
                 </View>
-
-                {params.mode === 'STAFF' && (
-                    <View style={styles.staffRoles}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            {['MEMBER', 'SECURITY_STAFF', 'CLEANING_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'ADMIN_STAFF'].map(r => (
-                                <TouchableOpacity 
-                                    key={r} 
-                                    style={[styles.roleChip, formData.role === r && styles.roleChipActive]}
-                                    onPress={() => setFormData({ ...formData, role: r })}
-                                >
-                                    <Text style={[styles.roleChipText, formData.role === r && styles.roleChipTextActive]}>{r.split('_')[0]}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
-                )}
 
                 <View style={styles.field}>
                     <Text style={styles.label}>Select Block</Text>
@@ -215,40 +293,42 @@ export default function CreateMemberScreen() {
                     )}
                 </View>
 
-                <View style={styles.field}>
-                    <Text style={styles.label}>Select Address / Unit</Text>
-                    <View style={styles.pickerContainer}>
-                        <TouchableOpacity style={styles.pickerTrigger} onPress={() => setShowUnitDropdown(!showUnitDropdown)}>
-                            <Text style={[styles.pickerText, !selectedUnitId && { color: '#94a3b8' }]}>
-                                {selectedUnitId ? units.find(u => u.id === selectedUnitId)?.number : 'Select Address / Unit'}
-                            </Text>
-                            <Ionicons name="chevron-down" size={16} color="#64748b" />
-                        </TouchableOpacity>
-                    </View>
-                    {showUnitDropdown && (
-                        <View style={styles.dropdownList}>
-                            {units.map(u => (
-                                <TouchableOpacity 
-                                    key={u.id} 
-                                    style={styles.dropdownItem}
-                                    onPress={() => {
-                                        setSelectedUnitId(u.id);
-                                        setShowUnitDropdown(false);
-                                    }}
-                                >
-                                    <Text style={styles.dropdownText}>{u.number}</Text>
-                                </TouchableOpacity>
-                            ))}
-                            {units.length === 0 && (
-                                <View style={styles.dropdownItem}>
-                                    <Text style={styles.emptyText}>
-                                        {selectedBlockId ? "No units in this block." : "Select a block to see units."}
-                                    </Text>
-                                </View>
-                            )}
+                {params.mode !== 'STAFF' && (
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Select Address / Unit</Text>
+                        <View style={styles.pickerContainer}>
+                            <TouchableOpacity style={styles.pickerTrigger} onPress={() => setShowUnitDropdown(!showUnitDropdown)}>
+                                <Text style={[styles.pickerText, !selectedUnitId && { color: '#94a3b8' }]}>
+                                    {selectedUnitId ? units.find(u => u.id === selectedUnitId)?.number : 'Select Address / Unit'}
+                                </Text>
+                                <Ionicons name="chevron-down" size={16} color="#64748b" />
+                            </TouchableOpacity>
                         </View>
-                    )}
-                </View>
+                        {showUnitDropdown && (
+                            <View style={styles.dropdownList}>
+                                {units.map(u => (
+                                    <TouchableOpacity 
+                                        key={u.id} 
+                                        style={styles.dropdownItem}
+                                        onPress={() => {
+                                            setSelectedUnitId(u.id);
+                                            setShowUnitDropdown(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dropdownText}>{u.number}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                                {units.length === 0 && (
+                                    <View style={styles.dropdownItem}>
+                                        <Text style={styles.emptyText}>
+                                            {selectedBlockId ? "No units in this block." : "Select a block to see units."}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                )}
 
 
 
@@ -256,9 +336,18 @@ export default function CreateMemberScreen() {
                 {params.mode === 'STAFF' && (
                     <View style={styles.field}>
                         <Text style={styles.label}>Staff Documents (ID Proof/Contract)</Text>
-                        <TouchableOpacity style={styles.uploadBtn}>
-                            <Ionicons name="cloud-upload-outline" size={24} color="#4c1d95" />
-                            <Text style={styles.uploadBtnText}>Upload PDF or Image</Text>
+                        <TouchableOpacity style={styles.uploadBtn} onPress={pickDocument}>
+                            {docName ? (
+                                <>
+                                    <Ionicons name="document-text" size={24} color="#10b981" />
+                                    <Text style={[styles.uploadBtnText, { color: '#10b981' }]}>{docName}</Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Ionicons name="cloud-upload-outline" size={24} color="#4c1d95" />
+                                    <Text style={styles.uploadBtnText}>Upload PDF or Image</Text>
+                                </>
+                            )}
                         </TouchableOpacity>
                     </View>
                 )}
@@ -302,6 +391,13 @@ const styles = StyleSheet.create({
 
     uploadBtn: { borderStyle: 'dashed', borderWidth: 2, borderColor: '#e2e8f0', borderRadius: 16, padding: 25, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#f8fafc' },
     uploadBtnText: { color: '#4c1d95', fontWeight: '700', fontSize: 14 },
+
+    avatarSection: { alignItems: 'center', marginBottom: 24, marginTop: 10 },
+    avatarWrapper: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', position: 'relative', borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed' },
+    avatar: { width: '100%', height: '100%', borderRadius: 50 },
+    avatarPlaceholder: { width: '100%', height: '100%', borderRadius: 50, alignItems: 'center', justifyContent: 'center' },
+    cameraBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#4c1d95', width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    avatarHint: { marginTop: 8, fontSize: 13, fontWeight: '600', color: '#64748b' },
 
     submitBtn: { backgroundColor: '#4c1d95', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },

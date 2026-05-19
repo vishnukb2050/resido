@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Patch, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Patch, UseGuards, Req, Delete } from '@nestjs/common';
 import { ClientsService, CreateClientDto } from './clients.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -29,6 +29,26 @@ export class ClientsController {
     @Get(':id')
     getClient(@Param('id') id: string) {
         return this.clientsService.getClient(id);
+    }
+
+    @Patch(':id')
+    updateClient(@Param('id') id: string, @Body() body: { name?: string; photoUrl?: string }) {
+        return this.clientsService.updateClient(id, body);
+    }
+
+    @Get(':id/staff')
+    getClientStaff(@Param('id') id: string) {
+        return this.clientsService.getClientStaff(id);
+    }
+
+    @Post(':id/staff')
+    addClientStaff(@Param('id') id: string, @Body() body: { phone: string; role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF'; name?: string }) {
+        return this.clientsService.addClientStaff(id, body);
+    }
+
+    @Delete(':id/staff/:membershipId')
+    removeClientStaff(@Param('id') id: string, @Param('membershipId') membershipId: string) {
+        return this.clientsService.removeClientStaff(id, membershipId);
     }
 
     @Patch(':id/toggle')

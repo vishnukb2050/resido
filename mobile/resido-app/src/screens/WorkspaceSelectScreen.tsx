@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     View, Text, TouchableOpacity, FlatList,
-    StyleSheet, Alert
+    StyleSheet, Alert, Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -71,7 +71,11 @@ export default function WorkspaceSelectScreen() {
                     contentContainerStyle={{ gap: 12 }}
                     renderItem={({ item }) => (
                         <TouchableOpacity style={styles.card} onPress={() => handleSelect(item)}>
-                            <Text style={styles.icon}>{ROLE_ICONS[item.role] || '🏠'}</Text>
+                            {item.photoUrl ? (
+                                <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
+                            ) : (
+                                <Text style={styles.icon}>{ROLE_ICONS[item.role] || '🏠'}</Text>
+                            )}
                             <View style={styles.info}>
                                 <Text style={styles.name}>{item.tenantName}</Text>
                                 <Text style={styles.role}>{item.role.replace('_', ' ')}</Text>
@@ -95,6 +99,7 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
     },
     icon: { fontSize: 28 },
+    avatar: { width: 36, height: 36, borderRadius: 18 },
     info: { flex: 1 },
     name: { fontSize: 16, fontWeight: '700', color: '#e2e8f0' },
     role: { fontSize: 12, color: '#4c1d95', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },

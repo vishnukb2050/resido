@@ -15,23 +15,22 @@ api.interceptors.request.use(async (config) => {
             const state = authData.state;
             
             if (state.token) {
-                config.headers.Authorization = `Bearer ${state.token}`;
-                // console.log(`[API Request] Token attached for ${config.url}`);
+                config.headers.set('Authorization', `Bearer ${state.token}`);
             } else {
                 // console.warn(`[API Request] No token found for ${config.url}`);
             }
             
             if (state.user?.id) {
-                config.headers['x-user-id'] = state.user.id;
+                config.headers.set('x-user-id', state.user.id);
             }
             
             if (state.activeWorkspace?.tenantId) {
-                config.headers['x-tenant-id'] = state.activeWorkspace.tenantId;
+                config.headers.set('x-tenant-id', state.activeWorkspace.tenantId);
             }
             if (state.activeWorkspace?.dbName) {
-                config.headers['x-db-name'] = state.activeWorkspace.dbName;
+                config.headers.set('x-db-name', state.activeWorkspace.dbName);
             } else if (state.activeWorkspace?.tenantId) {
-                config.headers['x-db-name'] = state.activeWorkspace.tenantId;
+                config.headers.set('x-db-name', state.activeWorkspace.tenantId);
             }
 
         }
@@ -61,6 +60,11 @@ export const authApi = {
     switchWorkspace: (tenantId: string) => api.post('/auth/switch-workspace', { tenantId }),
     refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
     createClient: (data: any) => api.post('/clients', data),
+    getClient: (id: string) => api.get(`/clients/${id}`),
+    updateClient: (id: string, data: any) => api.patch(`/clients/${id}`, data),
+    getClientStaff: (id: string) => api.get(`/clients/${id}/staff`),
+    addClientStaff: (id: string, data: any) => api.post(`/clients/${id}/staff`, data),
+    removeClientStaff: (id: string, membershipId: string) => api.delete(`/clients/${id}/staff/${membershipId}`),
     syncContacts: (phones: string[]) => api.post('/auth/sync-contacts', { phones }),
     searchUsers: (query: string) => api.get(`/profile/users/search?query=${query}`),
     createMember: (data: any) => api.post('/members', data),
@@ -111,13 +115,13 @@ export const communityApi = {
 export const visitorApi = {
     verifyGatepass: (id: string) => api.get(`/visitors/gatepass/${id}`),
     getRegister: () => api.get('/visitors/register'),
-    createEntry: (data: any) => api.post('/visitors/register', data),
+    createEntry: (data: any) => api.post('/visitors', data),
     getEntries: (params?: any) => api.get('/visitors/register', { params }),
 };
 
 // Resident APIs (Proxy to resident-service via /members, /community, etc)
 export const residentApi = {
-    getMembers: () => api.get('/members'),
+    getMembers: (params?: any) => api.get('/members', { params }),
     getMember: (id: string) => api.get(`/members/${id}`),
     createMember: (data: any) => api.post('/members', data),
     updateMember: (id: string, data: any) => api.patch(`/members/${id}`, data),
@@ -129,6 +133,17 @@ export const residentApi = {
     createPoll: (data: any) => api.post('/community/polls', data),
     votePoll: (pollId: string, optionId: string) => api.post(`/community/polls/${pollId}/vote`, { optionId }),
     getGroups: () => api.get('/community/groups'),
+};
+
+export const amenitiesApi = {
+    getAmenities: () => api.get('/community/amenities'),
+    getAmenity: (id: string) => api.get(`/community/amenities/${id}`),
+    createAmenity: (data: any) => api.post('/community/amenities', data),
+    updateAmenity: (id: string, data: any) => api.patch(`/community/amenities/${id}`, data),
+    deleteAmenity: (id: string) => api.delete(`/community/amenities/${id}`),
+    bookAmenity: (id: string, data: any) => api.post(`/community/amenities/${id}/book`, data),
+    getAmenityBookings: (id: string, date: string) => api.get(`/community/amenities/${id}/bookings`, { params: { date } }),
+    getMyBookings: () => api.get('/community/amenities/my-bookings'),
 };
 
 // Business APIs

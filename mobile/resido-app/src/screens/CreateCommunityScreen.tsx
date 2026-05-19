@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
     StyleSheet, KeyboardAvoidingView, Platform, Alert, ScrollView, ActivityIndicator,
-    SafeAreaView
+    SafeAreaView, Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { authApi } from '../services/api';
+import { storageApi } from '../services/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 
@@ -17,7 +19,30 @@ export default function CreateCommunityScreen() {
     const [memberPhones, setMemberPhones] = useState('');
     const [residentPhones, setResidentPhones] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // Photo upload state
+    const [photoUri, setPhotoUri] = useState<string | null>(null);
+
     const router = useRouter();
+
+    const handlePickPhoto = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Permission to access gallery is required.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [16, 9],
+            quality: 0.7,
+        });
+
+        if (!result.canceled) {
+            setPhotoUri(result.assets[0].uri);
+        }
+    };
 
     const handleCreate = async () => {
         if (!name || !adminEmail || !adminPhone || !adminPassword) {
@@ -27,11 +52,23 @@ export default function CreateCommunityScreen() {
 
         setLoading(true);
         try {
+            let uploadedPhotoUrl = '';
+            if (photoUri) {
+                const res = await storageApi.uploadFile(
+                    photoUri,
+                    `community_${Date.now()}.jpg`,
+                    'image/jpeg',
+                    'communities'
+                );
+                uploadedPhotoUrl = res as string;
+            }
+
             await authApi.createClient({
                 name,
                 adminEmail,
                 adminPhone,
                 adminPassword,
+                photoUrl: uploadedPhotoUrl,
                 memberPhones: memberPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 residentPhones: residentPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 plan: 'BASIC'
@@ -83,6 +120,20 @@ export default function CreateCommunityScreen() {
                         <View style={styles.sectionHeader}>
                             <Ionicons name="information-circle-outline" size={18} color="#4c1d95" />
                             <Text style={styles.sectionHeaderText}>Basic Information</Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Community Cover Photo</Text>
+                            <TouchableOpacity style={styles.photoPicker} onPress={handlePickPhoto}>
+                                {photoUri ? (
+                                    <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                                ) : (
+                                    <View style={styles.photoPlaceholder}>
+                                        <Ionicons name="camera-outline" size={32} color="#64748b" />
+                                        <Text style={styles.photoPlaceholderText}>Select cover photo</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
                         </View>
                         
                         <View style={styles.inputGroup}>
@@ -199,6 +250,20 @@ const styles = StyleSheet.create({
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: -10 },
     sectionHeaderText: { fontSize: 14, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
     inputGroup: { gap: 10 },
+    photoPicker: {
+        height: 160,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderStyle: 'dashed',
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    photoPreview: { width: '100%', height: '100%' },
+    photoPlaceholder: { alignItems: 'center' },
+    photoPlaceholderText: { fontSize: 14, color: '#64748b', marginTop: 8, fontWeight: '600' },
     label: { fontSize: 12, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
     input: {
         backgroundColor: 'rgba(255,255,255,0.03)',

@@ -112,7 +112,7 @@ export default function AdminDashboard() {
 
                         <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />
                         <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#4c1d95" />
-                        <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/documents')} />
+                        <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/staff-documents')} />
 
                     </View>
                 </View>
@@ -121,11 +121,13 @@ export default function AdminDashboard() {
                     <Text style={styles.sectionTitle}>Community Tools</Text>
                     <View style={styles.featureGrid}>
                         <FeatureCard icon="id-card" title="Visitor Reg" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
-                        <FeatureCard icon="qr-code" title="Gatepass Scanner" color="#fff" bg="#059669" onPress={() => router.push('/scanner')} />
-                        <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass-list')} />
+                        <FeatureCard icon="qr-code" title="Gatepass Scanner" color="#fff" bg="#059669" onPress={() => router.push('/gatepass-scanner')} />
+                        <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="chatbubbles" title="Resident Chat" color="#fff" bg="#4a5568" onPress={() => router.push('/chat-list')} />
                         <FeatureCard icon="folder" title="Docs & Legal" color="#fff" bg="#2d3748" onPress={() => router.push('/documents')} />
                         <FeatureCard icon="newspaper" title="Feed Mgmt" color="#fff" bg="#1a365d" onPress={() => router.push('/thread')} />
+                        <FeatureCard icon="tennisball" title="Amenities" color="#fff" bg="#6366f1" onPress={() => router.push('/amenities')} />
+                        <FeatureCard icon="settings" title="Manage Community" color="#fff" bg="#ec4899" onPress={() => router.push('/manage-community')} />
                     </View>
                 </View>
 

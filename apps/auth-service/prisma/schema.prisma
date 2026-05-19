@@ -90,6 +90,7 @@ model WorkspaceMembership {
   tenantName String   // Display name e.g. "Green Valley Apartments"
   role       Role
   memberId   String   // id in tenant's resident DB
+  photoUrl   String?  // community photo URL
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
 
@@ -119,6 +120,7 @@ model OtpLog {
 model Client {
   id              String    @id @default(cuid())
   name            String
+  photoUrl        String?   // community photo URL
   slug            String    @unique  // used as DB identifier
   dbName          String    @unique  // e.g. resido_greenwood
   s3Prefix        String    @unique  // S3 folder prefix

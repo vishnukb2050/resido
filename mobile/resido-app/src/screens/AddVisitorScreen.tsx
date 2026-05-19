@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '../store/authStore';
 import { visitorApi } from '../services/api';
 
@@ -19,13 +20,35 @@ export default function AddVisitorScreen() {
         category: 'Visitor',
         description: '',
         vehicleNumber: '',
+        unitToVisit: '',
     });
 
     const [showCategories, setShowCategories] = useState(false);
+    const [entryDate, setEntryDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+
+    const onDateChange = (event: any, selectedDate?: Date) => {
+        setShowDatePicker(false);
+        if (selectedDate) {
+            const currentDate = new Date(entryDate);
+            currentDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+            setEntryDate(currentDate);
+        }
+    };
+
+    const onTimeChange = (event: any, selectedTime?: Date) => {
+        setShowTimePicker(false);
+        if (selectedTime) {
+            const currentDate = new Date(entryDate);
+            currentDate.setHours(selectedTime.getHours(), selectedTime.getMinutes());
+            setEntryDate(currentDate);
+        }
+    };
 
     const handleSave = async () => {
-        if (!formData.name || !formData.mobile) {
-            Alert.alert('Error', 'Name and Mobile are required');
+        if (!formData.name || !formData.mobile || !formData.unitToVisit) {
+            Alert.alert('Error', 'Name, Mobile, and Unit to Visit are required');
             return;
         }
 
@@ -33,13 +56,14 @@ export default function AddVisitorScreen() {
         try {
             await visitorApi.createEntry({
                 visitorName: formData.name,
-                visitorPhone: formData.mobile,
+                phone: formData.mobile,
                 purpose: formData.purpose,
                 category: formData.category,
                 description: formData.description,
                 vehicleNumber: formData.vehicleNumber,
-                entryTime: new Date().toISOString(),
-                status: 'ENTERED'
+                unitToVisit: formData.unitToVisit,
+                inTime: entryDate.toISOString(),
+                loggedBy: activeWorkspace?.memberId || 'UNKNOWN'
             });
 
             Alert.alert('Success', 'Visitor registered successfully!', [
@@ -85,6 +109,17 @@ export default function AddVisitorScreen() {
                             keyboardType="phone-pad"
                             value={formData.mobile}
                             onChangeText={(t) => setFormData({...formData, mobile: t})}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Unit to Visit</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="E.g., A-101"
+                            placeholderTextColor="#64748b"
+                            value={formData.unitToVisit}
+                            onChangeText={(t) => setFormData({...formData, unitToVisit: t})}
                         />
                     </View>
 
@@ -152,6 +187,44 @@ export default function AddVisitorScreen() {
                         />
                     </View>
 
+                    <View style={styles.row}>
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                            <Text style={styles.label}>Date</Text>
+                            <TouchableOpacity style={styles.selector} onPress={() => setShowDatePicker(true)}>
+                                <Text style={styles.selectorText}>{entryDate.toLocaleDateString()}</Text>
+                                <Ionicons name="calendar-outline" size={20} color="#10b981" />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ width: 15 }} />
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                            <Text style={styles.label}>Time</Text>
+                            <TouchableOpacity style={styles.selector} onPress={() => setShowTimePicker(true)}>
+                                <Text style={styles.selectorText}>
+                                    {entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                                <Ionicons name="time-outline" size={20} color="#10b981" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={entryDate}
+                            mode="date"
+                            display="default"
+                            onChange={onDateChange}
+                        />
+                    )}
+
+                    {showTimePicker && (
+                        <DateTimePicker
+                            value={entryDate}
+                            mode="time"
+                            display="default"
+                            onChange={onTimeChange}
+                        />
+                    )}
+
                     <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={loading}>
                         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Complete Registration</Text>}
                     </TouchableOpacity>
@@ -168,6 +241,7 @@ const styles = StyleSheet.create({
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     scrollContent: { padding: 24 },
     form: { gap: 24 },
+    row: { flexDirection: 'row', alignItems: 'center' },
     inputGroup: { gap: 10 },
     label: { fontSize: 13, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },

@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '../store/authStore';
 import { visitorApi } from '../services/api';
+
+const CATEGORIES = ['All', 'Visitor', 'Delivery', 'Maintenance & Repair'];
 
 export default function VisitorRegisterScreen() {
     const router = useRouter();
@@ -11,13 +14,36 @@ export default function VisitorRegisterScreen() {
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [startDate, setStartDate] = useState(new Date());
+    const [endDate, setEndDate] = useState(new Date());
+    const [category, setCategory] = useState('All');
+    
+    const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+    const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
     useEffect(() => {
         fetchRegister();
-    }, []);
+    }, [startDate, endDate, category]);
 
     const fetchRegister = async () => {
+        setLoading(true);
         try {
-            const { data } = await visitorApi.getRegister();
+            const params: any = {};
+            // Set start of day and end of day
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            
+            params.startDate = start.toISOString();
+            params.endDate = end.toISOString();
+            
+            if (category !== 'All') {
+                params.category = category;
+            }
+
+            const { data } = await visitorApi.getEntries(params);
             setEntries(data);
         } catch (e) {
             console.error('Fetch register failed', e);
@@ -37,6 +63,65 @@ export default function VisitorRegisterScreen() {
                     <Ionicons name="add" size={24} color="#fff" />
                 </TouchableOpacity>
             </View>
+
+            <View style={styles.filterBar}>
+                <View style={styles.dateFilters}>
+                    <TouchableOpacity style={styles.filterBtn} onPress={() => setShowStartDatePicker(true)}>
+                        <Ionicons name="calendar-outline" size={16} color="#94a3b8" />
+                        <Text style={styles.filterText}>{startDate.toLocaleDateString()}</Text>
+                    </TouchableOpacity>
+                    <Text style={{ color: '#64748b' }}>to</Text>
+                    <TouchableOpacity style={styles.filterBtn} onPress={() => setShowEndDatePicker(true)}>
+                        <Ionicons name="calendar-outline" size={16} color="#94a3b8" />
+                        <Text style={styles.filterText}>{endDate.toLocaleDateString()}</Text>
+                    </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.filterBtn} onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}>
+                    <Text style={styles.filterText}>{category}</Text>
+                    <Ionicons name="chevron-down" size={16} color="#94a3b8" />
+                </TouchableOpacity>
+            </View>
+
+            {showCategoryDropdown && (
+                <View style={styles.dropdown}>
+                    {CATEGORIES.map(cat => (
+                        <TouchableOpacity 
+                            key={cat} 
+                            style={styles.dropdownItem}
+                            onPress={() => {
+                                setCategory(cat);
+                                setShowCategoryDropdown(false);
+                            }}
+                        >
+                            <Text style={[styles.dropdownItemText, category === cat && styles.selectedItemText]}>{cat}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            )}
+
+            {showStartDatePicker && (
+                <DateTimePicker
+                    value={startDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event: any, date?: Date) => {
+                        setShowStartDatePicker(false);
+                        if (date) setStartDate(date);
+                    }}
+                />
+            )}
+
+            {showEndDatePicker && (
+                <DateTimePicker
+                    value={endDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event: any, date?: Date) => {
+                        setShowEndDatePicker(false);
+                        if (date) setEndDate(date);
+                    }}
+                />
+            )}
 
             {loading ? (
                 <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
@@ -92,6 +177,16 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
+    
+    filterBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 10, zIndex: 10 },
+    dateFilters: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    filterText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    dropdown: { position: 'absolute', top: 150, right: 20, left: 20, backgroundColor: '#1e293b', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', zIndex: 100 },
+    dropdownItem: { padding: 15, borderRadius: 10 },
+    dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
+    selectedItemText: { color: '#10b981' },
+
     listContent: { padding: 20 },
     entryCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, marginBottom: 15, padding: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     entryMain: { flexDirection: 'row', alignItems: 'center' },

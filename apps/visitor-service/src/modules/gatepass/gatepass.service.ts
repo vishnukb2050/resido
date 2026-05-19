@@ -45,7 +45,9 @@ export class GatepassService {
     await this.prisma.visitorEntry.create({
       data: {
         visitorName: gatepass.visitorName,
+        phone: gatepass.phone,
         purpose: gatepass.purpose,
+        category: 'Visitor',
         unitToVisit: gatepass.residentUnit || 'N/A',
         vehicleNumber: gatepass.vehicleNumber,
         gatepassId: gatepass.id,

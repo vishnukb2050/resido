@@ -9,7 +9,7 @@ export class MembersService {
         const where: any = {};
         if (role) {
             if (role === 'STAFF_GROUP') {
-                where.role = { in: ['CLEANING_STAFF', 'SECURITY_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'STAFF', 'SERVICE_STAFF'] };
+                where.role = { in: ['CLEANING_STAFF', 'SECURITY_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'STAFF', 'SERVICE_STAFF', 'ADMIN_STAFF'] };
             } else {
                 where.role = role;
             }

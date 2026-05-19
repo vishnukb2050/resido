@@ -837,3 +837,42 @@ enum OccupancyType {
   RESIDENT
   RENTAL
 }
+
+// ─── Amenities ────────────────────────────────────────────────────────────────
+model Amenity {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  description    String?
+  rules          String?
+  photoUrl       String?
+  maxPersons     Int      @default(1)
+  timeSlots      String[] // Array of time slots, e.g., ["09:00-10:00", "10:00-11:00"]
+  availableDates String[] // Array of available dates, e.g., ["2023-10-01", "2023-10-02"]
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  bookings       AmenityBooking[]
+
+  @@index([tenantId])
+  @@map("amenities")
+}
+
+model AmenityBooking {
+  id          String   @id @default(cuid())
+  tenantId    String
+  amenityId   String
+  memberId    String
+  bookingDate String   // YYYY-MM-DD
+  timeSlot    String
+  persons     Int      @default(1)
+  status      String   @default("CONFIRMED") // CONFIRMED, CANCELLED
+  createdAt   DateTime @default(now())
+
+  amenity     Amenity  @relation(fields: [amenityId], references: [id])
+  member      Member   @relation(fields: [memberId], references: [id])
+
+  @@index([tenantId])
+  @@map("amenity_bookings")
+}

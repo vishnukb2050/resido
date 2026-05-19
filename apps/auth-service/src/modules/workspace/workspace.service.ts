@@ -16,6 +16,7 @@ export class WorkspaceService {
         adminEmail: string;
         adminPhone: string;
         plan?: string;
+        photoUrl?: string;
     }) {
         const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
         const s3Prefix = slug;
@@ -30,6 +31,7 @@ export class WorkspaceService {
                 dbName,
                 s3Prefix,
                 plan: (data.plan as any) || 'BASIC',
+                photoUrl: data.photoUrl || null,
             },
         });
 
@@ -51,6 +53,7 @@ export class WorkspaceService {
                     tenantName: client.name,
                     role: 'APARTMENT_ADMIN' as any, // Changed from ADMIN to APARTMENT_ADMIN to match schema enum
                     memberId: `mem_${client.id.slice(0, 8)}`, // Fallback memberId
+                    photoUrl: client.photoUrl,
                     isActive: true
                 }
             });
