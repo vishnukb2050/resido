@@ -33,6 +33,7 @@ export default function CreateGatepassScreen() {
         try {
             const { data } = await communityApi.createGatepass({
                 ...formData,
+                memberId: activeWorkspace?.memberId || user?.id,
                 residentId: user?.id,
                 tenantId: activeWorkspace?.tenantId,
                 residentName: user?.name,

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, FlatList, Image, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import { visitorApi } from '../services/api';
+import { communityApi } from '../services/api';
 
 export default function GatepassListScreen() {
     const router = useRouter();
@@ -17,12 +17,24 @@ export default function GatepassListScreen() {
 
     const fetchGatepasses = async () => {
         try {
-            const { data } = await visitorApi.getEntries();
+            // Admin can see all gatepasses; residents see their own
+            const memberId = activeWorkspace?.role === 'APARTMENT_ADMIN' ? '' : (activeWorkspace?.memberId || user?.id);
+            const { data } = await communityApi.getVisitors(memberId || '');
             setGatepasses(data);
         } catch (e) {
             console.error('Fetch gatepasses failed', e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleShare = async (item: any) => {
+        try {
+            await Share.share({
+                message: `Resido Gatepass for ${item.visitorName}\nDate: ${item.visitDate}\nTime: ${item.visitTime}\nPass ID: ${item.id}\n\nQR Code: https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${item.id}\n\nPlease show this at the gate.`,
+            });
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -73,7 +85,18 @@ export default function GatepassListScreen() {
 
                             <View style={styles.cardFooter}>
                                 <Text style={styles.purposeText}>{item.purpose}</Text>
-                                <Ionicons name="qr-code" size={20} color="#4c1d95" />
+                                <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
+                                    <TouchableOpacity 
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            handleShare(item);
+                                        }}
+                                        style={{ padding: 6, backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: 8 }}
+                                    >
+                                        <Ionicons name="share-social-outline" size={18} color="#10b981" />
+                                    </TouchableOpacity>
+                                    <Ionicons name="qr-code" size={20} color="#4c1d95" />
+                                </View>
                             </View>
                         </TouchableOpacity>
                     )}

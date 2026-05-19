@@ -61,6 +61,16 @@ export class CommunityController {
         return this.communityService.createGatepass(data.memberId, data);
     }
 
+    @Get('visitors/:id')
+    getGatepassDetails(@Param('id') id: string) {
+        return this.communityService.getGatepassDetails(id);
+    }
+
+    @Patch('visitors/:id/approve')
+    approveGatepassEntry(@Param('id') id: string, @Body('securityMemberId') securityMemberId: string) {
+        return this.communityService.approveGatepassEntry(id, securityMemberId);
+    }
+
     // Calendar / Events
     @Get('events')
     getEvents(@Query('memberId') memberId: string) {

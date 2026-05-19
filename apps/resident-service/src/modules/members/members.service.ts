@@ -31,11 +31,31 @@ export class MembersService {
         });
     }
 
+    private sanitizeMemberData(data: any) {
+        const allowedKeys = [
+            'tenantId', 'userId', 'name', 'phone', 'email', 'role',
+            'profilePhoto', 'profileName', 'phoneVisibility', 'isActive',
+            'age', 'docUrl', 'occupancyType', 'address', 'tenantName',
+            'tenantPhone', 'familyId', 'instagram', 'linkedin', 'website',
+            'location'
+        ];
+
+        const sanitized: any = {};
+        for (const key of allowedKeys) {
+            if (data[key] !== undefined) {
+                sanitized[key] = data[key];
+            }
+        }
+        return sanitized;
+    }
+
     async createMember(data: any) {
         const { unitId, ...memberData } = data;
 
         const tenantId = memberData.tenantId;
         const phone = memberData.phone;
+
+        const sanitized = this.sanitizeMemberData(memberData);
 
         let member = await this.prisma.reader.member.findFirst({
             where: {
@@ -48,16 +68,15 @@ export class MembersService {
             member = await this.prisma.client.member.update({
                 where: { id: member.id },
                 data: {
-                    name: memberData.name || member.name,
-                    role: memberData.role || member.role,
+                    ...sanitized,
                     isActive: true
                 }
             });
         } else {
             member = await this.prisma.client.member.create({
                 data: {
-                    ...memberData,
-                    age: memberData.age ? parseInt(memberData.age) : undefined
+                    ...sanitized,
+                    age: sanitized.age ? parseInt(sanitized.age) : undefined
                 }
             });
         }
@@ -106,9 +125,10 @@ export class MembersService {
     }
 
     async updateMember(id: string, data: any) {
+        const sanitized = this.sanitizeMemberData(data);
         return this.prisma.client.member.update({
             where: { id },
-            data
+            data: sanitized
         });
     }
 

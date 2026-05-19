@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -98,29 +98,86 @@ export class CommunityService {
 
     // ─── Visitors / Gatepass ────────────────────────────────────
     async getVisitors(memberId?: string) {
-        return this.prisma.reader.visitor.findMany({
+        const visitors = await this.prisma.reader.visitor.findMany({
             where: memberId ? { memberId } : {},
             orderBy: { createdAt: 'desc' }
         });
+
+        return visitors.map((visitor) => {
+            const visitDate = new Date(visitor.createdAt).toLocaleDateString('en-GB');
+            const visitTime = new Date(visitor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            return {
+                ...visitor,
+                visitorName: visitor.name,
+                personsCount: 1, // Default fallback
+                visitDate,
+                visitTime
+            };
+        });
+    }
+
+    async getGatepassDetails(id: string) {
+        const visitor = await this.prisma.reader.visitor.findUnique({
+            where: { id },
+            include: { member: true }
+        });
+
+        if (!visitor) {
+            throw new NotFoundException('Gatepass not found');
+        }
+
+        const visitDate = new Date(visitor.createdAt).toLocaleDateString('en-GB');
+        const visitTime = new Date(visitor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        return {
+            ...visitor,
+            visitorName: visitor.name,
+            personsCount: 1, // Default fallback
+            visitDate,
+            visitTime
+        };
+    }
+
+    async approveGatepassEntry(id: string, securityMemberId: string) {
+        const visitor = await this.prisma.reader.visitor.findUnique({
+            where: { id }
+        });
+
+        if (!visitor) {
+            throw new NotFoundException('Gatepass not found');
+        }
+
+        const updated = await this.prisma.client.visitor.update({
+            where: { id },
+            data: {
+                status: 'APPROVED',
+                entryTime: new Date()
+            }
+        });
+
+        return updated;
     }
 
     async createGatepass(userId: string, data: any) {
+        // Robust lookup checking both ID and global Auth userId
         let member = await this.prisma.reader.member.findFirst({
             where: { 
-                userId: userId,
+                OR: [
+                    { id: userId },
+                    { userId: userId }
+                ],
                 ...(data.tenantId ? { tenantId: data.tenantId } : {})
             }
         });
 
-        // Fallback: If no member record exists for this user, create one on the fly
-        // so they are not blocked from creating gatepasses.
         if (!member) {
             console.log(`Member not found for user ${userId}. Creating on the fly...`);
             member = await this.prisma.client.member.create({
                 data: {
                     userId: userId,
-                    tenantId: data.tenantId || 'resido-core', // Default or passed tenantId
-                    name: 'Default Member',
+                    tenantId: data.tenantId || 'resido-core', 
+                    name: data.residentName || 'Default Member',
                     phone: '0000000000',
                     role: 'RESIDENT'
                 }
@@ -129,15 +186,14 @@ export class CommunityService {
 
         const passCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         
-        // Filter and map fields to match the Visitor schema
         const visitorData = {
             tenantId: member.tenantId,
             name: data.visitorName || data.name,
-            phone: data.phone || '0000000000', // Default if not provided since it's required in schema
+            phone: data.phone || '0000000000', 
             purpose: data.purpose,
             passCode,
             status: 'PENDING' as any,
-            memberId: member.id, // Use the looked-up member.id
+            memberId: member.id, 
             vehicleNumber: data.vehicleNumber,
         };
 
