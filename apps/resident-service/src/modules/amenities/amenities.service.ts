@@ -6,7 +6,7 @@ export class AmenitiesService {
   constructor(private prisma: PrismaService) {}
 
   async createAmenity(tenantId: string, data: any) {
-    return this.prisma.amenity.create({
+    return this.prisma.client.amenity.create({
       data: {
         tenantId,
         ...data,
@@ -15,14 +15,14 @@ export class AmenitiesService {
   }
 
   async getAmenities(tenantId: string) {
-    return this.prisma.amenity.findMany({
+    return this.prisma.client.amenity.findMany({
       where: { tenantId, isActive: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async getAmenityById(id: string, tenantId: string) {
-    const amenity = await this.prisma.amenity.findFirst({
+    const amenity = await this.prisma.client.amenity.findFirst({
       where: { id, tenantId },
     });
     if (!amenity) throw new NotFoundException('Amenity not found');
@@ -31,7 +31,7 @@ export class AmenitiesService {
 
   async updateAmenity(id: string, tenantId: string, data: any) {
     const amenity = await this.getAmenityById(id, tenantId);
-    return this.prisma.amenity.update({
+    return this.prisma.client.amenity.update({
       where: { id: amenity.id },
       data,
     });
@@ -39,7 +39,7 @@ export class AmenitiesService {
 
   async deleteAmenity(id: string, tenantId: string) {
     const amenity = await this.getAmenityById(id, tenantId);
-    return this.prisma.amenity.delete({
+    return this.prisma.client.amenity.delete({
       where: { id: amenity.id },
     });
   }
@@ -49,7 +49,7 @@ export class AmenitiesService {
     const amenity = await this.getAmenityById(amenityId, tenantId);
     
     // Check if slot is full (basic logic: count current bookings for this slot)
-    const existingBookings = await this.prisma.amenityBooking.findMany({
+    const existingBookings = await this.prisma.client.amenityBooking.findMany({
       where: {
         tenantId,
         amenityId,
@@ -66,7 +66,7 @@ export class AmenitiesService {
       throw new Error(`Time slot is fully booked or exceeds max persons allowed (${amenity.maxPersons})`);
     }
 
-    return this.prisma.amenityBooking.create({
+    return this.prisma.client.amenityBooking.create({
       data: {
         tenantId,
         amenityId,
@@ -80,7 +80,7 @@ export class AmenitiesService {
   }
 
   async getAmenityBookings(tenantId: string, amenityId: string, date: string) {
-    return this.prisma.amenityBooking.findMany({
+    return this.prisma.client.amenityBooking.findMany({
       where: {
         tenantId,
         amenityId,
@@ -96,7 +96,7 @@ export class AmenitiesService {
   }
 
   async getMyBookings(tenantId: string, memberId: string) {
-    return this.prisma.amenityBooking.findMany({
+    return this.prisma.client.amenityBooking.findMany({
       where: { tenantId, memberId },
       include: { amenity: true },
       orderBy: { createdAt: 'desc' }
