@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     uploadTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
     uploadSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
     uploadBtn: { backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-    uploadBtnText: { color: '#0d9488', fontSize: 13, fontWeight: '800' },
+    uploadBtnText: { color: '#4c1d95', fontSize: 13, fontWeight: '800' },
 
     inputGroup: { marginBottom: 24 },
     inputLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', marginBottom: 12 },
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
 
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     tag: { backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-    tagText: { color: '#0d9488', fontSize: 13, fontWeight: '700' },
+    tagText: { color: '#4c1d95', fontSize: 13, fontWeight: '700' },
     addTagBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-    addTagText: { color: '#0d9488', fontSize: 13, fontWeight: '700' }
+    addTagText: { color: '#4c1d95', fontSize: 13, fontWeight: '700' }
 });

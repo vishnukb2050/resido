@@ -126,7 +126,7 @@ export default function CreateGatepassScreen() {
                                     value={formData.visitDate}
                                     onChangeText={(t) => setFormData({...formData, visitDate: t})}
                                 />
-                                <Ionicons name="calendar" size={18} color="#0d9488" />
+                                <Ionicons name="calendar" size={18} color="#4c1d95" />
                             </View>
                         </View>
 
@@ -140,7 +140,7 @@ export default function CreateGatepassScreen() {
                                     value={formData.visitTime}
                                     onChangeText={(t) => setFormData({...formData, visitTime: t})}
                                 />
-                                <Ionicons name="time" size={18} color="#0d9488" />
+                                <Ionicons name="time" size={18} color="#4c1d95" />
                             </View>
                         </View>
                     </View>
@@ -170,6 +170,6 @@ const styles = StyleSheet.create({
     row: { flexDirection: 'row', gap: 15 },
     dateSelector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 16, paddingVertical: 4, flexDirection: 'row', alignItems: 'center' },
     dateInput: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600', paddingVertical: 12 },
-    submitBtn: { backgroundColor: '#0d9488', borderRadius: 20, padding: 20, alignItems: 'center', marginTop: 20, shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 20, padding: 20, alignItems: 'center', marginTop: 20, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 },
 });

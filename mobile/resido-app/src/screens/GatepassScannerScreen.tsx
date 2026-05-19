@@ -62,7 +62,7 @@ export default function GatepassScannerScreen() {
 
             <View style={styles.content}>
                 <View style={styles.iconWrapper}>
-                    <Ionicons name="shield-checkmark-outline" size={80} color="#0d9488" />
+                    <Ionicons name="shield-checkmark-outline" size={80} color="#4c1d95" />
                 </View>
 
                 <Text style={styles.title}>Manual Verification</Text>
@@ -100,6 +100,6 @@ const styles = StyleSheet.create({
     inputGroup: { width: '100%', gap: 10, marginBottom: 24 },
     label: { fontSize: 12, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 16, fontSize: 16, fontWeight: '600', width: '100%' },
-    verifyBtn: { width: '100%', backgroundColor: '#0d9488', borderRadius: 16, padding: 18, alignItems: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    verifyBtn: { width: '100%', backgroundColor: '#4c1d95', borderRadius: 16, padding: 18, alignItems: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     verifyText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

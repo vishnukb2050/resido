@@ -70,7 +70,7 @@ export default function CreateComplaintScreen() {
                             onPress={() => setShowCategories(!showCategories)}
                         >
                             <Text style={styles.selectorText}>{formData.category}</Text>
-                            <Ionicons name="chevron-down" size={20} color="#0d9488" />
+                            <Ionicons name="chevron-down" size={20} color="#4c1d95" />
                         </TouchableOpacity>
                         
                         {showCategories && (
@@ -142,14 +142,14 @@ const styles = StyleSheet.create({
     dropdown: { backgroundColor: '#1e293b', borderRadius: 16, marginTop: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dropdownItem: { padding: 15, borderRadius: 10 },
     dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-    selectedItemText: { color: '#0d9488' },
+    selectedItemText: { color: '#4c1d95' },
     priorityRow: { flexDirection: 'row', gap: 10 },
     priorityBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)' },
-    priorityBtnActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
+    priorityBtnActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
     priorityText: { color: '#94a3b8', fontSize: 12, fontWeight: '800' },
     priorityTextActive: { color: '#fff' },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },
     textArea: { height: 150, textAlignVertical: 'top' },
-    submitBtn: { backgroundColor: '#0d9488', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#0d9488', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
+    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

@@ -252,7 +252,7 @@ export default function EditProfileScreen() {
 
                     <View style={styles.inputGroup}>
                         <View style={styles.inputLabelRow}>
-                            <Ionicons name="globe-outline" size={16} color="#0d9488" />
+                            <Ionicons name="globe-outline" size={16} color="#4c1d95" />
                             <Text style={styles.inputLabel}>Website</Text>
                         </View>
                         <TextInput 
@@ -279,7 +279,7 @@ export default function EditProfileScreen() {
                     <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Profile Preferences</Text>
                     <View style={styles.preferenceCard}>
                         <View style={styles.prefIconBox}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#0d9488" />
+                            <Ionicons name="lock-closed-outline" size={20} color="#4c1d95" />
                         </View>
                         <View style={{ flex: 1, marginLeft: 16 }}>
                             <Text style={styles.prefTitle}>Profile Visibility</Text>
@@ -352,13 +352,13 @@ export default function EditProfileScreen() {
                                 >
                                     <Text style={[
                                         styles.modalOptionText, 
-                                        isSelected && { color: '#0d9488', fontWeight: '800' }
+                                        isSelected && { color: '#4c1d95', fontWeight: '800' }
                                     ]}>
                                         {option}
                                     </Text>
                                     <View style={[
                                         styles.checkbox,
-                                        isSelected && { backgroundColor: '#0d9488', borderColor: '#0d9488' }
+                                        isSelected && { backgroundColor: '#4c1d95', borderColor: '#4c1d95' }
                                     ]}>
                                         {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
                                     </View>
@@ -411,9 +411,9 @@ const styles = StyleSheet.create({
     
     avatarSection: { alignItems: 'center', marginBottom: 32 },
     avatarWrapper: { width: 100, height: 100, marginBottom: 12 },
-    avatar: { width: '100%', height: '100%', borderRadius: 50, borderWidth: 2, borderColor: '#0d9488' },
-    cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1e293b' },
-    changePhotoText: { fontSize: 14, fontWeight: '800', color: '#0d9488' },
+    avatar: { width: '100%', height: '100%', borderRadius: 50, borderWidth: 2, borderColor: '#4c1d95' },
+    cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1e293b' },
+    changePhotoText: { fontSize: 14, fontWeight: '800', color: '#4c1d95' },
     uploadHint: { fontSize: 11, color: '#64748b', marginTop: 4 },
 
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 16 },
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     connectedText: { color: '#10b981', fontSize: 11, fontWeight: '800' },
 
     connectMoreBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(99, 102, 241, 0.03)', borderRadius: 16, padding: 14, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
-    plusIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
+    plusIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
     connectTitle: { fontSize: 14, fontWeight: '800', color: '#fff' },
     connectSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
 
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     prefDropdown: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     prefValue: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
 
-    saveBtn: { backgroundColor: '#0d9488', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 40, shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    saveBtn: { backgroundColor: '#4c1d95', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 40, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
     deleteBtn: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 12, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)', flexDirection: 'row' },
     deleteBtnText: { color: '#ef4444', fontSize: 16, fontWeight: '800' },

@@ -112,7 +112,7 @@ export default function AdminDashboard() {
 
                         <FeatureCard icon="business" title="Blocks" color="#fff" bg="#d97706" onPress={() => router.push('/manage-blocks')} />
                         <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/manage-blocks')} />
-                        <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#0d9488" />
+                        <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#4c1d95" />
                         <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/documents')} />
 
                     </View>
@@ -172,9 +172,9 @@ function StatBox({ count, label, icon }: any) {
 
 function FeatureCard({ icon, title, color, bg, onPress }: any) {
     return (
-        <TouchableOpacity style={[styles.featureCard, { backgroundColor: bg }]} onPress={onPress}>
-            <View style={styles.fCardHeader}>
-                <Ionicons name={icon as any} size={24} color={color} />
+        <TouchableOpacity style={styles.featureCard} onPress={onPress}>
+            <View style={[styles.fCardHeader, { backgroundColor: bg }]}>
+                <Ionicons name={icon as any} size={28} color={color} />
             </View>
             <Text style={styles.fCardTitle}>{title}</Text>
         </TouchableOpacity>
@@ -229,8 +229,8 @@ const styles = StyleSheet.create({
 
     sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
     sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 15 },
-    featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
-    fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
-    fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, justifyContent: 'space-between' },
+    featureCard: { width: '30%', alignItems: 'center', marginBottom: 15 },
+    fCardHeader: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+    fCardTitle: { color: '#fff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
 });

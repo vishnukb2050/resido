@@ -16,9 +16,9 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     const themeStyles = {
         background: isMySpace || activeTab === 'Flares' ? '#000000' : '#fff',
         border: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
-        activeIcon: '#0d9488',
+        activeIcon: '#4c1d95',
         inactiveIcon: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.4)' : '#64748b',
-        activeLabel: '#0d9488',
+        activeLabel: '#4c1d95',
         inactiveLabel: isMySpace || activeTab === 'Flares' ? 'rgba(255,255,255,0.4)' : '#64748b'
     };
 

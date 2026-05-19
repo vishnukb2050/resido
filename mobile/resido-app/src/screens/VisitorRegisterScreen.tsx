@@ -39,7 +39,7 @@ export default function VisitorRegisterScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={entries}

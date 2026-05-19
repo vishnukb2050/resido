@@ -72,7 +72,7 @@ export default function CreateCommunityScreen() {
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.heroSection}>
                         <View style={styles.heroIconBox}>
-                            <Ionicons name="business" size={40} color="#0d9488" />
+                            <Ionicons name="business" size={40} color="#4c1d95" />
                         </View>
                         <Text style={styles.title}>Launch Community</Text>
                         <Text style={styles.subtitle}>Initialize your smart apartment ecosystem with administrative and resident access.</Text>
@@ -81,7 +81,7 @@ export default function CreateCommunityScreen() {
                     <View style={styles.form}>
                         {/* Basic Info */}
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="information-circle-outline" size={18} color="#0d9488" />
+                            <Ionicons name="information-circle-outline" size={18} color="#4c1d95" />
                             <Text style={styles.sectionHeaderText}>Basic Information</Text>
                         </View>
                         
@@ -214,12 +214,12 @@ const styles = StyleSheet.create({
     textArea: { height: 100, textAlignVertical: 'top' },
     hint: { fontSize: 11, color: '#475569', fontWeight: '500', marginTop: -4 },
     submitBtn: {
-        backgroundColor: '#0d9488',
+        backgroundColor: '#4c1d95',
         borderRadius: 20,
         padding: 20,
         alignItems: 'center',
         marginTop: 20,
-        shadowColor: '#0d9488',
+        shadowColor: '#4c1d95',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
         shadowRadius: 16,

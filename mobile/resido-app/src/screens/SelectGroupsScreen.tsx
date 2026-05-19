@@ -100,7 +100,7 @@ export default function SelectGroupsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#0d9488" style={{ marginTop: 20 }} />
+                    <ActivityIndicator color="#4c1d95" style={{ marginTop: 20 }} />
                 ) : filteredGroups.length === 0 ? (
                     <Text style={styles.emptyText}>No groups found</Text>
                 ) : (
@@ -110,7 +110,7 @@ export default function SelectGroupsScreen() {
                             style={styles.groupItem}
                             onPress={() => toggleSelect(group.id)}
                         >
-                            <View style={[styles.groupIconBox, { backgroundColor: '#0d9488' }]}>
+                            <View style={[styles.groupIconBox, { backgroundColor: '#4c1d95' }]}>
                                 <Ionicons name="people" size={22} color="#fff" />
                             </View>
                             <View style={styles.groupInfo}>
@@ -155,10 +155,10 @@ const styles = StyleSheet.create({
     groupName: { fontSize: 16, fontWeight: '700', color: '#fff' },
     groupSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
     checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    checkboxActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
+    checkboxActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
 
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
     footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, paddingBottom: 30, backgroundColor: '#0f172a' },
-    shareButton: { backgroundColor: '#0d9488', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    shareButton: { backgroundColor: '#4c1d95', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     shareButtonText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

@@ -70,7 +70,7 @@ export default function AddStaffScreen() {
                         <Text style={styles.label}>Category</Text>
                         <TouchableOpacity style={styles.selector} onPress={() => setShowCategories(!showCategories)}>
                             <Text style={styles.selectorText}>{formData.category}</Text>
-                            <Ionicons name="chevron-down" size={20} color="#0d9488" />
+                            <Ionicons name="chevron-down" size={20} color="#4c1d95" />
                         </TouchableOpacity>
                         
                         {showCategories && (
@@ -161,9 +161,9 @@ const styles = StyleSheet.create({
     dropdown: { backgroundColor: '#1e293b', borderRadius: 16, marginTop: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dropdownItem: { padding: 15, borderRadius: 10 },
     dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-    selectedItemText: { color: '#0d9488' },
+    selectedItemText: { color: '#4c1d95' },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },
     textArea: { height: 100, textAlignVertical: 'top' },
-    submitBtn: { backgroundColor: '#0d9488', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 20 },
+    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 20 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

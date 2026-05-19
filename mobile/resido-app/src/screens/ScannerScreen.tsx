@@ -132,7 +132,7 @@ export default function ScannerScreen() {
                             renderItem={({ item }) => (
                                 <View style={styles.historyCard}>
                                     <View style={styles.historyHeader}>
-                                        <Ionicons name="qr-code-outline" size={20} color="#0d9488" />
+                                        <Ionicons name="qr-code-outline" size={20} color="#4c1d95" />
                                         <Text style={styles.historyDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
                                     </View>
                                     <Text style={styles.historyData}>{item.data}</Text>
@@ -154,16 +154,16 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { color: '#1e293b', fontSize: 18, fontWeight: '900' },
     errorText: { marginTop: 20, textAlign: 'center', color: '#64748b', fontSize: 16, marginBottom: 20, fontWeight: '500' },
-    primaryBtn: { backgroundColor: '#0d9488', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, marginBottom: 10, shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+    primaryBtn: { backgroundColor: '#4c1d95', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, marginBottom: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     primaryBtnText: { color: '#fff', fontWeight: '800' },
     backBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12 },
     backBtnText: { color: '#475569', fontWeight: '800' },
 
     tabContainer: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-    activeTab: { borderBottomColor: '#0d9488' },
+    activeTab: { borderBottomColor: '#4c1d95' },
     tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
-    activeTabText: { color: '#0d9488' },
+    activeTabText: { color: '#4c1d95' },
 
     cameraContainer: { flex: 1, position: 'relative', marginBottom: 85 },
     overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
@@ -172,10 +172,10 @@ const styles = StyleSheet.create({
     focusedContainer: { width: 250, position: 'relative' },
     hint: { color: '#fff', fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 20 },
 
-    cornerTopLeft: { position: 'absolute', top: 0, left: 0, width: 40, height: 40, borderTopWidth: 4, borderLeftWidth: 4, borderColor: '#0d9488' },
-    cornerTopRight: { position: 'absolute', top: 0, right: 0, width: 40, height: 40, borderTopWidth: 4, borderRightWidth: 4, borderColor: '#0d9488' },
-    cornerBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 40, height: 40, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: '#0d9488' },
-    cornerBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 40, height: 40, borderBottomWidth: 4, borderRightWidth: 4, borderColor: '#0d9488' },
+    cornerTopLeft: { position: 'absolute', top: 0, left: 0, width: 40, height: 40, borderTopWidth: 4, borderLeftWidth: 4, borderColor: '#4c1d95' },
+    cornerTopRight: { position: 'absolute', top: 0, right: 0, width: 40, height: 40, borderTopWidth: 4, borderRightWidth: 4, borderColor: '#4c1d95' },
+    cornerBottomLeft: { position: 'absolute', bottom: 0, left: 0, width: 40, height: 40, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: '#4c1d95' },
+    cornerBottomRight: { position: 'absolute', bottom: 0, right: 0, width: 40, height: 40, borderBottomWidth: 4, borderRightWidth: 4, borderColor: '#4c1d95' },
 
     historyContainer: { flex: 1, marginBottom: 85 },
     historyCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },

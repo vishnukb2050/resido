@@ -11,7 +11,7 @@ const { width } = Dimensions.get('window');
 
 const TRANSACTIONS = [
     { id: '1', title: 'Salary', category: 'Income', amount: 45000, date: 'May 12, 2025', type: 'INCOME', icon: 'wallet', color: '#10b981' },
-    { id: '2', title: 'Freelance Project', category: 'Income', amount: 3750, date: 'May 11, 2025', type: 'INCOME', icon: 'laptop-code', color: '#0d9488' },
+    { id: '2', title: 'Freelance Project', category: 'Income', amount: 3750, date: 'May 11, 2025', type: 'INCOME', icon: 'laptop-code', color: '#4c1d95' },
     { id: '3', title: 'Electricity Bill', category: 'Utilities', amount: 1250, date: 'May 10, 2025', type: 'EXPENSE', icon: 'bolt', color: '#ef4444' },
     { id: '4', title: 'Groceries', category: 'Shopping', amount: 2350, date: 'May 9, 2025', type: 'EXPENSE', icon: 'shopping-basket', color: '#f59e0b' },
     { id: '5', title: 'Mobile Recharge', category: 'Utilities', amount: 299, date: 'May 8, 2025', type: 'EXPENSE', icon: 'mobile-alt', color: '#8b5cf6' },
@@ -114,12 +114,12 @@ const styles = StyleSheet.create({
 
     tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4 },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activeTab: { backgroundColor: '#0d9488' },
+    activeTab: { backgroundColor: '#4c1d95' },
     tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
     activeTabText: { color: '#fff' },
 
     monthHeader: { padding: 20, marginTop: 10 },
-    monthTitle: { fontSize: 14, fontWeight: '800', color: '#0d9488', textTransform: 'uppercase', marginBottom: 16 },
+    monthTitle: { fontSize: 14, fontWeight: '800', color: '#4c1d95', textTransform: 'uppercase', marginBottom: 16 },
     monthStats: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     monthStat: { flex: 1 },
     monthStatLabel: { fontSize: 12, color: '#64748b', fontWeight: '600' },

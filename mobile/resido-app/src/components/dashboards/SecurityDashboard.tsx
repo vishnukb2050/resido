@@ -68,7 +68,7 @@ export default function SecurityDashboard() {
 
                 {/* Security Grid Icons (Matching Image) */}
                 <View style={styles.gridContainer}>
-                    <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#0d9488" onPress={() => router.push('/gatepass-scanner')} />
+                    <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#4c1d95" onPress={() => router.push('/gatepass-scanner')} />
                     <DashboardIcon icon="person-add" label="Add Visitor" color="#fff" bg="#10b981" onPress={() => router.push('/add-visitor')} />
                     <DashboardIcon icon="id-card" label="Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
                     <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" />
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
 
     restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
-    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
+    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
     restrictedText: { flex: 1, fontSize: 11, color: '#94a3b8', fontWeight: '600', lineHeight: 16 },
 
     sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },

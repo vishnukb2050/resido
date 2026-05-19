@@ -47,7 +47,7 @@ export default function GatepassListScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={gatepasses}
@@ -73,7 +73,7 @@ export default function GatepassListScreen() {
 
                             <View style={styles.cardFooter}>
                                 <Text style={styles.purposeText}>{item.purpose}</Text>
-                                <Ionicons name="qr-code" size={20} color="#0d9488" />
+                                <Ionicons name="qr-code" size={20} color="#4c1d95" />
                             </View>
                         </TouchableOpacity>
                     )}
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20, paddingBottom: 100 },
     card: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
@@ -118,10 +118,10 @@ const styles = StyleSheet.create({
     detailItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     detailText: { fontSize: 13, color: '#94a3b8', fontWeight: '500' },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
-    purposeText: { fontSize: 12, color: '#0d9488', fontWeight: '700', textTransform: 'uppercase' },
+    purposeText: { fontSize: 12, color: '#4c1d95', fontWeight: '700', textTransform: 'uppercase' },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
     emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
     emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10, lineHeight: 22 },
-    createBtn: { backgroundColor: '#0d9488', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
+    createBtn: { backgroundColor: '#4c1d95', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
     createBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 }
 });

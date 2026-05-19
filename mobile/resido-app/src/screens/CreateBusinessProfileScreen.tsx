@@ -305,7 +305,7 @@ export default function CreateBusinessProfileScreen() {
                         <Image source={{ uri: formData.logo }} style={styles.logoImage} />
                     ) : (
                         <>
-                            <Ionicons name="camera" size={24} color="#0d9488" />
+                            <Ionicons name="camera" size={24} color="#4c1d95" />
                             <Text style={styles.logoText}>Add Logo</Text>
                             <Text style={styles.logoSubtext}>JPG, PNG up to 5MB</Text>
                         </>
@@ -487,7 +487,7 @@ export default function CreateBusinessProfileScreen() {
                 <View key={i} style={styles.serviceCard}>
                     <View style={styles.dragHandle}><MaterialCommunityIcons name="dots-vertical" size={20} color="#cbd5e1" /></View>
                     <View style={styles.serviceIconBox}>
-                        <FontAwesome5 name="tools" size={16} color="#0d9488" />
+                        <FontAwesome5 name="tools" size={16} color="#4c1d95" />
                     </View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={styles.serviceName}>{s.name}</Text>
@@ -523,7 +523,7 @@ export default function CreateBusinessProfileScreen() {
                     setShowServiceModal(true);
                 }}
             >
-                <Ionicons name="add-circle-outline" size={20} color="#0d9488" />
+                <Ionicons name="add-circle-outline" size={20} color="#4c1d95" />
                 <Text style={styles.addAnotherText}>Add Another Service</Text>
             </TouchableOpacity>
 
@@ -591,7 +591,7 @@ export default function CreateBusinessProfileScreen() {
                         <Switch 
                             value={currentService.isEmergency} 
                             onValueChange={v => setCurrentService({...currentService, isEmergency: v})}
-                            trackColor={{ false: '#e2e8f0', true: '#0d9488' }} 
+                            trackColor={{ false: '#e2e8f0', true: '#4c1d95' }} 
                         />
                     </View>
 
@@ -624,7 +624,7 @@ export default function CreateBusinessProfileScreen() {
                             value={mapSearchQuery}
                             onChangeText={handleMapPlaceSearch}
                         />
-                        {isMapSearching && <ActivityIndicator size="small" color="#0d9488" style={{ marginRight: 8 }} />}
+                        {isMapSearching && <ActivityIndicator size="small" color="#4c1d95" style={{ marginRight: 8 }} />}
                     </View>
                     <TouchableOpacity style={styles.locationBtn} onPress={getCurrentLocation}>
                         <Ionicons name="navigate" size={18} color="#fff" />
@@ -705,7 +705,7 @@ export default function CreateBusinessProfileScreen() {
                         <TouchableOpacity style={{ padding: 8 }} onPress={() => {
                             if (locResults.length > 0) addServiceArea(locResults[0]);
                         }}>
-                            <Ionicons name="add" size={24} color="#0d9488" />
+                            <Ionicons name="add" size={24} color="#4c1d95" />
                         </TouchableOpacity>
                     </View>
                     
@@ -737,20 +737,20 @@ export default function CreateBusinessProfileScreen() {
 
             {formData.serviceAreaType === 'PAN_INDIA' && (
                 <View style={styles.infoBox}>
-                    <Ionicons name="flag-outline" size={20} color="#0d9488" />
+                    <Ionicons name="flag-outline" size={20} color="#4c1d95" />
                     <Text style={styles.infoText}>Your profile will be visible to users across all of India.</Text>
                 </View>
             )}
 
             {formData.serviceAreaType === 'GLOBAL' && (
                 <View style={styles.infoBox}>
-                    <Ionicons name="globe-outline" size={20} color="#0d9488" />
+                    <Ionicons name="globe-outline" size={20} color="#4c1d95" />
                     <Text style={styles.infoText}>Your profile will be visible to users worldwide.</Text>
                 </View>
             )}
 
             <View style={styles.tipBox}>
-                <Ionicons name="information-circle-outline" size={20} color="#0d9488" />
+                <Ionicons name="information-circle-outline" size={20} color="#4c1d95" />
                 <Text style={styles.tipText}>Tip: Precise service areas help you get more relevant leads from your neighborhood.</Text>
             </View>
         </View>
@@ -761,7 +761,7 @@ export default function CreateBusinessProfileScreen() {
             <View style={styles.reviewHeader}>
                 <Text style={styles.sectionTitle}>Review Your Business Profile</Text>
                 <TouchableOpacity style={styles.editAllBtn}>
-                    <Feather name="edit-2" size={16} color="#0d9488" />
+                    <Feather name="edit-2" size={16} color="#4c1d95" />
                     <Text style={styles.editAllText}>Edit All</Text>
                 </TouchableOpacity>
             </View>
@@ -770,7 +770,7 @@ export default function CreateBusinessProfileScreen() {
             {/* Summary Cards */}
             <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
-                    <View style={styles.summaryIconBox}><Ionicons name="business" size={20} color="#0d9488" /></View>
+                    <View style={styles.summaryIconBox}><Ionicons name="business" size={20} color="#4c1d95" /></View>
                     <Text style={styles.summaryTitle}>Business Information</Text>
                     <TouchableOpacity><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                 </View>
@@ -783,13 +783,13 @@ export default function CreateBusinessProfileScreen() {
 
             <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
-                    <View style={styles.summaryIconBox}><FontAwesome5 name="tools" size={16} color="#0d9488" /></View>
+                    <View style={styles.summaryIconBox}><FontAwesome5 name="tools" size={16} color="#4c1d95" /></View>
                     <Text style={styles.summaryTitle}>Services (3)</Text>
                     <TouchableOpacity><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                 </View>
                 {['Plumbing', 'Pipe Installation', 'Leak Detection & Repair'].map(s => (
                     <View key={s} style={styles.sumServiceItem}>
-                        <Ionicons name="checkmark-circle" size={18} color="#0d9488" />
+                        <Ionicons name="checkmark-circle" size={18} color="#4c1d95" />
                         <View style={{ marginLeft: 8 }}>
                             <Text style={styles.sumServiceText}>{s}</Text>
                             <Text style={styles.sumServiceSub}>Fixing, Installation & Maintenance</Text>
@@ -799,7 +799,7 @@ export default function CreateBusinessProfileScreen() {
             </View>
 
             <View style={styles.publishBox}>
-                <View style={styles.publishIconBox}><Ionicons name="send" size={24} color="#0d9488" /></View>
+                <View style={styles.publishIconBox}><Ionicons name="send" size={24} color="#4c1d95" /></View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.publishTitle}>Ready to publish?</Text>
                     <Text style={styles.publishSub}>Once published, your business profile will be visible to the community and customers can contact you.</Text>
@@ -1054,14 +1054,14 @@ const styles = StyleSheet.create({
     stepperContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, paddingHorizontal: 40 },
     stepWrapper: { alignItems: 'center', width: 60 },
     stepCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
-    stepCircleActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
+    stepCircleActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
     stepCircleInactive: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' },
     stepNumber: { fontSize: 14, fontWeight: '800', color: '#94a3b8' },
     stepNumberActive: { color: '#fff' },
     stepLabel: { fontSize: 10, color: '#64748b', marginTop: 8, fontWeight: '700', textAlign: 'center' },
-    stepLabelActive: { color: '#0d9488' },
+    stepLabelActive: { color: '#4c1d95' },
     stepLine: { height: 2, flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: -10, marginTop: -20 },
-    stepLineActive: { backgroundColor: '#0d9488' },
+    stepLineActive: { backgroundColor: '#4c1d95' },
 
     stepContent: { padding: 20, backgroundColor: '#0f172a' },
     sectionTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 16 },
@@ -1091,7 +1091,7 @@ const styles = StyleSheet.create({
 
     searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 14, height: 48, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     searchInput: { flex: 1, marginLeft: 10, color: '#fff' },
-    browseAll: { fontSize: 13, color: '#0d9488', fontWeight: '700' },
+    browseAll: { fontSize: 13, color: '#4c1d95', fontWeight: '700' },
 
     serviceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 },
     serviceTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
@@ -1105,21 +1105,21 @@ const styles = StyleSheet.create({
     serviceDesc: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
     iconBtn: { padding: 8 },
 
-    addAnotherBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, backgroundColor: 'rgba(99, 102, 241, 0.05)', borderStyle: 'dashed', borderWidth: 1, borderColor: '#0d9488', marginTop: 8 },
-    addAnotherText: { fontSize: 15, fontWeight: '700', color: '#0d9488', marginLeft: 8 },
+    addAnotherBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, backgroundColor: 'rgba(99, 102, 241, 0.05)', borderStyle: 'dashed', borderWidth: 1, borderColor: '#4c1d95', marginTop: 8 },
+    addAnotherText: { fontSize: 15, fontWeight: '700', color: '#4c1d95', marginLeft: 8 },
 
     detailsSection: { marginTop: 32, padding: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     radioGroup: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     radioItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     radioCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#475569', alignItems: 'center', justifyContent: 'center' },
-    radioCircleActive: { borderColor: '#0d9488' },
-    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#0d9488' },
+    radioCircleActive: { borderColor: '#4c1d95' },
+    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#4c1d95' },
     radioLabel: { fontSize: 13, color: '#fff', fontWeight: '500' },
 
     emergencyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
 
     searchRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-    locationBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d9488', paddingHorizontal: 12, borderRadius: 12, height: 48 },
+    locationBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#4c1d95', paddingHorizontal: 12, borderRadius: 12, height: 48 },
     locationBtnText: { color: '#fff', fontSize: 13, fontWeight: '700', marginLeft: 6 },
 
     mapContainer: { height: 200, borderRadius: 16, overflow: 'hidden', marginBottom: 20 },
@@ -1135,18 +1135,18 @@ const styles = StyleSheet.create({
     locIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
     locTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
     locSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
-    editText: { color: '#0d9488', fontSize: 13, fontWeight: '700', marginRight: 4 },
+    editText: { color: '#4c1d95', fontSize: 13, fontWeight: '700', marginRight: 4 },
 
     serviceAreaCard: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     serviceAreaTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
     serviceAreaSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
 
     tipBox: { flexDirection: 'row', backgroundColor: 'rgba(99, 102, 241, 0.05)', padding: 16, borderRadius: 12, marginTop: 12, gap: 12 },
-    tipText: { flex: 1, fontSize: 13, color: '#0d9488', lineHeight: 18 },
+    tipText: { flex: 1, fontSize: 13, color: '#4c1d95', lineHeight: 18 },
 
     reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     editAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    editAllText: { color: '#0d9488', fontSize: 14, fontWeight: '700' },
+    editAllText: { color: '#4c1d95', fontSize: 14, fontWeight: '700' },
 
     summaryCard: { padding: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 20 },
     summaryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
     sumServiceText: { fontSize: 14, fontWeight: '700', color: '#fff' },
     sumServiceSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
 
-    publishBox: { padding: 20, backgroundColor: 'rgba(99, 102, 241, 0.05)', borderRadius: 16, borderWidth: 1, borderColor: '#0d9488', flexDirection: 'row', alignItems: 'center' },
+    publishBox: { padding: 20, backgroundColor: 'rgba(99, 102, 241, 0.05)', borderRadius: 16, borderWidth: 1, borderColor: '#4c1d95', flexDirection: 'row', alignItems: 'center' },
     publishIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
     publishTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
     publishSub: { fontSize: 13, color: '#94a3b8', marginTop: 4, lineHeight: 18 },
@@ -1168,7 +1168,7 @@ const styles = StyleSheet.create({
     footerInner: { flexDirection: 'row', gap: 12 },
     backBtnFooter: { flex: 0.4, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    continueBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: '#0d9488', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+    continueBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: '#4c1d95', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     continueBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
     safetyInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
     safetyText: { fontSize: 11, color: '#64748b' },
@@ -1183,12 +1183,12 @@ const styles = StyleSheet.create({
 
     reachTabs: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4 },
     reachTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-    reachTabActive: { backgroundColor: '#0d9488' },
+    reachTabActive: { backgroundColor: '#4c1d95' },
     reachTabText: { fontSize: 11, fontWeight: '700', color: '#94a3b8' },
     reachTabTextActive: { color: '#fff' },
 
     chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-    chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d9488', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
+    chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#4c1d95', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
     chipText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
     mapViewContainer: { height: 400, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 20, position: 'relative', zIndex: 1 },
@@ -1199,12 +1199,12 @@ const styles = StyleSheet.create({
     mapGpsBtn: { position: 'absolute', right: 15, bottom: 20, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
     dropdown: { position: 'absolute', top: 55, left: 0, right: 0, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, maxHeight: 200, zIndex: 10001 },
     infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(99, 102, 241, 0.05)', padding: 16, borderRadius: 12, marginTop: 16, gap: 12 },
-    infoText: { flex: 1, fontSize: 13, color: '#0d9488' },
+    infoText: { flex: 1, fontSize: 13, color: '#4c1d95' },
     pickerValue: { fontSize: 15, color: '#fff', fontWeight: '500' },
-    radiusValueText: { fontSize: 16, fontWeight: '800', color: '#0d9488' },
+    radiusValueText: { fontSize: 16, fontWeight: '800', color: '#4c1d95' },
     sliderContainer: { flexDirection: 'row', gap: 10, marginTop: 12 },
     radiusChip: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    radiusChipActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
+    radiusChipActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
     radiusChipText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
     radiusChipTextActive: { color: '#fff' },
 });

@@ -36,10 +36,10 @@ const styles = StyleSheet.create({
     wsBubble: { alignItems: 'center', width: 85, opacity: 0.5 },
     wsBubbleActive: { opacity: 1 },
     wsBubbleImgBox: { width: 45, height: 45, borderRadius: 22.5, padding: 2, backgroundColor: '#1e293b', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#0d9488', borderWidth: 3 },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#4c1d95', borderWidth: 3 },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 37.5 },
     wsBubbleLabel: { color: '#94a3b8', fontSize: 10, fontWeight: '700', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#0d9488', fontSize: 12, fontWeight: '900' },
+    wsBubbleLabelActive: { color: '#4c1d95', fontSize: 12, fontWeight: '900' },
 
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
@@ -116,9 +116,7 @@ export default function DefaultDashboard() {
     const { width: windowWidth } = Dimensions.get('window');
     const workspaceScrollRef = React.useRef<ScrollView>(null);
     const pageScrollRef = React.useRef<ScrollView>(null);
-
     React.useEffect(() => {
-        // Fetch updated workspaces on mount
         const fetchWorkspaces = async () => {
             try {
                 const res = await authApi.getWorkspaces();
@@ -132,6 +130,28 @@ export default function DefaultDashboard() {
             fetchWorkspaces();
         }
     }, [user]);
+
+    const handlePageScroll = (offsetX: number) => {
+        const index = Math.round(offsetX / windowWidth);
+        if (index === 0) {
+            setActiveWorkspace(null as any, '');
+            workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
+        } else if (index > 0 && index <= workspaces.length) {
+            setActiveWorkspace(workspaces[index - 1], '');
+            workspaceScrollRef.current?.scrollTo({ x: index * 100, animated: true });
+        }
+    };
+
+    const handleWorkspaceScroll = (offsetX: number) => {
+        const index = Math.round(offsetX / 100);
+        if (index === 0) {
+            setActiveWorkspace(null as any, '');
+            pageScrollRef.current?.scrollTo({ x: 0, animated: true });
+        } else if (index > 0 && index <= workspaces.length) {
+            setActiveWorkspace(workspaces[index - 1], '');
+            pageScrollRef.current?.scrollTo({ x: index * windowWidth, animated: true });
+        }
+    };
 
     const isGuest = !user;
     
@@ -206,16 +226,8 @@ export default function DefaultDashboard() {
                                 contentContainerStyle={styles.psWorkspaceScroll}
                                 snapToInterval={100}
                                 decelerationRate="fast"
-                                onMomentumScrollEnd={e => {
-                                    const index = Math.round(e.nativeEvent.contentOffset.x / 100);
-                                    if (index === 0) {
-                                        setActiveWorkspace(null as any, '');
-                                        pageScrollRef.current?.scrollTo({ x: 0, animated: true });
-                                    } else if (index > 0 && index <= workspaces.length) {
-                                        setActiveWorkspace(workspaces[index - 1], '');
-                                        pageScrollRef.current?.scrollTo({ x: index * windowWidth, animated: true });
-                                    }
-                                }}
+                                onMomentumScrollEnd={e => handleWorkspaceScroll(e.nativeEvent.contentOffset.x)}
+                                onScrollEndDrag={e => handleWorkspaceScroll(e.nativeEvent.contentOffset.x)}
                             >
                                 <WorkspaceBubble 
                                     label="My Space" 
@@ -266,16 +278,8 @@ export default function DefaultDashboard() {
                             pagingEnabled 
                             showsHorizontalScrollIndicator={false}
                             style={{ width: windowWidth }}
-                            onMomentumScrollEnd={e => {
-                                const index = Math.round(e.nativeEvent.contentOffset.x / windowWidth);
-                                if (index === 0) {
-                                    setActiveWorkspace(null as any, '');
-                                    workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
-                                } else if (index > 0 && index <= workspaces.length) {
-                                    setActiveWorkspace(workspaces[index - 1], '');
-                                    workspaceScrollRef.current?.scrollTo({ x: index * 100, animated: true });
-                                }
-                            }}
+                            onMomentumScrollEnd={e => handlePageScroll(e.nativeEvent.contentOffset.x)}
+                            onScrollEndDrag={e => handlePageScroll(e.nativeEvent.contentOffset.x)}
                         >
                             {/* Page 1: My Space View (Flares + Quick Access) */}
                             <View style={{ width: windowWidth, paddingHorizontal: 20 }}>

@@ -114,7 +114,7 @@ export default function JobProfileScreen() {
                                     }}
                                 >
                                     <View style={styles.sugIconBox}>
-                                        <MaterialCommunityIcons name={cat.icon as any} size={20} color="#0d9488" />
+                                        <MaterialCommunityIcons name={cat.icon as any} size={20} color="#4c1d95" />
                                     </View>
                                     <Text style={styles.suggestionText}>{cat.name}</Text>
                                 </TouchableOpacity>
@@ -205,14 +205,14 @@ export default function JobProfileScreen() {
                     <Text style={styles.mediaHelper}>Add photos, videos of your work, tools, office, etc.</Text>
                     <View style={styles.row}>
                         <TouchableOpacity style={styles.mediaBtn}>
-                            <Ionicons name="image-outline" size={24} color="#0d9488" />
+                            <Ionicons name="image-outline" size={24} color="#4c1d95" />
                             <View style={styles.mediaTextContent}>
                                 <Text style={styles.mediaBtnTitle}>Add Photos</Text>
                                 <Text style={styles.mediaBtnSub}>JPG, PNG (Max 10 MB)</Text>
                             </View>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.mediaBtn}>
-                            <Ionicons name="videocam-outline" size={24} color="#0d9488" />
+                            <Ionicons name="videocam-outline" size={24} color="#4c1d95" />
                             <View style={styles.mediaTextContent}>
                                 <Text style={styles.mediaBtnTitle}>Add Videos</Text>
                                 <Text style={styles.mediaBtnSub}>MP4, MOV (Max 50 MB)</Text>
@@ -265,7 +265,7 @@ export default function JobProfileScreen() {
                     <View style={styles.toggleRow}>
                         <View style={styles.toggleInfo}>
                             <View style={styles.iconCircle}>
-                                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0d9488" />
+                                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#4c1d95" />
                             </View>
                             <View style={{ marginLeft: 12 }}>
                                 <Text style={styles.toggleLabel}>Chat Option</Text>
@@ -275,7 +275,7 @@ export default function JobProfileScreen() {
                         <Switch 
                             value={formData.allowChat}
                             onValueChange={(v) => updateForm('allowChat', v)}
-                            trackColor={{ false: '#e2e8f0', true: '#0d9488' }}
+                            trackColor={{ false: '#e2e8f0', true: '#4c1d95' }}
                             thumbColor="#fff"
                         />
                     </View>
@@ -335,7 +335,7 @@ function DetailItem({ icon, title, sub }: any) {
     return (
         <TouchableOpacity style={styles.detailItem}>
             <View style={styles.detailIconBox}>
-                <Ionicons name={icon} size={20} color="#0d9488" />
+                <Ionicons name={icon} size={20} color="#4c1d95" />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.detailTitle}>{title}</Text>
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 15 },
     backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-    previewBtn: { fontSize: 15, color: '#0d9488', fontWeight: '800' },
+    previewBtn: { fontSize: 15, color: '#4c1d95', fontWeight: '800' },
     content: { flex: 1 },
     section: { padding: 20, borderBottomWidth: 8, borderBottomColor: '#f8fafc' },
     sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
@@ -372,25 +372,25 @@ const styles = StyleSheet.create({
     sugIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#f5f7ff', alignItems: 'center', justifyContent: 'center' },
     suggestionText: { fontSize: 14, color: '#1e293b', fontWeight: '700' },
     viewAllCat: { marginTop: 5 },
-    viewAllCatText: { fontSize: 13, color: '#0d9488', fontWeight: '800' },
+    viewAllCatText: { fontSize: 13, color: '#4c1d95', fontWeight: '800' },
     textAreaContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12, minHeight: 120 },
     textArea: { fontSize: 15, color: '#1e293b', textAlignVertical: 'top' },
     charCount: { alignSelf: 'flex-end', fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: '600' },
     radioRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
     radioItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', minWidth: (width - 60) / 4 },
-    radioActive: { borderColor: '#0d9488', backgroundColor: '#f5f3ff' },
+    radioActive: { borderColor: '#4c1d95', backgroundColor: '#f5f3ff' },
     radioCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#cbd5e1', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-    radioCircleActive: { borderColor: '#0d9488' },
-    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#0d9488' },
+    radioCircleActive: { borderColor: '#4c1d95' },
+    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#4c1d95' },
     radioLabel: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    radioLabelActive: { color: '#0d9488' },
+    radioLabelActive: { color: '#4c1d95' },
     fieldFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
     helperText: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
-    addMoreText: { fontSize: 12, color: '#0d9488', fontWeight: '800' },
+    addMoreText: { fontSize: 12, color: '#4c1d95', fontWeight: '800' },
     mediaHelper: { fontSize: 12, color: '#64748b', marginBottom: 15, fontWeight: '500' },
     mediaBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 15, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: '#cbd5e1' },
     mediaTextContent: { marginLeft: 10 },
-    mediaBtnTitle: { fontSize: 13, fontWeight: '800', color: '#0d9488' },
+    mediaBtnTitle: { fontSize: 13, fontWeight: '800', color: '#4c1d95' },
     mediaBtnSub: { fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
     mediaStatus: { fontSize: 13, fontWeight: '800', color: '#1e293b', marginTop: 20, marginBottom: 5 },
     noMedia: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     phoneField: { flex: 1, padding: 14, color: '#1e293b', fontSize: 15 },
     checkboxRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 20 },
     checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: '#cbd5e1', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-    checkboxActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
+    checkboxActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
     checkboxLabel: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
     checkboxSub: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
     toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: 15, borderRadius: 16, marginTop: 25 },
@@ -414,9 +414,9 @@ const styles = StyleSheet.create({
     detailSub: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
     footerBtns: { flexDirection: 'row', padding: 20, gap: 15 },
     draftBtn: { flex: 1, backgroundColor: '#f5f3ff', padding: 16, borderRadius: 14, alignItems: 'center' },
-    draftBtnText: { color: '#0d9488', fontWeight: '800', fontSize: 15 },
-    publishBtn: { flex: 1.5, backgroundColor: '#0d9488', padding: 16, borderRadius: 14, alignItems: 'center', shadowColor: '#0d9488', shadowOpacity: 0.25, shadowRadius: 10, elevation: 5 },
+    draftBtnText: { color: '#4c1d95', fontWeight: '800', fontSize: 15 },
+    publishBtn: { flex: 1.5, backgroundColor: '#4c1d95', padding: 16, borderRadius: 14, alignItems: 'center', shadowColor: '#4c1d95', shadowOpacity: 0.25, shadowRadius: 10, elevation: 5 },
     publishBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
     termsText: { textAlign: 'center', fontSize: 11, color: '#94a3b8', paddingHorizontal: 40, lineHeight: 16 },
-    link: { color: '#0d9488', fontWeight: '700' },
+    link: { color: '#4c1d95', fontWeight: '700' },
 });

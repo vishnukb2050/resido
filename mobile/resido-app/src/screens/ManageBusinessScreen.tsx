@@ -40,7 +40,7 @@ export default function ManageBusinessScreen() {
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-                <MaterialCommunityIcons name="storefront-outline" size={80} color="#0d9488" />
+                <MaterialCommunityIcons name="storefront-outline" size={80} color="#4c1d95" />
             </View>
             <Text style={styles.emptyTitle}>Grow Your Business</Text>
             <Text style={styles.emptySubtitle}>
@@ -66,7 +66,7 @@ export default function ManageBusinessScreen() {
     const BenefitItem = ({ icon, text }: any) => (
         <View style={styles.benefitItem}>
             <View style={styles.benefitIcon}>
-                <Ionicons name={icon} size={16} color="#0d9488" />
+                <Ionicons name={icon} size={16} color="#4c1d95" />
             </View>
             <Text style={styles.benefitText}>{text}</Text>
         </View>
@@ -75,7 +75,7 @@ export default function ManageBusinessScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0d9488" />
+                <ActivityIndicator size="large" color="#4c1d95" />
             </View>
         );
     }
@@ -92,13 +92,13 @@ export default function ManageBusinessScreen() {
                     style={styles.addBtn}
                     onPress={() => router.push('/business-profile')}
                 >
-                    <Ionicons name="add" size={24} color="#0d9488" />
+                    <Ionicons name="add" size={24} color="#4c1d95" />
                 </TouchableOpacity>
             </View>
 
             <ScrollView 
                 contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0d9488" />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4c1d95" />}
             >
                 {profiles.length === 0 ? renderEmptyState() : (
                     <>
@@ -115,7 +115,7 @@ export default function ManageBusinessScreen() {
                                             <Image source={{ uri: profile.logo }} style={styles.logo} />
                                         ) : (
                                             <View style={styles.logoPlaceholder}>
-                                                <Ionicons name="business" size={24} color="#0d9488" />
+                                                <Ionicons name="business" size={24} color="#4c1d95" />
                                             </View>
                                         )}
                                     </View>
@@ -131,7 +131,7 @@ export default function ManageBusinessScreen() {
                                         style={styles.editBtn}
                                         onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id } })}
                                     >
-                                        <Feather name="edit-3" size={20} color="#0d9488" />
+                                        <Feather name="edit-3" size={20} color="#4c1d95" />
                                     </TouchableOpacity>
                                 </View>
                                 
@@ -159,7 +159,7 @@ export default function ManageBusinessScreen() {
                             onPress={() => router.push('/business-profile')}
                         >
                             <View style={styles.addIconBox}>
-                                <Ionicons name="add" size={24} color="#0d9488" />
+                                <Ionicons name="add" size={24} color="#4c1d95" />
                             </View>
                             <Text style={styles.addText}>Add Another Business</Text>
                         </TouchableOpacity>
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     benefitItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 16 },
     benefitIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
     benefitText: { fontSize: 15, color: '#cbd5e1', fontWeight: '600' },
-    createBtn: { width: '100%', height: 60, borderRadius: 20, backgroundColor: '#0d9488', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    createBtn: { width: '100%', height: 60, borderRadius: 20, backgroundColor: '#4c1d95', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     createBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
 
     // List State
@@ -215,5 +215,5 @@ const styles = StyleSheet.create({
 
     addAnotherCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(99, 102, 241, 0.3)', marginTop: 8 },
     addIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    addText: { fontSize: 16, fontWeight: '700', color: '#0d9488' }
+    addText: { fontSize: 16, fontWeight: '700', color: '#4c1d95' }
 });

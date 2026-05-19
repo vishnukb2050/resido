@@ -120,7 +120,7 @@ export default function FlarePlayerScreen() {
     if (loading) {
         return (
             <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#0d9488" />
+                <ActivityIndicator size="large" color="#4c1d95" />
             </View>
         );
     }
@@ -424,7 +424,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                     })}
                 >
                     <Text style={styles.username}>@{flare.authorName}</Text>
-                    {flare.isVerified && <MaterialCommunityIcons name="check-decagram" size={18} color="#0d9488" style={styles.verified} />}
+                    {flare.isVerified && <MaterialCommunityIcons name="check-decagram" size={18} color="#4c1d95" style={styles.verified} />}
                 </TouchableOpacity>
                 
                 <Text style={styles.locationText}>{flare.location || 'Greenwood Residency'}</Text>
@@ -458,7 +458,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                                             <Text style={styles.resultPercentage}>{percentage}%</Text>
                                         </View>
                                         <View style={styles.progressBg}>
-                                            <View style={[styles.progressFill, { width: `${percentage}%` }, isSelected && { backgroundColor: '#0d9488' }]} />
+                                            <View style={[styles.progressFill, { width: `${percentage}%` }, isSelected && { backgroundColor: '#4c1d95' }]} />
                                         </View>
                                     </View>
                                 );
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
     sideActions: { position: 'absolute', right: 15, bottom: 100, alignItems: 'center', gap: 20, zIndex: 10 },
     avatarContainer: { marginBottom: 10, alignItems: 'center' },
     authorAvatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
-    plusBtn: { position: 'absolute', bottom: -5, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0d9488', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#000' },
+    plusBtn: { position: 'absolute', bottom: -5, width: 20, height: 20, borderRadius: 10, backgroundColor: '#4c1d95', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#000' },
     
     actionIcon: { alignItems: 'center' },
     actionLabel: { color: '#fff', fontSize: 13, fontWeight: '700', marginTop: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     musicText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
     progressBarContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 20 },
-    progressBar: { height: '100%', backgroundColor: '#0d9488' },
+    progressBar: { height: '100%', backgroundColor: '#4c1d95' },
 
     // Poll Styles
     pollContainer: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 15, padding: 15, marginTop: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },

@@ -12,7 +12,7 @@ import { uploadToR2 } from '../services/storage';
 const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
-    { id: 'general', name: 'General', icon: 'chatbubbles-outline', color: '#0d9488' },
+    { id: 'general', name: 'General', icon: 'chatbubbles-outline', color: '#4c1d95' },
     { id: 'news', name: 'News', icon: 'newspaper-outline', color: '#f59e0b' },
     { id: 'event', name: 'Event', icon: 'calendar-outline', color: '#10b981' },
     { id: 'marketplace', name: 'Market', icon: 'cart-outline', color: '#8b5cf6' },
@@ -161,7 +161,7 @@ export default function CreateThreadScreen() {
                                 <MaterialCommunityIcons 
                                     name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
                                     size={18} 
-                                    color={selectedVisibilities.includes(opt.id) ? "#0d9488" : "#cbd5e1"} 
+                                    color={selectedVisibilities.includes(opt.id) ? "#4c1d95" : "#cbd5e1"} 
                                 />
                                 <Text style={[styles.visibilityPillText, selectedVisibilities.includes(opt.id) && styles.visibilityPillTextActive]}>
                                     {opt.name}
@@ -265,7 +265,7 @@ export default function CreateThreadScreen() {
                                 style={styles.addOptionBtn}
                                 onPress={() => setPollOptions([...pollOptions, ''])}
                             >
-                                <Ionicons name="add" size={18} color="#0d9488" />
+                                <Ionicons name="add" size={18} color="#4c1d95" />
                                 <Text style={styles.addOptionText}>Add option</Text>
                             </TouchableOpacity>
                         )}
@@ -309,7 +309,7 @@ export default function CreateThreadScreen() {
 
                 <View style={styles.actionToolbar}>
                     <TouchableOpacity style={styles.toolbarItem} onPress={() => pickMedia('image')}>
-                        <Ionicons name="image-outline" size={24} color="#0d9488" />
+                        <Ionicons name="image-outline" size={24} color="#4c1d95" />
                         <Text style={styles.toolbarLabel}>Photo</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.toolbarItem} onPress={() => pickMedia('video')}>
@@ -317,7 +317,7 @@ export default function CreateThreadScreen() {
                         <Text style={styles.toolbarLabel}>Video</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.toolbarItem} onPress={() => setShowPollBuilder(true)}>
-                        <Ionicons name="stats-chart-outline" size={24} color="#0d9488" />
+                        <Ionicons name="stats-chart-outline" size={24} color="#4c1d95" />
                         <Text style={styles.toolbarLabel}>Poll</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.toolbarItem}>
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 45, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     closeBtn: { padding: 4 },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
-    publishBtn: { backgroundColor: '#0d9488', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
+    publishBtn: { backgroundColor: '#4c1d95', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
     publishBtnDisabled: { opacity: 0.5 },
     publishText: { color: '#fff', fontWeight: '800', fontSize: 14 },
     
@@ -399,14 +399,14 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: '#f1f5f9' 
     },
-    visibilityPillActive: { backgroundColor: '#f5f3ff', borderColor: '#0d9488' },
+    visibilityPillActive: { backgroundColor: '#f5f3ff', borderColor: '#4c1d95' },
     visibilityPillText: { marginLeft: 6, fontSize: 13, fontWeight: '700', color: '#64748b' },
-    visibilityPillTextActive: { color: '#0d9488' },
+    visibilityPillTextActive: { color: '#4c1d95' },
     
     communityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     communityIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
     communityName: { flex: 1, marginLeft: 14, fontSize: 15, fontWeight: '700', color: '#1e293b' },
-    doneBtnText: { color: '#0d9488', fontSize: 16, fontWeight: '800' },
+    doneBtnText: { color: '#4c1d95', fontSize: 16, fontWeight: '800' },
     emptyText: { textAlign: 'center', color: '#94a3b8', marginVertical: 30 },
 
     pollBuilder: { backgroundColor: '#f8fafc', marginHorizontal: 20, padding: 20, borderRadius: 20, marginBottom: 30, borderWidth: 1, borderColor: '#e2e8f0' },
@@ -417,15 +417,15 @@ const styles = StyleSheet.create({
     pollOptionInput: { backgroundColor: '#fff', borderRadius: 12, padding: 15, fontSize: 14, color: '#1e293b', borderWidth: 1, borderColor: '#e2e8f0' },
     charCount: { textAlign: 'right', fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: '600' },
     optionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    addOptionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', paddingVertical: 12, borderRadius: 12, marginBottom: 20, borderStyle: 'dashed', borderWidth: 1, borderColor: '#0d9488' },
-    addOptionText: { color: '#0d9488', fontSize: 14, fontWeight: '800', marginLeft: 8 },
+    addOptionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', paddingVertical: 12, borderRadius: 12, marginBottom: 20, borderStyle: 'dashed', borderWidth: 1, borderColor: '#4c1d95' },
+    addOptionText: { color: '#4c1d95', fontSize: 14, fontWeight: '800', marginLeft: 8 },
     pollNote: { fontSize: 12, color: '#94a3b8', textAlign: 'center', lineHeight: 18, marginTop: 10 },
     
     durationPicker: { backgroundColor: '#fff', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#e2e8f0' },
     durationText: { fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 10 },
     durationOptions: { flexDirection: 'row', gap: 10 },
     durationPill: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
-    durationPillActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
+    durationPillActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
     durationPillText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     durationPillTextActive: { color: '#fff' },
 });

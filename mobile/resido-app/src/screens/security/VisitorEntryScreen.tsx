@@ -97,6 +97,6 @@ const styles = s({
     photoBtn: { backgroundColor: '#1e1e2e', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', height: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
     photoBtnText: { color: '#64748b', fontWeight: '600' },
     photoPreview: { width: '100%', height: '100%', borderRadius: 12 },
-    submitBtn: { backgroundColor: '#0d9488', borderRadius: 12, padding: 16, alignItems: 'center' },
+    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 12, padding: 16, alignItems: 'center' },
     submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

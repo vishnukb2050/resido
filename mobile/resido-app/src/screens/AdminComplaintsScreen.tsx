@@ -96,7 +96,7 @@ export default function AdminComplaintsScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={complaints}
@@ -155,7 +155,7 @@ export default function AdminComplaintsScreen() {
                                         <Text style={styles.staffName}>{s.name}</Text>
                                         <Text style={styles.staffRole}>{s.role}</Text>
                                     </View>
-                                    <Ionicons name="chevron-forward" size={20} color="#0d9488" />
+                                    <Ionicons name="chevron-forward" size={20} color="#4c1d95" />
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
@@ -203,14 +203,14 @@ const styles = StyleSheet.create({
     listContent: { padding: 20 },
     card: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    categoryText: { fontSize: 11, fontWeight: '800', color: '#0d9488', textTransform: 'uppercase' },
+    categoryText: { fontSize: 11, fontWeight: '800', color: '#4c1d95', textTransform: 'uppercase' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 10, fontWeight: '900' },
     description: { fontSize: 15, color: '#e2e8f0', fontWeight: '500', lineHeight: 22, marginBottom: 15 },
     residentInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 15 },
     residentText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
     actionRow: { flexDirection: 'row', gap: 10, paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
-    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#0d9488', paddingVertical: 12, borderRadius: 12 },
+    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#4c1d95', paddingVertical: 12, borderRadius: 12 },
     actionBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 },
     modalContent: { backgroundColor: '#1e293b', borderRadius: 28, padding: 24 },

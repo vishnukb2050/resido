@@ -1,10 +1,10 @@
 export const getThemeColors = (tenantId?: string) => {
     if (!tenantId) {
-        // My Space - Black & Emerald Teal Theme
+        // My Space - Charcoal Black & Emerald Teal Theme
         return {
-            primary: '#0d9488', // Deep Emerald Teal
-            background: '#000000', // Pure Black
-            surface: '#121212', // Very Dark Gray
+            primary: '#4c1d95', // Deep Emerald Teal
+            background: '#242527', // Premium Muted Charcoal Black
+            surface: '#1a1a1e', // Sleek dark surface
             accent: '#2dd4bf' // Bright Teal
         };
     }
@@ -24,7 +24,7 @@ export const getThemeColors = (tenantId?: string) => {
         { primary: '#ef4444', background: '#450a0a', surface: '#7f1d1d', accent: '#f87171' }, // Red/Crimson
         { primary: '#06b6d4', background: '#083344', surface: '#164e63', accent: '#22d3ee' }, // Cyan/Teal
         { primary: '#84cc16', background: '#1a2e05', surface: '#365314', accent: '#a3e635' }, // Lime/Olive
-        { primary: '#0d9488', background: '#1e1b4b', surface: '#312e81', accent: '#818cf8' }, // Indigo
+        { primary: '#4c1d95', background: '#1e1b4b', surface: '#312e81', accent: '#818cf8' }, // Indigo
         { primary: '#d946ef', background: '#4a044e', surface: '#701a75', accent: '#f0abfc' }, // Fuchsia
         { primary: '#0ea5e9', background: '#0c4a6e', surface: '#075985', accent: '#38bdf8' }, // Sky
     ];

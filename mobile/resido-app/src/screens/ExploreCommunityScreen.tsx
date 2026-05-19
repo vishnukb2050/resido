@@ -74,7 +74,7 @@ export default function ExploreCommunityScreen() {
                             icon="megaphone" 
                             title="Notices" 
                             desc="Important updates and announcements from management and committees." 
-                            color="#0d9488"
+                            color="#4c1d95"
                         />
                         <FeatureItem 
                             icon="id-card" 
@@ -98,7 +98,7 @@ export default function ExploreCommunityScreen() {
                             icon="people" 
                             title="Contacts" 
                             desc="Quick access to important contacts in your community." 
-                            color="#0d9488"
+                            color="#4c1d95"
                         />
                         <FeatureItem 
                             icon="calendar" 
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     
     whyJoinGrid: { flexDirection: 'row', gap: 12 },
     whyJoinCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    whyIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    whyIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     whyTitle: { fontSize: 15, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 8 },
     whyDesc: { fontSize: 11, color: '#94a3b8', textAlign: 'center', lineHeight: 16 },
 
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     livingLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '700', textAlign: 'center' },
 
     footer: { padding: 24, marginTop: 40, alignItems: 'center' },
-    createBtn: { width: '100%', height: 64, borderRadius: 20, backgroundColor: '#0d9488', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    createBtn: { width: '100%', height: 64, borderRadius: 20, backgroundColor: '#4c1d95', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     createBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
     footerSub: { fontSize: 12, color: '#64748b', marginTop: 16, fontWeight: '600' },
     lockRow: { flexDirection: 'row', alignItems: 'center', marginTop: 24, gap: 6 },

@@ -44,7 +44,7 @@ export default function CleaningLogScreen() {
                     <Switch
                         value={!!completed[area]}
                         onValueChange={(v) => setCompleted((p) => ({ ...p, [area]: v }))}
-                        trackColor={{ true: '#0d9488' }}
+                        trackColor={{ true: '#4c1d95' }}
                     />
                 </View>
             ))}
@@ -75,6 +75,6 @@ const styles = StyleSheet.create({
     photoBtn: { backgroundColor: '#1e1e2e', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', height: 52, alignItems: 'center', justifyContent: 'center', marginVertical: 16 },
     photoBtnText: { color: '#64748b', fontWeight: '600' },
     thumb: { width: 80, height: 80, borderRadius: 8 },
-    btn: { backgroundColor: '#0d9488', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
+    btn: { backgroundColor: '#4c1d95', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
     btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

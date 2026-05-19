@@ -130,7 +130,7 @@ export default function GalleryScreen() {
 
             {loading && folders.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: 'center' }}>
-                    <ActivityIndicator size="large" color="#0d9488" />
+                    <ActivityIndicator size="large" color="#4c1d95" />
                 </View>
             ) : !selectedFolder ? (
                 <FlatList
@@ -141,7 +141,7 @@ export default function GalleryScreen() {
                     renderItem={({ item }) => (
                         <TouchableOpacity style={styles.folderCard} onPress={() => openFolder(item)}>
                             <View style={styles.folderThumb}>
-                                <Ionicons name="folder" size={60} color="#0d9488" />
+                                <Ionicons name="folder" size={60} color="#4c1d95" />
                                 <View style={styles.itemBadge}>
                                     <Text style={styles.itemCount}>{item._count?.items || 0}</Text>
                                 </View>
@@ -167,7 +167,7 @@ export default function GalleryScreen() {
                             )}
                         </View>
                     )}
-                    ListEmptyComponent={loading ? <ActivityIndicator color="#0d9488" /> : <Text style={styles.empty}>No media in this folder</Text>}
+                    ListEmptyComponent={loading ? <ActivityIndicator color="#4c1d95" /> : <Text style={styles.empty}>No media in this folder</Text>}
                 />
             )}
 
@@ -203,13 +203,13 @@ const styles = StyleSheet.create({
     header: { padding: 20, paddingTop: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     backBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-    subTitle: { fontSize: 12, color: '#0d9488', fontWeight: '800', marginTop: 2 },
-    actionBtn: { backgroundColor: '#0d9488', width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+    subTitle: { fontSize: 12, color: '#4c1d95', fontWeight: '800', marginTop: 2 },
+    actionBtn: { backgroundColor: '#4c1d95', width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     list: { padding: 15, paddingBottom: 110 },
     folderCard: { width: (width - 45) / 2, margin: 7.5, marginBottom: 20 },
     folderThumb: { width: '100%', height: 160, backgroundColor: '#fff', borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },
     itemBadge: { position: 'absolute', bottom: 15, right: 15, backgroundColor: '#f5f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-    itemCount: { fontSize: 12, fontWeight: '900', color: '#0d9488' },
+    itemCount: { fontSize: 12, fontWeight: '900', color: '#4c1d95' },
     folderTitle: { marginTop: 12, fontSize: 15, fontWeight: '800', color: '#1e293b', textAlign: 'center' },
     photoCard: { width: (width - 45) / 2, margin: 7.5, backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9' },
     image: { width: '100%', height: 160 },
@@ -221,6 +221,6 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 18, fontSize: 16, color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25 },
     modalBtns: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 15 },
     cancelBtnText: { color: '#64748b', fontWeight: '800', fontSize: 15 },
-    confirmBtn: { backgroundColor: '#0d9488', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 14 },
+    confirmBtn: { backgroundColor: '#4c1d95', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 14 },
     confirmBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

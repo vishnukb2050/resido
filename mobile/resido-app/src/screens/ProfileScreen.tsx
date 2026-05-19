@@ -36,7 +36,7 @@ export default function ProfileScreen() {
                             style={styles.mainAvatar} 
                         />
                         <View style={styles.verifiedBadge}>
-                            <Ionicons name="checkmark-circle" size={20} color="#0d9488" />
+                            <Ionicons name="checkmark-circle" size={20} color="#4c1d95" />
                         </View>
                     </View>
                     
@@ -66,7 +66,7 @@ export default function ProfileScreen() {
 
                 <View style={styles.infoSection}>
                     <SectionHeader title="Contact Details" icon="call-outline" />
-                    <ContactCard icon="mail" label="Email" value={user?.email || 'Not provided'} color="#0d9488" />
+                    <ContactCard icon="mail" label="Email" value={user?.email || 'Not provided'} color="#4c1d95" />
                     <ContactCard icon="call" label="Phone" value={user?.phone || 'Not provided'} color="#10b981" />
                     <ContactCard icon="location" label="Home" value={user?.location || 'Not provided'} color="#f59e0b" />
                 </View>
@@ -76,7 +76,7 @@ export default function ProfileScreen() {
                     <View style={styles.socialGrid}>
                         <SocialBubble icon="logo-instagram" color="#E1306C" label="Instagram" isPresent={!!user?.instagram} />
                         <SocialBubble icon="logo-linkedin" color="#0077B5" label="LinkedIn" isPresent={!!user?.linkedin} />
-                        <SocialBubble icon="globe-outline" color="#0d9488" label="Website" isPresent={!!user?.website} />
+                        <SocialBubble icon="globe-outline" color="#4c1d95" label="Website" isPresent={!!user?.website} />
                     </View>
                 </View>
             </ScrollView>
@@ -98,7 +98,7 @@ function MetricItem({ value, label }: any) {
 function SectionHeader({ title, icon }: any) {
     return (
         <View style={styles.sectionHeader}>
-            <Ionicons name={icon} size={20} color="#0d9488" />
+            <Ionicons name={icon} size={20} color="#4c1d95" />
             <Text style={styles.sectionTitle}>{title}</Text>
         </View>
     );
@@ -131,20 +131,20 @@ function SocialBubble({ icon, color, label, isPresent }: any) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
-    heroHeader: { height: 240, backgroundColor: '#0d9488', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60 },
+    heroHeader: { height: 240, backgroundColor: '#4c1d95', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60 },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
     settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
     
     identityCard: { backgroundColor: '#1e293b', marginHorizontal: 20, marginTop: -100, borderRadius: 32, padding: 25, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
     avatarContainer: { width: 110, height: 110, borderRadius: 55, padding: 4, backgroundColor: '#1e293b', marginTop: -80 },
-    mainAvatar: { width: '100%', height: '100%', borderRadius: 55, borderWidth: 4, borderColor: '#0d9488' },
+    mainAvatar: { width: '100%', height: '100%', borderRadius: 55, borderWidth: 4, borderColor: '#4c1d95' },
     verifiedBadge: { position: 'absolute', bottom: 5, right: 5, backgroundColor: '#fff', borderRadius: 12 },
     
     profileName: { fontSize: 24, fontWeight: '900', color: '#fff', marginTop: 15 },
-    profileHandle: { fontSize: 14, color: '#0d9488', fontWeight: '700', marginTop: 4 },
+    profileHandle: { fontSize: 14, color: '#4c1d95', fontWeight: '700', marginTop: 4 },
     
     editProfileBtn: { backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 20, marginTop: 20, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
-    editProfileBtnText: { color: '#0d9488', fontWeight: '800', fontSize: 14 },
+    editProfileBtnText: { color: '#4c1d95', fontWeight: '800', fontSize: 14 },
     
     metricsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 30, width: '100%', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 20 },
     metricItem: { flex: 1, alignItems: 'center' },

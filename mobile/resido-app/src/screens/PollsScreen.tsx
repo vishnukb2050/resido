@@ -26,7 +26,7 @@ export default function PollsScreen() {
         } finally { setVoting(null); }
     };
 
-    if (isLoading) return <ActivityIndicator style={{ flex: 1 }} color="#0d9488" />;
+    if (isLoading) return <ActivityIndicator style={{ flex: 1 }} color="#4c1d95" />;
 
     return (
         <View style={styles.container}>
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     option: { position: 'relative', backgroundColor: '#27273a', borderRadius: 10, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
     progress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(99,102,241,0.2)', borderRadius: 10 },
     optionText: { flex: 1, color: '#e2e8f0', fontSize: 14, fontWeight: '500' },
-    pct: { color: '#0d9488', fontWeight: '700', fontSize: 13 },
+    pct: { color: '#4c1d95', fontWeight: '700', fontSize: 13 },
     total: { color: '#64748b', fontSize: 12, marginTop: 8 },
     empty: { textAlign: 'center', color: '#475569', marginTop: 48 },
 });

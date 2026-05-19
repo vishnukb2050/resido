@@ -272,14 +272,14 @@ export default function FlaresScreen() {
 
             {loading && !refreshing ? (
                 <View style={styles.loaderContainer}>
-                    <ActivityIndicator size="large" color="#0d9488" />
+                    <ActivityIndicator size="large" color="#4c1d95" />
                 </View>
             ) : (
                 <ScrollView 
                     showsVerticalScrollIndicator={false} 
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0d9488" />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4c1d95" />
                     }
                 >
                     {/* Tabs */}
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     scrollContent: { paddingTop: 5 },
     tabsContainer: { paddingHorizontal: 20, gap: 10, marginBottom: 25 },
     tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 14, gap: 8 },
-    activeTab: { backgroundColor: '#0d9488' },
+    activeTab: { backgroundColor: '#4c1d95' },
     inactiveTab: { backgroundColor: '#1c1c1e' },
     tabLabel: { fontWeight: '700', fontSize: 15 },
     activeTabLabel: { color: '#fff' },
@@ -365,25 +365,25 @@ const styles = StyleSheet.create({
 
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15 },
     sectionTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    seeAll: { fontSize: 14, color: '#0d9488', fontWeight: '700' },
+    seeAll: { fontSize: 14, color: '#4c1d95', fontWeight: '700' },
     recentList: { paddingHorizontal: 20, gap: 12 },
     recentCard: { width: 110, height: 170, borderRadius: 18, overflow: 'hidden', backgroundColor: '#1c1c1e' },
     recentBg: { ...StyleSheet.absoluteFillObject },
     recentGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
     createCard: { backgroundColor: '#2c2c2e', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    createIconBg: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    createIconBg: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     createLabel: { color: '#fff', fontSize: 13, fontWeight: '800', textAlign: 'center', lineHeight: 18 },
-    recentAvatarContainer: { position: 'absolute', top: 12, left: 12, borderWidth: 2, borderColor: '#0d9488', borderRadius: 18, padding: 1 },
+    recentAvatarContainer: { position: 'absolute', top: 12, left: 12, borderWidth: 2, borderColor: '#4c1d95', borderRadius: 18, padding: 1 },
     recentAvatar: { width: 28, height: 28, borderRadius: 14 },
     recentInfo: { position: 'absolute', bottom: 12, left: 12 },
     recentName: { color: '#fff', fontSize: 13, fontWeight: '800' },
     recentTime: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 1 },
 
     // Grouped Flare Styles
-    groupedCard: { borderWidth: 2, borderColor: '#0d9488' },
+    groupedCard: { borderWidth: 2, borderColor: '#4c1d95' },
     stackBorder: { position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 14 },
     groupedAvatarContainer: { borderColor: '#fff' },
-    countBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: '#0d9488', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+    countBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: '#4c1d95', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
     countText: { color: '#fff', fontSize: 11, fontWeight: '900' },
 
     sectionTitleGrid: { fontSize: 20, fontWeight: '800', color: '#fff', paddingHorizontal: 20, marginTop: 35, marginBottom: 15 },

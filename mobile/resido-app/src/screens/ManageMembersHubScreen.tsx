@@ -23,7 +23,7 @@ export default function ManageMembersHubScreen() {
                     icon="shield-half" 
                     title="Manage Staff" 
                     sub="Security, Maintenance, Cleaning, etc."
-                    color="#0d9488"
+                    color="#4c1d95"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'STAFF_GROUP' } })}
                 />
 
@@ -31,7 +31,7 @@ export default function ManageMembersHubScreen() {
                     icon="home" 
                     title="Manage Residents" 
                     sub="Apartment owners and tenants"
-                    color="#0d9488"
+                    color="#4c1d95"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'RESIDENT' } })}
                 />
 
@@ -39,7 +39,7 @@ export default function ManageMembersHubScreen() {
                     icon="shield-checkmark" 
                     title="Manage Admin Staff" 
                     sub="Staff with administrative access"
-                    color="#0d9488"
+                    color="#4c1d95"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'ADMIN_STAFF' } })}
                 />
 
@@ -47,7 +47,7 @@ export default function ManageMembersHubScreen() {
                     icon="people" 
                     title="Manage Members" 
                     sub="General community members"
-                    color="#0d9488"
+                    color="#4c1d95"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'MEMBER' } })}
                 />
             </ScrollView>

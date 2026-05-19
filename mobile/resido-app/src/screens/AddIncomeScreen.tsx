@@ -59,7 +59,7 @@ export default function AddIncomeScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Income Source</Text>
                         <View style={styles.inputWrapper}>
-                            <FontAwesome5 name="wallet" size={16} color="#0d9488" style={styles.inputIcon} />
+                            <FontAwesome5 name="wallet" size={16} color="#4c1d95" style={styles.inputIcon} />
                             <TextInput 
                                 style={styles.input}
                                 placeholder="e.g. Monthly Salary, Freelance"
@@ -88,7 +88,7 @@ export default function AddIncomeScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Date</Text>
                         <View style={styles.inputWrapper}>
-                            <Ionicons name="calendar-outline" size={20} color="#0d9488" style={styles.inputIcon} />
+                            <Ionicons name="calendar-outline" size={20} color="#4c1d95" style={styles.inputIcon} />
                             <TextInput 
                                 style={styles.input}
                                 value={date}
@@ -132,6 +132,6 @@ const styles = StyleSheet.create({
     inputIcon: { marginRight: 12 },
     input: { flex: 1, height: 56, fontSize: 16, color: '#fff', fontWeight: '600' },
     
-    saveBtn: { backgroundColor: '#0d9488', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 32, gap: 10, shadowColor: '#0d9488', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    saveBtn: { backgroundColor: '#4c1d95', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 32, gap: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     saveBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 });
