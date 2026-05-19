@@ -145,9 +145,8 @@ export class AmenitiesService {
         }
       });
 
-      const totalPersons = existingBookings.reduce((sum: number, b: any) => sum + b.persons, 0);
-      if (totalPersons + requestedPersons > amenity.maxPersons) {
-        throw new Error(`Time slot (${timeSlot}) on ${bookingDate} is fully booked or exceeds max persons allowed (${amenity.maxPersons})`);
+      if (existingBookings.length > 0) {
+        throw new Error(`Time slot (${timeSlot}) on ${bookingDate} is already booked.`);
       }
 
       return this.prisma.client.amenityBooking.create({

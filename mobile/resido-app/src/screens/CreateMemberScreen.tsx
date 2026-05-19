@@ -150,6 +150,7 @@ export default function CreateMemberScreen() {
             await authApi.syncMembership({
                 phone: formData.phone,
                 tenantId: activeWorkspace?.tenantId || '',
+                tenantName: activeWorkspace?.tenantName || '',
                 role: formData.role
             });
 

@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { amenitiesApi } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 
 export default function AmenityDetailScreen() {
     const router = useRouter();
@@ -13,6 +14,9 @@ export default function AmenityDetailScreen() {
     const [bookingLoading, setBookingLoading] = useState(false);
     const [amenity, setAmenity] = useState<any>(null);
     const [bookings, setBookings] = useState<any[]>([]);
+
+    const { activeWorkspace } = useAuthStore();
+    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
 
     // Date & Slot selection state
     const [bookingDate, setBookingDate] = useState(new Date());
@@ -61,10 +65,11 @@ export default function AmenityDetailScreen() {
 
     const getSlotCapacityInfo = (slot: string) => {
         const slotBookings = bookings.filter(b => b.timeSlot === slot);
-        const bookedCount = slotBookings.reduce((sum, b) => sum + b.persons, 0);
+        const isFull = slotBookings.length > 0;
+        // Remaining is forced to 0 if booked, else it takes the amenity maxPersons
         const maxPersons = amenity?.maxPersons || 0;
-        const remaining = Math.max(0, maxPersons - bookedCount);
-        return { bookedCount, remaining, isFull: remaining <= 0 };
+        const remaining = isFull ? 0 : maxPersons;
+        return { bookedCount: slotBookings.length, remaining, isFull };
     };
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -183,6 +188,29 @@ export default function AmenityDetailScreen() {
                         />
                     )}
 
+                    {/* Admin Bookings Section */}
+                    {isAdmin && bookings.length > 0 && (
+                        <View style={styles.adminSection}>
+                            <Text style={styles.adminSectionTitle}>Admin: Today's Bookings</Text>
+                            {bookings.map((b, index) => (
+                                <View key={b.id || index} style={styles.adminBookingCard}>
+                                    <View style={styles.adminBookingRow}>
+                                        <Ionicons name="time-outline" size={16} color="#6366f1" />
+                                        <Text style={styles.adminBookingTime}>{b.timeSlot}</Text>
+                                    </View>
+                                    <View style={styles.adminBookingRow}>
+                                        <Ionicons name="person-outline" size={16} color="#475569" />
+                                        <Text style={styles.adminBookingName}>{b.member?.name || 'Resident'}</Text>
+                                    </View>
+                                    <View style={styles.adminBookingRow}>
+                                        <Ionicons name="people-outline" size={16} color="#475569" />
+                                        <Text style={styles.adminBookingPersons}>{b.persons} Person(s)</Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
                     {/* Time Slots grid */}
                     <Text style={styles.label}>Select Available Slot</Text>
                     <View style={styles.slotsGrid}>
@@ -224,7 +252,7 @@ export default function AmenityDetailScreen() {
                                         (isFull || isPastDate) && styles.slotTextDisabled,
                                         isSelected && styles.slotTextSelected
                                     ]}>
-                                        {isPastDate ? 'PAST' : isFull ? (allowRecur ? 'RECURRING OK' : 'FULL') : `${remaining} left`}
+                                        {isPastDate ? 'PAST' : isFull ? (allowRecur ? 'RECURRING OK' : 'ALREADY BOOKED') : 'AVAILABLE'}
                                     </Text>
                                 </TouchableOpacity>
                             );
@@ -367,5 +395,14 @@ const styles = StyleSheet.create({
 
     bookBtn: { backgroundColor: '#6366f1', borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 10, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
     bookBtnDisabled: { backgroundColor: '#cbd5e1', shadowOpacity: 0, elevation: 0 },
-    bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' }
+    bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+
+    // Admin Bookings
+    adminSection: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' },
+    adminSectionTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b', marginBottom: 12, textTransform: 'uppercase' },
+    adminBookingCard: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
+    adminBookingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    adminBookingTime: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
+    adminBookingName: { fontSize: 14, fontWeight: '600', color: '#475569' },
+    adminBookingPersons: { fontSize: 13, color: '#64748b' }
 });
