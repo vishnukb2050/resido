@@ -235,7 +235,7 @@ export default function DefaultDashboard() {
                             <View style={styles.psBrandInfo}>
                                 <View style={[styles.psLogoBox, { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
                                     <Image 
-                                        source={activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg')} 
+                                        source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : (activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg'))} 
                                         style={styles.psWorkspaceImg} 
                                     />
                                 </View>
@@ -285,7 +285,7 @@ export default function DefaultDashboard() {
                                         label={ws.tenantName} 
                                         isActive={activeWorkspace?.tenantId === ws.tenantId} 
                                         onPress={() => handleSelectWorkspace(ws, idx + 1)} 
-                                        image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
+                                        image={ws.photoUrl || "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
                                     />
                                 ))}
                             </ScrollView>

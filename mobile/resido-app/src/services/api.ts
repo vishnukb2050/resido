@@ -102,6 +102,7 @@ export const communityApi = {
     createRule: (data: any) => api.post('/community/rules', data),
     getMembers: () => api.get('/community/members'),
     getGallery: () => api.get('/community/gallery'),
+    getSummaryStats: () => api.get('/community/stats/summary'),
     
     // Blocks & Units
     getBlocks: () => api.get('/community/blocks'),
@@ -141,7 +142,7 @@ export const residentApi = {
 
 export const amenitiesApi = {
     getAmenities: () => api.get('/community/amenities'),
-    getAmenity: (id: string) => api.get(`/community/amenities/${id}`),
+    getAmenity: (id: string, date?: string) => api.get(`/community/amenities/${id}`, { params: { date } }),
     createAmenity: (data: any) => api.post('/community/amenities', data),
     updateAmenity: (id: string, data: any) => api.patch(`/community/amenities/${id}`, data),
     deleteAmenity: (id: string) => api.delete(`/community/amenities/${id}`),

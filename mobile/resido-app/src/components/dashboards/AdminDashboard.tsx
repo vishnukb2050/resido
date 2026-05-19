@@ -30,7 +30,10 @@ export default function AdminDashboard() {
                 <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
                     <View style={styles.psBrandInfo}>
                         <View style={styles.psLogoBox}>
-                            <Image source={require('../../../assets/icon.png')} style={styles.psWorkspaceImg} />
+                            <Image 
+                                source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : require('../../../assets/icon.png')} 
+                                style={styles.psWorkspaceImg} 
+                            />
                         </View>
                         <View style={{ marginLeft: 15 }}>
                             <Text style={styles.psBrandTitleText}>
@@ -74,7 +77,7 @@ export default function AdminDashboard() {
                                 label={ws.tenantName} 
                                 isActive={activeWorkspace?.tenantId === ws.tenantId} 
                                 onPress={() => handleSwitch(ws)} 
-                                image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
+                                image={ws.photoUrl || "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
                             />
                         ))}
                     </ScrollView>
@@ -94,7 +97,7 @@ export default function AdminDashboard() {
 
                 {/* Admin Grid (Matching Image) */}
                 <View style={styles.adminGrid}>
-                    <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(99, 102, 241, 0.2)" />
+                    <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/admin-stats')} />
                     <DashboardIcon icon="people-circle" label="Manage" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/manage-members')} />
                     <DashboardIcon icon="construct" label="Requests" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="shield-half" label="Security" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/staff')} />

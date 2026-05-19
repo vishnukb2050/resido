@@ -93,7 +93,10 @@ export default function CommunityDashboard() {
                     <View style={[styles.communityMainCard, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.05)' }]}>
                         <TouchableOpacity style={styles.cmHeaderRow} onPress={handleSwitchBack}>
                             <View style={styles.cmLogoBox}>
-                                <Image source={require('../../../assets/greenwoods_logo.jpg')} style={styles.cmLogo} />
+                                <Image 
+                                    source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : require('../../../assets/greenwoods_logo.jpg')} 
+                                    style={styles.cmLogo} 
+                                />
                             </View>
                             <View style={styles.cmNameBox}>
                                 <Text style={[styles.cmName, { color: '#fff' }]} numberOfLines={1}>{activeWorkspace?.tenantName || 'Greenwoods Community'}</Text>

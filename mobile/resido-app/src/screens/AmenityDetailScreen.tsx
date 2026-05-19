@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, Alert, Switch } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -20,25 +20,30 @@ export default function AmenityDetailScreen() {
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [personsCount, setPersonsCount] = useState(1);
 
+    // Recurring booking state
+    const [isRecurringBooking, setIsRecurringBooking] = useState(false);
+    const [recurringPeriod, setRecurringPeriod] = useState<'WEEKLY' | 'MONTHLY'>('WEEKLY');
+
     useEffect(() => {
         if (id) {
-            fetchAmenityDetails();
+            fetchAmenityDetails(bookingDate);
         }
     }, [id]);
 
     useEffect(() => {
         if (id) {
             fetchBookingsForDate();
+            fetchAmenityDetails(bookingDate);
         }
     }, [bookingDate, id]);
 
-    const fetchAmenityDetails = async () => {
+    const fetchAmenityDetails = async (dateVal: Date) => {
         try {
-            const { data } = await amenitiesApi.getAmenity(id);
+            const dateStr = dateVal.toISOString().split('T')[0];
+            const { data } = await amenitiesApi.getAmenity(id, dateStr);
             setAmenity(data);
         } catch (error) {
             console.error('Failed to fetch amenity details:', error);
-            Alert.alert('Error', 'Failed to load details.');
         } finally {
             setLoading(false);
         }
@@ -58,9 +63,13 @@ export default function AmenityDetailScreen() {
         const slotBookings = bookings.filter(b => b.timeSlot === slot);
         const bookedCount = slotBookings.reduce((sum, b) => sum + b.persons, 0);
         const maxPersons = amenity?.maxPersons || 0;
-        const remaining = maxPersons - bookedCount;
+        const remaining = Math.max(0, maxPersons - bookedCount);
         return { bookedCount, remaining, isFull: remaining <= 0 };
     };
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateStr = bookingDate.toISOString().split('T')[0];
+    const isPastDate = dateStr < todayStr;
 
     const handleConfirmBooking = async () => {
         if (!selectedSlot) {
@@ -68,22 +77,30 @@ export default function AmenityDetailScreen() {
             return;
         }
 
-        const { remaining } = getSlotCapacityInfo(selectedSlot);
-        if (personsCount > remaining) {
+        const { remaining, isFull } = getSlotCapacityInfo(selectedSlot);
+        
+        // Block simple bookings for full / past slots if recurring is not selected
+        if ((isFull || isPastDate) && !isRecurringBooking) {
+            Alert.alert('Unavailable', 'This slot is fully booked or has ended. Toggle "Schedule Recurrently" to book future occurrences.');
+            return;
+        }
+
+        if (!isRecurringBooking && personsCount > remaining) {
             Alert.alert('Unavailable', 'This slot does not have enough remaining capacity for your requested party size.');
             return;
         }
 
         setBookingLoading(true);
         try {
-            const dateStr = bookingDate.toISOString().split('T')[0];
             await amenitiesApi.bookAmenity(id, {
                 bookingDate: dateStr,
                 timeSlot: selectedSlot,
                 persons: personsCount,
+                isRecurring: isRecurringBooking,
+                recurringPeriod: isRecurringBooking ? recurringPeriod : null
             });
 
-            Alert.alert('Success', 'Amenity booked successfully!', [
+            Alert.alert('Success', isRecurringBooking ? 'Recurring bookings successfully scheduled!' : 'Amenity booked successfully!', [
                 { text: 'OK', onPress: () => router.push('/amenities') }
             ]);
         } catch (error: any) {
@@ -125,7 +142,7 @@ export default function AmenityDetailScreen() {
                     <Image source={{ uri: amenity.photoUrl }} style={styles.image} />
                 ) : (
                     <View style={styles.imagePlaceholder}>
-                        <Ionicons name="sparkles-outline" size={48} color="#94a3b8" />
+                        <Ionicons name="sparkles-outline" size={48} color="#cbd5e1" />
                     </View>
                 )}
 
@@ -157,7 +174,7 @@ export default function AmenityDetailScreen() {
                         <DateTimePicker
                             value={bookingDate}
                             mode="date"
-                            minimumDate={new Date()}
+                            minimumDate={new Date(Date.now() - 3600000 * 24 * 30)} // Allow looking back up to 30 days
                             display="default"
                             onChange={(event, date) => {
                                 setShowDatePicker(false);
@@ -172,6 +189,8 @@ export default function AmenityDetailScreen() {
                         {amenity.timeSlots?.map((slot: string) => {
                             const { remaining, isFull } = getSlotCapacityInfo(slot);
                             const isSelected = selectedSlot === slot;
+                            const isSelectable = !isFull && !isPastDate;
+                            const allowRecur = amenity.allowRecurringBookings;
 
                             return (
                                 <TouchableOpacity
@@ -179,30 +198,82 @@ export default function AmenityDetailScreen() {
                                     style={[
                                         styles.slotCard,
                                         isFull && styles.slotCardFull,
+                                        isPastDate && styles.slotCardPast,
                                         isSelected && styles.slotCardSelected
                                     ]}
-                                    onPress={() => !isFull && setSelectedSlot(slot)}
-                                    disabled={isFull}
+                                    onPress={() => {
+                                        if (isSelectable) {
+                                            setSelectedSlot(slot);
+                                            setIsRecurringBooking(false);
+                                        } else if (allowRecur) {
+                                            // Let them select full/past slots for recurring bookings
+                                            setSelectedSlot(slot);
+                                            setIsRecurringBooking(true);
+                                        } else {
+                                            Alert.alert('Unavailable', 'This slot is booked or past and recurring bookings are disabled.');
+                                        }
+                                    }}
                                 >
                                     <Text style={[
                                         styles.slotTime,
-                                        isFull && styles.slotTextDisabled,
+                                        (isFull || isPastDate) && styles.slotTextDisabled,
                                         isSelected && styles.slotTextSelected
                                     ]}>{slot}</Text>
                                     <Text style={[
                                         styles.slotCapacity,
-                                        isFull && styles.slotTextDisabled,
+                                        (isFull || isPastDate) && styles.slotTextDisabled,
                                         isSelected && styles.slotTextSelected
                                     ]}>
-                                        {isFull ? 'FULL' : `${remaining} left`}
+                                        {isPastDate ? 'PAST' : isFull ? (allowRecur ? 'RECURRING OK' : 'FULL') : `${remaining} left`}
                                     </Text>
                                 </TouchableOpacity>
                             );
                         })}
+                        {(!amenity.timeSlots || amenity.timeSlots.length === 0) && (
+                            <Text style={styles.emptyText}>No available slots found for this date.</Text>
+                        )}
                     </View>
 
+                    {/* Dynamic Recurring Card for Full/Past Slots */}
+                    {selectedSlot && (getSlotCapacityInfo(selectedSlot).isFull || isPastDate) && amenity.allowRecurringBookings && (
+                        <View style={styles.recurringCard}>
+                            <View style={styles.recHeader}>
+                                <Ionicons name="repeat-outline" size={22} color="#6366f1" />
+                                <Text style={styles.recTitle}>Book Future Occurrences</Text>
+                            </View>
+                            <Text style={styles.recHelp}>This slot is full or completed today. You can auto-schedule the next occurrences.</Text>
+                            
+                            <View style={styles.recSwitchRow}>
+                                <Text style={styles.recLabel}>Schedule Recurrently</Text>
+                                <Switch 
+                                    value={isRecurringBooking}
+                                    onValueChange={setIsRecurringBooking}
+                                    trackColor={{ false: '#cbd5e1', true: '#818cf8' }}
+                                    thumbColor={isRecurringBooking ? '#6366f1' : '#f4f3f4'}
+                                />
+                            </View>
+
+                            {isRecurringBooking && (
+                                <View style={styles.recTypeRow}>
+                                    <TouchableOpacity 
+                                        style={[styles.recTypeBtn, recurringPeriod === 'WEEKLY' && styles.recTypeBtnActive]}
+                                        onPress={() => setRecurringPeriod('WEEKLY')}
+                                    >
+                                        <Text style={[styles.recTypeText, recurringPeriod === 'WEEKLY' && styles.recTypeTextActive]}>Weekly Day</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[styles.recTypeBtn, recurringPeriod === 'MONTHLY' && styles.recTypeBtnActive]}
+                                        onPress={() => setRecurringPeriod('MONTHLY')}
+                                    >
+                                        <Text style={[styles.recTypeText, recurringPeriod === 'MONTHLY' && styles.recTypeTextActive]}>Monthly Date</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
                     {/* Party size picker */}
-                    {selectedSlot && (
+                    {selectedSlot && (!getSlotCapacityInfo(selectedSlot).isFull && !isPastDate) && (
                         <View style={styles.partyContainer}>
                             <Text style={styles.label}>Number of Persons</Text>
                             <View style={styles.counterRow}>
@@ -231,7 +302,9 @@ export default function AmenityDetailScreen() {
                         {bookingLoading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.bookBtnText}>Confirm Booking</Text>
+                            <Text style={styles.bookBtnText}>
+                                {isRecurringBooking ? 'Confirm Recurring Booking' : 'Confirm Booking'}
+                            </Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -262,20 +335,35 @@ const styles = StyleSheet.create({
     dateSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, padding: 14, marginBottom: 20 },
     dateText: { flex: 1, marginLeft: 12, fontSize: 15, color: '#1e293b', fontWeight: '600' },
 
-    label: { fontSize: 13, fontWeight: '800', color: '#475569', marginBottom: 12, textTransform: 'uppercase' },
+    label: { fontSize: 12, fontWeight: '800', color: '#475569', marginBottom: 12, textTransform: 'uppercase' },
     slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
     slotCard: { width: '47%', backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, padding: 12, alignItems: 'center' },
-    slotCardFull: { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0', opacity: 0.6 },
+    slotCardFull: { backgroundColor: '#fff8f6', borderColor: '#fecaca' },
+    slotCardPast: { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0', opacity: 0.8 },
     slotCardSelected: { borderColor: '#6366f1', backgroundColor: '#eef2ff' },
     slotTime: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
-    slotCapacity: { fontSize: 12, color: '#64748b', marginTop: 4, fontWeight: '600' },
+    slotCapacity: { fontSize: 11, color: '#64748b', marginTop: 4, fontWeight: '700' },
     slotTextSelected: { color: '#6366f1' },
     slotTextDisabled: { color: '#94a3b8' },
+    emptyText: { color: '#94a3b8', fontStyle: 'italic', paddingVertical: 15 },
 
     partyContainer: { marginBottom: 24 },
     counterRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
     counterBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#cbd5e1', alignItems: 'center', justifyContent: 'center' },
     counterValue: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
+
+    // Recurring booking styling
+    recurringCard: { backgroundColor: '#f8fafc', borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, padding: 16, marginBottom: 24 },
+    recHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+    recTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+    recHelp: { fontSize: 12, color: '#64748b', lineHeight: 16, marginBottom: 12 },
+    recSwitchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
+    recLabel: { fontSize: 13, fontWeight: '700', color: '#334155' },
+    recTypeRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+    recTypeBtn: { flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+    recTypeBtnActive: { backgroundColor: '#6366f1' },
+    recTypeText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
+    recTypeTextActive: { color: '#fff' },
 
     bookBtn: { backgroundColor: '#6366f1', borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 10, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
     bookBtnDisabled: { backgroundColor: '#cbd5e1', shadowOpacity: 0, elevation: 0 },

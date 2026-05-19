@@ -27,7 +27,10 @@ export default function CleaningDashboard() {
                 <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
                     <View style={styles.psBrandInfo}>
                         <View style={styles.psLogoBox}>
-                            <Image source={require('../../../assets/icon.png')} style={styles.psWorkspaceImg} />
+                            <Image 
+                                source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : require('../../../assets/icon.png')} 
+                                style={styles.psWorkspaceImg} 
+                            />
                         </View>
                         <View style={{ marginLeft: 15 }}>
                             <Text style={styles.psBrandTitleText}>
@@ -70,7 +73,7 @@ export default function CleaningDashboard() {
                                 label={ws.tenantName} 
                                 isActive={activeWorkspace?.tenantId === ws.tenantId} 
                                 onPress={() => handleSwitch(ws)} 
-                                image="https://cdn-icons-png.flaticon.com/512/9374/9374944.png"
+                                image={ws.photoUrl || "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
                             />
                         ))}
                     </ScrollView>

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Activ
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import { complaintApi } from '../services/api';
+import { communityApi } from '../services/api';
 
 export default function ComplaintsListScreen() {
     const router = useRouter();
@@ -17,7 +17,7 @@ export default function ComplaintsListScreen() {
 
     const fetchComplaints = async () => {
         try {
-            const { data } = await complaintApi.getComplaints();
+            const { data } = await communityApi.getComplaints(user?.id || '');
             setComplaints(data);
         } catch (e) {
             console.error('Fetch complaints failed', e);

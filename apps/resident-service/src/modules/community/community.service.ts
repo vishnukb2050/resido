@@ -33,7 +33,7 @@ export class CommunityService {
 
     // ─── Complaints ─────────────────────────────────────────────
     async getComplaints(memberId?: string, staffId?: string) {
-        return this.prisma.reader.complaint.findMany({
+        const complaints = await this.prisma.reader.complaint.findMany({
             where: {
                 OR: [
                     memberId ? { memberId } : {},
@@ -45,6 +45,19 @@ export class CommunityService {
             },
             orderBy: { createdAt: 'desc' }
         });
+
+        const staffIds = complaints.map((c: any) => c.assignedTo).filter(Boolean);
+        const staffMembers = await this.prisma.reader.member.findMany({
+            where: { id: { in: staffIds } },
+            select: { id: true, name: true, role: true }
+        });
+
+        const staffMap = new Map(staffMembers.map((s: any) => [s.id, s]));
+
+        return complaints.map((c: any) => ({
+            ...c,
+            assignedTo: c.assignedTo ? staffMap.get(c.assignedTo) || null : null
+        }));
     }
 
     async createComplaint(userId: string, data: any) {
@@ -424,4 +437,120 @@ export class CommunityService {
         return (this.prisma.client as any).rule.delete({ where: { id } });
     }
 
+    async getSummaryStats() {
+        const totalMembers = await this.prisma.reader.member.count({
+            where: { role: 'RESIDENT' as any }
+        });
+        const totalFamilies = await this.prisma.reader.family.count();
+        const totalUnits = await this.prisma.reader.unit.count();
+        
+        const occupiedUnits = await this.prisma.reader.unit.count({
+            where: { families: { some: {} } }
+        });
+        const emptyUnits = Math.max(0, totalUnits - occupiedUnits);
+
+        const securityStaff = await this.prisma.reader.member.count({ where: { role: 'SECURITY' as any } });
+        const cleaningStaff = await this.prisma.reader.member.count({ where: { role: 'CLEANING' as any } });
+        const adminStaff = await this.prisma.reader.member.count({ where: { role: 'ADMIN' as any } });
+        const maintenanceStaff = await this.prisma.reader.member.count({
+            where: { role: { in: ['MAINTENANCE', 'STAFF'] as any } }
+        });
+
+        const totalStaff = securityStaff + cleaningStaff + adminStaff + maintenanceStaff;
+
+        const allBills = await this.prisma.reader.maintenanceBill.findMany({
+            select: {
+                totalAmount: true,
+                status: true,
+                unit: {
+                    select: {
+                        number: true,
+                        block: {
+                            select: { name: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        let totalInvoiced = 0;
+        let totalCollected = 0;
+        let totalDues = 0;
+        let unitsPaid = 0;
+        let unitsDue = 0;
+        const pendingUnitsMap = new Map<string, { unit: string; amount: number }>();
+
+        allBills.forEach((bill: any) => {
+            totalInvoiced += bill.totalAmount;
+            if (bill.status === 'PAID') {
+                totalCollected += bill.totalAmount;
+                unitsPaid++;
+            } else {
+                totalDues += bill.totalAmount;
+                unitsDue++;
+                const unitName = `${bill.unit?.block?.name || 'Block'} - ${bill.unit?.number || 'Unit'}`;
+                const existing = pendingUnitsMap.get(unitName);
+                if (existing) {
+                    existing.amount += bill.totalAmount;
+                } else {
+                    pendingUnitsMap.set(unitName, { unit: unitName, amount: bill.totalAmount });
+                }
+            }
+        });
+
+        const recentPendingDues = Array.from(pendingUnitsMap.values())
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, 5);
+
+        const visitorsToday = await this.prisma.reader.visitor.count({
+            where: {
+                createdAt: {
+                    gte: new Date(new Date().setHours(0, 0, 0, 0))
+                }
+            }
+        });
+
+        const pendingComplaints = await this.prisma.reader.complaint.count({ where: { status: 'PENDING' as any } });
+        const progressComplaints = await this.prisma.reader.complaint.count({ where: { status: 'IN_PROGRESS' as any } });
+        const resolvedComplaints = await this.prisma.reader.complaint.count({ where: { status: 'RESOLVED' as any } });
+
+        const gatepassesCreated = await this.prisma.reader.visitor.count();
+        const gatepassesApproved = await this.prisma.reader.visitor.count({ where: { status: 'APPROVED' as any } });
+
+        return {
+            people: {
+                totalMembers,
+                totalFamilies,
+                occupiedUnits,
+                emptyUnits,
+                totalStaff,
+                staffRoles: {
+                    SECURITY: securityStaff,
+                    CLEANING: cleaningStaff,
+                    ADMIN: adminStaff,
+                    MAINTENANCE: maintenanceStaff
+                }
+            },
+            finance: {
+                totalInvoiced,
+                totalCollected,
+                totalDues,
+                unitsPaid,
+                unitsDue,
+                recentPendingDues
+            },
+            operations: {
+                visitorsToday,
+                activeComplaints: {
+                    PENDING: pendingComplaints,
+                    IN_PROGRESS: progressComplaints,
+                    RESOLVED: resolvedComplaints
+                },
+                gatepasses: {
+                    totalCreated: gatepassesCreated,
+                    totalApproved: gatepassesApproved
+                }
+            }
+        };
+    }
 }

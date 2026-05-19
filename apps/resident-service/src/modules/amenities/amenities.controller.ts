@@ -24,8 +24,12 @@ export class AmenitiesController {
   }
 
   @Get(':id')
-  findOne(@Headers('x-tenant-id') tenantId: string, @Param('id') id: string) {
-    return this.amenitiesService.getAmenityById(id, tenantId);
+  findOne(
+    @Headers('x-tenant-id') tenantId: string,
+    @Param('id') id: string,
+    @Query('date') date?: string
+  ) {
+    return this.amenitiesService.getAmenityById(id, tenantId, date);
   }
 
   @Patch(':id')

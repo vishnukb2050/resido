@@ -159,4 +159,9 @@ export class CommunityController {
     createRule(@Body() data: any) {
         return this.communityService.createRule(data);
     }
+
+    @Get('stats/summary')
+    getSummaryStats() {
+        return this.communityService.getSummaryStats();
+    }
 }

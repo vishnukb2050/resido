@@ -844,18 +844,23 @@ enum OccupancyType {
 
 // ─── Amenities ────────────────────────────────────────────────────────────────
 model Amenity {
-  id             String   @id @default(cuid())
-  tenantId       String
-  name           String
-  description    String?
-  rules          String?
-  photoUrl       String?
-  maxPersons     Int      @default(1)
-  timeSlots      String[] // Array of time slots, e.g., ["09:00-10:00", "10:00-11:00"]
-  availableDates String[] // Array of available dates, e.g., ["2023-10-01", "2023-10-02"]
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  tenantId               String
+  name                   String
+  description            String?
+  rules                  String?
+  photoUrl               String?
+  maxPersons             Int      @default(1)
+  timeSlots              String[] // Array of time slots, e.g., ["09:00-10:00", "10:00-11:00"]
+  availableDates         String[] // Array of available dates, e.g., ["2023-10-01", "2023-10-02"]
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Dynamic scheduling extensions
+  scheduleType           String   @default("CUSTOM") // "WEEKLY", "MONTHLY", "CUSTOM"
+  scheduleConfig         String?  // JSON serialized config
+  allowRecurringBookings Boolean  @default(false)
 
   bookings       AmenityBooking[]
 
@@ -864,15 +869,20 @@ model Amenity {
 }
 
 model AmenityBooking {
-  id          String   @id @default(cuid())
-  tenantId    String
-  amenityId   String
-  memberId    String
-  bookingDate String   // YYYY-MM-DD
-  timeSlot    String
-  persons     Int      @default(1)
-  status      String   @default("CONFIRMED") // CONFIRMED, CANCELLED
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  tenantId        String
+  amenityId       String
+  memberId        String
+  bookingDate     String   // YYYY-MM-DD
+  timeSlot        String
+  persons         Int      @default(1)
+  status          String   @default("CONFIRMED") // CONFIRMED, CANCELLED
+  createdAt       DateTime @default(now())
+
+  // Recurrence extensions
+  isRecurring     Boolean  @default(false)
+  recurringPeriod String?  // "WEEKLY", "MONTHLY"
+  parentBookingId String?
 
   amenity     Amenity  @relation(fields: [amenityId], references: [id])
   member      Member   @relation(fields: [memberId], references: [id])
