@@ -54,8 +54,13 @@ export default function AdminStatsScreen() {
     const theme = getThemeColors(activeWorkspace?.tenantId);
 
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
     const [activeTab, setActiveTab] = useState<'people' | 'finance' | 'operations'>('people');
-    const [data, setData] = useState<StatsData | null>(null);
+    const [data, setData] = useState<StatsData>({
+        people: { totalMembers: 0, totalFamilies: 0, occupiedUnits: 0, emptyUnits: 0, totalStaff: 0, staffRoles: { SECURITY: 0, CLEANING: 0, ADMIN: 0, MAINTENANCE: 0 } },
+        finance: { totalInvoiced: 0, totalCollected: 0, totalDues: 0, unitsPaid: 0, unitsDue: 0, recentPendingDues: [] },
+        operations: { visitorsToday: 0, activeComplaints: { PENDING: 0, IN_PROGRESS: 0, RESOLVED: 0 }, gatepasses: { totalCreated: 0, totalApproved: 0 } },
+    });
 
     useEffect(() => {
         loadStats();
@@ -64,22 +69,43 @@ export default function AdminStatsScreen() {
     const loadStats = async () => {
         try {
             setLoading(true);
+            setError(false);
             const res = await communityApi.getSummaryStats();
-            setData(res.data);
+            if (res.data) {
+                setData(res.data);
+            }
         } catch (e) {
             console.error('Failed to load summary stats', e);
+            setError(true);
         } finally {
             setLoading(false);
         }
     };
 
-    if (loading || !data) {
+    if (loading) {
         return (
             <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
                 <StatusBar barStyle="light-content" />
                 <View style={styles.loaderContainer}>
                     <ActivityIndicator size="large" color="#6366f1" />
                     <Text style={styles.loaderText}>Consolidating stats from database...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (error) {
+        return (
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+                <StatusBar barStyle="light-content" />
+                <View style={styles.loaderContainer}>
+                    <Ionicons name="cloud-offline-outline" size={48} color="#ef4444" />
+                    <Text style={[styles.loaderText, { marginTop: 16, color: '#ef4444' }]}>Failed to load stats</Text>
+                    <Text style={[styles.loaderText, { fontSize: 12, marginTop: 6 }]}>Check your connection or server status</Text>
+                    <TouchableOpacity onPress={loadStats} style={styles.retryBtn}>
+                        <Ionicons name="refresh" size={16} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.retryBtnText}>Retry</Text>
+                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         );
@@ -157,7 +183,7 @@ export default function AdminStatsScreen() {
                     <View style={styles.section}>
                         {/* Circular Occupancy Meter */}
                         <View style={[styles.glassCard, { backgroundColor: theme.surface }]}>
-                            <Text style={styles.cardTitle}>Unit Occupancy Rate</Text>
+                            <Text style={styles.cardTitle}>Unit/Address Occupancy Rate</Text>
                             <View style={styles.circleContainer}>
                                 <View style={styles.progressCircle}>
                                     <View style={styles.progressInnerCircle}>
@@ -168,18 +194,18 @@ export default function AdminStatsScreen() {
                                 <View style={styles.circleDetails}>
                                     <View style={styles.detailRow}>
                                         <View style={[styles.bullet, { backgroundColor: '#10b981' }]} />
-                                        <Text style={styles.detailLabel}>Occupied Units:</Text>
+                                        <Text style={styles.detailLabel}>Occupied Units/Addresses:</Text>
                                         <Text style={styles.detailValue}>{data.people.occupiedUnits}</Text>
                                     </View>
                                     <View style={styles.detailRow}>
                                         <View style={[styles.bullet, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
-                                        <Text style={styles.detailLabel}>Empty Units:</Text>
+                                        <Text style={styles.detailLabel}>Empty Units/Addresses:</Text>
                                         <Text style={styles.detailValue}>{data.people.emptyUnits}</Text>
                                     </View>
                                     <View style={styles.detailDivider} />
                                     <View style={styles.detailRow}>
                                         <Ionicons name="business" size={14} color="#6366f1" style={{ marginRight: 6 }} />
-                                        <Text style={styles.detailLabel}>Total Units:</Text>
+                                        <Text style={styles.detailLabel}>Total Units/Addresses:</Text>
                                         <Text style={styles.detailValue}>{totalUnits}</Text>
                                     </View>
                                 </View>
@@ -265,12 +291,12 @@ export default function AdminStatsScreen() {
                             <View style={[styles.gridHalfCard, { backgroundColor: theme.surface }]}>
                                 <Ionicons name="checkmark-circle" size={24} color="#10b981" />
                                 <Text style={[styles.gridCardValue, { color: '#10b981' }]}>{data.finance.unitsPaid}</Text>
-                                <Text style={styles.gridCardLabel}>Paid Units</Text>
+                                <Text style={styles.gridCardLabel}>Paid Units/Addresses</Text>
                             </View>
                             <View style={[styles.gridHalfCard, { backgroundColor: theme.surface }]}>
                                 <Ionicons name="alert-circle" size={24} color="#ef4444" />
                                 <Text style={[styles.gridCardValue, { color: '#ef4444' }]}>{data.finance.unitsDue}</Text>
-                                <Text style={styles.gridCardLabel}>Pending Units</Text>
+                                <Text style={styles.gridCardLabel}>Pending Units/Addresses</Text>
                             </View>
                         </View>
 
@@ -399,6 +425,8 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
     loaderText: { color: '#94a3b8', fontSize: 14, fontWeight: '600', marginTop: 16 },
+    retryBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 24, backgroundColor: '#6366f1', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+    retryBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
     // Header styling
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20 },

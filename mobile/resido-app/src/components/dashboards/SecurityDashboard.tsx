@@ -1,15 +1,64 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
-import { authApi } from '../../services/api';
+import { authApi, visitorApi, communityApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getThemeColors } from '../../utils/theme';
 
 export default function SecurityDashboard() {
-    const { activeWorkspace, user, workspaces, setActiveWorkspace } = useAuthStore();
+    const { activeWorkspace, user, workspaces, setActiveWorkspace, switchRole } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const router = useRouter();
+    const [switchingRole, setSwitchingRole] = React.useState(false);
+
+    // Live stats state
+    const [stats, setStats] = React.useState({ entries: 0, deliveries: 0, cabs: 0, alerts: 0 });
+    const [statsLoading, setStatsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        fetchTodayStats();
+    }, []);
+
+    const fetchTodayStats = async () => {
+        try {
+            setStatsLoading(true);
+            const today = new Date();
+            const start = new Date(today);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(today);
+            end.setHours(23, 59, 59, 999);
+
+            const { data: entries } = await visitorApi.getEntries({
+                startDate: start.toISOString(),
+                endDate: end.toISOString(),
+            });
+
+            const list: any[] = entries || [];
+            const deliveryCount = list.filter((e: any) => e.category === 'Delivery').length;
+            const cabCount = list.filter((e: any) =>
+                e.category === 'Cab' || (e.vehicleNumber && e.category === 'Visitor')
+            ).length;
+
+            // Alerts: pending gatepasses not yet approved
+            let alertCount = 0;
+            try {
+                const { data: gatepasses } = await communityApi.getVisitors('');
+                alertCount = (gatepasses || []).filter((g: any) => g.status === 'PENDING').length;
+            } catch (_) {}
+
+            setStats({
+                entries: list.length,
+                deliveries: deliveryCount,
+                cabs: cabCount,
+                alerts: alertCount,
+            });
+        } catch (e) {
+            console.error('Failed to fetch security stats:', e);
+        } finally {
+            setStatsLoading(false);
+        }
+    };
 
     const handleSwitch = async (ws: any) => {
         try {
@@ -20,6 +69,19 @@ export default function SecurityDashboard() {
         }
     };
 
+    const handleSwitchRole = async (role: string) => {
+        if (!activeWorkspace || switchingRole) return;
+        try {
+            setSwitchingRole(true);
+            const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
+            switchRole(role as any, res.data.accessToken);
+        } catch (e) {
+            console.error('Failed to switch role:', e);
+        } finally {
+            setSwitchingRole(false);
+        }
+    };
+
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
             <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
@@ -27,59 +89,76 @@ export default function SecurityDashboard() {
                 <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
                     <View style={styles.psBrandInfo}>
                         <View style={styles.psLogoBox}>
-                            <Image 
-                                source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : require('../../../assets/icon.png')} 
-                                style={styles.psWorkspaceImg} 
+                            <Image
+                                source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : require('../../../assets/icon.png')}
+                                style={styles.psWorkspaceImg}
                             />
                         </View>
                         <View style={{ marginLeft: 15 }}>
                             <Text style={styles.psBrandTitleText}>
-                                {activeWorkspace?.tenantName || "Resido Security"}
+                                {activeWorkspace?.tenantName || 'Resido Security'}
                             </Text>
                             <Text style={styles.psBrandTaglineText}>
-                                {activeWorkspace?.role || "SECURITY STAFF"}
+                                {activeWorkspace?.role || 'SECURITY STAFF'}
                             </Text>
                         </View>
                     </View>
                     <View style={styles.psHeaderActions}>
-                        <TouchableOpacity style={styles.psIconBtn}>
-                            <Ionicons name="notifications" size={22} color="#fff" />
+                        {/* Refresh button to reload live stats */}
+                        <TouchableOpacity style={styles.psIconBtn} onPress={fetchTodayStats}>
+                            <Ionicons name="refresh" size={22} color="#fff" />
                         </TouchableOpacity>
                         <View style={styles.profileBtn}>
-                            <Image 
-                                source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=security' }} 
-                                style={styles.profileImg} 
+                            <Image
+                                source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=security' }}
+                                style={styles.profileImg}
                             />
                         </View>
                     </View>
                 </View>
 
-                {/* Premium Workspace Switcher (Bubbles) */}
+                {/* Workspace Switcher */}
                 <View style={styles.psWorkspaceSection}>
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false} 
-                        contentContainerStyle={styles.psWorkspaceScroll}
-                    >
-                        <WorkspaceBubble 
-                            label="My Space" 
-                            isActive={!activeWorkspace} 
-                            onPress={() => setActiveWorkspace(null as any, '')} 
-                            image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psWorkspaceScroll}>
+                        <WorkspaceBubble
+                            label="My Space"
+                            isActive={!activeWorkspace}
+                            onPress={() => setActiveWorkspace(null as any, '')}
+                            image={user?.profilePhoto || 'https://i.pravatar.cc/100?u=resido'}
                         />
                         {workspaces?.map((ws: any) => (
-                            <WorkspaceBubble 
-                                key={ws.tenantId} 
-                                label={ws.tenantName} 
-                                isActive={activeWorkspace?.tenantId === ws.tenantId} 
-                                onPress={() => handleSwitch(ws)} 
-                                image={ws.photoUrl || "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
+                            <WorkspaceBubble
+                                key={ws.tenantId}
+                                label={ws.tenantName}
+                                isActive={activeWorkspace?.tenantId === ws.tenantId}
+                                onPress={() => handleSwitch(ws)}
+                                image={ws.photoUrl || 'https://cdn-icons-png.flaticon.com/512/9374/9374944.png'}
                             />
                         ))}
                     </ScrollView>
                 </View>
 
-                {/* Security Grid Icons (Matching Image) */}
+                {/* Role Switcher */}
+                {activeWorkspace && (activeWorkspace.roles?.length ?? 0) > 1 && (
+                    <View style={styles.roleSwitcherRow}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+                            {activeWorkspace.roles.map((r) => (
+                                <TouchableOpacity
+                                    key={r}
+                                    onPress={() => handleSwitchRole(r)}
+                                    style={[styles.rolePill, activeWorkspace.role === r && styles.rolePillActive]}
+                                    disabled={switchingRole}
+                                >
+                                    <Text style={[styles.rolePillText, activeWorkspace.role === r && styles.rolePillTextActive]}>
+                                        {r.replace(/_/g, ' ')}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* Quick Icon Grid */}
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#4c1d95" onPress={() => router.push('/gatepass-scanner')} />
                     <DashboardIcon icon="person-add" label="Add Visitor" color="#fff" bg="#10b981" onPress={() => router.push('/add-visitor')} />
@@ -88,12 +167,12 @@ export default function SecurityDashboard() {
                     <DashboardIcon icon="warning" label="Alerts" color="#fff" bg="#ef4444" />
                 </View>
 
-                {/* Security Stats Row */}
+                {/* Live Security Stats Row */}
                 <View style={styles.statsRow}>
-                    <StatBox count="42" label="Entries" icon="walk" />
-                    <StatBox count="08" label="Deliveries" icon="bicycle" />
-                    <StatBox count="05" label="Cabs" icon="car" />
-                    <StatBox count="02" label="Alerts" icon="warning" />
+                    <StatBox count={statsLoading ? '–' : String(stats.entries)} label="Entries" icon="walk" />
+                    <StatBox count={statsLoading ? '–' : String(stats.deliveries)} label="Deliveries" icon="bicycle" />
+                    <StatBox count={statsLoading ? '–' : String(stats.cabs)} label="Cabs" icon="car" />
+                    <StatBox count={statsLoading ? '–' : String(stats.alerts)} label="Alerts" icon="warning" highlight={stats.alerts > 0} />
                 </View>
 
                 {/* Restricted Access Banner */}
@@ -106,24 +185,16 @@ export default function SecurityDashboard() {
                     </Text>
                 </View>
 
-                {/* Security Tools */}
+                {/* Daily Operations */}
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Daily Operations</Text>
                     <View style={styles.featureGrid}>
                         <FeatureCard icon="shield-checkmark" title="Gate Access" color="#fff" bg="#3182ce" />
-                        <FeatureCard icon="people" title="Residents" color="#fff" bg="#38a169" />
-                        <FeatureCard icon="car-sport" title="Vehicle Log" color="#fff" bg="#2c5282" />
+                        <FeatureCard icon="car-sport" title="Vehicle Logs" color="#fff" bg="#2c5282" />
                         <FeatureCard icon="megaphone" title="Emergency" color="#fff" bg="#744210" />
-                    </View>
-                </View>
-
-                <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Staff Tools</Text>
-                    <View style={styles.featureGrid}>
-                        <FeatureCard icon="scan" title="Scanner" color="#fff" bg="#4a5568" />
-                        <FeatureCard icon="document-text" title="Logs" color="#fff" bg="#2d3748" />
-                        <FeatureCard icon="chatbubble-ellipses" title="Staff Chat" color="#fff" bg="#1a365d" />
-                        <FeatureCard icon="settings" title="Profile" color="#fff" bg="#2d3748" />
+                        <FeatureCard icon="scan-circle" title="Gate Scanner" color="#fff" bg="#4c1d95" onPress={() => router.push('/gatepass-scanner')} />
+                        <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
+                        <FeatureCard icon="id-card" title="Visitor Register" color="#fff" bg="#10b981" onPress={() => router.push('/visitor-register')} />
                     </View>
                 </View>
 
@@ -135,10 +206,7 @@ export default function SecurityDashboard() {
 // Sub-components
 function WorkspaceBubble({ label, isActive, onPress, image }: any) {
     return (
-        <TouchableOpacity 
-            style={[styles.wsBubble, isActive && styles.wsBubbleActive]} 
-            onPress={onPress}
-        >
+        <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
             <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
                 <Image source={{ uri: image }} style={styles.wsBubbleImg} />
             </View>
@@ -158,11 +226,16 @@ function DashboardIcon({ icon, label, color, bg, onPress }: any) {
     );
 }
 
-function StatBox({ count, label, icon }: any) {
+function StatBox({ count, label, icon, highlight }: any) {
     return (
         <View style={styles.statBox}>
-            <Ionicons name={icon as any} size={20} color="#fff" style={{ marginBottom: 4, opacity: 0.7 }} />
-            <Text style={styles.statBoxCount}>{count}</Text>
+            <Ionicons
+                name={icon as any}
+                size={20}
+                color={highlight ? '#ef4444' : '#fff'}
+                style={{ marginBottom: 4, opacity: highlight ? 1 : 0.7 }}
+            />
+            <Text style={[styles.statBoxCount, highlight && { color: '#ef4444' }]}>{count}</Text>
             <Text style={styles.statBoxLabel}>{label}</Text>
         </View>
     );
@@ -183,15 +256,14 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     container: { flex: 1 },
     content: { paddingBottom: 110 },
-    
-    // Premium Header
+
+    // Header
     psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
     psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
     psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
     psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
-    
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     profileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
@@ -214,19 +286,29 @@ const styles = StyleSheet.create({
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
+    // Stats
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 30, backgroundColor: 'rgba(255,255,255,0.03)', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     statBox: { alignItems: 'center', flex: 1 },
     statBoxCount: { fontSize: 16, fontWeight: '900', color: '#fff' },
     statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
 
+    // Restricted Banner
     restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
     lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
     restrictedText: { flex: 1, fontSize: 11, color: '#94a3b8', fontWeight: '600', lineHeight: 16 },
 
+    // Feature Cards
     sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
     sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 15 },
     featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
     fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
     fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+    // Role Switcher
+    roleSwitcherRow: { marginBottom: 15 },
+    rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+    rolePillTextActive: { color: '#fff' },
 });

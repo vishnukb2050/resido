@@ -58,7 +58,16 @@ export class AuthService {
             where: { userId: user.id, isActive: true },
         });
 
-        const workspaces = await Promise.all(memberships.map(async (m) => {
+        const grouped = memberships.reduce((acc: Record<string, any>, m) => {
+            if (!acc[m.tenantId]) {
+                acc[m.tenantId] = { ...m, roles: [m.role] };
+            } else {
+                acc[m.tenantId].roles.push(m.role);
+            }
+            return acc;
+        }, {});
+
+        const workspaces = await Promise.all(Object.values(grouped).map(async (m: any) => {
             const client = await this.prisma.masterRead.client.findUnique({
                 where: { id: m.tenantId },
                 select: { dbName: true }
@@ -145,8 +154,13 @@ export class AuthService {
             select: { dbName: true }
         });
 
+        const allMemberships = await this.prisma.userRead.workspaceMembership.findMany({
+            where: { userId, tenantId, isActive: true }
+        });
+        const roles = allMemberships.map(m => m.role);
+
         const tokens = await this.generateTokens(userId, null, tenantId, membership.role as string);
-        return { ...tokens, workspace: { ...membership, dbName: client?.dbName || 'resido_core' } };
+        return { ...tokens, workspace: { ...membership, roles, dbName: client?.dbName || 'resido_core' } };
     }
 
     async refreshToken(refreshToken: string) {

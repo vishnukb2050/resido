@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    SafeAreaView, ActivityIndicator, Alert, Modal, ScrollView, TextInput
+    SafeAreaView, ActivityIndicator, Alert, Modal, ScrollView, TextInput,
+    Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { useAuthStore } from '../store/authStore';
-import { communityApi } from '../services/api';
+import { communityApi, authApi } from '../services/api';
 
 const CATEGORIES = [
     'Plumbing', 'Electrical', 'Handyman', 'Lift', 'Kitchen', 
@@ -30,6 +32,13 @@ export default function AdminComplaintsScreen() {
     const [showAssign, setShowAssign] = useState(false);
     const [showStatus, setShowStatus] = useState(false);
     const [showCreate, setShowCreate] = useState(false);
+
+    // Progress Update Form States
+    const [progressMessage, setProgressMessage] = useState('');
+    const [progressStatus, setProgressStatus] = useState('IN_PROGRESS');
+    const [progressPhotos, setProgressPhotos] = useState<any[]>([]);
+    const [uploadingProgress, setUploadingProgress] = useState(false);
+    const [expandedComplaintId, setExpandedComplaintId] = useState<string | null>(null);
 
     // Form Creation States
     const [createForm, setCreateForm] = useState({
@@ -95,14 +104,69 @@ export default function AdminComplaintsScreen() {
         }
     };
 
-    const handleUpdateStatus = async (status: string) => {
+    const pickProgressPhoto = async () => {
         try {
-            await communityApi.updateComplaintStatus(selectedComplaint.id, status);
-            Alert.alert('Success', `Status updated to ${status}`);
+            const result = await DocumentPicker.getDocumentAsync({
+                type: 'image/*',
+            });
+            if (!result.canceled) {
+                setProgressPhotos(prev => [...prev, result.assets[0]]);
+            }
+        } catch (err) {
+            console.error('Pick progress photo error', err);
+        }
+    };
+
+    const handleAddProgress = async () => {
+        if (!progressMessage) {
+            Alert.alert('Error', 'Please enter a progress note');
+            return;
+        }
+
+        try {
+            setUploadingProgress(true);
+            const uploadedUrls: string[] = [];
+
+            for (const file of progressPhotos) {
+                if (file.uri.startsWith('http')) {
+                    uploadedUrls.push(file.uri);
+                    continue;
+                }
+                const { data: { uploadUrl } } = await authApi.getPresignedUrl(
+                    file.name,
+                    file.mimeType || 'image/jpeg',
+                    'complaints'
+                );
+
+                const response = await fetch(file.uri);
+                const blob = await response.blob();
+                await fetch(uploadUrl, { 
+                    method: 'PUT', 
+                    body: blob, 
+                    headers: { 'Content-Type': file.mimeType || 'image/jpeg' } 
+                });
+                
+                const fileUrl = uploadUrl.split('?')[0];
+                uploadedUrls.push(fileUrl);
+            }
+
+            await communityApi.addComplaintProgress(selectedComplaint.id, {
+                message: progressMessage,
+                photos: uploadedUrls,
+                status: progressStatus,
+                updatedBy: `${activeWorkspace?.role.replace('_STAFF', '')} (${user?.name})`
+            });
+
+            Alert.alert('Success', 'Progress update logged successfully!');
             setShowStatus(false);
+            setProgressMessage('');
+            setProgressPhotos([]);
             fetchComplaints();
-        } catch (e) {
-            Alert.alert('Error', 'Failed to update status');
+        } catch (error) {
+            console.error('Failed to log progress', error);
+            Alert.alert('Error', 'Failed to save progress update. Please try again.');
+        } finally {
+            setUploadingProgress(false);
         }
     };
 
@@ -190,55 +254,126 @@ export default function AdminComplaintsScreen() {
                     data={complaints}
                     keyExtractor={(item: any) => item.id}
                     contentContainerStyle={styles.listContent}
-                    renderItem={({ item }) => (
-                        <View style={styles.card}>
-                            <View style={styles.cardHeader}>
-                                <Text style={styles.categoryText}>{item.category || 'General'}</Text>
-                                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-                                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+                    renderItem={({ item }) => {
+                        const isExpanded = expandedComplaintId === item.id;
+                        return (
+                            <TouchableOpacity 
+                                style={styles.card}
+                                onPress={() => setExpandedComplaintId(isExpanded ? null : item.id)}
+                                activeOpacity={0.9}
+                            >
+                                <View style={styles.cardHeader}>
+                                    <Text style={styles.categoryText}>{item.category || 'General'}</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                                        <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+                                    </View>
                                 </View>
-                            </View>
-                            
-                            <Text style={styles.description}>{item.description}</Text>
-                            
-                            {/* Resident Info Box */}
-                            <View style={styles.metaRow}>
-                                <Ionicons name="person-outline" size={13} color="#94a3b8" />
-                                <Text style={styles.metaText}>Raised by: {item.member?.name || 'Resident'} | {item.member?.phone || ''}</Text>
-                            </View>
-
-                            {/* Staff Assigned Info Box */}
-                            {item.assignedTo && (
-                                <View style={[styles.metaRow, styles.assignedBox]}>
-                                    <Ionicons name="construct-outline" size={13} color="#10b981" />
-                                    <Text style={[styles.metaText, { color: '#10b981', fontWeight: '800' }]}>
-                                        Assigned To: {item.assignedTo.name} ({item.assignedTo.role.replace('_STAFF', '')})
-                                    </Text>
+                                
+                                <Text style={styles.description}>{item.description}</Text>
+                                
+                                {/* Resident Info Box */}
+                                <View style={styles.metaRow}>
+                                    <Ionicons name="person-outline" size={13} color="#94a3b8" />
+                                    <Text style={styles.metaText}>Raised by: {item.member?.name || 'Resident'} | {item.member?.phone || ''}</Text>
                                 </View>
-                            )}
 
-                            <View style={styles.actionRow}>
-                                {isAdmin && (
-                                    <TouchableOpacity 
-                                        style={styles.actionBtn}
-                                        onPress={() => { setSelectedComplaint(item); setShowAssign(true); }}
-                                    >
-                                        <Ionicons name="person-add" size={18} color="#fff" />
-                                        <Text style={styles.actionBtnText}>Assign Staff</Text>
-                                    </TouchableOpacity>
+                                {/* Staff Assigned Info Box */}
+                                {item.assignedTo && (
+                                    <View style={[styles.metaRow, styles.assignedBox]}>
+                                        <Ionicons name="construct-outline" size={13} color="#10b981" />
+                                        <Text style={[styles.metaText, { color: '#10b981', fontWeight: '800' }]}>
+                                            Assigned To: {item.assignedTo.name} ({item.assignedTo.role.replace('_STAFF', '')})
+                                        </Text>
+                                    </View>
                                 )}
-                                {(isAdmin || isStaff) && (
-                                    <TouchableOpacity 
-                                        style={[styles.actionBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]}
-                                        onPress={() => { setSelectedComplaint(item); setShowStatus(true); }}
-                                    >
-                                        <Ionicons name="create-outline" size={18} color="#fff" />
-                                        <Text style={styles.actionBtnText}>Update Status</Text>
-                                    </TouchableOpacity>
+
+                                {isExpanded && (
+                                    <View style={styles.expandedSection}>
+                                        {/* Original request photos */}
+                                        {item.mediaUrls && item.mediaUrls.length > 0 && (
+                                            <View style={styles.sectionGroup}>
+                                                <Text style={styles.sectionTitle}>Attached Photos</Text>
+                                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                                                    {item.mediaUrls.map((url: string, idx: number) => (
+                                                        <Image key={idx} source={{ uri: url }} style={styles.complaintImage} />
+                                                    ))}
+                                                </ScrollView>
+                                            </View>
+                                        )}
+
+                                        {/* Progress updates timeline */}
+                                        <Text style={styles.sectionTitle}>Progress Timeline</Text>
+                                        {(!item.progressNotes || (Array.isArray(item.progressNotes) ? item.progressNotes.length : JSON.parse(item.progressNotes || '[]').length) === 0) ? (
+                                            <Text style={styles.noProgressText}>No progress updates logged yet.</Text>
+                                        ) : (
+                                            <View style={styles.timelineContainer}>
+                                                {(Array.isArray(item.progressNotes) ? item.progressNotes : JSON.parse(item.progressNotes || '[]')).map((note: any, idx: number) => {
+                                                    const progressList = Array.isArray(item.progressNotes) ? item.progressNotes : JSON.parse(item.progressNotes || '[]');
+                                                    return (
+                                                        <View key={note.id || idx} style={styles.timelineItem}>
+                                                            <View style={styles.timelineLineWrapper}>
+                                                                <View style={styles.timelineDot} />
+                                                                {idx !== progressList.length - 1 && (
+                                                                    <View style={styles.timelineLine} />
+                                                                )}
+                                                            </View>
+                                                            <View style={styles.timelineContent}>
+                                                                <View style={styles.timelineHeader}>
+                                                                    <Text style={styles.timelineUpdater}>{note.updatedBy}</Text>
+                                                                    <Text style={styles.timelineDate}>{new Date(note.createdAt).toLocaleDateString()}</Text>
+                                                                </View>
+                                                                <View style={[styles.statusBadgeSmall, { backgroundColor: getStatusColor(note.status) + '15' }]}>
+                                                                    <Text style={[styles.statusTextSmall, { color: getStatusColor(note.status) }]}>{note.status}</Text>
+                                                                </View>
+                                                                <Text style={styles.timelineMessage}>{note.message}</Text>
+                                                                {note.photos && note.photos.length > 0 && (
+                                                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 8 }}>
+                                                                        {note.photos.map((photoUrl: string, pIdx: number) => (
+                                                                            <Image key={pIdx} source={{ uri: photoUrl }} style={styles.timelineImage} />
+                                                                        ))}
+                                                                    </ScrollView>
+                                                                )}
+                                                            </View>
+                                                        </View>
+                                                    );
+                                                })}
+                                            </View>
+                                        )}
+                                    </View>
                                 )}
-                            </View>
-                        </View>
-                    )}
+
+                                <View style={styles.actionRow}>
+                                    {isAdmin && (
+                                        <TouchableOpacity 
+                                            style={styles.actionBtn}
+                                            onPress={(e) => { 
+                                                e.stopPropagation();
+                                                setSelectedComplaint(item); 
+                                                setShowAssign(true); 
+                                            }}
+                                        >
+                                            <Ionicons name="person-add" size={18} color="#fff" />
+                                            <Text style={styles.actionBtnText}>Assign Staff</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    {(isAdmin || isStaff) && (
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]}
+                                            onPress={(e) => { 
+                                                e.stopPropagation();
+                                                setSelectedComplaint(item); 
+                                                setProgressStatus(item.status);
+                                                setShowStatus(true); 
+                                            }}
+                                        >
+                                            <Ionicons name="create-outline" size={18} color="#fff" />
+                                            <Text style={styles.actionBtnText}>Update Progress</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    }}
                 />
             )}
 
@@ -442,19 +577,96 @@ export default function AdminComplaintsScreen() {
                 </View>
             </Modal>
 
-            {/* Update Status Modal */}
-            <Modal visible={showStatus} transparent animationType="fade">
+            {/* Update Progress Modal */}
+            <Modal visible={showStatus} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Update Status</Text>
-                        {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map(status => (
-                            <TouchableOpacity key={status} style={styles.statusItem} onPress={() => handleUpdateStatus(status)}>
-                                <Text style={styles.statusItemText}>{status}</Text>
+                    <View style={styles.modalContentLarge}>
+                        <Text style={styles.modalLargeTitle}>Update Progress</Text>
+                        
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                            {/* 1. Status selector */}
+                            <View style={styles.formGroup}>
+                                <Text style={styles.modalLabel}>Select Status</Text>
+                                <View style={styles.prioritySelectorRow}>
+                                    {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map(status => (
+                                        <TouchableOpacity 
+                                            key={status} 
+                                            style={[styles.prioritySelectorBtn, progressStatus === status && styles.prioritySelectorBtnActive]}
+                                            onPress={() => setProgressStatus(status)}
+                                        >
+                                            <Text style={[styles.prioritySelectorText, progressStatus === status && styles.prioritySelectorTextActive]}>
+                                                {status}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* 2. Progress note message */}
+                            <View style={styles.formGroup}>
+                                <Text style={styles.modalLabel}>Progress Note / Update Message</Text>
+                                <TextInput
+                                    style={styles.modalTextArea}
+                                    placeholder="Describe the work done or current status update..."
+                                    placeholderTextColor="#64748b"
+                                    multiline
+                                    numberOfLines={3}
+                                    value={progressMessage}
+                                    onChangeText={setProgressMessage}
+                                />
+                            </View>
+
+                            {/* 3. Photo Picker */}
+                            <View style={styles.formGroup}>
+                                <Text style={styles.modalLabel}>Attach Progress Photos</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 5 }}>
+                                    {progressPhotos.map((photo, index) => (
+                                        <View key={index} style={{ width: 80, height: 80, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                                            <Image source={{ uri: photo.uri }} style={{ width: '100%', height: '100%' }} />
+                                            <TouchableOpacity 
+                                                style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: 2 }}
+                                                onPress={() => setProgressPhotos(prev => prev.filter((_, idx) => idx !== index))}
+                                            >
+                                                <Ionicons name="close" size={14} color="#fff" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                    
+                                    <TouchableOpacity 
+                                        style={{ width: 80, height: 80, borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: '#6366f1', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(99, 102, 241, 0.05)' }} 
+                                        onPress={pickProgressPhoto}
+                                    >
+                                        <Ionicons name="camera-outline" size={24} color="#6366f1" />
+                                        <Text style={{ fontSize: 10, color: '#6366f1', fontWeight: '800', marginTop: 4 }}>Add Photo</Text>
+                                    </TouchableOpacity>
+                                </ScrollView>
+                            </View>
+                        </ScrollView>
+
+                        {/* Actions */}
+                        <View style={styles.modalActionsRow}>
+                            <TouchableOpacity 
+                                style={styles.modalCancelBtn} 
+                                onPress={() => { 
+                                    setShowStatus(false); 
+                                    setProgressMessage(''); 
+                                    setProgressPhotos([]); 
+                                }}
+                            >
+                                <Text style={styles.modalCancelText}>Cancel</Text>
                             </TouchableOpacity>
-                        ))}
-                        <TouchableOpacity style={styles.closeBtn} onPress={() => setShowStatus(false)}>
-                            <Text style={styles.closeBtnText}>Cancel</Text>
-                        </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.modalSubmitBtn, { backgroundColor: '#10b981' }]} 
+                                onPress={handleAddProgress} 
+                                disabled={uploadingProgress}
+                            >
+                                {uploadingProgress ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.modalSubmitText}>Save Update</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -553,5 +765,28 @@ const styles = StyleSheet.create({
     statusItem: { padding: 18, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, marginBottom: 10, alignItems: 'center' },
     statusItemText: { color: '#fff', fontWeight: '800', fontSize: 14 },
     closeBtn: { marginTop: 10, padding: 15, alignItems: 'center' },
-    closeBtnText: { color: '#94a3b8', fontWeight: '700' }
+    closeBtnText: { color: '#94a3b8', fontWeight: '700' },
+
+    // Expanded Section & Timeline Styling
+    expandedSection: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+    sectionGroup: { marginBottom: 15 },
+    sectionTitle: { fontSize: 11, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
+    complaintImage: { width: 100, height: 100, borderRadius: 12, marginRight: 8 },
+    noProgressText: { fontSize: 13, color: '#64748b', fontStyle: 'italic', marginBottom: 10, marginLeft: 4 },
+    
+    timelineContainer: { paddingLeft: 10, marginVertical: 10 },
+    timelineItem: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+    timelineLineWrapper: { alignItems: 'center', width: 16 },
+    timelineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366f1', marginTop: 6 },
+    timelineLine: { width: 2, flex: 1, backgroundColor: 'rgba(99, 102, 241, 0.15)', marginTop: 4, marginBottom: -10 },
+    
+    timelineContent: { flex: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
+    timelineHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    timelineUpdater: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    timelineDate: { fontSize: 11, color: '#64748b', fontWeight: '500' },
+    timelineMessage: { fontSize: 13, color: '#cbd5e1', lineHeight: 18, marginTop: 4 },
+    timelineImage: { width: 60, height: 60, borderRadius: 8, marginRight: 8 },
+    
+    statusBadgeSmall: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginBottom: 4 },
+    statusTextSmall: { fontSize: 9, fontWeight: '800' }
 });

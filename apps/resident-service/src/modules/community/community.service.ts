@@ -109,6 +109,45 @@ export class CommunityService {
         });
     }
 
+    async addProgressNote(id: string, data: { message: string; photos?: string[]; status?: string; updatedBy?: string }) {
+        const complaint = await this.prisma.reader.complaint.findUnique({
+            where: { id }
+        });
+        if (!complaint) {
+            throw new NotFoundException('Complaint not found');
+        }
+
+        let currentNotes: any[] = [];
+        if (complaint.progressNotes) {
+            try {
+                currentNotes = Array.isArray(complaint.progressNotes)
+                    ? complaint.progressNotes
+                    : JSON.parse(complaint.progressNotes as string) || [];
+            } catch (e) {
+                currentNotes = [];
+            }
+        }
+
+        const newNote = {
+            id: Math.random().toString(36).substring(2, 9),
+            message: data.message,
+            photos: data.photos || [],
+            updatedBy: data.updatedBy || 'Staff',
+            createdAt: new Date().toISOString(),
+            status: data.status || complaint.status
+        };
+
+        currentNotes.push(newNote);
+
+        return this.prisma.client.complaint.update({
+            where: { id },
+            data: {
+                progressNotes: currentNotes as any,
+                ...(data.status ? { status: data.status as any } : {})
+            }
+        });
+    }
+
     // ─── Visitors / Gatepass ────────────────────────────────────
     async getVisitors(memberId?: string) {
         const visitors = await this.prisma.reader.visitor.findMany({

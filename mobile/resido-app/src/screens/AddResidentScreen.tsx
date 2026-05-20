@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import { communityApi, residentApi } from '../services/api';
+import { communityApi, residentApi, authApi } from '../services/api';
 
 export default function AddResidentScreen() {
     const router = useRouter();
@@ -64,6 +64,25 @@ export default function AddResidentScreen() {
                 unitId: selectedUnit.id,
             });
 
+            await authApi.syncMembership({
+                phone: formData.phone,
+                tenantId: activeWorkspace?.tenantId,
+                tenantName: activeWorkspace?.tenantName,
+                role: 'RESIDENT',
+                name: formData.name,
+            });
+
+            try {
+                const res = await authApi.getWorkspaces();
+                useAuthStore.getState().setWorkspaces(res.data);
+                if (activeWorkspace) {
+                    const swRes = await authApi.switchWorkspace(activeWorkspace.tenantId, activeWorkspace.role);
+                    useAuthStore.getState().setActiveWorkspace(swRes.data.workspace, swRes.data.accessToken);
+                }
+            } catch (err) {
+                console.log('Failed to refresh workspaces', err);
+            }
+
             Alert.alert('Success', 'Resident added successfully!', [
                 { text: 'OK', onPress: () => router.back() }
             ]);
@@ -87,7 +106,7 @@ export default function AddResidentScreen() {
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                 <View style={styles.form}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Search Address / Unit</Text>
+                        <Text style={styles.label}>Search Unit / Address</Text>
                         <View style={styles.searchBar}>
                             <Ionicons name="search" size={20} color="#64748b" />
                             <TextInput

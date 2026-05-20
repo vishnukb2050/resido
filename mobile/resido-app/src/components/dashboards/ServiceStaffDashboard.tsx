@@ -1,115 +1,266 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
+import { authApi } from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { getThemeColors } from '../../utils/theme';
 
 export default function ServiceStaffDashboard() {
-    const { activeWorkspace, user } = useAuthStore();
+    const { activeWorkspace, user, workspaces, setActiveWorkspace, switchRole } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
+    const router = useRouter();
+    const [switchingRole, setSwitchingRole] = React.useState(false);
+
+    const handleSwitch = async (ws: any) => {
+        try {
+            const res = await authApi.switchWorkspace(ws.tenantId);
+            setActiveWorkspace(res.data.workspace, res.data.accessToken);
+        } catch (e) {
+            console.error('Switch failed', e);
+        }
+    };
+
+    const handleSwitchRole = async (role: string) => {
+        if (!activeWorkspace || switchingRole) return;
+        try {
+            setSwitchingRole(true);
+            const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
+            switchRole(role as any, res.data.accessToken);
+        } catch (e) {
+            console.error('Failed to switch role:', e);
+        } finally {
+            setSwitchingRole(false);
+        }
+    };
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
-            <View style={[styles.headerRow, { backgroundColor: theme.surface, padding: 15, borderRadius: 20 }]}>
-                <View style={styles.headerLeft}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{(user?.name || 'M')[0].toUpperCase()}</Text>
-                    </View>
-                    <View style={styles.headerTitles}>
-                        <Text style={[styles.apartment, { color: '#fff' }]}>{activeWorkspace?.tenantName || 'Maintenance Team'}</Text>
-                        <View style={styles.roleBadge}>
-                            <Text style={styles.roleText}>Maintenance / Service Staff</Text>
-                        </View>
-                        <Text style={[styles.greeting, { color: 'rgba(255,255,255,0.7)' }]}>Welcome, {user?.name || 'Staff Member'} 🛠️</Text>
-                    </View>
-                </View>
-            </View>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
 
-            {/* Quick Stats */}
-            <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                    <Text style={styles.statNumber}>5</Text>
-                    <Text style={styles.statLabel}>Pending Tasks</Text>
-                </View>
-                <View style={styles.statBox}>
-                    <Text style={styles.statNumber}>12</Text>
-                    <Text style={styles.statLabel}>Completed</Text>
-                </View>
-                <View style={styles.statBox}>
-                    <Text style={styles.statNumber}>2</Text>
-                    <Text style={styles.statLabel}>High Priority</Text>
-                </View>
-            </View>
-
-            {/* Tasks Section */}
-            <Text style={styles.sectionTitle}>My Work Orders</Text>
-            <View style={styles.taskList}>
-                {[
-                    { id: 1, title: 'Electrical Fix - Block B', loc: 'Flat 402', priority: 'HIGH' },
-                    { id: 2, title: 'Plumbing Leakage', loc: 'Corridor Level 2', priority: 'MEDIUM' },
-                ].map((task) => (
-                    <View key={task.id} style={styles.taskItem}>
-                        <View style={styles.taskHeader}>
-                            <Text style={styles.taskTitle}>{task.title}</Text>
-                            <View style={[styles.priorityBadge, { backgroundColor: task.priority === 'HIGH' ? '#fee2e2' : '#fef9c3' }]}>
-                                <Text style={[styles.priorityText, { color: task.priority === 'HIGH' ? '#b91c1c' : '#854d0e' }]}>{task.priority}</Text>
-                            </View>
+                {/* Header */}
+                <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
+                    <View style={styles.psBrandInfo}>
+                        <View style={styles.psLogoBox}>
+                            <Image
+                                source={activeWorkspace?.photoUrl ? { uri: activeWorkspace.photoUrl } : require('../../../assets/icon.png')}
+                                style={styles.psWorkspaceImg}
+                            />
                         </View>
-                        <Text style={styles.taskLoc}>📍 {task.loc}</Text>
-                        <TouchableOpacity style={styles.updateBtn}>
-                            <Text style={styles.updateText}>Update Status</Text>
+                        <View style={{ marginLeft: 15 }}>
+                            <Text style={styles.psBrandTitleText}>
+                                {activeWorkspace?.tenantName || 'Resido'}
+                            </Text>
+                            <Text style={styles.psBrandTaglineText}>
+                                {activeWorkspace?.role?.replace(/_/g, ' ') || 'MAINTENANCE STAFF'}
+                            </Text>
+                        </View>
+                    </View>
+                    <View style={styles.psHeaderActions}>
+                        <TouchableOpacity style={styles.psIconBtn}>
+                            <Ionicons name="notifications" size={22} color="#fff" />
                         </TouchableOpacity>
+                        <View style={styles.profileBtn}>
+                            <Image
+                                source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=maintenance' }}
+                                style={styles.profileImg}
+                            />
+                        </View>
                     </View>
-                ))}
-            </View>
+                </View>
 
-            {/* Tools Grid */}
-            <Text style={styles.sectionTitle}>Resources</Text>
-            <View style={styles.toolGrid}>
-                <TouchableOpacity style={styles.toolCard}>
-                    <Text style={styles.toolIcon}>📋</Text>
-                    <Text style={styles.toolLabel}>Inventory</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.toolCard}>
-                    <Text style={styles.toolIcon}>🗺️</Text>
-                    <Text style={styles.toolLabel}>Building Map</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.toolCard}>
-                    <Text style={styles.toolIcon}>📞</Text>
-                    <Text style={styles.toolLabel}>Contact Admin</Text>
-                </TouchableOpacity>
+                {/* Workspace Switcher Bubbles */}
+                <View style={styles.psWorkspaceSection}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psWorkspaceScroll}>
+                        <WorkspaceBubble
+                            label="My Space"
+                            isActive={!activeWorkspace}
+                            onPress={() => setActiveWorkspace(null as any, '')}
+                            image={user?.profilePhoto || 'https://i.pravatar.cc/100?u=resido'}
+                        />
+                        {workspaces?.map((ws: any) => (
+                            <WorkspaceBubble
+                                key={ws.tenantId}
+                                label={ws.tenantName}
+                                isActive={activeWorkspace?.tenantId === ws.tenantId}
+                                onPress={() => handleSwitch(ws)}
+                                image={ws.photoUrl || 'https://cdn-icons-png.flaticon.com/512/9374/9374944.png'}
+                            />
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* Role Switcher Pills */}
+                {activeWorkspace && (activeWorkspace.roles?.length ?? 0) > 1 && (
+                    <View style={styles.roleSwitcherRow}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+                            {activeWorkspace.roles.map((r) => (
+                                <TouchableOpacity
+                                    key={r}
+                                    onPress={() => handleSwitchRole(r)}
+                                    style={[styles.rolePill, activeWorkspace.role === r && styles.rolePillActive]}
+                                    disabled={switchingRole}
+                                >
+                                    <Text style={[styles.rolePillText, activeWorkspace.role === r && styles.rolePillTextActive]}>
+                                        {r.replace(/_/g, ' ')}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* Quick Icon Grid */}
+                <View style={styles.gridContainer}>
+                    <DashboardIcon icon="construct" label="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
+                    <DashboardIcon icon="clipboard" label="Task Log" color="#fff" bg="#7c3aed" />
+                    <DashboardIcon icon="cube" label="Inventory" color="#fff" bg="#0891b2" />
+                    <DashboardIcon icon="call" label="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
+                    <DashboardIcon icon="document-text" label="Reports" color="#fff" bg="#b45309" />
+                </View>
+
+                {/* Stats Row */}
+                <View style={styles.statsRow}>
+                    <StatBox count="–" label="Pending" icon="time-outline" />
+                    <StatBox count="–" label="In Progress" icon="construct-outline" />
+                    <StatBox count="–" label="Done Today" icon="checkmark-circle-outline" />
+                    <StatBox count="–" label="High Priority" icon="warning-outline" highlight />
+                </View>
+
+                {/* Restricted Banner */}
+                <View style={styles.restrictedBanner}>
+                    <View style={styles.lockIconBox}>
+                        <Ionicons name="lock-closed" size={18} color="#fff" />
+                    </View>
+                    <Text style={styles.restrictedText}>
+                        Community features like Notices, Chat, and Finance are restricted for staff roles.
+                    </Text>
+                </View>
+
+                {/* Daily Operations */}
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>Maintenance Tools</Text>
+                    <View style={styles.featureGrid}>
+                        <FeatureCard icon="construct" title="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
+                        <FeatureCard icon="cube" title="Assets" color="#fff" bg="#0891b2" onPress={() => router.push('/admin-assets')} />
+                        <FeatureCard icon="clipboard" title="Task Log" color="#fff" bg="#7c3aed" />
+                        <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#b45309" onPress={() => router.push('/staff-documents')} />
+                        <FeatureCard icon="call" title="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
+                        <FeatureCard icon="calendar" title="Events" color="#fff" bg="#4c1d95" onPress={() => router.push('/events')} />
+                    </View>
+                </View>
+
+            </ScrollView>
+        </SafeAreaView>
+    );
+}
+
+// Sub-components
+function WorkspaceBubble({ label, isActive, onPress, image }: any) {
+    return (
+        <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
+            <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
+                <Image source={{ uri: image }} style={styles.wsBubbleImg} />
             </View>
-        </ScrollView>
+            <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>{label}</Text>
+        </TouchableOpacity>
+    );
+}
+
+function DashboardIcon({ icon, label, color, bg, onPress }: any) {
+    return (
+        <TouchableOpacity style={styles.dbIconItem} onPress={onPress}>
+            <View style={[styles.dbIconBox, { backgroundColor: bg }]}>
+                <Ionicons name={icon as any} size={28} color={color} />
+            </View>
+            <Text style={styles.dbIconLabel}>{label}</Text>
+        </TouchableOpacity>
+    );
+}
+
+function StatBox({ count, label, icon, highlight }: any) {
+    return (
+        <View style={styles.statBox}>
+            <Ionicons
+                name={icon as any}
+                size={20}
+                color={highlight ? '#f59e0b' : '#fff'}
+                style={{ marginBottom: 4, opacity: highlight ? 1 : 0.7 }}
+            />
+            <Text style={[styles.statBoxCount, highlight && { color: '#f59e0b' }]}>{count}</Text>
+            <Text style={styles.statBoxLabel}>{label}</Text>
+        </View>
+    );
+}
+
+function FeatureCard({ icon, title, color, bg, onPress }: any) {
+    return (
+        <TouchableOpacity style={[styles.featureCard, { backgroundColor: bg }]} onPress={onPress}>
+            <View style={styles.fCardHeader}>
+                <Ionicons name={icon as any} size={24} color={color} />
+            </View>
+            <Text style={styles.fCardTitle}>{title}</Text>
+        </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fdfcfb' },
-    content: { padding: 20, paddingTop: 60 },
-    headerRow: { marginBottom: 24 },
-    headerLeft: { flexDirection: 'row', alignItems: 'center' },
-    avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#ea580c', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    avatarText: { color: '#fff', fontSize: 20, fontWeight: '700' },
-    headerTitles: { flex: 1 },
-    apartment: { fontSize: 18, fontWeight: '700', color: '#1e293b' },
-    roleBadge: { backgroundColor: '#ffedd5', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
-    roleText: { color: '#9a3412', fontSize: 10, fontWeight: '700' },
-    greeting: { fontSize: 12, color: '#64748b', marginTop: 4 },
-    statsRow: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: '#e2e8f0' },
-    statBox: { flex: 1, alignItems: 'center' },
-    statNumber: { fontSize: 20, fontWeight: '800', color: '#ea580c' },
-    statLabel: { fontSize: 10, color: '#64748b', marginTop: 4 },
-    sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 12 },
-    taskList: { gap: 12, marginBottom: 24 },
-    taskItem: { backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0' },
-    taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    taskTitle: { fontSize: 15, fontWeight: '700', color: '#1e293b' },
-    priorityBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-    priorityText: { fontSize: 10, fontWeight: '700' },
-    taskLoc: { fontSize: 13, color: '#64748b', marginBottom: 12 },
-    updateBtn: { backgroundColor: '#ea580c', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
-    updateText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-    toolGrid: { flexDirection: 'row', gap: 10 },
-    toolCard: { flex: 1, backgroundColor: '#fff', padding: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
-    toolIcon: { fontSize: 24, marginBottom: 8 },
-    toolLabel: { fontSize: 12, fontWeight: '600', color: '#1e293b' },
+    safeArea: { flex: 1 },
+    container: { flex: 1 },
+    content: { paddingBottom: 110 },
+
+    // Header
+    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
+    psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
+    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
+    psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
+    psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+    profileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    profileImg: { width: '100%', height: '100%' },
+
+    // Workspace Bubbles
+    psWorkspaceSection: { marginBottom: 20 },
+    psWorkspaceScroll: { paddingHorizontal: 20, gap: 15 },
+    wsBubble: { alignItems: 'center', width: 70 },
+    wsBubbleActive: { width: 85 },
+    wsBubbleImgBox: { width: 60, height: 60, borderRadius: 30, padding: 2, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 2, borderColor: 'transparent' },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#fff' },
+    wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
+    wsBubbleLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '800', marginTop: 8 },
+    wsBubbleLabelActive: { color: '#fff', fontSize: 11, fontWeight: '900' },
+
+    // Quick Icon Grid
+    gridContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 25 },
+    dbIconItem: { width: '18%', alignItems: 'center' },
+    dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
+
+    // Stats Row
+    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 30, backgroundColor: 'rgba(255,255,255,0.03)', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    statBox: { alignItems: 'center', flex: 1 },
+    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
+
+    // Restricted Banner
+    restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(234, 88, 12, 0.08)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(234, 88, 12, 0.2)' },
+    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#ea580c', alignItems: 'center', justifyContent: 'center' },
+    restrictedText: { flex: 1, fontSize: 11, color: '#94a3b8', fontWeight: '600', lineHeight: 16 },
+
+    // Feature Cards
+    sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 15 },
+    featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
+    fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
+    fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+    // Role Switcher
+    roleSwitcherRow: { marginBottom: 15 },
+    rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    rolePillActive: { backgroundColor: '#ea580c', borderColor: '#ea580c' },
+    rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+    rolePillTextActive: { color: '#fff' },
 });

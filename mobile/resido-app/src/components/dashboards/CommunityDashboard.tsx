@@ -33,7 +33,7 @@ export default function CommunityDashboard() {
             { id: 'notes', title: 'Notes', icon: 'create-outline', color: '#f59e0b', route: '/notes' },
             { id: 'documents', title: 'Documents', icon: 'folder-outline', color: '#10b981', route: '/documents' },
             { id: 'staff', title: 'Staff Contacts', icon: 'call-outline', color: '#0ea5e9', route: '/staff-contacts' },
-            { id: 'events', title: 'Events', icon: 'calendar-outline', color: '#4c1d95', route: '/calendar' },
+            { id: 'events', title: 'Events', icon: 'calendar-outline', color: '#4c1d95', route: '/events' },
             { id: 'visitor_register', title: 'Visitor Register', icon: 'book-outline', color: '#10b981', route: '/visitor-register' },
             { id: 'scanner', title: 'Scanner', icon: 'scan-outline', color: '#8b5cf6', route: '/gatepass-scanner' },
             // Admin only features
@@ -79,7 +79,7 @@ export default function CommunityDashboard() {
                             </View>
                         </View>
                         <View style={styles.headerActions}>
-                            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]} onPress={() => router.push('/calendar')}>
+                            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]} onPress={() => router.push('/events')}>
                                 <Ionicons name="calendar" size={22} color="#fff" />
                             </TouchableOpacity>
                             <TouchableOpacity style={[styles.iconBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>

@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Sync prisma schema
-# echo "🔄 Syncing master database schema..."
-# npx prisma db push --accept-data-loss
+echo "🔄 Syncing core database schema..."
+npx prisma db push --accept-data-loss
 
 # Start the application
 echo "🚀 Starting application..."

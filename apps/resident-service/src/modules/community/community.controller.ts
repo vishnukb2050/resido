@@ -50,6 +50,14 @@ export class CommunityController {
         return this.communityService.updateComplaintStatus(id, status);
     }
 
+    @Post('complaints/:id/progress')
+    addProgress(
+        @Param('id') id: string,
+        @Body() body: { message: string; photos?: string[]; status?: string; updatedBy?: string }
+    ) {
+        return this.communityService.addProgressNote(id, body);
+    }
+
     // Gatepass / Visitors
     @Get('visitors')
     getVisitors(@Query('memberId') memberId: string) {

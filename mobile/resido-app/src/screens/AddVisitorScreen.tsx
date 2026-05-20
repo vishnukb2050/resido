@@ -113,7 +113,7 @@ export default function AddVisitorScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Unit to Visit</Text>
+                        <Text style={styles.label}>Unit/Address to Visit</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="E.g., A-101"

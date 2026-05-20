@@ -91,6 +91,8 @@ export const communityApi = {
     getComplaintsAdmin: (params?: any) => api.get('/community/complaints', { params }),
     assignComplaint: (id: string, staffId: string) => api.post(`/community/complaints/${id}/assign`, { staffId }),
     updateComplaintStatus: (id: string, status: string) => api.post(`/community/complaints/${id}/status`, { status }),
+    addComplaintProgress: (id: string, data: { message: string; photos?: string[]; status?: string; updatedBy?: string }) => 
+        api.post(`/community/complaints/${id}/progress`, data),
     createComplaint: (data: any) => api.post('/community/complaints', data),
     getVisitors: (memberId: string) => api.get(`/community/visitors?memberId=${memberId}`),
     createGatepass: (data: any) => api.post('/community/visitors/gatepass', data),

@@ -11,14 +11,19 @@ export default function GatepassListScreen() {
     const [gatepasses, setGatepasses] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const adminRoles = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF', 'SECURITY_STAFF'];
+    const isStaffRole = adminRoles.includes(activeWorkspace?.role || '');
+
     useEffect(() => {
         fetchGatepasses();
     }, []);
 
     const fetchGatepasses = async () => {
         try {
-            // Admin can see all gatepasses; residents see their own
-            const memberId = activeWorkspace?.role === 'APARTMENT_ADMIN' ? '' : (activeWorkspace?.memberId || user?.id);
+            // Admin and Security Staff can see all gatepasses; residents see their own
+            const adminRoles = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF', 'SECURITY_STAFF'];
+            const isAdminRole = adminRoles.includes(activeWorkspace?.role || '');
+            const memberId = isAdminRole ? '' : (activeWorkspace?.memberId || user?.id);
             const { data } = await communityApi.getVisitors(memberId || '');
             setGatepasses(data);
         } catch (e) {
@@ -52,8 +57,8 @@ export default function GatepassListScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Gatepasses</Text>
-                <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/create-gatepass')}>
+                <Text style={styles.headerTitle}>{isStaffRole ? 'All Gatepasses' : 'My Gatepasses'}</Text>
+                <TouchableOpacity style={styles.addBtn} onPress={() => router.push(isStaffRole ? '/add-visitor' : '/create-gatepass')}>
                     <Ionicons name="add" size={24} color="#fff" />
                 </TouchableOpacity>
             </View>
@@ -104,9 +109,13 @@ export default function GatepassListScreen() {
                         <View style={styles.emptyState}>
                             <Ionicons name="shield-checkmark" size={64} color="rgba(255,255,255,0.05)" />
                             <Text style={styles.emptyTitle}>No Gatepasses Yet</Text>
-                            <Text style={styles.emptySub}>Create a gatepass for your visitors to ensure smooth entry.</Text>
-                            <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/create-gatepass')}>
-                                <Text style={styles.createBtnText}>Create First Gatepass</Text>
+                            <Text style={styles.emptySub}>
+                                {isStaffRole
+                                    ? 'No gatepasses have been generated yet. Register a new visitor entry.'
+                                    : 'Create a gatepass for your visitors to ensure smooth entry.'}
+                            </Text>
+                            <TouchableOpacity style={styles.createBtn} onPress={() => router.push(isStaffRole ? '/add-visitor' : '/create-gatepass')}>
+                                <Text style={styles.createBtnText}>{isStaffRole ? 'Register Visitor' : 'Create First Gatepass'}</Text>
                             </TouchableOpacity>
                         </View>
                     }

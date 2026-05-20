@@ -16,8 +16,6 @@ export default function CreateCommunityScreen() {
     const [adminEmail, setAdminEmail] = useState('');
     const [adminPhone, setAdminPhone] = useState('');
     const [adminPassword, setAdminPassword] = useState('');
-    const [memberPhones, setMemberPhones] = useState('');
-    const [residentPhones, setResidentPhones] = useState('');
     const [loading, setLoading] = useState(false);
     
     // Photo upload state
@@ -69,8 +67,6 @@ export default function CreateCommunityScreen() {
                 adminPhone,
                 adminPassword,
                 photoUrl: uploadedPhotoUrl,
-                memberPhones: memberPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
-                residentPhones: residentPhones.split(',').map(p => p.trim()).filter(p => p.length >= 10),
                 plan: 'BASIC'
             });
             
@@ -188,42 +184,6 @@ export default function CreateCommunityScreen() {
                                 value={adminPassword}
                                 onChangeText={setAdminPassword}
                             />
-                        </View>
-
-                        {/* Onboarding */}
-                        <View style={styles.sectionHeader}>
-                            <Ionicons name="people-outline" size={18} color="#f59e0b" />
-                            <Text style={styles.sectionHeaderText}>Initial Onboarding</Text>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Member Mobile Numbers (Admin Staff)</Text>
-                            <View style={styles.textAreaContainer}>
-                                <TextInput
-                                    style={[styles.input, styles.textArea]}
-                                    placeholder="Enter mobile numbers separated by commas..."
-                                    placeholderTextColor="#64748b"
-                                    multiline
-                                    value={memberPhones}
-                                    onChangeText={setMemberPhones}
-                                />
-                            </View>
-                            <Text style={styles.hint}>Authorized to manage the community (Caretakers, Staff)</Text>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Resident Mobile Numbers</Text>
-                            <View style={styles.textAreaContainer}>
-                                <TextInput
-                                    style={[styles.input, styles.textArea]}
-                                    placeholder="Enter resident mobile numbers separated by commas..."
-                                    placeholderTextColor="#64748b"
-                                    multiline
-                                    value={residentPhones}
-                                    onChangeText={setResidentPhones}
-                                />
-                            </View>
-                            <Text style={styles.hint}>Authorized to join as residents</Text>
                         </View>
 
                         <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={loading}>

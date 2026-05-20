@@ -7,9 +7,10 @@ import { useRouter } from 'expo-router';
 import { getThemeColors } from '../../utils/theme';
 
 export default function CleaningDashboard() {
-    const { activeWorkspace, user, setActiveWorkspace, workspaces } = useAuthStore();
+    const { activeWorkspace, user, setActiveWorkspace, workspaces, switchRole } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const router = useRouter();
+    const [switchingRole, setSwitchingRole] = React.useState(false);
 
     const handleSwitch = async (ws: any) => {
         try {
@@ -17,6 +18,19 @@ export default function CleaningDashboard() {
             setActiveWorkspace(res.data.workspace, res.data.accessToken);
         } catch (e) {
             console.error('Switch failed', e);
+        }
+    };
+
+    const handleSwitchRole = async (role: string) => {
+        if (!activeWorkspace || switchingRole) return;
+        try {
+            setSwitchingRole(true);
+            const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
+            switchRole(role as any, res.data.accessToken);
+        } catch (e) {
+            console.error('Failed to switch role:', e);
+        } finally {
+            setSwitchingRole(false);
         }
     };
 
@@ -78,6 +92,32 @@ export default function CleaningDashboard() {
                         ))}
                     </ScrollView>
                 </View>
+
+                {/* Role Switcher */}
+                {activeWorkspace && (activeWorkspace.roles?.length ?? 0) > 1 && (
+                    <View style={styles.roleSwitcherRow}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+                            {activeWorkspace.roles.map((r) => (
+                                <TouchableOpacity
+                                    key={r}
+                                    onPress={() => handleSwitchRole(r)}
+                                    style={[
+                                        styles.rolePill,
+                                        activeWorkspace.role === r && styles.rolePillActive
+                                    ]}
+                                    disabled={switchingRole}
+                                >
+                                    <Text style={[
+                                        styles.rolePillText,
+                                        activeWorkspace.role === r && styles.rolePillTextActive
+                                    ]}>
+                                        {r.replace(/_/g, ' ')}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
 
                 {/* Task Grid (Matching Image) */}
                 <View style={styles.gridContainer}>
@@ -202,4 +242,11 @@ const styles = StyleSheet.create({
     featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
     fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
     fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+    // Role Switcher
+    roleSwitcherRow: { marginBottom: 15 },
+    rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+    rolePillTextActive: { color: '#fff' },
 });

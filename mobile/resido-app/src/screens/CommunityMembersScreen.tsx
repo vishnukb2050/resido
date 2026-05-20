@@ -59,7 +59,7 @@ export default function CommunityMembersScreen() {
                         <View style={styles.info}>
                             <Text style={styles.name}>{item.profileName || item.name}</Text>
                             {item.profileName && item.name && <Text style={styles.realName}>({item.name})</Text>}
-                            <Text style={styles.unit}>Unit: {item.unitNumber || 'N/A'}</Text>
+                            <Text style={styles.unit}>Unit/Address: {item.unitNumber || 'N/A'}</Text>
                         </View>
                         <View style={styles.roleBadge}>
                             <Text style={styles.roleText}>{item.role}</Text>

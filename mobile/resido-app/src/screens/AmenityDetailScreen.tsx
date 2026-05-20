@@ -72,9 +72,62 @@ export default function AmenityDetailScreen() {
         return { bookedCount: slotBookings.length, remaining, isFull };
     };
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const dateStr = bookingDate.toISOString().split('T')[0];
+    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    const dateStr = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth()+1).padStart(2, '0')}-${String(bookingDate.getDate()).padStart(2, '0')}`;
     const isPastDate = dateStr < todayStr;
+
+    const getAvailableSlotsForDate = () => {
+        if (!amenity) return [];
+        const configStr = amenity.scheduleConfig;
+        if (!configStr) return amenity.timeSlots || [];
+        
+        try {
+            const config = JSON.parse(configStr);
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayOfWeek = days[bookingDate.getDay()];
+            const dayOfMonth = bookingDate.getDate();
+
+            if (amenity.scheduleType === 'WEEKLY') {
+                return config[dayOfWeek] || [];
+            } else if (amenity.scheduleType === 'MONTHLY') {
+                if (config.daysOfMonth && config.daysOfMonth.includes(dayOfMonth)) {
+                    return config.slots || [];
+                }
+                return [];
+            } else if (amenity.scheduleType === 'CUSTOM') {
+                if (config.dates && config.dates[dateStr]) {
+                    return config.dates[dateStr];
+                }
+                return [];
+            }
+        } catch(e) {
+            console.error(e);
+        }
+        return amenity.timeSlots || [];
+    };
+
+    const isPastTimeSlot = (slot: string) => {
+        if (isPastDate) return true;
+        if (dateStr > todayStr) return false;
+
+        try {
+            const startTimeStr = slot.split('-')[0].trim();
+            const [time, ampm] = startTimeStr.split(' ');
+            let [hours, minutes] = time.split(':').map(Number);
+            if (ampm === 'PM' && hours < 12) hours += 12;
+            if (ampm === 'AM' && hours === 12) hours = 0;
+            
+            const now = new Date();
+            const slotTime = new Date();
+            slotTime.setHours(hours, minutes, 0, 0);
+            
+            return now > slotTime;
+        } catch(e) {
+            return false;
+        }
+    };
+
+    const currentSlotsForDate = getAvailableSlotsForDate();
 
     const handleConfirmBooking = async () => {
         if (!selectedSlot) {
@@ -179,7 +232,7 @@ export default function AmenityDetailScreen() {
                         <DateTimePicker
                             value={bookingDate}
                             mode="date"
-                            minimumDate={new Date(Date.now() - 3600000 * 24 * 30)} // Allow looking back up to 30 days
+                            minimumDate={new Date()} // Prevent past dates
                             display="default"
                             onChange={(event, date) => {
                                 setShowDatePicker(false);
@@ -214,10 +267,11 @@ export default function AmenityDetailScreen() {
                     {/* Time Slots grid */}
                     <Text style={styles.label}>Select Available Slot</Text>
                     <View style={styles.slotsGrid}>
-                        {amenity.timeSlots?.map((slot: string) => {
+                        {currentSlotsForDate.map((slot: string) => {
                             const { remaining, isFull } = getSlotCapacityInfo(slot);
                             const isSelected = selectedSlot === slot;
-                            const isSelectable = !isFull && !isPastDate;
+                            const isPast = isPastTimeSlot(slot);
+                            const isSelectable = !isFull && !isPast;
                             const allowRecur = amenity.allowRecurringBookings;
 
                             return (
@@ -226,7 +280,7 @@ export default function AmenityDetailScreen() {
                                     style={[
                                         styles.slotCard,
                                         isFull && styles.slotCardFull,
-                                        isPastDate && styles.slotCardPast,
+                                        isPast && styles.slotCardPast,
                                         isSelected && styles.slotCardSelected
                                     ]}
                                     onPress={() => {
@@ -244,20 +298,20 @@ export default function AmenityDetailScreen() {
                                 >
                                     <Text style={[
                                         styles.slotTime,
-                                        (isFull || isPastDate) && styles.slotTextDisabled,
+                                        (isFull || isPast) && styles.slotTextDisabled,
                                         isSelected && styles.slotTextSelected
                                     ]}>{slot}</Text>
                                     <Text style={[
                                         styles.slotCapacity,
-                                        (isFull || isPastDate) && styles.slotTextDisabled,
+                                        (isFull || isPast) && styles.slotTextDisabled,
                                         isSelected && styles.slotTextSelected
                                     ]}>
-                                        {isPastDate ? 'PAST' : isFull ? (allowRecur ? 'RECURRING OK' : 'ALREADY BOOKED') : 'AVAILABLE'}
+                                        {isPast ? 'PAST' : isFull ? (allowRecur ? 'RECURRING OK' : 'ALREADY BOOKED') : 'AVAILABLE'}
                                     </Text>
                                 </TouchableOpacity>
                             );
                         })}
-                        {(!amenity.timeSlots || amenity.timeSlots.length === 0) && (
+                        {currentSlotsForDate.length === 0 && (
                             <Text style={styles.emptyText}>No available slots found for this date.</Text>
                         )}
                     </View>

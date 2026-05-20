@@ -456,7 +456,7 @@ export default function AddAmenityScreen() {
                                         placeholder="e.g. 09:00 AM - 12:00 PM" 
                                         placeholderTextColor="#94a3b8"
                                         value={monthlyNewSlot}
-                                        onChangeText={setmonthlyNewSlot || setMonthlyNewSlot}
+                                        onChangeText={setMonthlyNewSlot}
                                     />
                                     <TouchableOpacity style={styles.addSlotBtn} onPress={handleAddMonthlySlot}>
                                         <Ionicons name="add" size={24} color="#fff" />

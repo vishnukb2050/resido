@@ -154,7 +154,16 @@ export default function CreateMemberScreen() {
                 role: formData.role
             });
 
-
+            try {
+                const res = await authApi.getWorkspaces();
+                useAuthStore.getState().setWorkspaces(res.data);
+                if (activeWorkspace) {
+                    const swRes = await authApi.switchWorkspace(activeWorkspace.tenantId, activeWorkspace.role);
+                    useAuthStore.getState().setActiveWorkspace(swRes.data.workspace, swRes.data.accessToken);
+                }
+            } catch (err) {
+                console.log('Failed to refresh workspaces', err);
+            }
 
             Alert.alert('Success', `${params.mode === 'STAFF' ? 'Staff' : 'Member'} added successfully`);
             router.back();
@@ -296,7 +305,7 @@ export default function CreateMemberScreen() {
 
                 {params.mode !== 'STAFF' && (
                     <View style={styles.field}>
-                        <Text style={styles.label}>Select Address / Unit</Text>
+                        <Text style={styles.label}>Select Unit / Address</Text>
                         <View style={styles.pickerContainer}>
                             <TouchableOpacity style={styles.pickerTrigger} onPress={() => setShowUnitDropdown(!showUnitDropdown)}>
                                 <Text style={[styles.pickerText, !selectedUnitId && { color: '#94a3b8' }]}>

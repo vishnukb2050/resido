@@ -259,6 +259,7 @@ model Complaint {
   category    String?
   assignedTo  String?        // memberId of staff
   mediaUrls   String[]
+  progressNotes Json?        // Array of progress updates [{ id, message, photos: [], updatedBy, createdAt, status }]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 

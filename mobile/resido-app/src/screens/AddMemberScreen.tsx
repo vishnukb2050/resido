@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import { residentApi } from '../services/api';
+import { residentApi, authApi } from '../services/api';
 
 export default function AddMemberScreen() {
     const router = useRouter();
@@ -31,6 +31,25 @@ export default function AddMemberScreen() {
                 ...formData,
                 tenantId: activeWorkspace?.tenantId
             });
+
+            await authApi.syncMembership({
+                phone: formData.phone,
+                tenantId: activeWorkspace?.tenantId,
+                tenantName: activeWorkspace?.tenantName,
+                role: formData.role,
+                name: formData.name,
+            });
+
+            try {
+                const res = await authApi.getWorkspaces();
+                useAuthStore.getState().setWorkspaces(res.data);
+                if (activeWorkspace) {
+                    const swRes = await authApi.switchWorkspace(activeWorkspace.tenantId, activeWorkspace.role);
+                    useAuthStore.getState().setActiveWorkspace(swRes.data.workspace, swRes.data.accessToken);
+                }
+            } catch (err) {
+                console.log('Failed to refresh workspaces', err);
+            }
 
             Alert.alert('Success', 'Member added successfully!', [
                 { text: 'OK', onPress: () => router.back() }

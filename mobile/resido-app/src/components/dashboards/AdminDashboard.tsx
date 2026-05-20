@@ -9,9 +9,10 @@ import { getThemeColors } from '../../utils/theme';
 
 export default function AdminDashboard() {
     const router = useRouter();
-    const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
+    const { user, workspaces, activeWorkspace, setActiveWorkspace, switchRole } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const [showWS, setShowWS] = useState(false);
+    const [switchingRole, setSwitchingRole] = useState(false);
 
     const handleSwitch = async (ws: Workspace) => {
         try {
@@ -20,6 +21,19 @@ export default function AdminDashboard() {
             setShowWS(false);
         } catch (e) {
             console.error('Switch failed', e);
+        }
+    };
+
+    const handleSwitchRole = async (role: string) => {
+        if (!activeWorkspace || switchingRole) return;
+        try {
+            setSwitchingRole(true);
+            const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
+            switchRole(role as any, res.data.accessToken);
+        } catch (e) {
+            console.error('Failed to switch role:', e);
+        } finally {
+            setSwitchingRole(false);
         }
     };
 
@@ -83,6 +97,32 @@ export default function AdminDashboard() {
                     </ScrollView>
                 </View>
 
+                {/* Role Switcher */}
+                {activeWorkspace && (activeWorkspace.roles?.length ?? 0) > 1 && (
+                    <View style={styles.roleSwitcherRow}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+                            {activeWorkspace.roles.map((r) => (
+                                <TouchableOpacity
+                                    key={r}
+                                    onPress={() => handleSwitchRole(r)}
+                                    style={[
+                                        styles.rolePill,
+                                        activeWorkspace.role === r && styles.rolePillActive
+                                    ]}
+                                    disabled={switchingRole}
+                                >
+                                    <Text style={[
+                                        styles.rolePillText,
+                                        activeWorkspace.role === r && styles.rolePillTextActive
+                                    ]}>
+                                        {r.replace(/_/g, ' ')}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
                 {/* Search Bar */}
                 <View style={styles.psSearchSection}>
                     <View style={[styles.psSearchBar, { backgroundColor: theme.surface }]}>
@@ -95,14 +135,14 @@ export default function AdminDashboard() {
                     </View>
                 </View>
 
-                {/* Admin Grid (Matching Image) */}
+                {/* Admin Grid */}
                 <View style={styles.adminGrid}>
                     <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/admin-stats')} />
-                    <DashboardIcon icon="people-circle" label="Manage" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/manage-members')} />
                     <DashboardIcon icon="construct" label="Requests" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
-                    <DashboardIcon icon="shield-half" label="Security" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/staff')} />
-                    <DashboardIcon icon="water" label="Cleaning" color="#fff" bg="rgba(14, 165, 233, 0.2)" onPress={() => router.push('/staff')} />
+                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg="rgba(139, 92, 246, 0.2)" onPress={() => router.push('/events')} />
                     <DashboardIcon icon="book" label="Rules" color="#fff" bg="rgba(245, 158, 11, 0.2)" onPress={() => router.push('/rules')} />
+                    <DashboardIcon icon="settings" label="Settings" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/manage-community')} />
+                    <DashboardIcon icon="cash" label="Finance" color="#fff" bg="rgba(14, 165, 233, 0.2)" onPress={() => router.push('/admin-finance')} />
                 </View>
 
                 {/* Management Sections */}
@@ -252,4 +292,11 @@ const styles = StyleSheet.create({
     featureCard: { width: '30%', alignItems: 'center', marginBottom: 15 },
     fCardHeader: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
     fCardTitle: { color: '#fff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+
+    // Role Switcher
+    roleSwitcherRow: { marginBottom: 15 },
+    rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+    rolePillTextActive: { color: '#fff' },
 });
