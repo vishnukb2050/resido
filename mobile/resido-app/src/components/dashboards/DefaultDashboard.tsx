@@ -638,6 +638,7 @@ export default function DefaultDashboard() {
                                             <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg={darkLavender} onPress={() => router.push('/gatepass')} />
                                             <DashboardIcon icon="document-text" label="Rules" color="#fff" bg={darkLavender} onPress={() => router.push('/rules')} />
                                             <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg={darkLavender} onPress={() => router.push('/notices')} />
+                                            <DashboardIcon icon="tennisball" label="Amenities" color="#fff" bg={darkLavender} onPress={() => router.push('/amenities')} />
                                         </View>
                                     </View>
                                 </View>
