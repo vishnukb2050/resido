@@ -131,16 +131,24 @@ const styles = StyleSheet.create({
     activityEmptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 20, backgroundColor: 'rgba(91, 75, 138, 0.02)', borderRadius: 20, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.2)' },
     activityEmptyText: { fontSize: 15, fontWeight: '800', marginTop: 10 },
     activityEmptySub: { fontSize: 12, textAlign: 'center', marginTop: 6, lineHeight: 18 },
+
+    // Role Switcher
+    roleSwitcherRow: { marginBottom: 12 },
+    rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+    rolePillTextActive: { color: '#fff' },
 });
 
 export default function DefaultDashboard() {
     const router = useRouter();
-    const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
+    const { user, workspaces, activeWorkspace, setActiveWorkspace, switchRole } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const [touchStartX, setTouchStartX] = React.useState(0);
     const { width: windowWidth } = Dimensions.get('window');
     const workspaceScrollRef = React.useRef<ScrollView>(null);
     const pageScrollRef = React.useRef<ScrollView>(null);
+    const [switchingRole, setSwitchingRole] = React.useState(false);
 
     const [items, setItems] = React.useState<any[]>([]);
     const [loadingActivity, setLoadingActivity] = React.useState(false);
@@ -295,13 +303,28 @@ export default function DefaultDashboard() {
                 pageScrollRef.current?.scrollTo({ x: 0, animated: true });
                 workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
             } else {
-                const res = await authApi.switchWorkspace(ws.tenantId);
-                setActiveWorkspace(ws, res.data.accessToken);
+                // When selecting a workspace, default to the first role
+                const defaultRole = ws.roles?.[0] || ws.role;
+                const res = await authApi.switchWorkspace(ws.tenantId, defaultRole);
+                setActiveWorkspace({ ...ws, role: defaultRole }, res.data.accessToken);
                 pageScrollRef.current?.scrollTo({ x: targetIndex * windowWidth, animated: true });
                 workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: true });
             }
         } catch (e) {
             console.error('Failed to switch workspace on selection:', e);
+        }
+    };
+
+    const handleSwitchRole = async (role: string) => {
+        if (!activeWorkspace || switchingRole) return;
+        try {
+            setSwitchingRole(true);
+            const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
+            switchRole(role as any, res.data.accessToken);
+        } catch (e) {
+            console.error('Failed to switch role:', e);
+        } finally {
+            setSwitchingRole(false);
         }
     };
 
@@ -398,6 +421,32 @@ export default function DefaultDashboard() {
                                 ))}
                             </ScrollView>
                         </View>
+
+                        {/* Role Switcher — shown only when active workspace has multiple roles */}
+                        {activeWorkspace && (activeWorkspace.roles?.length ?? 0) > 1 && (
+                            <View style={styles.roleSwitcherRow}>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+                                    {activeWorkspace.roles.map((r) => (
+                                        <TouchableOpacity
+                                            key={r}
+                                            onPress={() => handleSwitchRole(r)}
+                                            style={[
+                                                styles.rolePill,
+                                                activeWorkspace.role === r && styles.rolePillActive
+                                            ]}
+                                            disabled={switchingRole}
+                                        >
+                                            <Text style={[
+                                                styles.rolePillText,
+                                                activeWorkspace.role === r && styles.rolePillTextActive
+                                            ]}>
+                                                {r.replace(/_/g, ' ')}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        )}
 
                         {/* Search Bar (Floating Style) */}
                         <View style={styles.psSearchSection}>

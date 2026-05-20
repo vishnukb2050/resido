@@ -81,7 +81,7 @@ export class ClientsService {
             }
 
             const existingAdminMember = await this.prisma.userRead.workspaceMembership.findUnique({
-                where: { userId_tenantId: { userId: adminUser.id, tenantId: client.id } }
+                where: { userId_tenantId_role: { userId: adminUser.id, tenantId: client.id, role: 'APARTMENT_ADMIN' as Role } }
             });
 
             if (!existingAdminMember) {
@@ -104,7 +104,7 @@ export class ClientsService {
             const creator = await this.prisma.userRead.user.findUnique({ where: { id: dto.createdByUserId } });
             if (creator && creator.phone !== dto.adminPhone) {
                 const existingCreatorMember = await this.prisma.userRead.workspaceMembership.findUnique({
-                    where: { userId_tenantId: { userId: dto.createdByUserId, tenantId: client.id } }
+                    where: { userId_tenantId_role: { userId: dto.createdByUserId, tenantId: client.id, role: 'APARTMENT_ADMIN' as Role } }
                 });
 
                 if (!existingCreatorMember) {
@@ -146,7 +146,7 @@ export class ClientsService {
                     }
 
                     const existingMember = await this.prisma.userRead.workspaceMembership.findUnique({
-                        where: { userId_tenantId: { userId: user.id, tenantId: client.id } }
+                        where: { userId_tenantId_role: { userId: user.id, tenantId: client.id, role: mapping.role } }
                     });
 
                     if (!existingMember) {
@@ -316,9 +316,10 @@ export class ClientsService {
 
         const membership = await this.prisma.userClient.workspaceMembership.upsert({
             where: {
-                userId_tenantId: {
+                userId_tenantId_role: {
                     userId: user.id,
                     tenantId: clientId,
+                    role: dto.role as any,
                 }
             },
             update: {

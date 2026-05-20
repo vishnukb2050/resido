@@ -30,9 +30,11 @@ export type UserRole =
 export interface Workspace {
     tenantId: string;
     tenantName: string;
-    role: UserRole;
+    role: UserRole;       // currently active role
+    roles: UserRole[];    // all roles this user holds in this community
     memberId: string;
     dbName: string;
+    photoUrl?: string;
 }
 
 interface AuthState {
@@ -43,7 +45,7 @@ interface AuthState {
     user: { id: string; name?: string; username?: string; email?: string; profileName?: string; phoneVisibility?: string; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string; location?: string; instagram?: string; linkedin?: string; website?: string } | null;
     workspaces: Workspace[];
     activeWorkspace: Workspace | null;
-    isHydrated: boolean; // Track if store has loaded from storage
+    isHydrated: boolean;
     setOtpVerified: (data: {
         token: string;
         refreshToken: string;
@@ -53,6 +55,7 @@ interface AuthState {
     updateUser: (user: any) => void;
     setActiveWorkspace: (ws: Workspace, token: string) => void;
     setWorkspaces: (workspaces: Workspace[]) => void;
+    switchRole: (role: UserRole, token: string) => void;
     logout: () => void;
     setHasHydrated: (state: boolean) => void;
 }
@@ -75,19 +78,37 @@ export const useAuthStore = create<AuthState>()(
                     personalToken: data.token,
                     refreshToken: data.refreshToken,
                     user: data.user,
-                    workspaces: data.workspaces,
-                    activeWorkspace: null, // Always start in Personal Space
+                    // Normalise: ensure every workspace has a roles array
+                    workspaces: data.workspaces.map((ws: any) => ({
+                        ...ws,
+                        roles: ws.roles || [ws.role],
+                    })),
+                    activeWorkspace: null,
                 }),
 
             updateUser: (user) => set({ user }),
 
             setActiveWorkspace: (ws, token) =>
                 set((state) => ({
-                    activeWorkspace: ws,
+                    activeWorkspace: ws ? { ...ws, roles: ws.roles || [ws.role] } : null,
                     token: ws === null ? state.personalToken || state.token : token
                 })),
 
-            setWorkspaces: (workspaces) => set({ workspaces }),
+            setWorkspaces: (workspaces) => set({
+                workspaces: workspaces.map((ws: any) => ({
+                    ...ws,
+                    roles: ws.roles || [ws.role],
+                }))
+            }),
+
+            // Switch role within the current active workspace (already switched community)
+            switchRole: (role, token) =>
+                set((state) => ({
+                    activeWorkspace: state.activeWorkspace
+                        ? { ...state.activeWorkspace, role }
+                        : null,
+                    token,
+                })),
 
             logout: () =>
                 set({

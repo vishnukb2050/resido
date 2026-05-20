@@ -150,7 +150,8 @@ model WorkspaceMembership {
 
   user User @relation(fields: [userId], references: [id])
 
-  @@unique([userId, tenantId])
+  @@unique([userId, tenantId, role])
+  @@index([userId, tenantId])
   @@map("workspace_memberships")
 }
 

@@ -109,15 +109,35 @@ export class AuthService {
     }
 
     async getWorkspaces(userId: string) {
-        return this.prisma.userRead.workspaceMembership.findMany({
+        const memberships = await this.prisma.userRead.workspaceMembership.findMany({
             where: { userId, isActive: true },
+            orderBy: { createdAt: 'asc' },
         });
+
+        // Group by tenantId — each workspace lists all roles the user holds
+        const grouped = memberships.reduce((acc: Record<string, any>, m) => {
+            if (!acc[m.tenantId]) {
+                acc[m.tenantId] = { ...m, roles: [m.role] };
+            } else {
+                acc[m.tenantId].roles.push(m.role);
+            }
+            return acc;
+        }, {});
+
+        return Object.values(grouped);
     }
 
-    async switchWorkspace(userId: string, tenantId: string) {
-        const membership = await this.prisma.userRead.workspaceMembership.findUnique({
-            where: { userId_tenantId: { userId, tenantId } },
-        });
+    async switchWorkspace(userId: string, tenantId: string, role?: string) {
+        // Find membership — if role specified, find that exact one; else pick the first active one
+        const membership = role
+            ? await this.prisma.userRead.workspaceMembership.findFirst({
+                where: { userId, tenantId, role: role as Role, isActive: true },
+            })
+            : await this.prisma.userRead.workspaceMembership.findFirst({
+                where: { userId, tenantId, isActive: true },
+                orderBy: { createdAt: 'asc' },
+            });
+
         if (!membership) throw new UnauthorizedException('Access denied to this workspace');
 
         const client = await this.prisma.masterRead.client.findUnique({
@@ -166,11 +186,10 @@ export class AuthService {
             });
         }
 
-        // 2. Create membership
+        // 2. Upsert membership per role (allows same user to have multiple roles in same community)
         const membership = await this.prisma.userClient.workspaceMembership.upsert({
-            where: { userId_tenantId: { userId: user.id, tenantId } },
+            where: { userId_tenantId_role: { userId: user.id, tenantId, role: role as Role } },
             update: { 
-                role: role as Role, 
                 isActive: true,
                 ...(tenantName ? { tenantName } : {}) 
             },
