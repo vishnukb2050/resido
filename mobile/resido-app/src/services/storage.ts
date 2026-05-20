@@ -17,17 +17,22 @@ export const storageApi = {
             // 1. Compress video if applicable
             if (contentType.startsWith('video/')) {
                 console.log('Compressing video to 720p...');
-                finalUri = await Video.compress(
-                    fileUri,
-                    {
-                        compressionMethod: 'auto',
-                        minimumFileSizeForCompress: 0,
-                    },
-                    (progress) => {
-                        console.log('Compression Progress: ', progress);
-                    }
-                );
-                console.log('Compression complete:', finalUri);
+                try {
+                    finalUri = await Video.compress(
+                        fileUri,
+                        {
+                            compressionMethod: 'auto',
+                            minimumFileSizeForCompress: 0,
+                        },
+                        (progress) => {
+                            console.log('Compression Progress: ', progress);
+                        }
+                    );
+                    console.log('Compression complete:', finalUri);
+                } catch (compressError) {
+                    console.warn('Video compression failed, using original file:', compressError);
+                    finalUri = fileUri;
+                }
             }
 
             // 2. Get pre-signed URL
@@ -86,7 +91,12 @@ export const uploadToR2 = async (
     onProgress?: (progress: number) => void
 ) => {
     try {
-        const fileName = fileUri.split('/').pop() || `upload_${Date.now()}`;
+        const cleanUri = fileUri.split('?')[0].split('#')[0];
+        const originalName = cleanUri.split('/').pop() || `upload_${Date.now()}`;
+        const ext = mediaType === 'VIDEO' ? 'mp4' : 'jpg';
+        const fileExt = originalName.split('.').pop()?.toLowerCase();
+        const hasValidExt = fileExt && ['mp4', 'mov', 'm4v', '3gp', 'avi', 'jpg', 'jpeg', 'png', 'gif'].includes(fileExt);
+        const fileName = hasValidExt ? originalName : `${originalName}.${ext}`;
         const contentType = mediaType === 'VIDEO' ? 'video/mp4' : 'image/jpeg';
         
         let finalUri = fileUri;
@@ -94,20 +104,25 @@ export const uploadToR2 = async (
         // 1. Optional Compression for speed
         if (mediaType === 'VIDEO') {
             console.log('Checking video for compression...');
-            // In a real app, we might check file size here. For now, let's use a faster compression setting.
-            finalUri = await Video.compress(
-                fileUri,
-                {
-                    compressionMethod: 'manual',
-                    bitrate: 2000000, // 2Mbps for 720p is good speed/quality balance
-                    maxSize: 1280,
-                    minimumFileSizeForCompress: 5 * 1024 * 1024, // Skip if < 5MB
-                },
-                (progress) => {
-                    if (onProgress) onProgress(progress * 0.2); // Compression is first 20%
-                }
-            );
-            console.log('Video ready for upload:', finalUri);
+            try {
+                // In a real app, we might check file size here. For now, let's use a faster compression setting.
+                finalUri = await Video.compress(
+                    fileUri,
+                    {
+                        compressionMethod: 'manual',
+                        bitrate: 2000000, // 2Mbps for 720p is good speed/quality balance
+                        maxSize: 1280,
+                        minimumFileSizeForCompress: 5 * 1024 * 1024, // Skip if < 5MB
+                    },
+                    (progress) => {
+                        if (onProgress) onProgress(progress * 0.2); // Compression is first 20%
+                    }
+                );
+                console.log('Video ready for upload:', finalUri);
+            } catch (compressError) {
+                console.warn('Video compression failed, using original file:', compressError);
+                finalUri = fileUri;
+            }
         }
 
         // 2. Get pre-signed URL

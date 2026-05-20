@@ -15,15 +15,26 @@ import * as ImagePicker from 'expo-image-picker';
 const { width } = Dimensions.get('window');
 
 // --- DATA ---
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
     'Plumbing', 'Electrical', 'Carpentry', 'Cleaning', 'Pest Control', 
     'Home Renovation', 'Beauty & Salon', 'Personal Training', 'Yoga', 
-    'Education', 'Bakery', 'Catering', 'Interior Design', 'Others'
+    'Education', 'Bakery', 'Catering', 'Interior Design', 'Plumber',
+    'Electrician', 'Carpenter', 'Cleaner', 'Painter', 'AC Repair'
 ];
 
 const EXPERIENCE_LEVELS = ['1+ Year', '2+ Years', '3+ Years', '5+ Years', '10+ Years'];
 const BUSINESS_TYPES = ['Service Provider', 'Retailer', 'Manufacturer', 'Freelancer'];
 const RESPONSE_TIMES = ['Within 1 Hour', 'Within 2 Hours', 'Within 4 Hours', 'Same Day'];
+
+const INDIAN_STATES = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 
+    'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 
+    'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 
+    'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 
+    'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 
+    'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 
+    'Ladakh', 'Lakshadweep', 'Puducherry'
+];
 
 export default function CreateBusinessProfileScreen() {
     const router = useRouter();
@@ -80,6 +91,56 @@ export default function CreateBusinessProfileScreen() {
     });
     const [showServiceModal, setShowServiceModal] = useState(false);
 
+    // UI state for Step 3 operational area
+    const [reachMode, setReachMode] = useState<'RADIUS' | 'PINCODE' | 'STATE_DISTRICT' | 'PAN_INDIA'>('RADIUS');
+    const [selectedState, setSelectedState] = useState('');
+    const [stateReachType, setStateReachType] = useState<'STATE' | 'DISTRICT'>('STATE');
+    const [showStateModal, setShowStateModal] = useState(false);
+    
+    // Pincode Search States
+    const [pincodeSearchQuery, setPincodeSearchQuery] = useState('');
+    const [pincodeSearchResults, setPincodeSearchResults] = useState<any[]>([]);
+    const [isPincodeSearching, setIsPincodeSearching] = useState(false);
+    const [showPincodeDropdown, setShowPincodeDropdown] = useState(false);
+
+    // District Search States
+    const [districtSearchQuery, setDistrictSearchQuery] = useState('');
+    const [districtSearchResults, setDistrictSearchResults] = useState<any[]>([]);
+    const [isDistrictSearching, setIsDistrictSearching] = useState(false);
+    const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+
+    // Dynamic categories states
+    const [dbCategories, setDbCategories] = useState<string[]>([]);
+    const [categorySearch, setCategorySearch] = useState('');
+    const [customCategory, setCustomCategory] = useState('');
+
+    // Business Hours temp states
+    const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
+    const [workingHoursDaysType, setWorkingHoursDaysType] = useState<'PRESET' | 'CUSTOM'>('PRESET');
+    const [selectedPresetDays, setSelectedPresetDays] = useState('Mon - Sat');
+    const [selectedCustomDays, setSelectedCustomDays] = useState<string[]>([]);
+    const [tempFromHour, setTempFromHour] = useState('08');
+    const [tempFromMin, setTempFromMin] = useState('00');
+    const [tempFromAmPm, setTempFromAmPm] = useState('AM');
+    const [tempToHour, setTempToHour] = useState('06');
+    const [tempToMin, setTempToMin] = useState('00');
+    const [tempToAmPm, setTempToAmPm] = useState('PM');
+
+    // Fetch dynamic categories on mount
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const res = await businessApi.getCategories();
+                if (res.data && Array.isArray(res.data)) {
+                    setDbCategories(res.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch categories:', err);
+            }
+        };
+        loadCategories();
+    }, []);
+
     useEffect(() => {
         if (id) {
             fetchProfile();
@@ -89,7 +150,24 @@ export default function CreateBusinessProfileScreen() {
     const fetchProfile = async () => {
         try {
             const res = await businessApi.getProfile(id as string);
-            setFormData(res.data);
+            
+            const defaultCategories = [
+                'Plumbing', 'Electrical', 'Carpentry', 'Cleaning', 'Pest Control', 
+                'Home Renovation', 'Beauty & Salon', 'Personal Training', 'Yoga', 
+                'Education', 'Bakery', 'Catering', 'Interior Design', 'Plumber',
+                'Electrician', 'Carpenter', 'Cleaner', 'Painter', 'AC Repair'
+            ];
+            
+            if (res.data.category && !defaultCategories.includes(res.data.category)) {
+                setCustomCategory(res.data.category);
+                setFormData({
+                    ...res.data,
+                    category: 'Others'
+                });
+            } else {
+                setFormData(res.data);
+            }
+
             if (res.data.latitude && res.data.longitude) {
                 const latDelta = (res.data.serviceRadiusKm * 2.5) / 111;
                 setMapRegion({
@@ -100,11 +178,119 @@ export default function CreateBusinessProfileScreen() {
                 });
                 setLocQuery('Saved Location');
             }
+
+            if (res.data.serviceAreaType) {
+                const type = res.data.serviceAreaType;
+                const values = res.data.serviceAreaValues || [];
+                if (type === 'PAN_INDIA') {
+                    setReachMode('PAN_INDIA');
+                } else if (type === 'STATE') {
+                    setReachMode('STATE_DISTRICT');
+                    setStateReachType('STATE');
+                    if (values.length > 0) {
+                        setSelectedState(values[0]);
+                    }
+                } else if (type === 'DISTRICT') {
+                    setReachMode('STATE_DISTRICT');
+                    setStateReachType('DISTRICT');
+                    if (values.length > 0) {
+                        try {
+                            const { data } = await authApi.searchLocations(values[0]);
+                            if (data && data.length > 0) {
+                                const found = data.find((d: any) => d.district.toLowerCase() === values[0].toLowerCase());
+                                if (found) {
+                                    setSelectedState(found.state);
+                                } else {
+                                    setSelectedState(data[0].state);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Failed to resolve state for district:', e);
+                        }
+                    }
+                } else if (type === 'PINCODE') {
+                    setReachMode('PINCODE');
+                } else {
+                    setReachMode('RADIUS');
+                }
+            }
         } catch (error) {
             Alert.alert('Error', 'Failed to load profile');
         } finally {
             setInitialLoading(false);
         }
+    };
+
+    const openWorkingHoursModal = () => {
+        const wh = formData.workingHours || { from: '08:00 AM', to: '06:00 PM', days: 'Mon - Sat' };
+        
+        // Parse From
+        try {
+            const fromParts = wh.from.split(' ');
+            const [fHour, fMin] = fromParts[0].split(':');
+            setTempFromHour(fHour || '08');
+            setTempFromMin(fMin || '00');
+            setTempFromAmPm(fromParts[1] || 'AM');
+        } catch (e) {
+            setTempFromHour('08');
+            setTempFromMin('00');
+            setTempFromAmPm('AM');
+        }
+
+        // Parse To
+        try {
+            const toParts = wh.to.split(' ');
+            const [tHour, tMin] = toParts[0].split(':');
+            setTempToHour(tHour || '06');
+            setTempToMin(tMin || '00');
+            setTempToAmPm(toParts[1] || 'PM');
+        } catch (e) {
+            setTempToHour('06');
+            setTempToMin('00');
+            setTempToAmPm('PM');
+        }
+
+        // Parse Days
+        const presets = ['Daily', 'Mon - Fri', 'Mon - Sat', 'Weekends Only'];
+        if (presets.includes(wh.days)) {
+            setWorkingHoursDaysType('PRESET');
+            setSelectedPresetDays(wh.days);
+            setSelectedCustomDays([]);
+        } else {
+            setWorkingHoursDaysType('CUSTOM');
+            setSelectedPresetDays('Mon - Sat');
+            setSelectedCustomDays(wh.days ? wh.days.split(', ').map(d => d.trim()) : []);
+        }
+        
+        setShowWorkingHoursModal(true);
+    };
+
+    const saveWorkingHours = () => {
+        let daysStr = '';
+        if (workingHoursDaysType === 'PRESET') {
+            daysStr = selectedPresetDays;
+        } else {
+            if (selectedCustomDays.length === 0) {
+                Alert.alert('Error', 'Please select at least one day.');
+                return;
+            }
+            const weekOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const sortedDays = [...selectedCustomDays].sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+            daysStr = sortedDays.join(', ');
+        }
+
+        const fromStr = `${tempFromHour}:${tempFromMin} ${tempFromAmPm}`;
+        const toStr = `${tempToHour}:${tempToMin} ${tempToAmPm}`;
+
+        setFormData({
+            ...formData,
+            workingHours: {
+                from: fromStr,
+                to: toStr,
+                days: daysStr
+            }
+        });
+        setShowWorkingHoursModal(false);
     };
 
     // Location Search Logic
@@ -254,7 +440,178 @@ export default function CreateBusinessProfileScreen() {
         }
     };
 
-    const nextStep = () => setStep(Math.min(step + 1, 4));
+    const handlePincodeSearch = async (text: string) => {
+        setPincodeSearchQuery(text);
+        if (text.length >= 2) {
+            setIsPincodeSearching(true);
+            try {
+                const { data } = await authApi.searchLocations(text);
+                const results: any[] = [];
+                const seenPincodes = new Set<string>();
+                if (data && Array.isArray(data)) {
+                    data.forEach((item: any) => {
+                        if (item.pincode && !seenPincodes.has(item.pincode)) {
+                            seenPincodes.add(item.pincode);
+                            results.push(item);
+                        }
+                    });
+                }
+                setPincodeSearchResults(results);
+                setShowPincodeDropdown(results.length > 0);
+            } catch (error) {
+                console.error('Pincode search error:', error);
+            } finally {
+                setIsPincodeSearching(false);
+            }
+        } else {
+            setPincodeSearchResults([]);
+            setShowPincodeDropdown(false);
+        }
+    };
+
+    const handleDistrictSearch = async (text: string) => {
+        setDistrictSearchQuery(text);
+        if (text.length >= 2) {
+            setIsDistrictSearching(true);
+            try {
+                const { data } = await authApi.searchLocations(text);
+                const results: any[] = [];
+                const seenDistricts = new Set<string>();
+                if (data && Array.isArray(data)) {
+                    data.forEach((item: any) => {
+                        if (item.district && 
+                            item.state && 
+                            selectedState && 
+                            item.state.toLowerCase() === selectedState.toLowerCase() && 
+                            !seenDistricts.has(item.district.toLowerCase())) {
+                            seenDistricts.add(item.district.toLowerCase());
+                            results.push(item);
+                        }
+                    });
+                }
+                setDistrictSearchResults(results);
+                setShowDistrictDropdown(results.length > 0);
+            } catch (error) {
+                console.error('District search error:', error);
+            } finally {
+                setIsDistrictSearching(false);
+            }
+        } else {
+            setDistrictSearchResults([]);
+            setShowDistrictDropdown(false);
+        }
+    };
+
+    const addPincodeValue = (pincode: string) => {
+        if (pincode && !formData.serviceAreaValues.includes(pincode)) {
+            setFormData(prev => ({
+                ...prev,
+                serviceAreaValues: [...prev.serviceAreaValues, pincode]
+            }));
+        }
+        setPincodeSearchQuery('');
+        setShowPincodeDropdown(false);
+    };
+
+    const addDistrictValue = (district: string) => {
+        if (district && !formData.serviceAreaValues.includes(district)) {
+            setFormData(prev => ({
+                ...prev,
+                serviceAreaValues: [...prev.serviceAreaValues, district]
+            }));
+        }
+        setDistrictSearchQuery('');
+        setShowDistrictDropdown(false);
+    };
+
+    const handleReachModeChange = (mode: 'RADIUS' | 'PINCODE' | 'STATE_DISTRICT' | 'PAN_INDIA') => {
+        setReachMode(mode);
+        if (mode === 'PAN_INDIA') {
+            setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+        } else if (mode === 'RADIUS') {
+            setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+        } else if (mode === 'PINCODE') {
+            setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+        } else if (mode === 'STATE_DISTRICT') {
+            if (formData.serviceAreaType === 'STATE' && formData.serviceAreaValues.length > 0) {
+                setSelectedState(formData.serviceAreaValues[0]);
+                setStateReachType('STATE');
+            } else if (formData.serviceAreaType === 'DISTRICT' && formData.serviceAreaValues.length > 0) {
+                setStateReachType('DISTRICT');
+            } else {
+                setSelectedState('');
+                setStateReachType('STATE');
+                setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+            }
+        }
+    };
+
+    const syncServiceReach = () => {
+        let finalType = 'RADIUS';
+        let finalValues: string[] = [];
+
+        if (reachMode === 'PAN_INDIA') {
+            finalType = 'PAN_INDIA';
+            finalValues = [];
+        } else if (reachMode === 'PINCODE') {
+            if (formData.serviceAreaValues.length > 0) {
+                finalType = 'PINCODE';
+                finalValues = formData.serviceAreaValues;
+            } else {
+                finalType = 'RADIUS';
+                finalValues = [];
+            }
+        } else if (reachMode === 'STATE_DISTRICT') {
+            if (!selectedState) {
+                finalType = 'RADIUS';
+                finalValues = [];
+            } else if (stateReachType === 'STATE') {
+                finalType = 'STATE';
+                finalValues = [selectedState];
+            } else { // DISTRICT
+                if (formData.serviceAreaValues.length > 0) {
+                    finalType = 'DISTRICT';
+                    finalValues = formData.serviceAreaValues;
+                } else {
+                    finalType = 'RADIUS';
+                    finalValues = [];
+                }
+            }
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            serviceAreaType: finalType,
+            serviceAreaValues: finalValues
+        }));
+
+        return { serviceAreaType: finalType, serviceAreaValues: finalValues };
+    };
+
+    const nextStep = () => {
+        if (step === 1) {
+            if (!formData.businessName || !formData.businessName.trim()) {
+                Alert.alert('Validation Error', 'Business Name is required');
+                return;
+            }
+            if (!formData.category) {
+                Alert.alert('Validation Error', 'Business Category is required');
+                return;
+            }
+            if (formData.category === 'Others' && (!customCategory || !customCategory.trim())) {
+                Alert.alert('Validation Error', 'Please enter a custom category');
+                return;
+            }
+            if (!formData.about || !formData.about.trim()) {
+                Alert.alert('Validation Error', 'Business Description is required');
+                return;
+            }
+        }
+        if (step === 3) {
+            syncServiceReach();
+        }
+        setStep(Math.min(step + 1, 4));
+    };
     const prevStep = () => setStep(Math.max(step - 1, 1));
 
     const pickImage = async () => {
@@ -329,13 +686,26 @@ export default function CreateBusinessProfileScreen() {
                             onPress={() => setFormData({...formData, showCategoryModal: true})}
                         >
                             <Text style={[styles.pickerValue, !formData.category && { color: '#94a3b8' }]}>
-                                {formData.category || 'Select a category'}
+                                {formData.category === 'Others' ? (customCategory ? `Others (${customCategory})` : 'Others') : (formData.category || 'Select a category')}
                             </Text>
                             <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
                         </TouchableOpacity>
                     </View>
                 </View>
             </View>
+
+            {formData.category === 'Others' && (
+                <View style={[styles.inputGroup, { marginTop: 12 }]}>
+                    <Text style={styles.label}>Custom Category *</Text>
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Enter custom business category (e.g. Pet Care)" 
+                        placeholderTextColor="#94a3b8"
+                        value={customCategory}
+                        onChangeText={setCustomCategory}
+                    />
+                </View>
+            )}
 
             <View style={styles.inputGroup}>
                 <Text style={styles.label}>Business Description *</Text>
@@ -423,11 +793,13 @@ export default function CreateBusinessProfileScreen() {
                     onChangeText={t => setFormData({...formData, website: t})}
                 />
             </View>
-            <TouchableOpacity style={styles.contactItem}>
+            <TouchableOpacity style={styles.contactItem} onPress={openWorkingHoursModal}>
                 <Ionicons name="time-outline" size={20} color="#64748b" />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.label}>Business Hours</Text>
-                    <Text style={styles.valueText}>{formData.workingHours.days}, {formData.workingHours.from} - {formData.workingHours.to}</Text>
+                    <Text style={styles.valueText}>
+                        {formData.workingHours ? `${formData.workingHours.days}, ${formData.workingHours.from} - ${formData.workingHours.to}` : 'Set business hours'}
+                    </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
             </TouchableOpacity>
@@ -572,16 +944,7 @@ export default function CreateBusinessProfileScreen() {
                         </View>
                     )}
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Average Response Time</Text>
-                        <TouchableOpacity 
-                            style={styles.pickerContainer}
-                            onPress={() => {/* Add picker for response time if needed */}}
-                        >
-                            <Text style={styles.pickerValue}>{currentService.responseTime}</Text>
-                            <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
-                        </TouchableOpacity>
-                    </View>
+
 
                     <View style={styles.emergencyRow}>
                         <View style={{ flex: 1 }}>
@@ -595,13 +958,6 @@ export default function CreateBusinessProfileScreen() {
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.contactItem}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.label}>Service Area</Text>
-                            <Text style={styles.valueText}>Where do you offer this service?</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-                    </TouchableOpacity>
                 </View>
             )}
         </View>
@@ -655,9 +1011,7 @@ export default function CreateBusinessProfileScreen() {
                     } : undefined}
                     markers={[]}
                 />
-                
-                {/* Map Controls */}
-                </View>
+            </View>
 
             <View style={styles.inputGroup}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -679,44 +1033,56 @@ export default function CreateBusinessProfileScreen() {
 
             <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Service Reach (Operational Area)</Text>
             <Text style={styles.subText}>Define where you provide your services. Customers in these areas will see your profile.</Text>
-            
-            <View style={styles.reachTabs}>
-                {['PINCODE', 'DISTRICT', 'STATE', 'PAN_INDIA', 'GLOBAL'].map(type => (
+
+            {/* Reach Mode Grid Selector */}
+            <View style={styles.reachGrid}>
+                {[
+                    { mode: 'RADIUS', label: 'GPS Radius', icon: 'navigate-outline' },
+                    { mode: 'PINCODE', label: 'Pincodes', icon: 'mail-outline' },
+                    { mode: 'STATE_DISTRICT', label: 'State & Districts', icon: 'map-outline' },
+                    { mode: 'PAN_INDIA', label: 'Entire India', icon: 'flag-outline' }
+                ].map(item => (
                     <TouchableOpacity 
-                        key={type} 
-                        style={[styles.reachTab, formData.serviceAreaType === type && styles.reachTabActive]}
-                        onPress={() => setFormData({ ...formData, serviceAreaType: type, serviceAreaValues: [] })}
+                        key={item.mode} 
+                        style={[styles.reachGridItem, reachMode === item.mode && styles.reachGridItemActive]}
+                        onPress={() => handleReachModeChange(item.mode as any)}
                     >
-                        <Text style={[styles.reachTabText, formData.serviceAreaType === type && styles.reachTabTextActive]}>{type.replace('_', ' ')}</Text>
+                        <Ionicons name={item.icon as any} size={20} color={reachMode === item.mode ? '#fff' : '#64748b'} />
+                        <Text style={[styles.reachGridText, reachMode === item.mode && styles.reachGridTextActive]}>{item.label}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
 
-            {formData.serviceAreaType !== 'PAN_INDIA' && (
+            {/* GPS RADIUS MODE INFO */}
+            {reachMode === 'RADIUS' && (
+                <View style={styles.infoBox}>
+                    <Ionicons name="location-outline" size={20} color="#1d4ed8" />
+                    <Text style={styles.infoText}>Service coverage will be determined solely by your base location coordinates and selected radius ({formData.serviceRadiusKm} km).</Text>
+                </View>
+            )}
+
+            {/* SPECIFIC PINCODES MODE */}
+            {reachMode === 'PINCODE' && (
                 <View style={{ marginTop: 16 }}>
-                    <Text style={styles.label}>Add {formData.serviceAreaType.toLowerCase()}s</Text>
+                    <Text style={styles.label}>Search & Add Pincodes</Text>
                     <View style={styles.searchBox}>
+                        <Ionicons name="search" size={18} color="#94a3b8" style={{ marginLeft: 8 }} />
                         <TextInput 
                             style={styles.searchInput} 
-                            placeholder={`Search ${formData.serviceAreaType.toLowerCase()} to add...`}
-                            value={locQuery}
-                            onChangeText={handleLocSearch}
+                            placeholder="Enter pincode or location..."
+                            placeholderTextColor="#94a3b8"
+                            value={pincodeSearchQuery}
+                            onChangeText={handlePincodeSearch}
+                            keyboardType="numeric"
                         />
-                        <TouchableOpacity style={{ padding: 8 }} onPress={() => {
-                            if (locResults.length > 0) addServiceArea(locResults[0]);
-                        }}>
-                            <Ionicons name="add" size={24} color="#1d4ed8" />
-                        </TouchableOpacity>
+                        {isPincodeSearching && <ActivityIndicator size="small" color="#1d4ed8" style={{ marginRight: 8 }} />}
                     </View>
                     
-                    {showGlobalDropdown && (
+                    {showPincodeDropdown && pincodeSearchResults.length > 0 && (
                         <View style={styles.dropdown}>
-                            {locResults.map((loc, idx) => (
-                                <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => {
-                                    addServiceArea(loc);
-                                    setShowGlobalDropdown(false);
-                                }}>
-                                    <Text style={styles.dropdownText}>{loc.placeName}, {loc.district} ({loc.pincode})</Text>
+                            {pincodeSearchResults.map((loc, idx) => (
+                                <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => addPincodeValue(loc.pincode)}>
+                                    <Text style={styles.dropdownText}>{loc.pincode} - {loc.placeName}, {loc.district}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -732,20 +1098,102 @@ export default function CreateBusinessProfileScreen() {
                             </View>
                         ))}
                     </View>
+                    {formData.serviceAreaValues.length === 0 && (
+                        <Text style={[styles.subText, { marginTop: 8, fontStyle: 'italic' }]}>No pincodes selected. Please search and select pincodes, or this will fall back to GPS radius.</Text>
+                    )}
                 </View>
             )}
 
-            {formData.serviceAreaType === 'PAN_INDIA' && (
+            {/* STATE & DISTRICTS MODE */}
+            {reachMode === 'STATE_DISTRICT' && (
+                <View style={{ marginTop: 16 }}>
+                    <Text style={styles.label}>Select Indian State</Text>
+                    <TouchableOpacity style={styles.stateSelectBtn} onPress={() => setShowStateModal(true)}>
+                        <Text style={styles.stateSelectBtnText}>{selectedState || 'Choose State...'}</Text>
+                        <Ionicons name="chevron-down" size={20} color="#94a3b8" />
+                    </TouchableOpacity>
+
+                    {selectedState ? (
+                        <View style={{ marginTop: 16 }}>
+                            <Text style={styles.label}>State Reach Type</Text>
+                            <View style={styles.reachTabs}>
+                                {[
+                                    { type: 'STATE', label: 'Entire State' },
+                                    { type: 'DISTRICT', label: 'Specific Districts' }
+                                ].map(item => (
+                                    <TouchableOpacity 
+                                        key={item.type} 
+                                        style={[styles.reachTab, stateReachType === item.type && styles.reachTabActive]}
+                                        onPress={() => {
+                                            setStateReachType(item.type as any);
+                                            setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+                                        }}
+                                    >
+                                        <Text style={[styles.reachTabText, stateReachType === item.type && styles.reachTabTextActive]}>{item.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {stateReachType === 'STATE' ? (
+                                <View style={styles.infoBox}>
+                                    <Ionicons name="map-outline" size={20} color="#1d4ed8" />
+                                    <Text style={styles.infoText}>Your profile will be shown to users in the entire state of {selectedState}.</Text>
+                                </View>
+                            ) : (
+                                <View style={{ marginTop: 16 }}>
+                                    <Text style={styles.label}>Search & Add Districts in {selectedState}</Text>
+                                    <View style={styles.searchBox}>
+                                        <Ionicons name="search" size={18} color="#94a3b8" style={{ marginLeft: 8 }} />
+                                        <TextInput 
+                                            style={styles.searchInput} 
+                                            placeholder="Enter district name..."
+                                            placeholderTextColor="#94a3b8"
+                                            value={districtSearchQuery}
+                                            onChangeText={handleDistrictSearch}
+                                        />
+                                        {isDistrictSearching && <ActivityIndicator size="small" color="#1d4ed8" style={{ marginRight: 8 }} />}
+                                    </View>
+
+                                    {showDistrictDropdown && districtSearchResults.length > 0 && (
+                                        <View style={styles.dropdown}>
+                                            {districtSearchResults.map((loc, idx) => (
+                                                <TouchableOpacity key={idx} style={styles.dropdownItem} onPress={() => addDistrictValue(loc.district)}>
+                                                    <Text style={styles.dropdownText}>{loc.district}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+
+                                    <View style={styles.chipContainer}>
+                                        {formData.serviceAreaValues.map(val => (
+                                            <View key={val} style={styles.chip}>
+                                                <Text style={styles.chipText}>{val}</Text>
+                                                <TouchableOpacity onPress={() => removeServiceArea(val)}>
+                                                    <Ionicons name="close-circle" size={16} color="#fff" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))}
+                                    </View>
+                                    {formData.serviceAreaValues.length === 0 && (
+                                        <Text style={[styles.subText, { marginTop: 8, fontStyle: 'italic' }]}>No districts selected. Please search and select districts, or this will fall back to GPS radius.</Text>
+                                    )}
+                                </View>
+                            )}
+                        </View>
+                    ) : (
+                        <View style={styles.infoBox}>
+                            <Ionicons name="alert-circle-outline" size={20} color="#f59e0b" />
+                            <Text style={[styles.infoText, { color: '#f59e0b' }]}>Please select a state to proceed with State & Districts reach.</Text>
+                        </View>
+                    )}
+                </View>
+            )}
+
+            {/* ENTIRE INDIA MODE */}
+            {reachMode === 'PAN_INDIA' && (
                 <View style={styles.infoBox}>
                     <Ionicons name="flag-outline" size={20} color="#1d4ed8" />
                     <Text style={styles.infoText}>Your profile will be visible to users across all of India.</Text>
-                </View>
-            )}
-
-            {formData.serviceAreaType === 'GLOBAL' && (
-                <View style={styles.infoBox}>
-                    <Ionicons name="globe-outline" size={20} color="#1d4ed8" />
-                    <Text style={styles.infoText}>Your profile will be visible to users worldwide.</Text>
                 </View>
             )}
 
@@ -756,64 +1204,159 @@ export default function CreateBusinessProfileScreen() {
         </View>
     );
 
-    const renderStep4 = () => (
-        <View style={styles.stepContent}>
-            <View style={styles.reviewHeader}>
-                <Text style={styles.sectionTitle}>Review Your Business Profile</Text>
-                <TouchableOpacity style={styles.editAllBtn}>
-                    <Feather name="edit-2" size={16} color="#1d4ed8" />
-                    <Text style={styles.editAllText}>Edit All</Text>
-                </TouchableOpacity>
-            </View>
-            <Text style={styles.subText}>Please review all the details below before publishing.</Text>
+    const renderStep4 = () => {
+        const displayCategory = formData.category === 'Others'
+            ? (customCategory ? `Others (${customCategory})` : 'Others')
+            : (formData.category || 'N/A');
 
-            {/* Summary Cards */}
-            <View style={styles.summaryCard}>
-                <View style={styles.summaryHeader}>
-                    <View style={styles.summaryIconBox}><Ionicons name="business" size={20} color="#1d4ed8" /></View>
-                    <Text style={styles.summaryTitle}>Business Information</Text>
-                    <TouchableOpacity><Text style={styles.editText}>Edit</Text></TouchableOpacity>
+        return (
+            <View style={styles.stepContent}>
+                <View style={styles.reviewHeader}>
+                    <Text style={styles.sectionTitle}>Review Your Business Profile</Text>
+                    <TouchableOpacity style={styles.editAllBtn} onPress={() => setStep(1)}>
+                        <Feather name="edit-2" size={16} color="#1d4ed8" />
+                        <Text style={styles.editAllText}>Edit All</Text>
+                    </TouchableOpacity>
                 </View>
-                <View style={styles.summaryRow}><Text style={styles.sumLabel}>Business Name</Text><Text style={styles.sumValue}>Greenwoods Plumbing Services</Text></View>
-                <View style={styles.summaryRow}><Text style={styles.sumLabel}>Category</Text><Text style={styles.sumValue}>Plumbing</Text></View>
-                <View style={styles.summaryRow}><Text style={styles.sumLabel}>Business Type</Text><Text style={styles.sumValue}>Service Provider</Text></View>
-                <View style={styles.summaryRow}><Text style={styles.sumLabel}>Years in Business</Text><Text style={styles.sumValue}>5+ Years</Text></View>
-                <View style={styles.summaryRow}><Text style={styles.sumLabel}>Description</Text><Text style={[styles.sumValue, { flex: 1, textAlign: 'right' }]}>We provide reliable plumbing services including fixing, installation, and maintenance for homes and offices.</Text></View>
-            </View>
+                <Text style={styles.subText}>Please review all the details below before publishing.</Text>
 
-            <View style={styles.summaryCard}>
-                <View style={styles.summaryHeader}>
-                    <View style={styles.summaryIconBox}><FontAwesome5 name="tools" size={16} color="#1d4ed8" /></View>
-                    <Text style={styles.summaryTitle}>Services (3)</Text>
-                    <TouchableOpacity><Text style={styles.editText}>Edit</Text></TouchableOpacity>
-                </View>
-                {['Plumbing', 'Pipe Installation', 'Leak Detection & Repair'].map(s => (
-                    <View key={s} style={styles.sumServiceItem}>
-                        <Ionicons name="checkmark-circle" size={18} color="#1d4ed8" />
-                        <View style={{ marginLeft: 8 }}>
-                            <Text style={styles.sumServiceText}>{s}</Text>
-                            <Text style={styles.sumServiceSub}>Fixing, Installation & Maintenance</Text>
-                        </View>
+                {/* Summary Cards */}
+                <View style={styles.summaryCard}>
+                    <View style={styles.summaryHeader}>
+                        <View style={styles.summaryIconBox}><Ionicons name="business" size={20} color="#1d4ed8" /></View>
+                        <Text style={styles.summaryTitle}>Business Information</Text>
+                        <TouchableOpacity onPress={() => setStep(1)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                     </View>
-                ))}
-            </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Business Name</Text>
+                        <Text style={styles.sumValue}>{formData.businessName || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Category</Text>
+                        <Text style={styles.sumValue}>{displayCategory}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Business Type</Text>
+                        <Text style={styles.sumValue}>{formData.businessType || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Years in Business</Text>
+                        <Text style={styles.sumValue}>{formData.experience || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Description</Text>
+                        <Text style={[styles.sumValue, { flex: 1, textAlign: 'right' }]}>{formData.about || 'N/A'}</Text>
+                    </View>
+                </View>
 
-            <View style={styles.publishBox}>
-                <View style={styles.publishIconBox}><Ionicons name="send" size={24} color="#1d4ed8" /></View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.publishTitle}>Ready to publish?</Text>
-                    <Text style={styles.publishSub}>Once published, your business profile will be visible to the community and customers can contact you.</Text>
+                <View style={styles.summaryCard}>
+                    <View style={styles.summaryHeader}>
+                        <View style={styles.summaryIconBox}><FontAwesome5 name="tools" size={16} color="#1d4ed8" /></View>
+                        <Text style={styles.summaryTitle}>Services ({formData.services.length})</Text>
+                        <TouchableOpacity onPress={() => setStep(2)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
+                    </View>
+                    {formData.services.length === 0 ? (
+                        <Text style={[styles.subText, { fontStyle: 'italic', marginBottom: 0 }]}>No services added yet.</Text>
+                    ) : (
+                        formData.services.map((s, idx) => (
+                            <View key={idx} style={styles.sumServiceItem}>
+                                <Ionicons name="checkmark-circle" size={18} color="#1d4ed8" />
+                                <View style={{ marginLeft: 8, flex: 1 }}>
+                                    <Text style={styles.sumServiceText}>{s.name}</Text>
+                                    {s.description ? <Text style={styles.sumServiceSub}>{s.description}</Text> : null}
+                                    <Text style={[styles.sumServiceSub, { color: '#3b82f6', fontWeight: '600' }]}>
+                                        {s.pricingType === 'CONTACT' ? 'Contact for Price' : s.pricingType === 'STARTING' ? `Starting from ₹${s.price}` : `Fixed Price: ₹${s.price}`}
+                                        {s.isEmergency ? ' • Emergency Service' : ''}
+                                    </Text>
+                                </View>
+                            </View>
+                        ))
+                    )}
+                </View>
+
+                {/* Service Coverage Card */}
+                <View style={styles.summaryCard}>
+                    <View style={styles.summaryHeader}>
+                        <View style={styles.summaryIconBox}><Ionicons name="map" size={18} color="#1d4ed8" /></View>
+                        <Text style={styles.summaryTitle}>Service Coverage</Text>
+                        <TouchableOpacity onPress={() => setStep(3)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Base Location</Text>
+                        <Text style={styles.sumValue}>{formData.area || 'GPS Location'}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Reach Mode</Text>
+                        <Text style={styles.sumValue}>
+                            {reachMode === 'RADIUS' && 'GPS Location Radius'}
+                            {reachMode === 'PINCODE' && 'Specific Pincodes'}
+                            {reachMode === 'STATE_DISTRICT' && (stateReachType === 'STATE' ? 'Entire State' : 'Specific Districts')}
+                            {reachMode === 'PAN_INDIA' && 'Entire India'}
+                        </Text>
+                    </View>
+
+                    {reachMode === 'RADIUS' && (
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.sumLabel}>Radius Distance</Text>
+                            <Text style={styles.sumValue}>{formData.serviceRadiusKm} km</Text>
+                        </View>
+                    )}
+
+                    {reachMode === 'PINCODE' && (
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.sumLabel}>Pincodes Selected</Text>
+                            <Text style={[styles.sumValue, { flex: 1, textAlign: 'right' }]}>
+                                {formData.serviceAreaValues.length > 0 ? formData.serviceAreaValues.join(', ') : 'None (Defaults to GPS Radius)'}
+                            </Text>
+                        </View>
+                    )}
+
+                    {reachMode === 'STATE_DISTRICT' && (
+                        <>
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.sumLabel}>Selected State</Text>
+                                <Text style={styles.sumValue}>{selectedState || 'N/A'}</Text>
+                            </View>
+                            {stateReachType === 'DISTRICT' && (
+                                <View style={styles.summaryRow}>
+                                    <Text style={styles.sumLabel}>Districts Selected</Text>
+                                    <Text style={[styles.sumValue, { flex: 1, textAlign: 'right' }]}>
+                                        {formData.serviceAreaValues.length > 0 ? formData.serviceAreaValues.join(', ') : 'None (Defaults to GPS Radius)'}
+                                    </Text>
+                                </View>
+                            )}
+                        </>
+                    )}
+
+                    {reachMode === 'PAN_INDIA' && (
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.sumLabel}>Coverage</Text>
+                            <Text style={styles.sumValue}>Pan-India Visibility</Text>
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.publishBox}>
+                    <View style={styles.publishIconBox}><Ionicons name="send" size={24} color="#1d4ed8" /></View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={styles.publishTitle}>Ready to publish?</Text>
+                        <Text style={styles.publishSub}>Once published, your business profile will be visible to the community and customers can contact you.</Text>
+                    </View>
                 </View>
             </View>
-        </View>
-    );
+        );
+    };
 
     const handlePublish = async () => {
         setLoading(true);
         try {
+            const synced = syncServiceReach();
+            
             // Include all business details in the payload
             const payload = {
                 ...formData,
+                serviceAreaType: synced.serviceAreaType,
+                serviceAreaValues: synced.serviceAreaValues,
                 pincode: formData.location, // Mapping for backend
                 city: formData.area,        // Mapping for backend
                 expertise: formData.experience,
@@ -835,6 +1378,288 @@ export default function CreateBusinessProfileScreen() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const renderCategoryPickerModal = () => {
+        const defaultCategories = [
+            'Plumbing', 'Electrical', 'Carpentry', 'Cleaning', 'Pest Control', 
+            'Home Renovation', 'Beauty & Salon', 'Personal Training', 'Yoga', 
+            'Education', 'Bakery', 'Catering', 'Interior Design', 'Plumber',
+            'Electrician', 'Carpenter', 'Cleaner', 'Painter', 'AC Repair'
+        ];
+        
+        // Merge base list and db categories
+        const merged = Array.from(new Set([
+            ...defaultCategories,
+            ...(dbCategories || []),
+            ...(formData.category && formData.category !== 'Others' ? [formData.category] : [])
+        ]));
+        
+        // Sort and exclude 'Others'
+        const sorted = merged.filter(c => c && c !== 'Others').sort((a, b) => a.localeCompare(b));
+        const allOptions = [...sorted, 'Others'];
+
+        // Filter based on search query
+        const query = categorySearch.toLowerCase().trim();
+        const filtered = query
+            ? [...allOptions.filter(c => c.toLowerCase().includes(query) && c !== 'Others'), 'Others']
+            : allOptions;
+
+        return (
+            <Modal visible={formData.showCategoryModal} transparent animationType="slide">
+                <View style={pickerStyles.modalOverlay}>
+                    <View style={[pickerStyles.modalContent, { height: '80%' }]}>
+                        <View style={pickerStyles.modalHeader}>
+                            <Text style={pickerStyles.modalTitle}>Select Business Category</Text>
+                            <TouchableOpacity onPress={() => {
+                                setCategorySearch('');
+                                setFormData({...formData, showCategoryModal: false});
+                            }}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        {/* Search input */}
+                        <View style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, paddingHorizontal: 12, height: 48 }}>
+                            <Ionicons name="search" size={20} color="#94a3b8" />
+                            <TextInput
+                                style={{ flex: 1, color: '#fff', marginLeft: 8, fontSize: 15 }}
+                                placeholder="Search or filter categories..."
+                                placeholderTextColor="#94a3b8"
+                                value={categorySearch}
+                                onChangeText={setCategorySearch}
+                            />
+                            {categorySearch ? (
+                                <TouchableOpacity onPress={() => setCategorySearch('')}>
+                                    <Ionicons name="close-circle" size={20} color="#94a3b8" />
+                                </TouchableOpacity>
+                            ) : null}
+                        </View>
+
+                        <ScrollView keyboardShouldPersistTaps="handled">
+                            {filtered.map(opt => (
+                                <TouchableOpacity 
+                                    key={opt} 
+                                    style={pickerStyles.optionItem} 
+                                    onPress={() => {
+                                        setFormData({...formData, category: opt, showCategoryModal: false});
+                                        setCategorySearch('');
+                                    }}
+                                >
+                                    <Text style={[
+                                        pickerStyles.optionText, 
+                                        formData.category === opt && { color: '#3b82f6', fontWeight: '800' }
+                                    ]}>
+                                        {opt}
+                                    </Text>
+                                    {formData.category === opt && (
+                                        <Ionicons name="checkmark" size={18} color="#3b82f6" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    const renderWorkingHoursModal = () => {
+        return (
+            <Modal visible={showWorkingHoursModal} transparent animationType="slide">
+                <View style={pickerStyles.modalOverlay}>
+                    <View style={[pickerStyles.modalContent, { height: '82%' }]}>
+                        <View style={pickerStyles.modalHeader}>
+                            <Text style={pickerStyles.modalTitle}>Configure Business Hours</Text>
+                            <TouchableOpacity onPress={() => setShowWorkingHoursModal(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }}>
+                            {/* Operational Days */}
+                            <View style={workingHoursStyles.daysSection}>
+                                <Text style={workingHoursStyles.sectionHeader}>Operational Days</Text>
+                                
+                                <View style={workingHoursStyles.tabBar}>
+                                    <TouchableOpacity 
+                                        style={[workingHoursStyles.tab, workingHoursDaysType === 'PRESET' && workingHoursStyles.tabActive]}
+                                        onPress={() => setWorkingHoursDaysType('PRESET')}
+                                    >
+                                        <Text style={[workingHoursStyles.tabText, workingHoursDaysType === 'PRESET' && workingHoursStyles.tabTextActive]}>Preset Ranges</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={[workingHoursStyles.tab, workingHoursDaysType === 'CUSTOM' && workingHoursStyles.tabActive]}
+                                        onPress={() => setWorkingHoursDaysType('CUSTOM')}
+                                    >
+                                        <Text style={[workingHoursStyles.tabText, workingHoursDaysType === 'CUSTOM' && workingHoursStyles.tabTextActive]}>Custom Days</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {workingHoursDaysType === 'PRESET' ? (
+                                    <View style={workingHoursStyles.presetGrid}>
+                                        {['Daily', 'Mon - Fri', 'Mon - Sat', 'Weekends Only'].map(preset => (
+                                            <TouchableOpacity
+                                                key={preset}
+                                                style={[workingHoursStyles.presetItem, selectedPresetDays === preset && workingHoursStyles.presetItemActive]}
+                                                onPress={() => setSelectedPresetDays(preset)}
+                                            >
+                                                <Text style={[workingHoursStyles.presetText, selectedPresetDays === preset && workingHoursStyles.presetTextActive]}>{preset}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <View style={workingHoursStyles.customDaysContainer}>
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                                            const isSelected = selectedCustomDays.includes(day);
+                                            return (
+                                                <TouchableOpacity
+                                                    key={day}
+                                                    style={[workingHoursStyles.dayCircle, isSelected && workingHoursStyles.dayCircleActive]}
+                                                    onPress={() => {
+                                                        if (isSelected) {
+                                                            setSelectedCustomDays(selectedCustomDays.filter(d => d !== day));
+                                                        } else {
+                                                            setSelectedCustomDays([...selectedCustomDays, day]);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Text style={[workingHoursStyles.dayCircleText, isSelected && workingHoursStyles.dayCircleTextActive]}>
+                                                        {day.substring(0, 3)}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* From Time Selector */}
+                            <View style={workingHoursStyles.timeSelectSection}>
+                                <Text style={workingHoursStyles.timeHeader}>From (Opening Time)</Text>
+                                <View style={workingHoursStyles.row}>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={workingHoursStyles.scrollContainer}>
+                                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(h => (
+                                            <TouchableOpacity 
+                                                key={h} 
+                                                style={[workingHoursStyles.timeButton, tempFromHour === h && workingHoursStyles.timeButtonActive]}
+                                                onPress={() => setTempFromHour(h)}
+                                            >
+                                                <Text style={[workingHoursStyles.timeButtonText, tempFromHour === h && workingHoursStyles.timeButtonTextActive]}>{h}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                                <View style={[workingHoursStyles.row, { marginTop: 8 }]}>
+                                    {['00', '15', '30', '45'].map(m => (
+                                        <TouchableOpacity 
+                                            key={m} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempFromMin === m && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempFromMin(m)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempFromMin === m && workingHoursStyles.timeButtonTextActive]}>{m}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                    <View style={{ width: 16 }} />
+                                    {['AM', 'PM'].map(p => (
+                                        <TouchableOpacity 
+                                            key={p} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempFromAmPm === p && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempFromAmPm(p)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempFromAmPm === p && workingHoursStyles.timeButtonTextActive]}>{p}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* To Time Selector */}
+                            <View style={workingHoursStyles.timeSelectSection}>
+                                <Text style={workingHoursStyles.timeHeader}>To (Closing Time)</Text>
+                                <View style={workingHoursStyles.row}>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={workingHoursStyles.scrollContainer}>
+                                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(h => (
+                                            <TouchableOpacity 
+                                                key={h} 
+                                                style={[workingHoursStyles.timeButton, tempToHour === h && workingHoursStyles.timeButtonActive]}
+                                                onPress={() => setTempToHour(h)}
+                                            >
+                                                <Text style={[workingHoursStyles.timeButtonText, tempToHour === h && workingHoursStyles.timeButtonTextActive]}>{h}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                                <View style={[workingHoursStyles.row, { marginTop: 8 }]}>
+                                    {['00', '15', '30', '45'].map(m => (
+                                        <TouchableOpacity 
+                                            key={m} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempToMin === m && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempToMin(m)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempToMin === m && workingHoursStyles.timeButtonTextActive]}>{m}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                    <View style={{ width: 16 }} />
+                                    {['AM', 'PM'].map(p => (
+                                        <TouchableOpacity 
+                                            key={p} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempToAmPm === p && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempToAmPm(p)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempToAmPm === p && workingHoursStyles.timeButtonTextActive]}>{p}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        </ScrollView>
+
+                        <TouchableOpacity style={[styles.continueBtn, { marginTop: 12 }]} onPress={saveWorkingHours}>
+                            <Text style={styles.continueBtnText}>Apply Business Hours</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    const renderStatePickerModal = () => {
+        return (
+            <Modal visible={showStateModal} transparent animationType="slide">
+                <View style={pickerStyles.modalOverlay}>
+                    <View style={[pickerStyles.modalContent, { height: '80%' }]}>
+                        <View style={pickerStyles.modalHeader}>
+                            <Text style={pickerStyles.modalTitle}>Select Indian State / UT</Text>
+                            <TouchableOpacity onPress={() => setShowStateModal(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                            {INDIAN_STATES.map(state => (
+                                <TouchableOpacity 
+                                    key={state} 
+                                    style={pickerStyles.optionItem} 
+                                    onPress={() => {
+                                        setSelectedState(state);
+                                        setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+                                        setShowStateModal(false);
+                                    }}
+                                >
+                                    <Text style={[
+                                        pickerStyles.optionText, 
+                                        selectedState === state && { color: '#3b82f6', fontWeight: '800' }
+                                    ]}>
+                                        {state}
+                                    </Text>
+                                    {selectedState === state && (
+                                        <Ionicons name="checkmark" size={18} color="#3b82f6" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        );
     };
 
     return (
@@ -887,13 +1712,9 @@ export default function CreateBusinessProfileScreen() {
                 </View>
             </View>
             {/* Modals for Pickers */}
-            {renderGenericPicker(
-                formData.showCategoryModal, 
-                'Select Business Category',
-                ['Plumber', 'Electrician', 'Carpenter', 'Cleaner', 'Painter', 'AC Repair', 'Pest Control'],
-                (val) => setFormData({...formData, category: val, showCategoryModal: false}),
-                () => setFormData({...formData, showCategoryModal: false})
-            )}
+            {renderCategoryPickerModal()}
+            {renderWorkingHoursModal()}
+            {renderStatePickerModal()}
 
             {renderGenericPicker(
                 formData.showExpModal, 
@@ -1207,4 +2028,39 @@ const styles = StyleSheet.create({
     radiusChipActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     radiusChipText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
     radiusChipTextActive: { color: '#fff' },
+    reachGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+    reachGridItem: { width: '48%', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, alignItems: 'center', gap: 8 },
+    reachGridItemActive: { backgroundColor: 'rgba(29, 78, 216, 0.15)', borderColor: '#1d4ed8' },
+    reachGridText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
+    reachGridTextActive: { color: '#fff' },
+    stateSelectBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, paddingHorizontal: 16, height: 48, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    stateSelectBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+});
+
+const workingHoursStyles = StyleSheet.create({
+    daysSection: { marginBottom: 20 },
+    sectionHeader: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 12 },
+    tabBar: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 16 },
+    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+    tabActive: { backgroundColor: '#1d4ed8' },
+    tabText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
+    tabTextActive: { color: '#fff' },
+    presetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    presetItem: { flex: 1, minWidth: '45%', paddingVertical: 14, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12 },
+    presetItemActive: { backgroundColor: 'rgba(29, 78, 216, 0.1)', borderColor: '#1d4ed8' },
+    presetText: { fontSize: 14, color: '#94a3b8', fontWeight: '600' },
+    presetTextActive: { color: '#3b82f6', fontWeight: '800' },
+    customDaysContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+    dayCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+    dayCircleActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
+    dayCircleText: { fontSize: 12, fontWeight: '700', color: '#94a3b8' },
+    dayCircleTextActive: { color: '#fff' },
+    timeSelectSection: { marginBottom: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 16 },
+    timeHeader: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 12 },
+    row: { flexDirection: 'row', gap: 8 },
+    scrollContainer: { gap: 8, paddingRight: 16 },
+    timeButton: { width: 48, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+    timeButtonActive: { backgroundColor: 'rgba(29, 78, 216, 0.1)', borderColor: '#1d4ed8' },
+    timeButtonText: { fontSize: 14, fontWeight: '600', color: '#94a3b8' },
+    timeButtonTextActive: { color: '#3b82f6', fontWeight: '800' }
 });

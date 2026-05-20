@@ -216,4 +216,13 @@ export class BusinessService {
             include: { services: true }
         });
     }
+
+    async getCategories() {
+        const profiles = await this.prisma.businessProfile.findMany({
+            select: { category: true },
+            where: { isActive: true }
+        });
+        const categories = Array.from(new Set(profiles.map(p => p.category as string).filter(Boolean)));
+        return categories.sort((a, b) => a.localeCompare(b));
+    }
 }

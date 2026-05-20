@@ -322,7 +322,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                 <Video
                     ref={video}
                     style={styles.video}
-                    source={{ uri: flare.mediaUrls[0] }}
+                    source={flare.mediaUrls?.[0] ? ({ uri: flare.mediaUrls[0], overrideFileExtension: 'mp4' } as any) : undefined}
                     useNativeControls={false}
                     resizeMode={ResizeMode.COVER}
                     isLooping

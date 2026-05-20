@@ -280,7 +280,7 @@ export default function ThreadScreen() {
                             <View key={idx} style={styles.carouselItem}>
                                 {url.toLowerCase().endsWith('.mp4') || url.includes('video') ? (
                                     <Video
-                                        source={{ uri: url }}
+                                        source={url ? ({ uri: url, overrideFileExtension: 'mp4' } as any) : undefined}
                                         style={styles.carouselMedia}
                                         resizeMode={ResizeMode.COVER}
                                         shouldPlay={false}

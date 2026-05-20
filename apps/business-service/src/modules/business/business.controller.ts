@@ -14,6 +14,11 @@ export class BusinessController {
         return this.businessService.createProfile(userId, tenantId, data);
     }
 
+    @Get('categories')
+    getCategories() {
+        return this.businessService.getCategories();
+    }
+
     @Get('profiles')
     listProfiles(
         @Query('tenantId') tenantId?: string,

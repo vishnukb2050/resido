@@ -20,6 +20,7 @@ export default function EditProfileScreen() {
     const { user, updateUser } = useAuthStore();
     const [loading, setLoading] = useState(false);
     const [isVisibilityModalVisible, setIsVisibilityModalVisible] = useState(false);
+    const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -95,8 +96,15 @@ export default function EditProfileScreen() {
             const config = hasNewImage ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
             const { data: updatedUser } = await authApi.updateProfile(dataToSubmit, config);
 
-            
-            updateUser(updatedUser);
+            // Re-fetch full profile to get the final S3 URL
+            try {
+                const { data: freshProfile } = await authApi.getProfile();
+                updateUser(freshProfile);
+            } catch {
+                // Fallback: use the returned user from the update
+                updateUser(updatedUser);
+            }
+            setImageTimestamp(Date.now()); // bust local image cache
             Alert.alert('Success', 'Profile updated successfully! ✨');
             router.back();
         } catch (error: any) {
@@ -126,7 +134,10 @@ export default function EditProfileScreen() {
                     {/* Avatar Section */}
                     <View style={styles.avatarSection}>
                         <View style={styles.avatarWrapper}>
-                            <Image source={{ uri: formData.profilePhoto }} style={styles.avatar} />
+                            <Image 
+                            source={{ uri: (formData.profilePhoto || `https://i.pravatar.cc/100?u=${user?.id}`) + (formData.profilePhoto?.startsWith('http') ? `?t=${imageTimestamp}` : '') }} 
+                            style={styles.avatar} 
+                        />
                             <TouchableOpacity style={styles.cameraBtn} onPress={pickImage}>
                                 <Ionicons name="camera" size={18} color="#fff" />
                             </TouchableOpacity>

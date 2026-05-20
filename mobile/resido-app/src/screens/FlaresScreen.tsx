@@ -156,7 +156,7 @@ export default function FlaresScreen() {
                 })}
             >
                 <Video
-                    source={{ uri: item.image }}
+                    source={item.image ? ({ uri: item.image, overrideFileExtension: 'mp4' } as any) : undefined}
                     style={styles.recentBg}
                     resizeMode={ResizeMode.COVER}
                     shouldPlay={false}
@@ -218,7 +218,7 @@ export default function FlaresScreen() {
             })}
         >
             <Video
-                source={{ uri: item.image }}
+                source={item.image ? ({ uri: item.image, overrideFileExtension: 'mp4' } as any) : undefined}
                 style={styles.feedImage}
                 resizeMode={ResizeMode.COVER}
                 shouldPlay

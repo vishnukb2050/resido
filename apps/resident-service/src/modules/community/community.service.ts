@@ -321,6 +321,10 @@ export class CommunityService {
         });
     }
 
+    async deleteEvent(id: string) {
+        return this.prisma.client.event.delete({ where: { id } });
+    }
+
     // ─── Members ────────────────────────────────────────────────
     async getMembers() {
         return this.prisma.reader.member.findMany({

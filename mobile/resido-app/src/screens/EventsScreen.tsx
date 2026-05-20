@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-    Modal, TextInput, Alert, ScrollView, ActivityIndicator, Switch
+    Modal, TextInput, Alert, ScrollView, ActivityIndicator, FlatList
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,8 @@ import { Calendar } from 'react-native-calendars';
 import { useAuthStore } from '../store/authStore';
 import { communityApi } from '../services/api';
 import { getThemeColors } from '../utils/theme';
+
+type ViewMode = 'day' | 'week' | 'month';
 
 const AUDIENCE_OPTIONS = [
     { key: 'MEMBERS',   label: 'Members',   icon: 'people-circle-outline',   color: '#3b82f6' },
@@ -19,6 +21,51 @@ const AUDIENCE_OPTIONS = [
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINS  = ['00', '15', '30', '45'];
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function toDateStr(d: Date) {
+    return d.toISOString().split('T')[0];
+}
+
+function getWeekRange(date: Date): { start: Date; end: Date } {
+    const d = new Date(date);
+    const day = d.getDay(); // 0=Sun
+    const diff = d.getDate() - day;
+    const start = new Date(d.setDate(diff));
+    const end   = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+}
+
+function getMonthRange(date: Date): { start: Date; end: Date } {
+    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+    const end   = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return { start, end };
+}
+
+function isSameDay(a: Date, b: Date) {
+    return a.getFullYear() === b.getFullYear() &&
+           a.getMonth()    === b.getMonth()    &&
+           a.getDate()     === b.getDate();
+}
+
+function formatTime(h: string, m: string) {
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const h12 = hour % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+}
+
+function eventTime(date: string) {
+    const d = new Date(date);
+    return formatTime(
+        String(d.getHours()).padStart(2, '0'),
+        String(d.getMinutes()).padStart(2, '0')
+    );
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
+
 export default function EventsScreen() {
     const router = useRouter();
     const { activeWorkspace, user } = useAuthStore();
@@ -26,14 +73,16 @@ export default function EventsScreen() {
 
     const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
 
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [events, setEvents] = useState<any[]>([]);
-    const [markedDates, setMarkedDates] = useState<any>({});
-    const [loading, setLoading] = useState(true);
-    const [showAdd, setShowAdd] = useState(false);
-    const [saving, setSaving] = useState(false);
+    const today = new Date();
+    const [selectedDate, setSelectedDate] = useState(toDateStr(today));
+    const [viewMode, setViewMode]         = useState<ViewMode>('day');
+    const [events, setEvents]             = useState<any[]>([]);
+    const [markedDates, setMarkedDates]   = useState<any>({});
+    const [loading, setLoading]           = useState(true);
+    const [showAdd, setShowAdd]           = useState(false);
+    const [saving, setSaving]             = useState(false);
+    const [deleting, setDeleting]         = useState<string | null>(null);
 
-    // Create event form state
     const [form, setForm] = useState({
         title: '',
         description: '',
@@ -46,24 +95,22 @@ export default function EventsScreen() {
     const [audience, setAudience] = useState<Record<string, boolean>>({
         MEMBERS: true, RESIDENTS: true, STAFF: false,
     });
-
-    // Time picker sheet state
     const [timePickerFor, setTimePickerFor] = useState<'start' | 'end' | null>(null);
 
-    useEffect(() => {
-        fetchEvents();
-    }, []);
+    // ── Fetch ──────────────────────────────────────────────────────────────
 
-    const fetchEvents = async () => {
+    const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
-            const { data: fetchedEvents } = await communityApi.getEvents(user?.id || '');
-            setEvents(fetchedEvents || []);
+            const memberId = activeWorkspace?.memberId || user?.id || '';
+            const { data: fetched } = await communityApi.getEvents(memberId);
+            const list: any[] = fetched || [];
+            setEvents(list);
 
             const marks: any = {};
-            (fetchedEvents || []).forEach((event: any) => {
-                const date = new Date(event.startDate).toISOString().split('T')[0];
-                marks[date] = { marked: true, dotColor: '#3b82f6' };
+            list.forEach((ev: any) => {
+                const d = toDateStr(new Date(ev.startDate));
+                marks[d] = { marked: true, dotColor: '#3b82f6' };
             });
             marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: '#3b82f6' };
             setMarkedDates(marks);
@@ -72,74 +119,119 @@ export default function EventsScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeWorkspace?.memberId, user?.id]);
+
+    useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+    // ── Calendar day press ─────────────────────────────────────────────────
 
     const handleDayPress = (day: any) => {
         const newDate = day.dateString;
         setSelectedDate(newDate);
+        setViewMode('day');
         const marks = { ...markedDates };
-        Object.keys(marks).forEach(key => {
-            if (marks[key].selected) {
-                marks[key] = { ...marks[key] };
-                delete marks[key].selected;
-                delete marks[key].selectedColor;
+        Object.keys(marks).forEach(k => {
+            if (marks[k].selected) {
+                marks[k] = { ...marks[k] };
+                delete marks[k].selected;
+                delete marks[k].selectedColor;
             }
         });
         marks[newDate] = { ...marks[newDate], selected: true, selectedColor: '#3b82f6' };
         setMarkedDates(marks);
     };
 
+    // ── Filter events by view ──────────────────────────────────────────────
+
+    const visibleEvents = (() => {
+        const base = new Date(selectedDate);
+        if (viewMode === 'day') {
+            return events.filter(e => isSameDay(new Date(e.startDate), base));
+        }
+        if (viewMode === 'week') {
+            const { start, end } = getWeekRange(base);
+            return events.filter(e => {
+                const d = new Date(e.startDate);
+                return d >= start && d <= new Date(end.setHours(23, 59, 59));
+            });
+        }
+        // month
+        const { start, end } = getMonthRange(base);
+        return events.filter(e => {
+            const d = new Date(e.startDate);
+            return d >= start && d <= new Date(end.setHours(23, 59, 59));
+        });
+    })();
+
+    // ── Create ─────────────────────────────────────────────────────────────
+
     const handleCreate = async () => {
-        if (!form.title.trim()) {
-            Alert.alert('Required', 'Please enter an event title');
-            return;
-        }
+        if (!form.title.trim()) { Alert.alert('Required', 'Please enter an event title'); return; }
         const selectedAudiences = Object.entries(audience).filter(([, v]) => v).map(([k]) => k);
-        if (selectedAudiences.length === 0) {
-            Alert.alert('Required', 'Please select at least one audience');
-            return;
-        }
+        if (selectedAudiences.length === 0) { Alert.alert('Required', 'Select at least one audience'); return; }
 
         const startDate = new Date(`${selectedDate}T${form.startHour}:${form.startMin}:00`);
         const endDate   = new Date(`${selectedDate}T${form.endHour}:${form.endMin}:00`);
-        if (endDate <= startDate) {
-            Alert.alert('Invalid Time', 'End time must be after start time');
-            return;
-        }
+        if (endDate <= startDate) { Alert.alert('Invalid Time', 'End time must be after start time'); return; }
 
         setSaving(true);
         try {
+            const memberId = activeWorkspace?.memberId || user?.id || '';
             await communityApi.createEvent({
-                title: form.title.trim(),
+                title:       form.title.trim(),
                 description: form.description.trim(),
-                location: form.location.trim(),
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
-                memberId: user?.id,
-                audience: selectedAudiences,
+                location:    form.location.trim(),
+                startDate:   startDate.toISOString(),
+                endDate:     endDate.toISOString(),
+                memberId,
+                audience:    selectedAudiences,
+                visibility:  'COMMUNITY',
             });
             setShowAdd(false);
             setForm({ title: '', description: '', location: '', startHour: '10', startMin: '00', endHour: '11', endMin: '00' });
             setAudience({ MEMBERS: true, RESIDENTS: true, STAFF: false });
             fetchEvents();
-            Alert.alert('✅ Event Created', 'Event has been added to the community calendar.');
-        } catch (e) {
-            Alert.alert('Error', 'Failed to create event. Please try again.');
-        } finally {
-            setSaving(false);
+            Alert.alert('✅ Event Created', 'Event added to the community calendar.');
+        } catch { Alert.alert('Error', 'Failed to create event. Please try again.'); }
+        finally { setSaving(false); }
+    };
+
+    // ── Delete ─────────────────────────────────────────────────────────────
+
+    const handleDelete = (eventId: string, title: string) => {
+        Alert.alert(
+            'Delete Event',
+            `Remove "${title}" from the calendar?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete', style: 'destructive',
+                    onPress: async () => {
+                        setDeleting(eventId);
+                        try {
+                            await communityApi.deleteEvent(eventId);
+                            fetchEvents();
+                        } catch { Alert.alert('Error', 'Could not delete event.'); }
+                        finally { setDeleting(null); }
+                    }
+                }
+            ]
+        );
+    };
+
+    // ── View label ─────────────────────────────────────────────────────────
+
+    const viewLabel = (() => {
+        const d = new Date(selectedDate);
+        if (viewMode === 'day') return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        if (viewMode === 'week') {
+            const { start, end } = getWeekRange(d);
+            return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
         }
-    };
+        return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    })();
 
-    const selectedDayEvents = events.filter(
-        e => new Date(e.startDate).toISOString().split('T')[0] === selectedDate
-    );
-
-    const formatTime = (h: string, m: string) => {
-        const hour = parseInt(h);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const h12 = hour % 12 || 12;
-        return `${h12}:${m} ${ampm}`;
-    };
+    // ── Render ─────────────────────────────────────────────────────────────
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -148,7 +240,7 @@ export default function EventsScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.headerTitle}>Community Calendar</Text>
                     <Text style={styles.headerSub}>{isAdmin ? 'Create & manage events' : 'View community events'}</Text>
                 </View>
@@ -164,49 +256,75 @@ export default function EventsScreen() {
                 {/* Calendar */}
                 <Calendar
                     theme={{
-                        backgroundColor: theme.background,
-                        calendarBackground: theme.background,
-                        textSectionTitleColor: '#94a3b8',
+                        backgroundColor:            theme.background,
+                        calendarBackground:         theme.background,
+                        textSectionTitleColor:      '#94a3b8',
                         selectedDayBackgroundColor: '#3b82f6',
-                        selectedDayTextColor: '#ffffff',
-                        todayTextColor: '#3b82f6',
-                        dayTextColor: '#fff',
-                        textDisabledColor: 'rgba(255,255,255,0.15)',
-                        dotColor: '#3b82f6',
-                        monthTextColor: '#fff',
-                        arrowColor: '#3b82f6',
+                        selectedDayTextColor:       '#ffffff',
+                        todayTextColor:             '#3b82f6',
+                        dayTextColor:               '#fff',
+                        textDisabledColor:          'rgba(255,255,255,0.15)',
+                        dotColor:                   '#3b82f6',
+                        monthTextColor:             '#fff',
+                        arrowColor:                 '#3b82f6',
                     }}
                     markedDates={markedDates}
                     onDayPress={handleDayPress}
                     style={styles.calendar}
                 />
 
-                {/* Events for selected day */}
+                {/* View Mode Tabs */}
+                <View style={styles.viewTabs}>
+                    {(['day', 'week', 'month'] as ViewMode[]).map(mode => (
+                        <TouchableOpacity
+                            key={mode}
+                            style={[styles.viewTab, viewMode === mode && styles.viewTabActive]}
+                            onPress={() => setViewMode(mode)}
+                        >
+                            <Text style={[styles.viewTabText, viewMode === mode && styles.viewTabTextActive]}>
+                                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {/* Events List */}
                 <View style={styles.eventsSection}>
                     <View style={styles.sectionHeaderRow}>
                         <View style={styles.dateChip}>
                             <Ionicons name="calendar" size={14} color="#3b82f6" />
-                            <Text style={styles.dateChipText}>{selectedDate}</Text>
+                            <Text style={styles.dateChipText}>{viewLabel}</Text>
                         </View>
                         <Text style={styles.eventCountText}>
-                            {selectedDayEvents.length} event{selectedDayEvents.length !== 1 ? 's' : ''}
+                            {visibleEvents.length} event{visibleEvents.length !== 1 ? 's' : ''}
                         </Text>
                     </View>
 
                     {loading ? (
                         <ActivityIndicator color="#3b82f6" style={{ marginTop: 30 }} />
-                    ) : selectedDayEvents.length > 0 ? (
-                        selectedDayEvents.map((item: any) => (
-                            <EventCard key={item.id} event={item} formatTime={formatTime} />
+                    ) : visibleEvents.length > 0 ? (
+                        visibleEvents.map((item: any) => (
+                            <EventCard
+                                key={item.id}
+                                event={item}
+                                isAdmin={isAdmin}
+                                deleting={deleting === item.id}
+                                onDelete={() => handleDelete(item.id, item.title)}
+                                viewMode={viewMode}
+                            />
                         ))
                     ) : (
                         <View style={styles.emptyState}>
                             <View style={styles.emptyIconBox}>
                                 <Ionicons name="calendar-outline" size={36} color="#475569" />
                             </View>
-                            <Text style={styles.emptyTitle}>No events today</Text>
+                            <Text style={styles.emptyTitle}>
+                                No events {viewMode === 'day' ? 'today' : `this ${viewMode}`}
+                            </Text>
                             <Text style={styles.emptyText}>
-                                {isAdmin ? 'Tap + to create a new event for this date' : 'No events scheduled for this day'}
+                                {isAdmin
+                                    ? 'Tap + to create a new event'
+                                    : `No events scheduled for this ${viewMode}`}
                             </Text>
                             {isAdmin && (
                                 <TouchableOpacity style={styles.emptyAddBtn} onPress={() => setShowAdd(true)}>
@@ -232,7 +350,6 @@ export default function EventsScreen() {
                         </View>
 
                         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                            {/* Title */}
                             <Text style={styles.fieldLabel}>Event Title *</Text>
                             <TextInput
                                 style={styles.input}
@@ -242,7 +359,6 @@ export default function EventsScreen() {
                                 onChangeText={t => setForm({ ...form, title: t })}
                             />
 
-                            {/* Location */}
                             <Text style={styles.fieldLabel}>Location</Text>
                             <TextInput
                                 style={styles.input}
@@ -252,35 +368,23 @@ export default function EventsScreen() {
                                 onChangeText={t => setForm({ ...form, location: t })}
                             />
 
-                            {/* Time Pickers */}
                             <View style={styles.timeRow}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.fieldLabel}>Start Time</Text>
-                                    <TouchableOpacity
-                                        style={styles.timePicker}
-                                        onPress={() => setTimePickerFor('start')}
-                                    >
+                                    <TouchableOpacity style={styles.timePicker} onPress={() => setTimePickerFor('start')}>
                                         <Ionicons name="time-outline" size={16} color="#3b82f6" />
-                                        <Text style={styles.timePickerText}>
-                                            {formatTime(form.startHour, form.startMin)}
-                                        </Text>
+                                        <Text style={styles.timePickerText}>{formatTime(form.startHour, form.startMin)}</Text>
                                     </TouchableOpacity>
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 12 }}>
                                     <Text style={styles.fieldLabel}>End Time</Text>
-                                    <TouchableOpacity
-                                        style={styles.timePicker}
-                                        onPress={() => setTimePickerFor('end')}
-                                    >
+                                    <TouchableOpacity style={styles.timePicker} onPress={() => setTimePickerFor('end')}>
                                         <Ionicons name="time-outline" size={16} color="#3b82f6" />
-                                        <Text style={styles.timePickerText}>
-                                            {formatTime(form.endHour, form.endMin)}
-                                        </Text>
+                                        <Text style={styles.timePickerText}>{formatTime(form.endHour, form.endMin)}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
 
-                            {/* Description */}
                             <Text style={styles.fieldLabel}>Description</Text>
                             <TextInput
                                 style={[styles.input, styles.textArea]}
@@ -291,34 +395,24 @@ export default function EventsScreen() {
                                 onChangeText={t => setForm({ ...form, description: t })}
                             />
 
-                            {/* Audience Selection */}
                             <Text style={styles.fieldLabel}>Assign To</Text>
                             <Text style={styles.fieldHint}>Select who can view this event</Text>
                             {AUDIENCE_OPTIONS.map(opt => (
                                 <TouchableOpacity
                                     key={opt.key}
-                                    style={[
-                                        styles.audienceRow,
-                                        audience[opt.key] && { borderColor: opt.color, backgroundColor: `${opt.color}15` }
-                                    ]}
+                                    style={[styles.audienceRow, audience[opt.key] && { borderColor: opt.color, backgroundColor: `${opt.color}15` }]}
                                     onPress={() => setAudience(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))}
                                 >
                                     <View style={[styles.audienceIconBox, { backgroundColor: `${opt.color}20` }]}>
                                         <Ionicons name={opt.icon as any} size={20} color={opt.color} />
                                     </View>
-                                    <Text style={[styles.audienceLabel, audience[opt.key] && { color: '#fff' }]}>
-                                        {opt.label}
-                                    </Text>
-                                    <View style={[
-                                        styles.checkBox,
-                                        audience[opt.key] && { backgroundColor: opt.color, borderColor: opt.color }
-                                    ]}>
+                                    <Text style={[styles.audienceLabel, audience[opt.key] && { color: '#fff' }]}>{opt.label}</Text>
+                                    <View style={[styles.checkBox, audience[opt.key] && { backgroundColor: opt.color, borderColor: opt.color }]}>
                                         {audience[opt.key] && <Ionicons name="checkmark" size={14} color="#fff" />}
                                     </View>
                                 </TouchableOpacity>
                             ))}
 
-                            {/* Submit */}
                             <TouchableOpacity
                                 style={[styles.submitBtn, saving && { opacity: 0.7 }]}
                                 onPress={handleCreate}
@@ -337,20 +431,14 @@ export default function EventsScreen() {
                 </View>
             </Modal>
 
-            {/* Inline Time Picker Sheet */}
-            <Modal
-                visible={!!timePickerFor}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setTimePickerFor(null)}
-            >
+            {/* Time Picker Sheet */}
+            <Modal visible={!!timePickerFor} transparent animationType="slide" onRequestClose={() => setTimePickerFor(null)}>
                 <View style={styles.timeSheetOverlay}>
                     <View style={styles.timeSheet}>
                         <Text style={styles.timeSheetTitle}>
                             Select {timePickerFor === 'start' ? 'Start' : 'End'} Time
                         </Text>
                         <View style={styles.timeColumns}>
-                            {/* Hour column */}
                             <ScrollView style={styles.timeCol} showsVerticalScrollIndicator={false}>
                                 {HOURS.map(h => {
                                     const isSelected = timePickerFor === 'start' ? form.startHour === h : form.endHour === h;
@@ -371,7 +459,6 @@ export default function EventsScreen() {
                                 })}
                             </ScrollView>
                             <View style={styles.timeColDivider} />
-                            {/* Minute column */}
                             <ScrollView style={styles.timeCol} showsVerticalScrollIndicator={false}>
                                 {MINS.map(m => {
                                     const isSelected = timePickerFor === 'start' ? form.startMin === m : form.endMin === m;
@@ -402,36 +489,52 @@ export default function EventsScreen() {
     );
 }
 
-function EventCard({ event, formatTime }: any) {
-    const startTime = event.startDate
-        ? formatTime(
-            String(new Date(event.startDate).getHours()).padStart(2, '0'),
-            String(new Date(event.startDate).getMinutes()).padStart(2, '0')
-          )
-        : '';
-    const endTime = event.endDate
-        ? formatTime(
-            String(new Date(event.endDate).getHours()).padStart(2, '0'),
-            String(new Date(event.endDate).getMinutes()).padStart(2, '0')
-          )
-        : '';
+// ── EventCard ──────────────────────────────────────────────────────────────
 
+function EventCard({ event, isAdmin, deleting, onDelete, viewMode }: any) {
+    const start = eventTime(event.startDate);
+    const end   = event.endDate ? eventTime(event.endDate) : null;
     const audiences: string[] = event.audience || [];
+    const eventDate = new Date(event.startDate);
 
     return (
         <View style={styles.eventCard}>
             <View style={styles.eventAccent} />
             <View style={styles.eventContent}>
                 <View style={styles.eventTopRow}>
-                    <Text style={styles.eventTitle}>{event.title}</Text>
-                    <View style={styles.eventTimeBadge}>
-                        <Ionicons name="time-outline" size={12} color="#3b82f6" />
-                        <Text style={styles.eventTimeBadgeText}>{startTime}</Text>
+                    <View style={{ flex: 1 }}>
+                        {/* Show date label in week/month view */}
+                        {viewMode !== 'day' && (
+                            <Text style={styles.eventDateLabel}>
+                                {eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </Text>
+                        )}
+                        <Text style={styles.eventTitle}>{event.title}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={styles.eventTimeBadge}>
+                            <Ionicons name="time-outline" size={12} color="#3b82f6" />
+                            <Text style={styles.eventTimeBadgeText}>{start}</Text>
+                        </View>
+                        {isAdmin && (
+                            <TouchableOpacity
+                                onPress={onDelete}
+                                disabled={deleting}
+                                style={styles.deleteBtn}
+                            >
+                                {deleting
+                                    ? <ActivityIndicator size={14} color="#ef4444" />
+                                    : <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                                }
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
+
                 {!!event.description && (
-                    <Text style={styles.eventDesc}>{event.description}</Text>
+                    <Text style={styles.eventDesc} numberOfLines={2}>{event.description}</Text>
                 )}
+
                 <View style={styles.eventMeta}>
                     {!!event.location && (
                         <View style={styles.metaItem}>
@@ -439,13 +542,14 @@ function EventCard({ event, formatTime }: any) {
                             <Text style={styles.metaText}>{event.location}</Text>
                         </View>
                     )}
-                    {endTime && (
+                    {end && (
                         <View style={styles.metaItem}>
                             <Ionicons name="hourglass-outline" size={13} color="#64748b" />
-                            <Text style={styles.metaText}>Ends {endTime}</Text>
+                            <Text style={styles.metaText}>Ends {end}</Text>
                         </View>
                     )}
                 </View>
+
                 {audiences.length > 0 && (
                     <View style={styles.audienceTags}>
                         {audiences.map(a => (
@@ -460,80 +564,93 @@ function EventCard({ event, formatTime }: any) {
     );
 }
 
+// ── Styles ─────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 16, gap: 12 },
+    container:   { flex: 1 },
+    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 16, gap: 12 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    headerSub: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    createBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
+    headerSub:   { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
+    backBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    createBtn:   { width: 44, height: 44, borderRadius: 22, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
 
     calendar: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 8 },
 
-    eventsSection: { padding: 20 },
+    // View mode tabs
+    viewTabs:         { flexDirection: 'row', marginHorizontal: 20, marginTop: 16, marginBottom: 4, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    viewTab:          { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+    viewTabActive:    { backgroundColor: '#3b82f6' },
+    viewTabText:      { fontSize: 13, fontWeight: '700', color: '#64748b' },
+    viewTabTextActive:{ color: '#fff', fontWeight: '900' },
+
+    eventsSection:    { padding: 20 },
     sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-    dateChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
-    dateChipText: { color: '#3b82f6', fontSize: 13, fontWeight: '700' },
-    eventCountText: { fontSize: 12, color: '#64748b', fontWeight: '700' },
+    dateChip:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)', flexShrink: 1 },
+    dateChipText:     { color: '#3b82f6', fontSize: 12, fontWeight: '700' },
+    eventCountText:   { fontSize: 12, color: '#64748b', fontWeight: '700', marginLeft: 8 },
 
-    eventCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 14 },
-    eventAccent: { width: 4, backgroundColor: '#3b82f6' },
-    eventContent: { padding: 16, flex: 1 },
-    eventTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
-    eventTitle: { fontSize: 16, fontWeight: '800', color: '#fff', flex: 1, marginRight: 8 },
-    eventTimeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    eventTimeBadgeText: { fontSize: 11, color: '#3b82f6', fontWeight: '700' },
-    eventDesc: { fontSize: 13, color: '#64748b', marginBottom: 10, lineHeight: 18 },
-    eventMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
-    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    metaText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-    audienceTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-    audienceTag: { backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
-    audienceTagText: { fontSize: 10, color: '#60a5fa', fontWeight: '800', textTransform: 'uppercase' },
+    // Event card
+    eventCard:         { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 14 },
+    eventAccent:       { width: 4, backgroundColor: '#3b82f6' },
+    eventContent:      { padding: 16, flex: 1 },
+    eventTopRow:       { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
+    eventDateLabel:    { fontSize: 10, color: '#64748b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+    eventTitle:        { fontSize: 16, fontWeight: '800', color: '#fff' },
+    eventTimeBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    eventTimeBadgeText:{ fontSize: 11, color: '#3b82f6', fontWeight: '700' },
+    eventDesc:         { fontSize: 13, color: '#64748b', marginBottom: 10, lineHeight: 18 },
+    eventMeta:         { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
+    metaItem:          { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaText:          { fontSize: 12, color: '#64748b', fontWeight: '600' },
+    audienceTags:      { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    audienceTag:       { backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
+    audienceTagText:   { fontSize: 10, color: '#60a5fa', fontWeight: '800', textTransform: 'uppercase' },
+    deleteBtn:         { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)' },
 
-    emptyState: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
-    emptyIconBox: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    emptyTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 8 },
-    emptyText: { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20 },
-    emptyAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, marginTop: 20 },
-    emptyAddBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    // Empty state
+    emptyState:    { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
+    emptyIconBox:  { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    emptyTitle:    { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 8 },
+    emptyText:     { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20 },
+    emptyAddBtn:   { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, marginTop: 20 },
+    emptyAddBtnText:{ color: '#fff', fontWeight: '800', fontSize: 14 },
 
     // Modal
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '92%' },
-    modalHeader: { marginBottom: 24 },
-    modalTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
+    modalOverlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+    modalContent:  { backgroundColor: '#1e293b', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '92%' },
+    modalHeader:   { marginBottom: 24 },
+    modalTitle:    { fontSize: 22, fontWeight: '900', color: '#fff' },
     modalSubtitle: { fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 4 },
-    modalClose: { position: 'absolute', right: 0, top: 0, padding: 4 },
+    modalClose:    { position: 'absolute', right: 0, top: 0, padding: 4 },
 
-    fieldLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 16 },
-    fieldHint: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 10, marginTop: -6 },
-    input: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', color: '#fff', padding: 16, fontSize: 15, fontWeight: '600' },
-    textArea: { height: 90, textAlignVertical: 'top' },
+    fieldLabel:  { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 16 },
+    fieldHint:   { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 10, marginTop: -6 },
+    input:       { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', color: '#fff', padding: 16, fontSize: 15, fontWeight: '600' },
+    textArea:    { height: 90, textAlignVertical: 'top' },
 
-    timeRow: { flexDirection: 'row', gap: 0 },
-    timePicker: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', borderRadius: 14, padding: 14 },
+    timeRow:        { flexDirection: 'row', gap: 0 },
+    timePicker:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', borderRadius: 14, padding: 14 },
     timePickerText: { color: '#60a5fa', fontWeight: '800', fontSize: 15 },
 
-    audienceRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    audienceRow:     { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
     audienceIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    audienceLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#94a3b8' },
-    checkBox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+    audienceLabel:   { flex: 1, fontSize: 15, fontWeight: '700', color: '#94a3b8' },
+    checkBox:        { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
-    submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#3b82f6', borderRadius: 18, padding: 18, marginTop: 24, marginBottom: 8 },
+    submitBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#3b82f6', borderRadius: 18, padding: 18, marginTop: 24, marginBottom: 8 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 },
 
-    // Time picker sheet
+    // Time sheet
     timeSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    timeSheet: { backgroundColor: '#1e293b', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: 400 },
-    timeSheetTitle: { fontSize: 18, fontWeight: '900', color: '#fff', textAlign: 'center', marginBottom: 20 },
-    timeColumns: { flexDirection: 'row', height: 200 },
-    timeCol: { flex: 1 },
-    timeColDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 8 },
-    timeOption: { padding: 14, borderRadius: 10, marginBottom: 4, alignItems: 'center' },
-    timeOptionSelected: { backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 1, borderColor: '#3b82f6' },
-    timeOptionText: { color: '#64748b', fontWeight: '700', fontSize: 15 },
+    timeSheet:        { backgroundColor: '#1e293b', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: 400 },
+    timeSheetTitle:   { fontSize: 18, fontWeight: '900', color: '#fff', textAlign: 'center', marginBottom: 20 },
+    timeColumns:      { flexDirection: 'row', height: 200 },
+    timeCol:          { flex: 1 },
+    timeColDivider:   { width: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 8 },
+    timeOption:       { padding: 14, borderRadius: 10, marginBottom: 4, alignItems: 'center' },
+    timeOptionSelected:     { backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 1, borderColor: '#3b82f6' },
+    timeOptionText:         { color: '#64748b', fontWeight: '700', fontSize: 15 },
     timeOptionTextSelected: { color: '#fff' },
-    timeSheetDone: { backgroundColor: '#3b82f6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
+    timeSheetDone:     { backgroundColor: '#3b82f6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
     timeSheetDoneText: { color: '#fff', fontWeight: '900', fontSize: 16 },
 });

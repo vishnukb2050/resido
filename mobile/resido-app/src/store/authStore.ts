@@ -86,7 +86,9 @@ export const useAuthStore = create<AuthState>()(
                     activeWorkspace: null,
                 }),
 
-            updateUser: (user) => set({ user }),
+            updateUser: (updatedFields) => set((state) => ({ 
+                user: state.user ? { ...state.user, ...updatedFields } : updatedFields 
+            })),
 
             setActiveWorkspace: (ws, token) =>
                 set((state) => ({

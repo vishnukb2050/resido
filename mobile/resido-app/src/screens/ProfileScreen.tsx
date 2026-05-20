@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import BottomNav from '../components/BottomNav';
@@ -10,6 +10,14 @@ const { width } = Dimensions.get('window');
 export default function ProfileScreen() {
     const router = useRouter();
     const { user } = useAuthStore();
+    const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+
+    // Refresh image cache every time we come back to this screen
+    useFocusEffect(
+        React.useCallback(() => {
+            setImageTimestamp(Date.now());
+        }, [])
+    );
 
     return (
         <SafeAreaView style={styles.container}>
@@ -32,7 +40,7 @@ export default function ProfileScreen() {
                 <View style={styles.identityCard}>
                     <View style={styles.avatarContainer}>
                         <Image 
-                            source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/150?u=" + user?.id }} 
+                            source={{ uri: (user?.profilePhoto || `https://i.pravatar.cc/150?u=${user?.id}`) + `?t=${imageTimestamp}` }} 
                             style={styles.mainAvatar} 
                         />
                         <View style={styles.verifiedBadge}>

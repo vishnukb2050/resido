@@ -100,6 +100,7 @@ export const communityApi = {
     approveGatepassEntry: (id: string, securityMemberId: string) => api.patch(`/community/visitors/${id}/approve`, { securityMemberId }),
     getEvents: (memberId: string) => api.get(`/community/events?memberId=${memberId}`),
     createEvent: (data: any) => api.post('/community/events', data),
+    deleteEvent: (id: string) => api.delete(`/community/events/${id}`),
     getRules: () => api.get('/community/rules'),
     createRule: (data: any) => api.post('/community/rules', data),
     getMembers: () => api.get('/community/members'),
@@ -160,6 +161,7 @@ export const businessApi = {
     getMyProfiles: () => api.get('/business/profiles/my'),
     getProfile: (id: string) => api.get(`/business/profiles/${id}`),
     updateProfile: (id: string, data: any) => api.patch(`/business/profiles/${id}`, data),
+    getCategories: () => api.get('/business/categories'),
 };
 
 // Accounting APIs

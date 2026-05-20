@@ -90,6 +90,11 @@ export class CommunityController {
         return this.communityService.createEvent(data.memberId, data);
     }
 
+    @Delete('events/:id')
+    deleteEvent(@Param('id') id: string) {
+        return this.communityService.deleteEvent(id);
+    }
+
     @Get('members')
     getMembers() {
         return this.communityService.getMembers();
