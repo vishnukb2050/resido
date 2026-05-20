@@ -358,10 +358,6 @@ export default function ServiceSearchScreen() {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
-                        <TouchableOpacity style={styles.nearMeBtn} onPress={handleUseCurrentLocation}>
-                            <MaterialCommunityIcons name="google-maps" size={18} color="#4c1d95" />
-                            <Text style={styles.nearMeText}>Near Me</Text>
-                        </TouchableOpacity>
                     </View>
                     
                     <View style={{ zIndex: 100 }}>
@@ -379,7 +375,7 @@ export default function ServiceSearchScreen() {
                                 </View>
                             </View>
                         ) : null}
-                        <View style={[styles.searchBar, { marginTop: selectedLocationName ? 8 : 12, height: 48 }]}>
+                        <View style={[styles.searchBar, { marginTop: selectedLocationName ? 8 : 12 }]}>
                             <Ionicons name="location" size={18} color="#be185d" />
                             <TextInput 
                                 placeholder="Search by area/location..." 
@@ -389,6 +385,10 @@ export default function ServiceSearchScreen() {
                                 onChangeText={handleLocationSearch}
                                 onBlur={() => setTimeout(() => setShowGlobalDropdown(false), 200)}
                             />
+                            <TouchableOpacity style={styles.nearMeBtn} onPress={handleUseCurrentLocation}>
+                                <MaterialCommunityIcons name="google-maps" size={18} color="#4c1d95" />
+                                <Text style={styles.nearMeText}>Near Me</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>

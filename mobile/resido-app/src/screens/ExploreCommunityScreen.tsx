@@ -177,7 +177,7 @@ const LivingItem = ({ icon, label }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1e222b' },
+    container: { flex: 1, backgroundColor: '#23272a' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', marginLeft: 20, marginTop: 10 },
     
     heroSection: { padding: 24, flexDirection: 'row', alignItems: 'center', minHeight: 220 },

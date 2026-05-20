@@ -66,7 +66,7 @@ export default function CleaningLogScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1e222b', padding: 20 },
+    container: { flex: 1, backgroundColor: '#23272a', padding: 20 },
     title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40 },
     sub: { color: '#64748b', fontSize: 13, marginBottom: 24 },
     section: { color: '#94a3b8', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },

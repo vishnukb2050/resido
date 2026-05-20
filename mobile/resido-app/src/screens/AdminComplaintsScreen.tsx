@@ -684,7 +684,7 @@ const getStatusColor = (status: string) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1e222b' },
+    container: { flex: 1, backgroundColor: '#23272a' },
     
     // Header Styling
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20 },
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     modalLabel: { fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
     
     searchBar: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', color: '#fff', padding: 14, fontSize: 14, fontWeight: '600' },
-    searchDropdown: { backgroundColor: '#1e222b', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6 },
+    searchDropdown: { backgroundColor: '#23272a', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6 },
     dropdownOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
     dropdownOptionName: { fontSize: 14, color: '#fff', fontWeight: '700' },
     dropdownOptionPhone: { fontSize: 11, color: '#64748b', marginTop: 2 },
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
 
     modalSelector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     modalSelectorText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-    modalSelectorDropdown: { backgroundColor: '#1e222b', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6, maxHeight: 150 },
+    modalSelectorDropdown: { backgroundColor: '#23272a', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6, maxHeight: 150 },
     modalSelectorItem: { padding: 12 },
     modalSelectorItemText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
     staffItemName: { fontSize: 14, color: '#fff', fontWeight: '800' },
     staffItemRoleBadge: { fontSize: 10, color: '#10b981', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
 
-    staffDropdownContainer: { backgroundColor: '#1e222b', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6, maxHeight: 150 },
+    staffDropdownContainer: { backgroundColor: '#23272a', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6, maxHeight: 150 },
     staffDropdownOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
     staffOptionName: { fontSize: 14, color: '#fff', fontWeight: '700' },
     staffOptionRole: { fontSize: 10, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginTop: 2 },

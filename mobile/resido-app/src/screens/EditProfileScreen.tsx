@@ -401,7 +401,7 @@ const SocialItem = ({ icon, label, value, color, isConnected }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1e222b' },
+    container: { flex: 1, backgroundColor: '#23272a' },
     header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 80 },
 
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },

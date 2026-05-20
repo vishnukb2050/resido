@@ -136,7 +136,7 @@ export default function OtpLoginScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1e222b', justifyContent: 'center', padding: 24 },
+    container: { flex: 1, backgroundColor: '#23272a', justifyContent: 'center', padding: 24 },
     card: { backgroundColor: '#1e1e2e', borderRadius: 20, padding: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
     logo: { fontSize: 36, fontWeight: '800', color: '#4c1d95', textAlign: 'center', letterSpacing: -1 },
     tagline: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 32, marginTop: 4 },

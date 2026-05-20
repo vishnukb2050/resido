@@ -7,11 +7,11 @@
 }
 
 :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --surface: #1e1e2e;
-    --surface-2: #27273a;
-    --surface-3: #313145;
+    --primary: #800080; /* Purple */
+    --primary-dark: #5d005d;
+    --surface: #708090; /* Slate Grey */
+    --surface-2: #626d77;
+    --surface-3: #505a62;
     --text: #e2e8f0;
     --text-muted: #94a3b8;
     --success: #22c55e;

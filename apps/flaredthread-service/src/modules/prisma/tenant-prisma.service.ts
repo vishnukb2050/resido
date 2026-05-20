@@ -39,6 +39,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
                         const tenantId = store?.tenantId;
 
                         if (tenantId) {
+                            args = args || {};
                             if (args.where?.__ignoreTenant) {
                                 delete args.where.__ignoreTenant;
                                 return query(args);

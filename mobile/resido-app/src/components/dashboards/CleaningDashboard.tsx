@@ -201,7 +201,7 @@ function FeatureCard({ icon, title, color, bg, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#1e222b' },
+    safeArea: { flex: 1, backgroundColor: '#23272a' },
     container: { flex: 1 },
     content: { paddingBottom: 110 },
     

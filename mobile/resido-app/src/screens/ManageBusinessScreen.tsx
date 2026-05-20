@@ -171,8 +171,8 @@ export default function ManageBusinessScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1e222b' },
-    loadingContainer: { flex: 1, backgroundColor: '#1e222b', justifyContent: 'center', alignItems: 'center' },
+    container: { flex: 1, backgroundColor: '#23272a' },
+    loadingContainer: { flex: 1, backgroundColor: '#23272a', justifyContent: 'center', alignItems: 'center' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },

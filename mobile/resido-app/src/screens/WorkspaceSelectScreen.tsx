@@ -90,7 +90,7 @@ export default function WorkspaceSelectScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#1e222b', padding: 24, paddingTop: 60 },
+    container: { flex: 1, backgroundColor: '#23272a', padding: 24, paddingTop: 60 },
     title: { fontSize: 26, fontWeight: '800', color: '#e2e8f0', letterSpacing: -0.5, marginBottom: 6 },
     subtitle: { fontSize: 14, color: '#64748b', marginBottom: 28 },
     card: {
