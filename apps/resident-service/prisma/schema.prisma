@@ -274,6 +274,10 @@ model Visitor {
   name          String
   phone         String
   purpose       String?
+  category      String?
+  description   String?
+  personsCount  Int          @default(1)
+  unitToVisit   String?
   entryTime     DateTime?
   exitTime      DateTime?
   passCode      String       

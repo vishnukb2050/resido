@@ -215,6 +215,22 @@ export class CommunityService {
             }
         });
 
+        // Automatically create a visitor entry in the visitor register
+        await this.prisma.client.visitorEntry.create({
+            data: {
+                visitorName: visitor.name,
+                phone: visitor.phone,
+                purpose: visitor.purpose,
+                category: visitor.category || 'Visitor',
+                unitToVisit: visitor.unitToVisit || 'N/A',
+                vehicleNumber: visitor.vehicleNumber,
+                gatepassId: visitor.id,
+                loggedBy: securityMemberId,
+                description: visitor.description,
+                inTime: new Date()
+            }
+        });
+
         return updated;
     }
 
@@ -263,13 +279,17 @@ export class CommunityService {
         
         const visitorData = {
             tenantId: member.tenantId,
-            name: data.visitorName || data.name,
-            phone: data.phone || '0000000000', 
+            name: data.visitorName || data.name || '',
+            phone: data.phone || data.mobile || '0000000000', 
             purpose: data.purpose,
             passCode,
             status: 'PENDING' as any,
             memberId: member.id, 
             vehicleNumber: data.vehicleNumber,
+            category: data.category || 'Visitor',
+            description: data.description,
+            personsCount: typeof data.personsCount === 'string' ? parseInt(data.personsCount) || 1 : data.personsCount || 1,
+            unitToVisit: data.unitToVisit,
         };
 
         return this.prisma.client.visitor.create({
