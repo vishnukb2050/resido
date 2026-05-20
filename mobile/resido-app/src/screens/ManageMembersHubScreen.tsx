@@ -71,7 +71,7 @@ function HubTile({ icon, title, sub, color, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#1e222b' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
 
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },

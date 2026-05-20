@@ -140,7 +140,7 @@ export default function SelectGroupsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+    container: { flex: 1, backgroundColor: '#1e222b' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginLeft: 16 },
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     checkboxActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
 
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
-    footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, paddingBottom: 30, backgroundColor: '#0f172a' },
+    footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, paddingBottom: 30, backgroundColor: '#1e222b' },
     shareButton: { backgroundColor: '#4c1d95', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     shareButtonText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

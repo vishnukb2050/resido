@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#0f172a' },
+    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#1e222b' },
     psNotifCount: { color: '#fff', fontSize: 8, fontWeight: '900' },
     psProfileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psProfileImg: { width: '100%', height: '100%' },
@@ -332,8 +332,8 @@ export default function DefaultDashboard() {
     
     const isMySpace = !activeWorkspace;
     const mySpaceBg = theme.background;
-    const mySpaceText = theme.background === '#000000' ? '#ffffff' : '#2D2445';
-    const mySpaceSubText = theme.background === '#000000' ? '#94a3b8' : '#7A6B9C';
+    const mySpaceText = '#ffffff';
+    const mySpaceSubText = '#a78bfa';
     const darkLavender = theme.primary;
     const lightLavender = theme.accent;
  

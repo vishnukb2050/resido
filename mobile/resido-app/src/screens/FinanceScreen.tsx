@@ -156,8 +156,8 @@ const ShortcutItem = ({ icon, label, color, onPress }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 20, paddingTop: 30, backgroundColor: '#0f172a' },
+    container: { flex: 1, backgroundColor: '#1e222b' },
+    header: { padding: 20, paddingTop: 30, backgroundColor: '#1e222b' },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25 },
     headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
     logoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },

@@ -69,7 +69,7 @@ export default function PollsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f0f1a', padding: 20 },
+    container: { flex: 1, backgroundColor: '#1e222b', padding: 20 },
     title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40, marginBottom: 20 },
     card: { backgroundColor: '#1e1e2e', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
     question: { fontSize: 16, fontWeight: '700', color: '#e2e8f0', marginBottom: 16 },

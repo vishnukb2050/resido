@@ -107,7 +107,7 @@ export default function RaiseComplaintScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f0f1a', padding: 20 },
+    container: { flex: 1, backgroundColor: '#1e222b', padding: 20 },
     title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40, marginBottom: 24 },
     group: { marginBottom: 18 },
     label: { color: '#94a3b8', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', marginBottom: 8 },

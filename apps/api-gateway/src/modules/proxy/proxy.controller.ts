@@ -34,6 +34,16 @@ export class ProxyController {
             targetUrl = `http://flaredthread-service:3008${path}`;
         } else if (path.startsWith('/business')) {
             targetUrl = `http://business-service:3009${path}`;
+        } else if (path.startsWith('/visitors') || path.startsWith('/gatepass')) {
+            targetUrl = `http://visitor-service:3006${path}`;
+        } else if (path.startsWith('/accounting')) {
+            targetUrl = `http://accounting-service:3003${path}`;
+        } else if (path.startsWith('/chat')) {
+            targetUrl = `http://chat-service:3004${path}`;
+        } else if (path.startsWith('/notifications')) {
+            targetUrl = `http://notification-service:3005${path}`;
+        } else if (path.startsWith('/complaint')) {
+            targetUrl = `http://complaint-service:3007${path}`;
         } else {
             return res.status(404).json({ message: 'Service not found' });
         }

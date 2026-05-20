@@ -1045,7 +1045,7 @@ const pickerStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' }, // Dark theme base
+    container: { flex: 1, backgroundColor: '#1e222b' }, // Dark theme base
     header: { padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
     stepLine: { height: 2, flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: -10, marginTop: -20 },
     stepLineActive: { backgroundColor: '#4c1d95' },
 
-    stepContent: { padding: 20, backgroundColor: '#0f172a' },
+    stepContent: { padding: 20, backgroundColor: '#1e222b' },
     sectionTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 16 },
     subText: { fontSize: 14, color: '#94a3b8', marginBottom: 20, lineHeight: 20 },
 
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
     publishTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
     publishSub: { fontSize: 13, color: '#94a3b8', marginTop: 4, lineHeight: 18 },
 
-    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#0f172a', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#1e222b', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
     footerInner: { flexDirection: 'row', gap: 12 },
     backBtnFooter: { flex: 0.4, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },

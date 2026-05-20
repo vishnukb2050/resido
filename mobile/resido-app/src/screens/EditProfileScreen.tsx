@@ -401,7 +401,7 @@ const SocialItem = ({ icon, label, value, color, isConnected }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#1e222b' },
     header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 80 },
 
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     
     // Modal Styles
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#121212', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+    modalContent: { backgroundColor: '#272c35', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     modalTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     modalSub: { fontSize: 14, color: '#94a3b8', marginBottom: 24, lineHeight: 20 },

@@ -88,7 +88,7 @@ export default function VisitorEntryScreen() {
 
 const s = StyleSheet.create;
 const styles = s({
-    container: { flex: 1, backgroundColor: '#0f0f1a', padding: 20 },
+    container: { flex: 1, backgroundColor: '#1e222b', padding: 20 },
     title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40 },
     sub: { color: '#64748b', fontSize: 13, marginBottom: 24, marginTop: 4 },
     group: { marginBottom: 16 },
