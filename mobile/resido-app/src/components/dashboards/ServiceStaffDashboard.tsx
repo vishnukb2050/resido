@@ -56,17 +56,7 @@ export default function ServiceStaffDashboard() {
                             </Text>
                         </View>
                     </View>
-                    <View style={styles.psHeaderActions}>
-                        <TouchableOpacity style={styles.psIconBtn}>
-                            <Ionicons name="notifications" size={22} color="#fff" />
-                        </TouchableOpacity>
-                        <View style={styles.profileBtn}>
-                            <Image
-                                source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=maintenance' }}
-                                style={styles.profileImg}
-                            />
-                        </View>
-                    </View>
+
                 </View>
 
                 {/* Workspace Switcher Bubbles */}
@@ -113,7 +103,7 @@ export default function ServiceStaffDashboard() {
                 {/* Quick Icon Grid */}
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="construct" label="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
-                    <DashboardIcon icon="clipboard" label="Task Log" color="#fff" bg="#7c3aed" />
+                    <DashboardIcon icon="clipboard" label="Task Log" color="#fff" bg="#2563eb" />
                     <DashboardIcon icon="cube" label="Inventory" color="#fff" bg="#0891b2" />
                     <DashboardIcon icon="call" label="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
                     <DashboardIcon icon="document-text" label="Reports" color="#fff" bg="#b45309" />
@@ -143,10 +133,10 @@ export default function ServiceStaffDashboard() {
                     <View style={styles.featureGrid}>
                         <FeatureCard icon="construct" title="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
                         <FeatureCard icon="cube" title="Assets" color="#fff" bg="#0891b2" onPress={() => router.push('/admin-assets')} />
-                        <FeatureCard icon="clipboard" title="Task Log" color="#fff" bg="#7c3aed" />
+                        <FeatureCard icon="clipboard" title="Task Log" color="#fff" bg="#2563eb" />
                         <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#b45309" onPress={() => router.push('/staff-documents')} />
                         <FeatureCard icon="call" title="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
-                        <FeatureCard icon="calendar" title="Events" color="#fff" bg="#4c1d95" onPress={() => router.push('/events')} />
+                        <FeatureCard icon="calendar" title="Events" color="#fff" bg="#1d4ed8" onPress={() => router.push('/events')} />
                     </View>
                 </View>
 

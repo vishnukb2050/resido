@@ -37,7 +37,7 @@ export default function GatepassDetailsScreen() {
         }
     };
 
-    if (loading) return <View style={styles.center}><ActivityIndicator color="#4c1d95" size="large" /></View>;
+    if (loading) return <View style={styles.center}><ActivityIndicator color="#1d4ed8" size="large" /></View>;
     if (!gatepass) return <View style={styles.center}><Text style={{color: '#fff'}}>Not Found</Text></View>;
 
     return (
@@ -99,19 +99,19 @@ function DetailRow({ label, value, isStatus }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
-    center: { flex: 1, backgroundColor: '#23272a', justifyContent: 'center', alignItems: 'center' },
+    container: { flex: 1, backgroundColor: '#000000' },
+    center: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     shareBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     content: { padding: 24, alignItems: 'center' },
     qrContainer: { alignItems: 'center', marginBottom: 32 },
-    qrBox: { padding: 20, backgroundColor: '#1e293b', borderRadius: 32, borderWidth: 2, borderColor: '#4c1d95', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
+    qrBox: { padding: 20, backgroundColor: '#1e293b', borderRadius: 32, borderWidth: 2, borderColor: '#1d4ed8', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
     qrFallback: { width: 200, height: 200, alignItems: 'center', justifyContent: 'center', gap: 10 },
-    qrPassText: { fontSize: 18, color: '#4c1d95', fontWeight: '900', letterSpacing: 3 },
+    qrPassText: { fontSize: 18, color: '#1d4ed8', fontWeight: '900', letterSpacing: 3 },
     passId: { fontSize: 12, color: '#94a3b8', fontWeight: '800', marginTop: 20, letterSpacing: 2 },
-    scanHint: { fontSize: 14, color: '#4c1d95', fontWeight: '600', marginTop: 10, textAlign: 'center' },
+    scanHint: { fontSize: 14, color: '#1d4ed8', fontWeight: '600', marginTop: 10, textAlign: 'center' },
     detailsCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     cardTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 20 },
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },

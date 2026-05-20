@@ -44,7 +44,7 @@ export default function CleaningLogScreen() {
                     <Switch
                         value={!!completed[area]}
                         onValueChange={(v) => setCompleted((p) => ({ ...p, [area]: v }))}
-                        trackColor={{ true: '#4c1d95' }}
+                        trackColor={{ true: '#1d4ed8' }}
                     />
                 </View>
             ))}
@@ -66,7 +66,7 @@ export default function CleaningLogScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a', padding: 20 },
+    container: { flex: 1, backgroundColor: '#000000', padding: 20 },
     title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40 },
     sub: { color: '#64748b', fontSize: 13, marginBottom: 24 },
     section: { color: '#94a3b8', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
@@ -75,6 +75,6 @@ const styles = StyleSheet.create({
     photoBtn: { backgroundColor: '#1e1e2e', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', height: 52, alignItems: 'center', justifyContent: 'center', marginVertical: 16 },
     photoBtnText: { color: '#64748b', fontWeight: '600' },
     thumb: { width: 80, height: 80, borderRadius: 8 },
-    btn: { backgroundColor: '#4c1d95', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
+    btn: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
     btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

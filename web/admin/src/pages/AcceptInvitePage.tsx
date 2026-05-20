@@ -61,7 +61,7 @@ export default function AcceptInvitePage() {
     return (
         <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#0f0f1a', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
             <div style={{ background: '#1e1e2e', padding: '40px', borderRadius: '16px', width: '100%', maxWidth: '400px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <h1 style={{ color: '#6366f1', marginBottom: '8px', fontSize: '28px', textAlign: 'center' }}>Welcome to Resido</h1>
+                <h1 style={{ color: '#2563eb', marginBottom: '8px', fontSize: '28px', textAlign: 'center' }}>Welcome to Resido</h1>
                 <p style={{ color: '#94a3b8', textAlign: 'center', marginBottom: '32px' }}>Set your password to get started</p>
 
                 {inviteData && (
@@ -98,7 +98,7 @@ export default function AcceptInvitePage() {
                             required
                         />
                     </div>
-                    <button disabled={loading || !inviteData} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#6366f1', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer', opacity: loading ? 0.7 : 1 }}>
+                    <button disabled={loading || !inviteData} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#2563eb', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer', opacity: loading ? 0.7 : 1 }}>
                         {loading ? 'Setting up...' : 'Activate Account'}
                     </button>
                 </form>

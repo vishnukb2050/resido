@@ -26,7 +26,7 @@ export default function CommunityListScreen() {
             <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
                     <View style={styles.cmcLogoBoxSmall}>
-                        <MaterialCommunityIcons name="office-building" size={24} color="#4c1d95" />
+                        <MaterialCommunityIcons name="office-building" size={24} color="#1d4ed8" />
                     </View>
                     <View style={{ flex: 1, marginLeft: 15 }}>
                         <Text style={styles.cardTitle}>{item.tenantName}</Text>
@@ -48,7 +48,7 @@ export default function CommunityListScreen() {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Communities</Text>
                 <TouchableOpacity style={styles.addBtnHeader} onPress={() => router.push('/create-community')}>
-                    <Ionicons name="add" size={28} color="#4c1d95" />
+                    <Ionicons name="add" size={28} color="#1d4ed8" />
                 </TouchableOpacity>
             </View>
 
@@ -100,11 +100,11 @@ const styles = StyleSheet.create({
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
     cardTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b', flex: 1, marginRight: 10 },
     typeBadge: { backgroundColor: '#f5f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-    typeText: { fontSize: 10, fontWeight: '800', color: '#4c1d95', textTransform: 'uppercase' },
+    typeText: { fontSize: 10, fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase' },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     statText: { fontSize: 13, color: '#64748b', fontWeight: '500' },
-    joinBtn: { backgroundColor: '#4c1d95', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+    joinBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
     joinBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
     
     footer: { position: 'absolute', bottom: 30, left: 20, right: 20 },

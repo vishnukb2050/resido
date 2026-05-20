@@ -67,7 +67,7 @@ export default function LoginPage() {
             <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 5%', background: 'rgba(15,15,26,0.8)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <img src="/logo.png" alt="Resido Logo" style={{ height: '40px' }} />
-                    <span style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(45deg, #a855f7, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Resido</span>
+                    <span style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(45deg, #2563eb, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Resido</span>
                 </div>
                 <div style={{ display: 'flex', gap: '30px' }}>
                     <a href="#features" style={{ color: '#94a3b8', textDecoration: 'none', fontWeight: '500' }}>Features</a>
@@ -81,7 +81,7 @@ export default function LoginPage() {
                 <div style={{ flex: '1 1 500px' }}>
                     <h1 style={{ fontSize: '48px', fontWeight: '800', lineHeight: 1.1, marginBottom: '24px' }}>
                         The All-in-One <br />
-                        <span style={{ color: '#6366f1' }}>Smart Residential</span> <br />
+                        <span style={{ color: '#2563eb' }}>Smart Residential</span> <br />
                         Management Ecosystem
                     </h1>
                     <p style={{ fontSize: '18px', color: '#94a3b8', marginBottom: '40px', lineHeight: '1.6', maxWidth: '600px' }}>
@@ -112,7 +112,7 @@ export default function LoginPage() {
                     </div>
 
                     <div style={{ marginTop: '40px', display: 'flex', gap: '20px' }}>
-                        <button onClick={() => setActiveTab('register')} style={{ padding: '14px 28px', borderRadius: '12px', background: '#6366f1', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
+                        <button onClick={() => setActiveTab('register')} style={{ padding: '14px 28px', borderRadius: '12px', background: '#2563eb', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
                             Start a Community
                         </button>
                         <button style={{ padding: '14px 28px', borderRadius: '12px', background: 'transparent', color: '#fff', border: '1px solid #2d2d3d', fontWeight: '700', cursor: 'pointer' }}>
@@ -165,7 +165,7 @@ export default function LoginPage() {
                                         required
                                     />
                                 </div>
-                                <button disabled={loading} style={{ width: '100%', padding: '16px', borderRadius: '12px', background: 'linear-gradient(45deg, #6366f1, #a855f7)', color: '#fff', border: 'none', fontWeight: '800', cursor: 'pointer' }}>
+                                <button disabled={loading} style={{ width: '100%', padding: '16px', borderRadius: '12px', background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', color: '#fff', border: 'none', fontWeight: '800', cursor: 'pointer' }}>
                                     {loading ? 'Processing...' : 'Sign In to Panel'}
                                 </button>
                             </form>
@@ -220,7 +220,7 @@ export default function LoginPage() {
                         )}
                         
                         <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
-                            Need help? <a href="/support" style={{ color: '#6366f1', textDecoration: 'none', fontWeight: '600' }}>Contact Support</a>
+                            Need help? <a href="/support" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '600' }}>Contact Support</a>
                         </div>
                     </div>
                 </div>

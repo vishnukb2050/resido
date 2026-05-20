@@ -43,7 +43,7 @@ export default function StaffContactsScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={staff}
@@ -82,7 +82,7 @@ export default function StaffContactsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     staffImg: { width: 64, height: 64, borderRadius: 22 },
     staffInfo: { flex: 1, marginLeft: 15 },
     staffName: { fontSize: 17, fontWeight: '800', color: '#fff' },
-    staffRole: { fontSize: 11, color: '#4c1d95', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
+    staffRole: { fontSize: 11, color: '#1d4ed8', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
     staffDesc: { fontSize: 12, color: '#64748b', marginTop: 4, fontWeight: '600' },
     callBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
     disabledBtn: { backgroundColor: '#334155' },

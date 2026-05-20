@@ -99,7 +99,7 @@ export default function PollBuilderModal({ visible, onClose, onPublish }: PollBu
 
                         {options.length < 5 && (
                             <TouchableOpacity onPress={handleAddOption} style={styles.addOptionBtn}>
-                                <Ionicons name="add-circle-outline" size={20} color="#4c1d95" />
+                                <Ionicons name="add-circle-outline" size={20} color="#1d4ed8" />
                                 <Text style={styles.addOptionText}>Add Option</Text>
                             </TouchableOpacity>
                         )}
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
-    publishBtn: { backgroundColor: '#4c1d95', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+    publishBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
     publishBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
     body: { padding: 20 },
     label: { fontSize: 14, fontWeight: '800', color: '#64748b', marginBottom: 10, marginTop: 10 },
@@ -137,10 +137,10 @@ const styles = StyleSheet.create({
     optionInput: { flex: 1, backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, fontSize: 14, color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9' },
     removeBtn: { marginLeft: 10 },
     addOptionBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 20 },
-    addOptionText: { fontSize: 14, fontWeight: '700', color: '#4c1d95', marginLeft: 8 },
+    addOptionText: { fontSize: 14, fontWeight: '700', color: '#1d4ed8', marginLeft: 8 },
     durationRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
     durationBtn: { flex: 1, backgroundColor: '#f8fafc', paddingVertical: 10, borderRadius: 12, alignItems: 'center', marginHorizontal: 4, borderWidth: 1, borderColor: '#f1f5f9' },
-    durationBtnActive: { backgroundColor: '#f5f3ff', borderColor: '#4c1d95' },
+    durationBtnActive: { backgroundColor: '#f5f3ff', borderColor: '#1d4ed8' },
     durationText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
-    durationTextActive: { color: '#4c1d95' },
+    durationTextActive: { color: '#1d4ed8' },
 });

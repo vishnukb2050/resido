@@ -70,7 +70,7 @@ export default function CreateComplaintScreen() {
                             onPress={() => setShowCategories(!showCategories)}
                         >
                             <Text style={styles.selectorText}>{formData.category}</Text>
-                            <Ionicons name="chevron-down" size={20} color="#4c1d95" />
+                            <Ionicons name="chevron-down" size={20} color="#1d4ed8" />
                         </TouchableOpacity>
                         
                         {showCategories && (
@@ -129,7 +129,7 @@ export default function CreateComplaintScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
@@ -142,14 +142,14 @@ const styles = StyleSheet.create({
     dropdown: { backgroundColor: '#1e293b', borderRadius: 16, marginTop: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dropdownItem: { padding: 15, borderRadius: 10 },
     dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-    selectedItemText: { color: '#4c1d95' },
+    selectedItemText: { color: '#1d4ed8' },
     priorityRow: { flexDirection: 'row', gap: 10 },
     priorityBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)' },
-    priorityBtnActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
+    priorityBtnActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     priorityText: { color: '#94a3b8', fontSize: 12, fontWeight: '800' },
     priorityTextActive: { color: '#fff' },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },
     textArea: { height: 150, textAlignVertical: 'top' },
-    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
+    submitBtn: { backgroundColor: '#1d4ed8', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

@@ -133,7 +133,7 @@ export default function CreateGatepassScreen() {
                             onPress={() => setShowCategories(!showCategories)}
                         >
                             <Text style={styles.selectorText}>{formData.category}</Text>
-                            <Ionicons name="chevron-down" size={20} color="#7c3aed" />
+                            <Ionicons name="chevron-down" size={20} color="#2563eb" />
                         </TouchableOpacity>
                         
                         {showCategories && (
@@ -195,7 +195,7 @@ export default function CreateGatepassScreen() {
                             <Text style={styles.label}>Date</Text>
                             <TouchableOpacity style={styles.selector} onPress={() => setShowDatePicker(true)}>
                                 <Text style={styles.selectorText}>{entryDate.toLocaleDateString()}</Text>
-                                <Ionicons name="calendar-outline" size={20} color="#7c3aed" />
+                                <Ionicons name="calendar-outline" size={20} color="#2563eb" />
                             </TouchableOpacity>
                         </View>
                         <View style={{ width: 15 }} />
@@ -205,7 +205,7 @@ export default function CreateGatepassScreen() {
                                 <Text style={styles.selectorText}>
                                     {entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </Text>
-                                <Ionicons name="time-outline" size={20} color="#7c3aed" />
+                                <Ionicons name="time-outline" size={20} color="#2563eb" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -238,7 +238,7 @@ export default function CreateGatepassScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     dropdown: { backgroundColor: '#1e293b', borderRadius: 16, marginTop: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dropdownItem: { padding: 15, borderRadius: 10 },
     dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-    selectedItemText: { color: '#7c3aed' },
-    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
+    selectedItemText: { color: '#2563eb' },
+    submitBtn: { backgroundColor: '#1d4ed8', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });

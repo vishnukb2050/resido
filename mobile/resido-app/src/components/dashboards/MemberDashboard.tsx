@@ -44,15 +44,7 @@ export default function MemberDashboard() {
                             </Text>
                         </View>
                     </View>
-                    <View style={styles.psHeaderActions}>
-                        <TouchableOpacity style={styles.psIconBtn}>
-                            <Ionicons name="notifications" size={22} color="#fff" />
-                        </TouchableOpacity>
-                        <Image 
-                            source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=member' }} 
-                            style={styles.adminAvatar} 
-                        />
-                    </View>
+
                 </View>
 
                 {/* Workspace Switcher (Bubbles) */}
@@ -79,9 +71,9 @@ export default function MemberDashboard() {
                 {/* Member Feature Grid (As Requested) */}
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
-                    <DashboardIcon icon="chatbubbles" label="Chats" color="#fff" bg="#4c1d95" onPress={() => router.push('/chat-list')} />
+                    <DashboardIcon icon="chatbubbles" label="Chats" color="#fff" bg="#1d4ed8" onPress={() => router.push('/chat-list')} />
                     <DashboardIcon icon="notifications-circle" label="Announce" color="#fff" bg="#10b981" onPress={() => router.push('/thread')} />
-                    <DashboardIcon icon="document-text" label="Notes" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notes')} />
+                    <DashboardIcon icon="document-text" label="Notes" color="#fff" bg="#3b82f6" onPress={() => router.push('/notes')} />
                     <DashboardIcon icon="folder" label="Documents" color="#fff" bg="#3b82f6" onPress={() => router.push('/documents')} />
                     <DashboardIcon icon="call" label="Contacts" color="#fff" bg="#10b981" onPress={() => router.push('/staff-contacts')} />
                     <DashboardIcon icon="construct" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
@@ -144,7 +136,7 @@ function DashboardIcon({ icon, label, color, bg, onPress }: any) {
 function RuleItem({ icon, label }: any) {
     return (
         <View style={styles.ruleItem}>
-            <Ionicons name={icon as any} size={18} color="#4c1d95" />
+            <Ionicons name={icon as any} size={18} color="#1d4ed8" />
             <Text style={styles.ruleText}>{label}</Text>
         </View>
     );
@@ -159,7 +151,7 @@ const styles = StyleSheet.create({
     psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
     psBrandTitleText: { fontSize: 22, fontWeight: '900', color: '#fff' },
-    psBrandTaglineText: { fontSize: 10, color: '#4c1d95', fontWeight: '800', letterSpacing: 1 },
+    psBrandTaglineText: { fontSize: 10, color: '#1d4ed8', fontWeight: '800', letterSpacing: 1 },
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     adminAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
@@ -182,7 +174,7 @@ const styles = StyleSheet.create({
     annIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(245, 158, 11, 0.1)', alignItems: 'center', justifyContent: 'center' },
     annTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
     annSub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
-    rulesGrid: { backgroundColor: 'rgba(99, 102, 241, 0.05)', borderRadius: 22, padding: 20, gap: 12, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.1)' },
+    rulesGrid: { backgroundColor: 'rgba(37, 99, 235, 0.05)', borderRadius: 22, padding: 20, gap: 12, borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.1)' },
     ruleItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     ruleText: { color: '#cbd5e1', fontSize: 13, fontWeight: '600' }
 });

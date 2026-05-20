@@ -124,7 +124,7 @@ export default function VisitorRegisterScreen() {
             )}
 
             {loading ? (
-                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={entries}
@@ -172,7 +172,7 @@ export default function VisitorRegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     listContent: { padding: 20 },
     entryCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, marginBottom: 15, padding: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     entryMain: { flexDirection: 'row', alignItems: 'center' },
-    iconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    iconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
     entryInfo: { flex: 1, marginLeft: 15 },
     visitorName: { fontSize: 16, fontWeight: '800', color: '#fff' },
     entrySub: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },

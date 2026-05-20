@@ -62,7 +62,7 @@ export default function NoticeboardScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={notices}
@@ -128,21 +128,21 @@ export default function NoticeboardScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20 },
     noticeCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, marginBottom: 16, overflow: 'hidden', flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    cardAccent: { width: 6, backgroundColor: '#4c1d95' },
+    cardAccent: { width: 6, backgroundColor: '#1d4ed8' },
     cardContent: { flex: 1, padding: 20 },
     noticeTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 8 },
     noticeBody: { fontSize: 14, color: '#94a3b8', lineHeight: 22, marginBottom: 15 },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 12 },
     dateText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-    tag: { backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    tagText: { color: '#4c1d95', fontSize: 10, fontWeight: '900' },
+    tag: { backgroundColor: 'rgba(37, 99, 235, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    tagText: { color: '#1d4ed8', fontSize: 10, fontWeight: '900' },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
     emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
     emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
@@ -154,6 +154,6 @@ const styles = StyleSheet.create({
     modalActions: { flexDirection: 'row', gap: 15 },
     cancelBtn: { flex: 1, padding: 18, alignItems: 'center' },
     cancelText: { color: '#64748b', fontWeight: '700' },
-    submitBtn: { flex: 2, backgroundColor: '#4c1d95', borderRadius: 16, padding: 18, alignItems: 'center' },
+    submitBtn: { flex: 2, backgroundColor: '#1d4ed8', borderRadius: 16, padding: 18, alignItems: 'center' },
     submitText: { color: '#fff', fontWeight: '900' }
 });

@@ -63,9 +63,9 @@ export default function EventsScreen() {
             const marks: any = {};
             (fetchedEvents || []).forEach((event: any) => {
                 const date = new Date(event.startDate).toISOString().split('T')[0];
-                marks[date] = { marked: true, dotColor: '#8b5cf6' };
+                marks[date] = { marked: true, dotColor: '#3b82f6' };
             });
-            marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: '#8b5cf6' };
+            marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: '#3b82f6' };
             setMarkedDates(marks);
         } catch (e) {
             console.error('Fetch events failed', e);
@@ -85,7 +85,7 @@ export default function EventsScreen() {
                 delete marks[key].selectedColor;
             }
         });
-        marks[newDate] = { ...marks[newDate], selected: true, selectedColor: '#8b5cf6' };
+        marks[newDate] = { ...marks[newDate], selected: true, selectedColor: '#3b82f6' };
         setMarkedDates(marks);
     };
 
@@ -167,14 +167,14 @@ export default function EventsScreen() {
                         backgroundColor: theme.background,
                         calendarBackground: theme.background,
                         textSectionTitleColor: '#94a3b8',
-                        selectedDayBackgroundColor: '#8b5cf6',
+                        selectedDayBackgroundColor: '#3b82f6',
                         selectedDayTextColor: '#ffffff',
-                        todayTextColor: '#8b5cf6',
+                        todayTextColor: '#3b82f6',
                         dayTextColor: '#fff',
                         textDisabledColor: 'rgba(255,255,255,0.15)',
-                        dotColor: '#8b5cf6',
+                        dotColor: '#3b82f6',
                         monthTextColor: '#fff',
-                        arrowColor: '#8b5cf6',
+                        arrowColor: '#3b82f6',
                     }}
                     markedDates={markedDates}
                     onDayPress={handleDayPress}
@@ -185,7 +185,7 @@ export default function EventsScreen() {
                 <View style={styles.eventsSection}>
                     <View style={styles.sectionHeaderRow}>
                         <View style={styles.dateChip}>
-                            <Ionicons name="calendar" size={14} color="#8b5cf6" />
+                            <Ionicons name="calendar" size={14} color="#3b82f6" />
                             <Text style={styles.dateChipText}>{selectedDate}</Text>
                         </View>
                         <Text style={styles.eventCountText}>
@@ -194,7 +194,7 @@ export default function EventsScreen() {
                     </View>
 
                     {loading ? (
-                        <ActivityIndicator color="#8b5cf6" style={{ marginTop: 30 }} />
+                        <ActivityIndicator color="#3b82f6" style={{ marginTop: 30 }} />
                     ) : selectedDayEvents.length > 0 ? (
                         selectedDayEvents.map((item: any) => (
                             <EventCard key={item.id} event={item} formatTime={formatTime} />
@@ -260,7 +260,7 @@ export default function EventsScreen() {
                                         style={styles.timePicker}
                                         onPress={() => setTimePickerFor('start')}
                                     >
-                                        <Ionicons name="time-outline" size={16} color="#8b5cf6" />
+                                        <Ionicons name="time-outline" size={16} color="#3b82f6" />
                                         <Text style={styles.timePickerText}>
                                             {formatTime(form.startHour, form.startMin)}
                                         </Text>
@@ -272,7 +272,7 @@ export default function EventsScreen() {
                                         style={styles.timePicker}
                                         onPress={() => setTimePickerFor('end')}
                                     >
-                                        <Ionicons name="time-outline" size={16} color="#8b5cf6" />
+                                        <Ionicons name="time-outline" size={16} color="#3b82f6" />
                                         <Text style={styles.timePickerText}>
                                             {formatTime(form.endHour, form.endMin)}
                                         </Text>
@@ -425,7 +425,7 @@ function EventCard({ event, formatTime }: any) {
                 <View style={styles.eventTopRow}>
                     <Text style={styles.eventTitle}>{event.title}</Text>
                     <View style={styles.eventTimeBadge}>
-                        <Ionicons name="time-outline" size={12} color="#8b5cf6" />
+                        <Ionicons name="time-outline" size={12} color="#3b82f6" />
                         <Text style={styles.eventTimeBadgeText}>{startTime}</Text>
                     </View>
                 </View>
@@ -466,36 +466,36 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     headerSub: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    createBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
+    createBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
 
     calendar: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 8 },
 
     eventsSection: { padding: 20 },
     sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-    dateChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(139, 92, 246, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' },
-    dateChipText: { color: '#8b5cf6', fontSize: 13, fontWeight: '700' },
+    dateChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
+    dateChipText: { color: '#3b82f6', fontSize: 13, fontWeight: '700' },
     eventCountText: { fontSize: 12, color: '#64748b', fontWeight: '700' },
 
     eventCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 14 },
-    eventAccent: { width: 4, backgroundColor: '#8b5cf6' },
+    eventAccent: { width: 4, backgroundColor: '#3b82f6' },
     eventContent: { padding: 16, flex: 1 },
     eventTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
     eventTitle: { fontSize: 16, fontWeight: '800', color: '#fff', flex: 1, marginRight: 8 },
-    eventTimeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(139,92,246,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    eventTimeBadgeText: { fontSize: 11, color: '#8b5cf6', fontWeight: '700' },
+    eventTimeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    eventTimeBadgeText: { fontSize: 11, color: '#3b82f6', fontWeight: '700' },
     eventDesc: { fontSize: 13, color: '#64748b', marginBottom: 10, lineHeight: 18 },
     eventMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
     metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     metaText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
     audienceTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-    audienceTag: { backgroundColor: 'rgba(139,92,246,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' },
-    audienceTagText: { fontSize: 10, color: '#a78bfa', fontWeight: '800', textTransform: 'uppercase' },
+    audienceTag: { backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
+    audienceTagText: { fontSize: 10, color: '#60a5fa', fontWeight: '800', textTransform: 'uppercase' },
 
     emptyState: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
     emptyIconBox: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     emptyTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 8 },
     emptyText: { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20 },
-    emptyAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#8b5cf6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, marginTop: 20 },
+    emptyAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, marginTop: 20 },
     emptyAddBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
     // Modal
@@ -512,15 +512,15 @@ const styles = StyleSheet.create({
     textArea: { height: 90, textAlignVertical: 'top' },
 
     timeRow: { flexDirection: 'row', gap: 0 },
-    timePicker: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(139,92,246,0.1)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)', borderRadius: 14, padding: 14 },
-    timePickerText: { color: '#a78bfa', fontWeight: '800', fontSize: 15 },
+    timePicker: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', borderRadius: 14, padding: 14 },
+    timePickerText: { color: '#60a5fa', fontWeight: '800', fontSize: 15 },
 
     audienceRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
     audienceIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
     audienceLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#94a3b8' },
     checkBox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
-    submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#8b5cf6', borderRadius: 18, padding: 18, marginTop: 24, marginBottom: 8 },
+    submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#3b82f6', borderRadius: 18, padding: 18, marginTop: 24, marginBottom: 8 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 },
 
     // Time picker sheet
@@ -531,9 +531,9 @@ const styles = StyleSheet.create({
     timeCol: { flex: 1 },
     timeColDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 8 },
     timeOption: { padding: 14, borderRadius: 10, marginBottom: 4, alignItems: 'center' },
-    timeOptionSelected: { backgroundColor: 'rgba(139,92,246,0.2)', borderWidth: 1, borderColor: '#8b5cf6' },
+    timeOptionSelected: { backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 1, borderColor: '#3b82f6' },
     timeOptionText: { color: '#64748b', fontWeight: '700', fontSize: 15 },
     timeOptionTextSelected: { color: '#fff' },
-    timeSheetDone: { backgroundColor: '#8b5cf6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
+    timeSheetDone: { backgroundColor: '#3b82f6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
     timeSheetDoneText: { color: '#fff', fontWeight: '900', fontSize: 16 },
 });

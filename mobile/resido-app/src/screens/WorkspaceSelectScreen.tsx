@@ -50,7 +50,7 @@ export default function WorkspaceSelectScreen() {
             <View style={{ gap: 12 }}>
                 {/* Default Personal Workspace */}
                 <TouchableOpacity 
-                    style={[styles.card, { borderColor: '#4c1d95', borderWidth: 1, backgroundColor: 'rgba(99,102,241,0.05)' }]} 
+                    style={[styles.card, { borderColor: '#1d4ed8', borderWidth: 1, backgroundColor: 'rgba(37,99,235,0.05)' }]} 
                     onPress={() => {
                         setActiveWorkspace(null as any, token!);
                         router.replace('/(app)/home');
@@ -90,7 +90,7 @@ export default function WorkspaceSelectScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a', padding: 24, paddingTop: 60 },
+    container: { flex: 1, backgroundColor: '#000000', padding: 24, paddingTop: 60 },
     title: { fontSize: 26, fontWeight: '800', color: '#e2e8f0', letterSpacing: -0.5, marginBottom: 6 },
     subtitle: { fontSize: 14, color: '#64748b', marginBottom: 28 },
     card: {
@@ -102,17 +102,17 @@ const styles = StyleSheet.create({
     avatar: { width: 36, height: 36, borderRadius: 18 },
     info: { flex: 1 },
     name: { fontSize: 16, fontWeight: '700', color: '#e2e8f0' },
-    role: { fontSize: 12, color: '#4c1d95', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    role: { fontSize: 12, color: '#1d4ed8', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
     arrow: { fontSize: 18, color: '#64748b' },
     createBtn: {
-        backgroundColor: 'rgba(99,102,241,0.1)',
+        backgroundColor: 'rgba(37,99,235,0.1)',
         borderWidth: 1,
-        borderColor: '#4c1d95',
+        borderColor: '#1d4ed8',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
         marginBottom: 24,
         borderStyle: 'dashed'
     },
-    createBtnText: { color: '#4c1d95', fontWeight: '700', fontSize: 16 },
+    createBtnText: { color: '#1d4ed8', fontWeight: '700', fontSize: 16 },
 });

@@ -23,7 +23,7 @@ export default function ManageMembersHubScreen() {
                     icon="shield-half" 
                     title="Manage Staff" 
                     sub="Security, Maintenance, Cleaning, etc."
-                    color="#4c1d95"
+                    color="#1d4ed8"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'STAFF_GROUP' } })}
                 />
 
@@ -31,7 +31,7 @@ export default function ManageMembersHubScreen() {
                     icon="home" 
                     title="Manage Residents" 
                     sub="Apartment owners and tenants"
-                    color="#4c1d95"
+                    color="#1d4ed8"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'RESIDENT' } })}
                 />
 
@@ -39,7 +39,7 @@ export default function ManageMembersHubScreen() {
                     icon="shield-checkmark" 
                     title="Manage Admin Staff" 
                     sub="Staff with administrative access"
-                    color="#4c1d95"
+                    color="#1d4ed8"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'ADMIN_STAFF' } })}
                 />
 
@@ -47,7 +47,7 @@ export default function ManageMembersHubScreen() {
                     icon="people" 
                     title="Manage Members" 
                     sub="General community members"
-                    color="#4c1d95"
+                    color="#1d4ed8"
                     onPress={() => router.push({ pathname: '/member-list', params: { role: 'MEMBER' } })}
                 />
             </ScrollView>
@@ -71,7 +71,7 @@ function HubTile({ icon, title, sub, color, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
 
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },

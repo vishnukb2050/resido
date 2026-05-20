@@ -13,7 +13,7 @@ export default function CircularProgress({
     progress, 
     size = 100, 
     strokeWidth = 8, 
-    color = '#4c1d95' 
+    color = '#1d4ed8' 
 }: CircularProgressProps) {
     const center = size / 2;
     const radius = size / 2 - strokeWidth / 2;

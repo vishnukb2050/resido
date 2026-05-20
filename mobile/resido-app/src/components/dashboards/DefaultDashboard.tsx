@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#23272a' },
+    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#000000' },
     psNotifCount: { color: '#fff', fontSize: 8, fontWeight: '900' },
     psProfileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psProfileImg: { width: '100%', height: '100%' },
@@ -36,10 +36,10 @@ const styles = StyleSheet.create({
     wsBubble: { alignItems: 'center', width: 85, opacity: 0.5 },
     wsBubbleActive: { opacity: 1 },
     wsBubbleImgBox: { width: 45, height: 45, borderRadius: 22.5, padding: 2, backgroundColor: '#1e293b', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#4c1d95', borderWidth: 3 },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#1d4ed8', borderWidth: 3 },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 37.5 },
     wsBubbleLabel: { color: '#94a3b8', fontSize: 10, fontWeight: '700', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#4c1d95', fontSize: 12, fontWeight: '900' },
+    wsBubbleLabelActive: { color: '#1d4ed8', fontSize: 12, fontWeight: '900' },
 
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     // Role Switcher
     roleSwitcherRow: { marginBottom: 12 },
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
     rolePillTextActive: { color: '#fff' },
 });
@@ -333,7 +333,7 @@ export default function DefaultDashboard() {
     const isMySpace = !activeWorkspace;
     const mySpaceBg = theme.background;
     const mySpaceText = '#ffffff';
-    const mySpaceSubText = '#a78bfa';
+    const mySpaceSubText = '#60a5fa';
     const darkLavender = theme.primary;
     const lightLavender = theme.accent;
  
@@ -379,17 +379,7 @@ export default function DefaultDashboard() {
                                     </Text>
                                 </View>
                             </View>
-                            <View style={styles.psHeaderActions}>
-                                <TouchableOpacity style={[styles.psIconBtn, { backgroundColor: lightLavender }]}>
-                                    <Ionicons name="notifications" size={22} color={darkLavender} />
-                                    <View style={styles.psNotifBadge}>
-                                        <Text style={styles.psNotifCount}>3</Text>
-                                    </View>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.psProfileBtn, { borderColor: 'rgba(91, 75, 138, 0.2)' }]} onPress={() => router.push('/profile')}>
-                                    <Image source={{ uri: user?.profilePhoto || "https://i.pravatar.cc/100?u=resido" }} style={styles.psProfileImg} />
-                                </TouchableOpacity>
-                            </View>
+
                         </View>
  
                         {/* Premium Workspace Switcher (Bubbles) */}

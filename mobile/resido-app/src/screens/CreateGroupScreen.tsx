@@ -113,7 +113,7 @@ export default function CreateGroupScreen() {
         else list = []; 
 
         if (loading && list.length === 0) {
-            return <ActivityIndicator color="#4c1d95" style={{ marginTop: 40 }} />;
+            return <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />;
         }
 
         return (
@@ -168,7 +168,7 @@ export default function CreateGroupScreen() {
             <View style={styles.topSection}>
                 <View style={styles.groupInputRow}>
                     <TouchableOpacity style={styles.imagePicker}>
-                        <Ionicons name="camera" size={24} color="#4c1d95" />
+                        <Ionicons name="camera" size={24} color="#1d4ed8" />
                     </TouchableOpacity>
                     <TextInput 
                         style={styles.groupNameInput}
@@ -222,7 +222,7 @@ export default function CreateGroupScreen() {
                             value={searchQuery}
                             onChangeText={handleSearch}
                         />
-                        {isSearching && <ActivityIndicator size="small" color="#4c1d95" />}
+                        {isSearching && <ActivityIndicator size="small" color="#1d4ed8" />}
                     </View>
                 </View>
             )}
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
-    createBtnText: { fontSize: 16, fontWeight: '800', color: '#4c1d95' },
+    createBtnText: { fontSize: 16, fontWeight: '800', color: '#1d4ed8' },
 
     topSection: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     groupInputRow: { flexDirection: 'row', alignItems: 'center' },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
 
     tabsRow: { flexDirection: 'row', paddingHorizontal: 20, marginTop: 15, gap: 12 },
     tab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#f1f5f9' },
-    tabActive: { backgroundColor: '#4c1d95' },
+    tabActive: { backgroundColor: '#1d4ed8' },
     tabText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
     tabTextActive: { color: '#fff' },
 
@@ -265,10 +265,10 @@ const styles = StyleSheet.create({
     memberItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
     avatarContainer: { position: 'relative' },
     avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f1f5f9' },
-    checkBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#4c1d95', width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    checkBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#1d4ed8', width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
     memberInfo: { flex: 1, marginLeft: 14 },
     memberName: { fontSize: 15, fontWeight: '700', color: '#1e293b' },
     memberSub: { fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: 2 },
     checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-    checkboxActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
+    checkboxActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
 });

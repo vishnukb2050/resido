@@ -107,18 +107,18 @@ export default function RaiseComplaintScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a', padding: 20 },
+    container: { flex: 1, backgroundColor: '#000000', padding: 20 },
     title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40, marginBottom: 24 },
     group: { marginBottom: 18 },
     label: { color: '#94a3b8', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', marginBottom: 8 },
     input: { backgroundColor: '#1e1e2e', borderRadius: 10, padding: 14, color: '#e2e8f0', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
     chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#1e1e2e', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    chipActive: { backgroundColor: 'rgba(99,102,241,0.2)', borderColor: '#4c1d95' },
+    chipActive: { backgroundColor: 'rgba(37,99,235,0.2)', borderColor: '#1d4ed8' },
     chipText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
-    chipTextActive: { color: '#4c1d95' },
+    chipTextActive: { color: '#1d4ed8' },
     photoBtn: { backgroundColor: '#1e1e2e', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     photoBtnText: { color: '#64748b', fontWeight: '600' },
     thumb: { width: 80, height: 80, borderRadius: 8 },
-    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
+    submitBtn: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
     submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

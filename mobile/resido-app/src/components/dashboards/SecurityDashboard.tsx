@@ -103,18 +103,7 @@ export default function SecurityDashboard() {
                             </Text>
                         </View>
                     </View>
-                    <View style={styles.psHeaderActions}>
-                        {/* Refresh button to reload live stats */}
-                        <TouchableOpacity style={styles.psIconBtn} onPress={fetchTodayStats}>
-                            <Ionicons name="refresh" size={22} color="#fff" />
-                        </TouchableOpacity>
-                        <View style={styles.profileBtn}>
-                            <Image
-                                source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=security' }}
-                                style={styles.profileImg}
-                            />
-                        </View>
-                    </View>
+
                 </View>
 
                 {/* Workspace Switcher */}
@@ -160,7 +149,7 @@ export default function SecurityDashboard() {
 
                 {/* Quick Icon Grid */}
                 <View style={styles.gridContainer}>
-                    <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#4c1d95" onPress={() => router.push('/gatepass-scanner')} />
+                    <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                     <DashboardIcon icon="person-add" label="Add Visitor" color="#fff" bg="#10b981" onPress={() => router.push('/add-visitor')} />
                     <DashboardIcon icon="id-card" label="Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
                     <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" />
@@ -192,7 +181,7 @@ export default function SecurityDashboard() {
                         <FeatureCard icon="shield-checkmark" title="Gate Access" color="#fff" bg="#3182ce" />
                         <FeatureCard icon="car-sport" title="Vehicle Logs" color="#fff" bg="#2c5282" />
                         <FeatureCard icon="megaphone" title="Emergency" color="#fff" bg="#744210" />
-                        <FeatureCard icon="scan-circle" title="Gate Scanner" color="#fff" bg="#4c1d95" onPress={() => router.push('/gatepass-scanner')} />
+                        <FeatureCard icon="scan-circle" title="Gate Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                         <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="id-card" title="Visitor Register" color="#fff" bg="#10b981" onPress={() => router.push('/visitor-register')} />
                     </View>
@@ -293,8 +282,8 @@ const styles = StyleSheet.create({
     statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
 
     // Restricted Banner
-    restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
-    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
+    restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(37, 99, 235, 0.1)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.2)' },
+    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
     restrictedText: { flex: 1, fontSize: 11, color: '#94a3b8', fontWeight: '600', lineHeight: 16 },
 
     // Feature Cards
@@ -308,7 +297,7 @@ const styles = StyleSheet.create({
     // Role Switcher
     roleSwitcherRow: { marginBottom: 15 },
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
     rolePillTextActive: { color: '#fff' },
 });

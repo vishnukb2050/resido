@@ -107,7 +107,7 @@ const AccessItem = ({ name, role, image, isOwner, isGroup }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginLeft: 16 },
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
 
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 20 },
     shareOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    shareIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
+    shareIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
     shareContent: { flex: 1, marginLeft: 16 },
     shareTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
     shareSub: { fontSize: 12, color: '#64748b', marginTop: 2 },

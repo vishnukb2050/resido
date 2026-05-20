@@ -55,17 +55,7 @@ export default function CleaningDashboard() {
                             </Text>
                         </View>
                     </View>
-                    <View style={styles.psHeaderActions}>
-                        <TouchableOpacity style={styles.psIconBtn}>
-                            <Ionicons name="notifications" size={22} color="#fff" />
-                        </TouchableOpacity>
-                        <View style={styles.profileBtn}>
-                            <Image 
-                                source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=cleaning' }} 
-                                style={styles.profileImg} 
-                            />
-                        </View>
-                    </View>
+
                 </View>
 
                 {/* Premium Workspace Switcher (Bubbles) */}
@@ -121,7 +111,7 @@ export default function CleaningDashboard() {
 
                 {/* Task Grid (Matching Image) */}
                 <View style={styles.gridContainer}>
-                    <DashboardIcon icon="clipboard" label="Register" color="#fff" bg="rgba(99, 102, 241, 0.2)" />
+                    <DashboardIcon icon="clipboard" label="Register" color="#fff" bg="rgba(37, 99, 235, 0.2)" />
                     <DashboardIcon icon="construct" label="My Tasks" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="camera" label="Photos" color="#fff" bg="rgba(16, 185, 129, 0.2)" />
                     <DashboardIcon icon="warning" label="Report" color="#fff" bg="rgba(245, 158, 11, 0.2)" />
@@ -201,7 +191,7 @@ function FeatureCard({ icon, title, color, bg, onPress }: any) {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#23272a' },
+    safeArea: { flex: 1, backgroundColor: '#000000' },
     container: { flex: 1 },
     content: { paddingBottom: 110 },
     
@@ -232,8 +222,8 @@ const styles = StyleSheet.create({
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
-    restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)' },
-    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
+    restrictedBanner: { marginHorizontal: 20, backgroundColor: 'rgba(37, 99, 235, 0.1)', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.2)' },
+    lockIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
     restrictedText: { flex: 1, fontSize: 11, color: '#94a3b8', fontWeight: '600', lineHeight: 16 },
 
     sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
@@ -246,7 +236,7 @@ const styles = StyleSheet.create({
     // Role Switcher
     roleSwitcherRow: { marginBottom: 15 },
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
     rolePillTextActive: { color: '#fff' },
 });

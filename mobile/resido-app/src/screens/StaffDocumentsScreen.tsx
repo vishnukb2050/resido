@@ -124,7 +124,7 @@ export default function StaffDocumentsScreen() {
 
             {loading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#4c1d95" />
+                    <ActivityIndicator size="large" color="#1d4ed8" />
                 </View>
             ) : (
                 <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -147,7 +147,7 @@ export default function StaffDocumentsScreen() {
                                         activeOpacity={0.7}
                                     >
                                         <View style={styles.folderHeaderLeft}>
-                                            <Ionicons name={isExpanded ? "folder-open" : "folder"} size={28} color="#4c1d95" />
+                                            <Ionicons name={isExpanded ? "folder-open" : "folder"} size={28} color="#1d4ed8" />
                                             <View style={styles.folderTitleWrapper}>
                                                 <Text style={styles.folderTitle}>{formatCategoryName(category)}</Text>
                                                 <Text style={styles.folderSubtitle}>{staffList.length} member{staffList.length !== 1 ? 's' : ''}</Text>
@@ -180,7 +180,7 @@ export default function StaffDocumentsScreen() {
                                                             onPress={() => handleViewDocument(staff.docUrl)}
                                                             disabled={!staff.docUrl}
                                                         >
-                                                            <Ionicons name="document-text" size={16} color={staff.docUrl ? "#4c1d95" : "#94a3b8"} />
+                                                            <Ionicons name="document-text" size={16} color={staff.docUrl ? "#1d4ed8" : "#94a3b8"} />
                                                             <Text style={[styles.actionBtnText, !staff.docUrl && styles.actionBtnTextDisabled]}>
                                                                 {staff.docUrl ? 'View ID' : 'No ID'}
                                                             </Text>
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     staffCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
     avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f1f5f9' },
     avatarPlaceholder: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center' },
-    avatarInitial: { fontSize: 18, fontWeight: '700', color: '#4c1d95' },
+    avatarInitial: { fontSize: 18, fontWeight: '700', color: '#1d4ed8' },
     staffInfo: { marginLeft: 12, flex: 1 },
     staffName: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
     staffPhone: { fontSize: 13, color: '#64748b', marginTop: 2 },
@@ -250,11 +250,11 @@ const styles = StyleSheet.create({
     staffCardActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 },
     actionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f3ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
     actionBtnDisabled: { backgroundColor: '#f1f5f9' },
-    actionBtnText: { marginLeft: 6, fontSize: 13, fontWeight: '700', color: '#4c1d95' },
+    actionBtnText: { marginLeft: 6, fontSize: 13, fontWeight: '700', color: '#1d4ed8' },
     actionBtnTextDisabled: { color: '#94a3b8' },
     
     adminActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     iconBtn: { padding: 4 },
 
-    fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }
+    fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 }
 });

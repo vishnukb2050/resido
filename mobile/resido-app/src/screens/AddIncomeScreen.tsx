@@ -59,7 +59,7 @@ export default function AddIncomeScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Income Source</Text>
                         <View style={styles.inputWrapper}>
-                            <FontAwesome5 name="wallet" size={16} color="#4c1d95" style={styles.inputIcon} />
+                            <FontAwesome5 name="wallet" size={16} color="#1d4ed8" style={styles.inputIcon} />
                             <TextInput 
                                 style={styles.input}
                                 placeholder="e.g. Monthly Salary, Freelance"
@@ -88,7 +88,7 @@ export default function AddIncomeScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Date</Text>
                         <View style={styles.inputWrapper}>
-                            <Ionicons name="calendar-outline" size={20} color="#4c1d95" style={styles.inputIcon} />
+                            <Ionicons name="calendar-outline" size={20} color="#1d4ed8" style={styles.inputIcon} />
                             <TextInput 
                                 style={styles.input}
                                 value={date}
@@ -120,7 +120,7 @@ export default function AddIncomeScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 10 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
@@ -132,6 +132,6 @@ const styles = StyleSheet.create({
     inputIcon: { marginRight: 12 },
     input: { flex: 1, height: 56, fontSize: 16, color: '#fff', fontWeight: '600' },
     
-    saveBtn: { backgroundColor: '#4c1d95', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 32, gap: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    saveBtn: { backgroundColor: '#1d4ed8', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 32, gap: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     saveBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 });

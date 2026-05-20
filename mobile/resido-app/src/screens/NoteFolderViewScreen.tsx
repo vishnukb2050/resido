@@ -74,7 +74,7 @@ export default function NoteFolderViewScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#4c1d95" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />
                 ) : pages.length === 0 ? (
                     <Text style={styles.emptyText}>No notes here yet. Create one!</Text>
                 ) : (
@@ -86,15 +86,15 @@ export default function NoteFolderViewScreen() {
                                 onPress={() => router.push({ pathname: '/create-note', params: { id: note.id, folderId: id, title: note.title, body: note.content } })}
                             >
                                 <View style={styles.cardHeader}>
-                                    <Text style={[styles.noteTitle, note.color === '#4c1d95' && { color: '#fff' }]}>{note.title}</Text>
+                                    <Text style={[styles.noteTitle, note.color === '#1d4ed8' && { color: '#fff' }]}>{note.title}</Text>
                                 </View>
                                 <Text 
-                                    style={[styles.noteBody, note.color === '#4c1d95' && { color: 'rgba(255,255,255,0.8)' }]} 
+                                    style={[styles.noteBody, note.color === '#1d4ed8' && { color: 'rgba(255,255,255,0.8)' }]} 
                                     numberOfLines={5}
                                 >
                                     {note.content}
                                 </Text>
-                                <Text style={[styles.noteDate, note.color === '#4c1d95' && { color: 'rgba(255,255,255,0.6)' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
+                                <Text style={[styles.noteDate, note.color === '#1d4ed8' && { color: 'rgba(255,255,255,0.6)' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -112,8 +112,8 @@ export default function NoteFolderViewScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
-    header: { padding: 20, paddingTop: 20, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
+    header: { padding: 20, paddingTop: 20, backgroundColor: '#000000' },
     headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
@@ -133,5 +133,5 @@ const styles = StyleSheet.create({
     noteDate: { fontSize: 11, color: '#64748b', marginTop: 12, fontWeight: '600' },
 
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
 });

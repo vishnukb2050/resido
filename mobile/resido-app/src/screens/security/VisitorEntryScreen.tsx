@@ -88,7 +88,7 @@ export default function VisitorEntryScreen() {
 
 const s = StyleSheet.create;
 const styles = s({
-    container: { flex: 1, backgroundColor: '#23272a', padding: 20 },
+    container: { flex: 1, backgroundColor: '#000000', padding: 20 },
     title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40 },
     sub: { color: '#64748b', fontSize: 13, marginBottom: 24, marginTop: 4 },
     group: { marginBottom: 16 },
@@ -97,6 +97,6 @@ const styles = s({
     photoBtn: { backgroundColor: '#1e1e2e', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', height: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
     photoBtnText: { color: '#64748b', fontWeight: '600' },
     photoPreview: { width: '100%', height: '100%', borderRadius: 12 },
-    submitBtn: { backgroundColor: '#4c1d95', borderRadius: 12, padding: 16, alignItems: 'center' },
+    submitBtn: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, alignItems: 'center' },
     submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

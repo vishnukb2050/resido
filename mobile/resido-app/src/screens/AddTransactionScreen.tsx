@@ -121,7 +121,7 @@ export default function AddTransactionScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
     uploadIconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     uploadTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
     uploadSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
-    uploadBtn: { backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-    uploadBtnText: { color: '#4c1d95', fontSize: 13, fontWeight: '800' },
+    uploadBtn: { backgroundColor: 'rgba(37, 99, 235, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+    uploadBtnText: { color: '#1d4ed8', fontSize: 13, fontWeight: '800' },
 
     inputGroup: { marginBottom: 24 },
     inputLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', marginBottom: 12 },
@@ -148,8 +148,8 @@ const styles = StyleSheet.create({
     descInput: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 18, borderRadius: 16, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', minHeight: 100, textAlignVertical: 'top' },
 
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    tag: { backgroundColor: 'rgba(99, 102, 241, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-    tagText: { color: '#4c1d95', fontSize: 13, fontWeight: '700' },
+    tag: { backgroundColor: 'rgba(37, 99, 235, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+    tagText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' },
     addTagBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-    addTagText: { color: '#4c1d95', fontSize: 13, fontWeight: '700' }
+    addTagText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' }
 });

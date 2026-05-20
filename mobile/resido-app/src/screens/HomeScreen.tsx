@@ -18,7 +18,7 @@ export default function HomeScreen() {
     if (!isHydrated) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#4c1d95" />
+                <ActivityIndicator size="large" color="#1d4ed8" />
             </View>
         );
     }
@@ -55,6 +55,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
 });
 

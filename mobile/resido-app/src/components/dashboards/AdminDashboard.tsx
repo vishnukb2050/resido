@@ -58,18 +58,7 @@ export default function AdminDashboard() {
                             </Text>
                         </View>
                     </View>
-                    <View style={styles.psHeaderActions}>
-                        <TouchableOpacity style={styles.psIconBtn}>
-                            <Ionicons name="notifications" size={22} color="#fff" />
-                            <View style={styles.psNotifBadge}>
-                                <Text style={styles.psNotifCount}>5</Text>
-                            </View>
-                        </TouchableOpacity>
-                        <Image 
-                            source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/150?u=admin' }} 
-                            style={styles.adminAvatar} 
-                        />
-                    </View>
+
                 </View>
 
                 {/* Premium Workspace Switcher (Bubbles) */}
@@ -137,9 +126,9 @@ export default function AdminDashboard() {
 
                 {/* Admin Grid */}
                 <View style={styles.adminGrid}>
-                    <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/admin-stats')} />
+                    <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(37, 99, 235, 0.2)" onPress={() => router.push('/admin-stats')} />
                     <DashboardIcon icon="construct" label="Requests" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
-                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg="rgba(139, 92, 246, 0.2)" onPress={() => router.push('/events')} />
+                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/events')} />
                     <DashboardIcon icon="book" label="Rules" color="#fff" bg="rgba(245, 158, 11, 0.2)" onPress={() => router.push('/rules')} />
                     <DashboardIcon icon="settings" label="Settings" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/manage-community')} />
                     <DashboardIcon icon="cash" label="Finance" color="#fff" bg="rgba(14, 165, 233, 0.2)" onPress={() => router.push('/admin-finance')} />
@@ -154,8 +143,8 @@ export default function AdminDashboard() {
 
 
                         <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />
-                        <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#4c1d95" />
-                        <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#8b5cf6" onPress={() => router.push('/staff-documents')} />
+                        <FeatureCard icon="shield-checkmark" title="Duty Roster" color="#fff" bg="#1d4ed8" />
+                        <FeatureCard icon="document-text" title="Staff Docs" color="#fff" bg="#3b82f6" onPress={() => router.push('/staff-documents')} />
                         <FeatureCard icon="notifications" title="Reminders" color="#fff" bg="#6366f1" onPress={() => router.push('/admin-reminders')} />
 
                     </View>
@@ -182,7 +171,7 @@ export default function AdminDashboard() {
                         <FeatureCard icon="cash" title="Maintenance" color="#fff" bg="#0ea5e9" onPress={() => router.push('/admin-maintenance')} />
                         <FeatureCard icon="trending-up" title="Comm. Income" color="#fff" bg="#10b981" onPress={() => router.push('/admin-finance')} />
                         <FeatureCard icon="trending-down" title="Comm. Expense" color="#fff" bg="#f43f5e" onPress={() => router.push('/admin-finance')} />
-                        <FeatureCard icon="pie-chart" title="Finance Report" color="#fff" bg="#8b5cf6" onPress={() => router.push('/admin-finance')} />
+                        <FeatureCard icon="pie-chart" title="Finance Report" color="#fff" bg="#3b82f6" onPress={() => router.push('/admin-finance')} />
                         <FeatureCard icon="alert-circle" title="Dues Report" color="#fff" bg="#f59e0b" onPress={() => router.push('/admin-maintenance')} />
                     </View>
                 </View>
@@ -255,7 +244,7 @@ const styles = StyleSheet.create({
     
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#23272a' },
+    psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#000000' },
     psNotifCount: { color: '#fff', fontSize: 8, fontWeight: '900' },
     adminAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
 
@@ -296,7 +285,7 @@ const styles = StyleSheet.create({
     // Role Switcher
     roleSwitcherRow: { marginBottom: 15 },
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-    rolePillActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+    rolePillActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
     rolePillTextActive: { color: '#fff' },
 });

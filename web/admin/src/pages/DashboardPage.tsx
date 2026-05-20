@@ -11,12 +11,12 @@ export default function DashboardPage() {
 
             {role === 'CARETAKER' ? (
                 <div style={{ background: '#1e1e2e', padding: '20px', borderRadius: '12px' }}>
-                    <h2 style={{ fontSize: '18px', marginBottom: '8px', color: '#6366f1' }}>Caretaker Panel</h2>
+                    <h2 style={{ fontSize: '18px', marginBottom: '8px', color: '#2563eb' }}>Caretaker Panel</h2>
                     <p style={{ color: '#94a3b8' }}>Manage complaints, view notices, and interact with the chat service.</p>
                 </div>
             ) : (
                 <div style={{ background: '#1e1e2e', padding: '20px', borderRadius: '12px' }}>
-                    <h2 style={{ fontSize: '18px', marginBottom: '8px', color: '#6366f1' }}>Admin Panel</h2>
+                    <h2 style={{ fontSize: '18px', marginBottom: '8px', color: '#2563eb' }}>Admin Panel</h2>
                     <p style={{ color: '#94a3b8' }}>Manage residents, departments, accounting, and system configurations.</p>
                 </div>
             )}

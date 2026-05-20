@@ -195,7 +195,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                         </View>
                     ) : item.type === 'FILE' ? (
                         <TouchableOpacity style={styles.fileContainer} onPress={() => {}}>
-                            <Ionicons name="document-text" size={24} color={isMine ? "#fff" : "#4c1d95"} />
+                            <Ionicons name="document-text" size={24} color={isMine ? "#fff" : "#1d4ed8"} />
                             <Text style={[styles.fileName, isMine && { color: '#fff' }]}>{item.content}</Text>
                         </TouchableOpacity>
                     ) : item.type === 'POLL' && item.poll ? (
@@ -250,7 +250,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     <View style={styles.headerAvatar}>
-                        <Ionicons name="business" size={20} color="#4c1d95" />
+                        <Ionicons name="business" size={20} color="#1d4ed8" />
                     </View>
                     <View style={{ marginLeft: 10 }}>
                         <Text style={styles.headerTitle}>Greenwood Residency</Text>
@@ -276,7 +276,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
 
                 {isUploading && (
                     <View style={styles.uploadingOverlay}>
-                        <ActivityIndicator color="#4c1d95" />
+                        <ActivityIndicator color="#1d4ed8" />
                         <Text style={styles.uploadingText}>Optimizing and uploading...</Text>
                     </View>
                 )}
@@ -312,7 +312,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
 
                 <View style={styles.inputBar}>
                     <TouchableOpacity style={styles.attachBtn} onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}>
-                        <Ionicons name={showAttachmentMenu ? "close" : "add"} size={24} color="#4c1d95" />
+                        <Ionicons name={showAttachmentMenu ? "close" : "add"} size={24} color="#1d4ed8" />
                     </TouchableOpacity>
                     <View style={styles.inputContainer}>
                         <TextInput
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     theirsWrapper: { alignSelf: 'flex-start' },
     senderName: { fontSize: 11, color: '#10b981', fontWeight: '700', marginBottom: 4, marginLeft: 12 },
     bubble: { borderRadius: 20, padding: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 5, elevation: 1 },
-    mineBubble: { backgroundColor: '#4c1d95', borderBottomRightRadius: 4 },
+    mineBubble: { backgroundColor: '#1d4ed8', borderBottomRightRadius: 4 },
     theirsBubble: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#f1f5f9' },
     bubbleText: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
     mineText: { color: '#fff' },
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     attachBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
     inputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 20, paddingHorizontal: 15, borderWidth: 1, borderColor: '#f1f5f9' },
     input: { flex: 1, fontSize: 14, color: '#1e293b', maxHeight: 100, paddingVertical: 8 },
-    sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
+    sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
 
     uploadingOverlay: { position: 'absolute', bottom: 100, left: 20, right: 20, backgroundColor: 'rgba(255,255,255,0.9)', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
     uploadingText: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
@@ -384,10 +384,10 @@ const styles = StyleSheet.create({
     pollContainer: { width: 220, marginVertical: 5 },
     pollQuestion: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 12 },
     pollOption: { backgroundColor: '#fff', padding: 10, borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    pollOptionSelected: { borderColor: '#4c1d95', backgroundColor: '#f5f3ff' },
-    pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#4c1d9515' },
+    pollOptionSelected: { borderColor: '#1d4ed8', backgroundColor: '#f5f3ff' },
+    pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#1d4ed815' },
     pollOptionText: { fontSize: 13, fontWeight: '700', color: '#475569', zIndex: 1 },
-    pollOptionTextSelected: { color: '#4c1d95' },
-    pollPercentage: { fontSize: 12, fontWeight: '800', color: '#4c1d95', zIndex: 1 },
+    pollOptionTextSelected: { color: '#1d4ed8' },
+    pollPercentage: { fontSize: 12, fontWeight: '800', color: '#1d4ed8', zIndex: 1 },
     pollMeta: { fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: '600' },
 });

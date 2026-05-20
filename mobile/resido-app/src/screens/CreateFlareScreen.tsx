@@ -244,7 +244,7 @@ export default function CreateFlareScreen() {
                     ) : (
                         <View style={styles.emptyVideo}>
                             <View style={styles.videoIconContainer}>
-                                <Ionicons name="videocam" size={40} color="#4c1d95" />
+                                <Ionicons name="videocam" size={40} color="#1d4ed8" />
                             </View>
                             <Text style={styles.selectVideoTitle}>Select Short Video</Text>
                             <Text style={styles.selectVideoSub}>MP4 or MOV, max 60 seconds</Text>
@@ -262,7 +262,7 @@ export default function CreateFlareScreen() {
                         <Ionicons 
                             name={selectedAudio ? "musical-note" : "cloud-upload-outline"} 
                             size={20} 
-                            color={selectedAudio ? "#4c1d95" : "#64748b"} 
+                            color={selectedAudio ? "#1d4ed8" : "#64748b"} 
                         />
                         <Text style={[styles.audioPillText, selectedAudio && styles.audioPillTextActive]} numberOfLines={1}>
                             {selectedAudio ? selectedAudio.name : "Upload Original Audio"}
@@ -288,7 +288,7 @@ export default function CreateFlareScreen() {
                                 <MaterialCommunityIcons 
                                     name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
                                     size={18} 
-                                    color={selectedVisibilities.includes(opt.id) ? "#4c1d95" : "#cbd5e1"} 
+                                    color={selectedVisibilities.includes(opt.id) ? "#1d4ed8" : "#cbd5e1"} 
                                 />
                                 <Text style={[styles.visibilityPillText, selectedVisibilities.includes(opt.id) && styles.visibilityPillTextActive]}>
                                     {opt.name}
@@ -326,7 +326,7 @@ export default function CreateFlareScreen() {
                 {/* Music Selection */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="musical-notes" size={20} color="#4c1d95" />
+                        <Ionicons name="musical-notes" size={20} color="#1d4ed8" />
                         <Text style={styles.sectionTitle}>Trending Music</Text>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.musicList}>
@@ -337,7 +337,7 @@ export default function CreateFlareScreen() {
                                 onPress={() => setSelectedMusic(track)}
                             >
                                 <View style={styles.musicIcon}>
-                                    <MaterialCommunityIcons name="music" size={20} color={selectedMusic.id === track.id ? "#fff" : "#4c1d95"} />
+                                    <MaterialCommunityIcons name="music" size={20} color={selectedMusic.id === track.id ? "#fff" : "#1d4ed8"} />
                                 </View>
                                 <Text style={[styles.musicName, selectedMusic.id === track.id && styles.activeMusicText]}>{track.name}</Text>
                                 <Text style={[styles.artistName, selectedMusic.id === track.id && styles.activeArtistText]}>{track.artist}</Text>
@@ -356,7 +356,7 @@ export default function CreateFlareScreen() {
                         <Switch
                             value={commentsEnabled}
                             onValueChange={setCommentsEnabled}
-                            trackColor={{ false: '#f1f5f9', true: '#4c1d95' }}
+                            trackColor={{ false: '#f1f5f9', true: '#1d4ed8' }}
                             thumbColor="#fff"
                         />
                     </View>
@@ -398,7 +398,7 @@ export default function CreateFlareScreen() {
             {isUploading && (
                 <View style={styles.uploadModalOverlay}>
                     <View style={styles.uploadCard}>
-                        <CircularProgress progress={uploadProgress} size={100} strokeWidth={8} color="#4c1d95" />
+                        <CircularProgress progress={uploadProgress} size={100} strokeWidth={8} color="#1d4ed8" />
                         <Text style={styles.uploadingText}>Publishing Flare...</Text>
                         <Text style={styles.uploadingSub}>Optimizing and uploading your community content</Text>
                     </View>
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     headerRight: { width: 80, alignItems: 'flex-end' },
-    publishBtn: { backgroundColor: '#4c1d95', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+    publishBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
     publishText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
     scrollContent: { padding: 20 },
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
         marginBottom: 25,
         justifyContent: 'center'
     },
-    videoCardActive: { borderColor: '#4c1d95' },
+    videoCardActive: { borderColor: '#1d4ed8' },
     videoPreviewContainer: { flex: 1 },
     videoThumbnail: { width: '100%', height: '100%' },
     videoOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
         right: 20, 
         flexDirection: 'row', 
         alignItems: 'center', 
-        backgroundColor: 'rgba(99, 102, 241, 0.9)', 
+        backgroundColor: 'rgba(37, 99, 235, 0.9)', 
         paddingHorizontal: 15, 
         paddingVertical: 8, 
         borderRadius: 12 
@@ -472,9 +472,9 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: '#f1f5f9' 
     },
-    audioPillActive: { backgroundColor: '#f5f3ff', borderColor: '#4c1d95' },
+    audioPillActive: { backgroundColor: '#f5f3ff', borderColor: '#1d4ed8' },
     audioPillText: { flex: 1, marginLeft: 10, fontSize: 15, fontWeight: '700', color: '#64748b' },
-    audioPillTextActive: { color: '#4c1d95' },
+    audioPillTextActive: { color: '#1d4ed8' },
 
     visibilityRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 15 },
     visibilityPill: { 
@@ -488,9 +488,9 @@ const styles = StyleSheet.create({
         borderWidth: 1, 
         borderColor: '#f1f5f9' 
     },
-    visibilityPillActive: { backgroundColor: '#f5f3ff', borderColor: '#4c1d95' },
+    visibilityPillActive: { backgroundColor: '#f5f3ff', borderColor: '#1d4ed8' },
     visibilityPillText: { marginLeft: 6, fontSize: 13, fontWeight: '700', color: '#64748b' },
-    visibilityPillTextActive: { color: '#4c1d95' },
+    visibilityPillTextActive: { color: '#1d4ed8' },
 
     inputSection: { marginBottom: 25 },
     label: { color: '#94a3b8', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', marginBottom: 10, marginLeft: 5 },
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8fafc', 
         borderRadius: 16, 
         padding: 15, 
-        color: '#4c1d95', 
+        color: '#1d4ed8', 
         fontSize: 16,
         fontWeight: '700',
         borderWidth: 1,
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#f1f5f9'
     },
-    activeMusicCard: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
+    activeMusicCard: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     musicIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
     musicName: { color: '#1e293b', fontSize: 14, fontWeight: '800', marginBottom: 4 },
     artistName: { color: '#94a3b8', fontSize: 12, fontWeight: '500' },

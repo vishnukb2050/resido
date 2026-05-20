@@ -102,7 +102,7 @@ export default function SelectContactsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#4c1d95" style={{ marginTop: 20 }} />
+                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 20 }} />
                 ) : filteredContacts.length === 0 ? (
                     <Text style={styles.emptyText}>No contacts found</Text>
                 ) : (
@@ -155,7 +155,7 @@ const ContactItem = ({ contact, isSelected, onPress }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     contactName: { fontSize: 16, fontWeight: '700', color: '#fff' },
     profileName: { fontSize: 13, color: '#64748b', marginTop: 2 },
     checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    checkboxActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
+    checkboxActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
 
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
     bottomSummary: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     selectedCount: { color: '#fff', fontSize: 15, fontWeight: '800' },
     summaryContent: { flexDirection: 'row', alignItems: 'center' },
     selectedAvatars: { flex: 1 },
-    miniAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, borderWidth: 2, borderColor: '#4c1d95' },
-    shareButton: { backgroundColor: '#4c1d95', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
+    miniAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, borderWidth: 2, borderColor: '#1d4ed8' },
+    shareButton: { backgroundColor: '#1d4ed8', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
     shareButtonText: { color: '#fff', fontWeight: '900', fontSize: 15 }
 });

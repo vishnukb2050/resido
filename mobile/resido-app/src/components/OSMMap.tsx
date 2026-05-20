@@ -109,8 +109,8 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
                     window.radiusCircle.setRadius(${circle.radius});
                 } else if (typeof map !== 'undefined') {
                     window.radiusCircle = L.circle([${circle.center.latitude}, ${circle.center.longitude}], {
-                        color: '#4c1d95',
-                        fillColor: '#4c1d95',
+                        color: '#1d4ed8',
+                        fillColor: '#1d4ed8',
                         fillOpacity: 0.1,
                         radius: ${circle.radius}
                     }).addTo(map);
@@ -253,8 +253,8 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
                     initialJs += `
                         if (!window.radiusCircle) {
                             window.radiusCircle = L.circle([${circle.center.latitude}, ${circle.center.longitude}], {
-                                color: '#4c1d95',
-                                fillColor: '#4c1d95',
+                                color: '#1d4ed8',
+                                fillColor: '#1d4ed8',
                                 fillOpacity: 0.1,
                                 radius: ${circle.radius}
                             }).addTo(map);
@@ -288,7 +288,7 @@ const OSMMap: React.FC<OSMMapProps> = ({ region, markers = [], onPress, circle, 
                 startInLoadingState={true}
                 renderLoading={() => (
                     <View style={styles.loading}>
-                        <ActivityIndicator size="large" color="#4c1d95" />
+                        <ActivityIndicator size="large" color="#1d4ed8" />
                     </View>
                 )}
             />

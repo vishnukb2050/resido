@@ -57,7 +57,7 @@ export default function ComplaintsListScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={complaints}
@@ -72,7 +72,7 @@ export default function ComplaintsListScreen() {
                                 activeOpacity={0.9}
                             >
                                 <View style={styles.cardHeader}>
-                                    <View style={[styles.categoryBadge, { backgroundColor: 'rgba(99, 102, 241, 0.1)' }]}>
+                                    <View style={[styles.categoryBadge, { backgroundColor: 'rgba(37, 99, 235, 0.1)' }]}>
                                         <Text style={styles.categoryText}>{item.category || 'General'}</Text>
                                     </View>
                                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
@@ -164,16 +164,16 @@ export default function ComplaintsListScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20, paddingBottom: 100 },
     card: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     categoryBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-    categoryText: { fontSize: 11, fontWeight: '800', color: '#4c1d95', textTransform: 'uppercase' },
+    categoryText: { fontSize: 11, fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 10, fontWeight: '900' },
     description: { fontSize: 15, color: '#e2e8f0', fontWeight: '500', lineHeight: 22, marginBottom: 15 },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
     emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
     emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10, lineHeight: 22 },
-    createBtn: { backgroundColor: '#4c1d95', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
+    createBtn: { backgroundColor: '#1d4ed8', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
     createBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
     // Expanded Section & Timeline Styling
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     timelineItem: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     timelineLineWrapper: { alignItems: 'center', width: 16 },
     timelineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366f1', marginTop: 6 },
-    timelineLine: { width: 2, flex: 1, backgroundColor: 'rgba(99, 102, 241, 0.15)', marginTop: 4, marginBottom: -10 },
+    timelineLine: { width: 2, flex: 1, backgroundColor: 'rgba(37, 99, 235, 0.15)', marginTop: 4, marginBottom: -10 },
     
     timelineContent: { flex: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
     timelineHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },

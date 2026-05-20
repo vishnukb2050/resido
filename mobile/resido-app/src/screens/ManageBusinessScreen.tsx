@@ -40,7 +40,7 @@ export default function ManageBusinessScreen() {
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-                <MaterialCommunityIcons name="storefront-outline" size={80} color="#4c1d95" />
+                <MaterialCommunityIcons name="storefront-outline" size={80} color="#1d4ed8" />
             </View>
             <Text style={styles.emptyTitle}>Grow Your Business</Text>
             <Text style={styles.emptySubtitle}>
@@ -66,7 +66,7 @@ export default function ManageBusinessScreen() {
     const BenefitItem = ({ icon, text }: any) => (
         <View style={styles.benefitItem}>
             <View style={styles.benefitIcon}>
-                <Ionicons name={icon} size={16} color="#4c1d95" />
+                <Ionicons name={icon} size={16} color="#1d4ed8" />
             </View>
             <Text style={styles.benefitText}>{text}</Text>
         </View>
@@ -75,7 +75,7 @@ export default function ManageBusinessScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4c1d95" />
+                <ActivityIndicator size="large" color="#1d4ed8" />
             </View>
         );
     }
@@ -92,13 +92,13 @@ export default function ManageBusinessScreen() {
                     style={styles.addBtn}
                     onPress={() => router.push('/business-profile')}
                 >
-                    <Ionicons name="add" size={24} color="#4c1d95" />
+                    <Ionicons name="add" size={24} color="#1d4ed8" />
                 </TouchableOpacity>
             </View>
 
             <ScrollView 
                 contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4c1d95" />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />}
             >
                 {profiles.length === 0 ? renderEmptyState() : (
                     <>
@@ -115,7 +115,7 @@ export default function ManageBusinessScreen() {
                                             <Image source={{ uri: profile.logo }} style={styles.logo} />
                                         ) : (
                                             <View style={styles.logoPlaceholder}>
-                                                <Ionicons name="business" size={24} color="#4c1d95" />
+                                                <Ionicons name="business" size={24} color="#1d4ed8" />
                                             </View>
                                         )}
                                     </View>
@@ -131,7 +131,7 @@ export default function ManageBusinessScreen() {
                                         style={styles.editBtn}
                                         onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id } })}
                                     >
-                                        <Feather name="edit-3" size={20} color="#4c1d95" />
+                                        <Feather name="edit-3" size={20} color="#1d4ed8" />
                                     </TouchableOpacity>
                                 </View>
                                 
@@ -159,7 +159,7 @@ export default function ManageBusinessScreen() {
                             onPress={() => router.push('/business-profile')}
                         >
                             <View style={styles.addIconBox}>
-                                <Ionicons name="add" size={24} color="#4c1d95" />
+                                <Ionicons name="add" size={24} color="#1d4ed8" />
                             </View>
                             <Text style={styles.addText}>Add Another Business</Text>
                         </TouchableOpacity>
@@ -171,26 +171,26 @@ export default function ManageBusinessScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
-    loadingContainer: { flex: 1, backgroundColor: '#23272a', justifyContent: 'center', alignItems: 'center' },
+    container: { flex: 1, backgroundColor: '#000000' },
+    loadingContainer: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
     
     scrollContent: { padding: 20, paddingBottom: 40 },
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#94a3b8', marginBottom: 20, textTransform: 'uppercase', letterSpacing: 1 },
 
     // Empty State
     emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 40 },
-    emptyIconBox: { width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(99, 102, 241, 0.05)', alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+    emptyIconBox: { width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(37, 99, 235, 0.05)', alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
     emptyTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 12 },
     emptySubtitle: { fontSize: 16, color: '#94a3b8', textAlign: 'center', lineHeight: 24, paddingHorizontal: 20, marginBottom: 40 },
     benefits: { width: '100%', gap: 16, marginBottom: 40 },
     benefitItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 16 },
-    benefitIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    benefitIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
     benefitText: { fontSize: 15, color: '#cbd5e1', fontWeight: '600' },
-    createBtn: { width: '100%', height: 60, borderRadius: 20, backgroundColor: '#4c1d95', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    createBtn: { width: '100%', height: 60, borderRadius: 20, backgroundColor: '#1d4ed8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
     createBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
 
     // List State
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     statusBadge: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
     statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
     statusText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
-    editBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    editBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
     
     statsRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 16 },
     statBox: { flex: 1, alignItems: 'center' },
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     statLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
     statDivider: { width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.05)' },
 
-    addAnotherCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(99, 102, 241, 0.3)', marginTop: 8 },
-    addIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    addText: { fontSize: 16, fontWeight: '700', color: '#4c1d95' }
+    addAnotherCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(37, 99, 235, 0.3)', marginTop: 8 },
+    addIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+    addText: { fontSize: 16, fontWeight: '700', color: '#1d4ed8' }
 });

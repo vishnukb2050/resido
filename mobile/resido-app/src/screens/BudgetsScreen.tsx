@@ -11,11 +11,11 @@ const { width } = Dimensions.get('window');
 
 const BUDGETS = [
     { name: 'Groceries', spent: 12980, limit: 15000, percent: 86, color: '#10b981', icon: 'shopping-basket' },
-    { name: 'Utilities', spent: 6490, limit: 7000, percent: 93, color: '#4c1d95', icon: 'bolt' },
+    { name: 'Utilities', spent: 6490, limit: 7000, percent: 93, color: '#1d4ed8', icon: 'bolt' },
     { name: 'Shopping', spent: 4870, limit: 6000, percent: 81, color: '#ec4899', icon: 'shopping-bag' },
     { name: 'Transport', spent: 3250, limit: 4000, percent: 81, color: '#3b82f6', icon: 'car' },
     { name: 'Food & Dining', spent: 2600, limit: 3000, percent: 87, color: '#f43f5e', icon: 'utensils' },
-    { name: 'Others', spent: 2260, limit: 3000, percent: 75, color: '#8b5cf6', icon: 'ellipsis-h' },
+    { name: 'Others', spent: 2260, limit: 3000, percent: 75, color: '#3b82f6', icon: 'ellipsis-h' },
 ];
 
 export default function BudgetsScreen() {
@@ -71,8 +71,8 @@ export default function BudgetsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
-    header: { padding: 20, paddingTop: 20, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
+    header: { padding: 20, paddingTop: 20, backgroundColor: '#000000' },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     
     periodRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     periodText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-    editText: { fontSize: 13, color: '#4c1d95', fontWeight: '700' },
+    editText: { fontSize: 13, color: '#1d4ed8', fontWeight: '700' },
 
     listContainer: { paddingHorizontal: 20, marginTop: 10 },
     budgetCard: { backgroundColor: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },

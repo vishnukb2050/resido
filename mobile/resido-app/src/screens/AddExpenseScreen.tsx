@@ -166,7 +166,7 @@ export default function AddExpenseScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Date</Text>
                         <View style={styles.inputWrapper}>
-                            <Ionicons name="calendar-outline" size={20} color="#4c1d95" style={styles.inputIcon} />
+                            <Ionicons name="calendar-outline" size={20} color="#1d4ed8" style={styles.inputIcon} />
                             <TextInput 
                                 style={styles.input}
                                 value={date}
@@ -196,7 +196,7 @@ export default function AddExpenseScreen() {
                         <TouchableOpacity style={styles.uploadArea} onPress={pickDocument}>
                             {billFile ? (
                                 <View style={styles.fileInfo}>
-                                    <Ionicons name="document-text" size={24} color="#4c1d95" />
+                                    <Ionicons name="document-text" size={24} color="#1d4ed8" />
                                     <Text style={styles.fileName} numberOfLines={1}>{billFile.name}</Text>
                                     <TouchableOpacity onPress={() => setBillFile(null)}>
                                         <Ionicons name="close-circle" size={20} color="#ef4444" />
@@ -204,7 +204,7 @@ export default function AddExpenseScreen() {
                                 </View>
                             ) : (
                                 <>
-                                    <Ionicons name="cloud-upload-outline" size={32} color="#4c1d95" />
+                                    <Ionicons name="cloud-upload-outline" size={32} color="#1d4ed8" />
                                     <Text style={styles.uploadText}>Tap to upload bill or receipt</Text>
                                 </>
                             )}
@@ -235,7 +235,7 @@ export default function AddExpenseScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 10 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
@@ -249,11 +249,11 @@ const styles = StyleSheet.create({
     
     categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    activeChip: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
+    activeChip: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     chipText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
     activeChipText: { color: '#fff' },
     
-    uploadArea: { height: 100, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#4c1d95', backgroundColor: 'rgba(99, 102, 241, 0.05)', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    uploadArea: { height: 100, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#1d4ed8', backgroundColor: 'rgba(37, 99, 235, 0.05)', alignItems: 'center', justifyContent: 'center', gap: 8 },
     uploadText: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
     fileInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
     fileName: { flex: 1, fontSize: 14, color: '#fff', fontWeight: '600' },

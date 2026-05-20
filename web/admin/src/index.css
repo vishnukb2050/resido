@@ -1,9 +1,9 @@
 :root {
-  --primary: #800080;
-  --primary-dark: #5d005d;
-  --surface: #23272a; /* Muted Charcoal Grey */
-  --surface-2: #2c2f33;
-  --surface-3: #393e46;
+  --primary: #2563eb; /* Radial Blue */
+  --primary-dark: #1d4ed8; /* Deep Radial Blue */
+  --surface: #000000; /* Pure Black */
+  --surface-2: #0d0d0d;
+  --surface-3: #1a1a1a;
   --text: #e2e8f0;
   --text-muted: #94a3b8;
   --border: rgba(255, 255, 255, 0.08);

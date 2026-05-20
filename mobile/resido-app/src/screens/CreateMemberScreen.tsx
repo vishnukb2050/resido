@@ -354,7 +354,7 @@ export default function CreateMemberScreen() {
                                 </>
                             ) : (
                                 <>
-                                    <Ionicons name="cloud-upload-outline" size={24} color="#4c1d95" />
+                                    <Ionicons name="cloud-upload-outline" size={24} color="#1d4ed8" />
                                     <Text style={styles.uploadBtnText}>Upload PDF or Image</Text>
                                 </>
                             )}
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
 
     staffRoles: { marginBottom: 20, flexDirection: 'row' },
     roleChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0' },
-    roleChipActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
+    roleChipActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     roleChipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     roleChipTextActive: { color: '#fff' },
     
@@ -400,15 +400,15 @@ const styles = StyleSheet.create({
     dropdownText: { color: '#1e293b', fontSize: 14, fontWeight: '600' },
 
     uploadBtn: { borderStyle: 'dashed', borderWidth: 2, borderColor: '#e2e8f0', borderRadius: 16, padding: 25, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#f8fafc' },
-    uploadBtnText: { color: '#4c1d95', fontWeight: '700', fontSize: 14 },
+    uploadBtnText: { color: '#1d4ed8', fontWeight: '700', fontSize: 14 },
 
     avatarSection: { alignItems: 'center', marginBottom: 24, marginTop: 10 },
     avatarWrapper: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', position: 'relative', borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed' },
     avatar: { width: '100%', height: '100%', borderRadius: 50 },
     avatarPlaceholder: { width: '100%', height: '100%', borderRadius: 50, alignItems: 'center', justifyContent: 'center' },
-    cameraBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#4c1d95', width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    cameraBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#1d4ed8', width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
     avatarHint: { marginTop: 8, fontSize: 13, fontWeight: '600', color: '#64748b' },
 
-    submitBtn: { backgroundColor: '#4c1d95', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 10, shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+    submitBtn: { backgroundColor: '#1d4ed8', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

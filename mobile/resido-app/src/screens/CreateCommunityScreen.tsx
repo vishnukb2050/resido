@@ -105,7 +105,7 @@ export default function CreateCommunityScreen() {
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.heroSection}>
                         <View style={styles.heroIconBox}>
-                            <Ionicons name="business" size={40} color="#4c1d95" />
+                            <Ionicons name="business" size={40} color="#1d4ed8" />
                         </View>
                         <Text style={styles.title}>Launch Community</Text>
                         <Text style={styles.subtitle}>Initialize your smart apartment ecosystem with administrative and resident access.</Text>
@@ -114,7 +114,7 @@ export default function CreateCommunityScreen() {
                     <View style={styles.form}>
                         {/* Basic Info */}
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="information-circle-outline" size={18} color="#4c1d95" />
+                            <Ionicons name="information-circle-outline" size={18} color="#1d4ed8" />
                             <Text style={styles.sectionHeaderText}>Basic Information</Text>
                         </View>
 
@@ -197,13 +197,13 @@ export default function CreateCommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 60 },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     scrollContent: { padding: 24, paddingBottom: 60 },
     heroSection: { alignItems: 'center', marginBottom: 32 },
-    heroIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    heroIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
     title: { fontSize: 26, fontWeight: '900', color: '#fff', textAlign: 'center' },
     subtitle: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 10, lineHeight: 22, paddingHorizontal: 20 },
     form: { gap: 24 },
@@ -239,12 +239,12 @@ const styles = StyleSheet.create({
     textArea: { height: 100, textAlignVertical: 'top' },
     hint: { fontSize: 11, color: '#475569', fontWeight: '500', marginTop: -4 },
     submitBtn: {
-        backgroundColor: '#4c1d95',
+        backgroundColor: '#1d4ed8',
         borderRadius: 20,
         padding: 20,
         alignItems: 'center',
         marginTop: 20,
-        shadowColor: '#4c1d95',
+        shadowColor: '#1d4ed8',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
         shadowRadius: 16,

@@ -114,7 +114,7 @@ export default function CalendarScreen() {
                                 </Text>
                                 <View style={styles.dotsContainer}>
                                     {item.dots.map((color, idx) => (
-                                        <View key={idx} style={[styles.dot, { backgroundColor: color === 'blue' ? '#3b82f6' : color === 'green' ? '#10b981' : color === 'orange' ? '#f59e0b' : '#8b5cf6' }]} />
+                                        <View key={idx} style={[styles.dot, { backgroundColor: color === 'blue' ? '#3b82f6' : color === 'green' ? '#10b981' : color === 'orange' ? '#f59e0b' : '#3b82f6' }]} />
                                     ))}
                                 </View>
                             </TouchableOpacity>
@@ -127,7 +127,7 @@ export default function CalendarScreen() {
                     <LegendItem color="#10b981" label="Personal" />
                     <LegendItem color="#3b82f6" label="Group" />
                     <LegendItem color="#f59e0b" label="Community" />
-                    <LegendItem color="#8b5cf6" label="All-day / Reminder" />
+                    <LegendItem color="#3b82f6" label="All-day / Reminder" />
                 </View>
 
                 {/* Events Section */}
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     
     viewToggleContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, margin: 20, padding: 4 },
     viewToggleButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
-    viewToggleButtonActive: { backgroundColor: '#4c1d95' },
+    viewToggleButtonActive: { backgroundColor: '#1d4ed8' },
     viewToggleText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
     viewToggleTextActive: { color: '#fff' },
 
@@ -211,12 +211,12 @@ const styles = StyleSheet.create({
     dayHeaderText: { fontSize: 12, fontWeight: '700', color: '#64748b', width: (width - 70) / 7, textAlign: 'center' },
     datesGrid: { flexDirection: 'row', flexWrap: 'wrap' },
     dateCell: { width: (width - 70) / 7, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 5 },
-    dateCellActive: { backgroundColor: '#f5f3ff', borderRadius: 12, borderWidth: 1, borderColor: '#4c1d95' },
+    dateCellActive: { backgroundColor: '#f5f3ff', borderRadius: 12, borderWidth: 1, borderColor: '#1d4ed8' },
     dateNumber: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
-    dateNumberActive: { color: '#4c1d95' },
+    dateNumberActive: { color: '#1d4ed8' },
     dotsContainer: { flexDirection: 'row', gap: 2, marginTop: 2 },
     dot: { width: 4, height: 4, borderRadius: 2 },
-    dateLabel: { position: 'absolute', bottom: 4, backgroundColor: '#4c1d95', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
+    dateLabel: { position: 'absolute', bottom: 4, backgroundColor: '#1d4ed8', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
     dateLabelText: { fontSize: 8, color: '#fff', fontWeight: '800' },
 
     legendContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, paddingHorizontal: 25, marginTop: 15, justifyContent: 'center' },
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     eventsSection: { marginTop: 30, paddingHorizontal: 20 },
     eventsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     eventsTitle: { fontSize: 16, fontWeight: '900', color: '#1e293b' },
-    eventsCount: { fontSize: 12, fontWeight: '700', color: '#4c1d95' },
+    eventsCount: { fontSize: 12, fontWeight: '700', color: '#1d4ed8' },
     
     eventCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
     eventIndicator: { width: 4, height: '100%', borderRadius: 2, position: 'absolute', left: 0 },
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     detailText: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
 
     viewFullDay: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 15 },
-    viewFullDayText: { fontSize: 14, fontWeight: '800', color: '#4c1d95' },
+    viewFullDayText: { fontSize: 14, fontWeight: '800', color: '#1d4ed8' },
 
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 64, height: 64, borderRadius: 32, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 10 },
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 64, height: 64, borderRadius: 32, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 10 },
 });

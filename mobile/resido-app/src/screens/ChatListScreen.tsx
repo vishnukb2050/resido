@@ -165,7 +165,7 @@ export default function ChatListScreen() {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Chat</Text>
                 <TouchableOpacity onPress={() => router.push('/contacts')}>
-                    <Ionicons name="person-add-outline" size={24} color="#4c1d95" />
+                    <Ionicons name="person-add-outline" size={24} color="#1d4ed8" />
                 </TouchableOpacity>
             </View>
 
@@ -181,7 +181,7 @@ export default function ChatListScreen() {
                             value={search}
                             onChangeText={handleSearch}
                         />
-                        {isSearching && <ActivityIndicator size="small" color="#4c1d95" />}
+                        {isSearching && <ActivityIndicator size="small" color="#1d4ed8" />}
                     </View>
                 </View>
 
@@ -203,7 +203,7 @@ export default function ChatListScreen() {
                                         <Text style={styles.userName}>{user.name || 'Anonymous'}</Text>
                                         <Text style={styles.userPhone}>{user.phone}</Text>
                                     </View>
-                                    <Ionicons name="chatbubble-ellipses-outline" size={20} color="#4c1d95" />
+                                    <Ionicons name="chatbubble-ellipses-outline" size={20} color="#1d4ed8" />
                                 </TouchableOpacity>
                             ))
                         ) : !isSearching ? (
@@ -250,7 +250,7 @@ export default function ChatListScreen() {
 
                 {/* Conversations List */}
                 {loading ? (
-                    <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 40 }} />
+                    <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 40 }} />
                 ) : (
                     <>
                         {filteredConversations.length > 0 || displayContacts.length > 0 ? (
@@ -330,7 +330,7 @@ function ChatItem({ item, onPress }: any) {
             <View style={styles.avatarContainer}>
                 {item.icon ? (
                     <View style={styles.iconAvatar}>
-                        <Ionicons name={item.icon as any} size={24} color="#4c1d95" />
+                        <Ionicons name={item.icon as any} size={24} color="#1d4ed8" />
                     </View>
                 ) : (
                     <View style={styles.userAvatar}>
@@ -369,13 +369,13 @@ const styles = StyleSheet.create({
     filtersContainer: { marginTop: 15, marginBottom: 10 },
     filtersContent: { paddingHorizontal: 20, gap: 10 },
     filterPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, backgroundColor: '#f1f5f9' },
-    filterPillActive: { backgroundColor: '#4c1d95' },
+    filterPillActive: { backgroundColor: '#1d4ed8' },
     filterText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
     filterTextActive: { color: '#fff' },
 
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, marginBottom: 10 },
-    sectionTitle: { fontSize: 13, fontWeight: '800', color: '#4c1d95' },
-    viewAllText: { fontSize: 12, fontWeight: '700', color: '#4c1d95' },
+    sectionTitle: { fontSize: 13, fontWeight: '800', color: '#1d4ed8' },
+    viewAllText: { fontSize: 12, fontWeight: '700', color: '#1d4ed8' },
 
     chatCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
     avatarContainer: { position: 'relative' },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     chatTime: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
     chatBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     chatSub: { fontSize: 13, color: '#64748b', fontWeight: '500', flex: 1 },
-    unreadBadge: { backgroundColor: '#4c1d95', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8 },
+    unreadBadge: { backgroundColor: '#1d4ed8', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8 },
     unreadText: { color: '#fff', fontSize: 10, fontWeight: '900' },
     
     // Search Styles
@@ -416,10 +416,10 @@ const styles = StyleSheet.create({
         width: 44, 
         height: 44, 
         borderRadius: 14, 
-        backgroundColor: '#4c1d95', 
+        backgroundColor: '#1d4ed8', 
         alignItems: 'center', 
         justifyContent: 'center',
-        shadowColor: '#4c1d95',
+        shadowColor: '#1d4ed8',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,

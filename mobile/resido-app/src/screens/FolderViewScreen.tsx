@@ -105,7 +105,7 @@ export default function FolderViewScreen() {
     const getFileColor = (type: string) => {
         if (type === 'IMAGE') return '#3b82f6';
         if (type.includes('pdf')) return '#ef4444';
-        return '#4c1d95';
+        return '#1d4ed8';
     };
 
     return (
@@ -146,7 +146,7 @@ export default function FolderViewScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#4c1d95" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />
                 ) : files.length === 0 ? (
                     <Text style={styles.emptyText}>No documents here yet. Upload one!</Text>
                 ) : (
@@ -185,7 +185,7 @@ export default function FolderViewScreen() {
             <Modal transparent visible={uploading}>
                 <View style={styles.overlay}>
                     <View style={styles.progressBox}>
-                        <ActivityIndicator size="large" color="#4c1d95" />
+                        <ActivityIndicator size="large" color="#1d4ed8" />
                         <Text style={styles.progressText}>Uploading... {Math.round(uploadProgress * 100)}%</Text>
                         <View style={styles.progressBarBg}>
                             <View style={[styles.progressBar, { width: `${uploadProgress * 100}%` }]} />
@@ -200,8 +200,8 @@ export default function FolderViewScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
-    header: { padding: 20, paddingTop: 60, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
+    header: { padding: 20, paddingTop: 60, backgroundColor: '#000000' },
     headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
 
     emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
     fabContainer: { position: 'absolute', bottom: 0, right: 20 },
-    fabMini: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', shadowColor: '#4c1d95', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+    fabMini: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
 
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
     progressBox: { backgroundColor: '#1e293b', padding: 30, borderRadius: 24, alignItems: 'center', width: width * 0.8 },
     progressText: { color: '#fff', fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 15 },
     progressBarBg: { width: '100%', height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
-    progressBar: { height: '100%', backgroundColor: '#4c1d95' }
+    progressBar: { height: '100%', backgroundColor: '#1d4ed8' }
 });

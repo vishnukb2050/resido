@@ -369,7 +369,7 @@ export default function AdminStatsScreen() {
                                 <Text style={styles.gridCardLabel}>Visitors Today</Text>
                             </View>
                             <View style={[styles.gridHalfCard, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="qr-code" size={24} color="#8b5cf6" />
+                                <Ionicons name="qr-code" size={24} color="#3b82f6" />
                                 <Text style={styles.gridCardValue}>{data.operations.gatepasses.totalApproved}</Text>
                                 <Text style={styles.gridCardLabel}>Passes Scanned</Text>
                             </View>
@@ -499,8 +499,8 @@ const styles = StyleSheet.create({
 
     // Gatepass Ratio fills
     progressFillBg: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden', marginVertical: 12 },
-    progressFillLine: { height: '100%', backgroundColor: '#8b5cf6', borderRadius: 4 },
+    progressFillLine: { height: '100%', backgroundColor: '#3b82f6', borderRadius: 4 },
     ratioLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-    ratioLeft: { fontSize: 11, color: '#8b5cf6', fontWeight: '700' },
+    ratioLeft: { fontSize: 11, color: '#3b82f6', fontWeight: '700' },
     ratioRight: { fontSize: 11, color: '#94a3b8', fontWeight: '600' }
 });

@@ -80,7 +80,7 @@ export default function FinanceScreen() {
 
                 <View style={[styles.statCard, { marginTop: 12, width: '100%', flexDirection: 'row', alignItems: 'center' }]}>
                     <View style={styles.savingsIcon}>
-                        <FontAwesome5 name="piggy-bank" size={20} color="#4c1d95" />
+                        <FontAwesome5 name="piggy-bank" size={20} color="#1d4ed8" />
                     </View>
                     <View style={{ marginLeft: 16 }}>
                         <Text style={styles.statLabel}>Net Savings</Text>
@@ -91,7 +91,7 @@ export default function FinanceScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {loading ? (
-                    <ActivityIndicator color="#4c1d95" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />
                 ) : (
                     <>
                         {/* Shortcuts */}
@@ -100,7 +100,7 @@ export default function FinanceScreen() {
                             <View style={styles.shortcutGrid}>
                                 <ShortcutItem icon="plus" label="Add Income" color="#10b981" onPress={() => router.push('/add-income')} />
                                 <ShortcutItem icon="minus" label="Add Expense" color="#ef4444" onPress={() => router.push('/add-expense')} />
-                                <ShortcutItem icon="file-upload" label="Bills" color="#4c1d95" onPress={() => router.push('/documents')} />
+                                <ShortcutItem icon="file-upload" label="Bills" color="#1d4ed8" onPress={() => router.push('/documents')} />
                                 <ShortcutItem icon="chart-bar" label="View Report" color="#94a3b8" onPress={() => router.push('/finance-report')} />
                             </View>
                         </View>
@@ -156,8 +156,8 @@ const ShortcutItem = ({ icon, label, color, onPress }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#23272a' },
-    header: { padding: 20, paddingTop: 30, backgroundColor: '#23272a' },
+    container: { flex: 1, backgroundColor: '#000000' },
+    header: { padding: 20, paddingTop: 30, backgroundColor: '#000000' },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25 },
     headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
     logoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     headerSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    profileImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#4c1d95' },
+    profileImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#1d4ed8' },
     
     overviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 16 },
     overviewTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
@@ -177,12 +177,12 @@ const styles = StyleSheet.create({
     statLabel: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
     statValue: { fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 6 },
     statTrend: { fontSize: 11, color: '#64748b', marginTop: 6 },
-    savingsIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(99, 102, 241, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    savingsIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    viewAll: { fontSize: 13, color: '#4c1d95', fontWeight: '700' },
+    viewAll: { fontSize: 13, color: '#1d4ed8', fontWeight: '700' },
 
     shortcutGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
     shortcutItem: { alignItems: 'center', flex: 1 },
