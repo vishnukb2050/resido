@@ -14,5 +14,7 @@ RUN apk add --no-cache openssl
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY start.sh ./
+RUN chmod +x start.sh
 EXPOSE 3007
-CMD ["node", "dist/main"]
+CMD ["./start.sh"]

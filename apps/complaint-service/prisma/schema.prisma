@@ -10,17 +10,20 @@ datasource db {
 }
 
 model Complaint {
-  id          String          @id @default(cuid())
-  title       String
-  description String
-  category    ComplaintCategory
-  status      ComplaintStatus @default(OPEN)
-  raisedBy    String          // member id
-  assignedTo  String?         // caretaker member id
-  photos      String[]        // S3 keys
-  closedAt    DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            String          @id @default(cuid())
+  tenantId      String?
+  title         String
+  description   String
+  category      String?
+  status        ComplaintStatus @default(OPEN)
+  priority      Priority        @default(MEDIUM)
+  memberId      String?
+  assignedTo    String?         // caretaker member id
+  mediaUrls     String[]        // S3 keys / photo URLs
+  progressNotes Json?
+  closedAt      DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   comments    ComplaintComment[]
 
@@ -55,4 +58,11 @@ enum ComplaintCategory {
   LIFT
   COMMON_AREA
   OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
