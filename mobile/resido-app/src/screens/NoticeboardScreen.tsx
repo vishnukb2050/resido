@@ -16,7 +16,7 @@ export default function NoticeboardScreen() {
     const [posting, setPosting] = useState(false);
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     
-    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
+    const isAdmin = activeWorkspace?.role === 'APARTMENT_ADMIN';
 
     const [newNotice, setNewNotice] = useState({ title: '', body: '' });
 

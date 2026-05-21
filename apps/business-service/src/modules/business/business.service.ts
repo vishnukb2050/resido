@@ -6,7 +6,7 @@ export class BusinessService {
     constructor(private prisma: PrismaService) {}
 
     async createProfile(userId: string, tenantId: string, data: any) {
-        const { services, pincode, city, expertise, description, images, ...rest } = data;
+        const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
         
         const profileData = {
             profileType: rest.profileType || 'BUSINESS',
@@ -48,9 +48,20 @@ export class BusinessService {
                         responseTime: s.responseTime,
                         isEmergency: s.isEmergency || false
                     }))
-                }
+                },
+                slots: slots ? {
+                    create: slots.map((s: any) => ({
+                        name: s.name,
+                        description: s.description || null,
+                        maxPersons: s.maxPersons || 1,
+                        timeSlots: s.timeSlots || [],
+                        scheduleType: s.scheduleType || 'WEEKLY',
+                        scheduleConfig: s.scheduleConfig ? (typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig)) : null,
+                        allowRecurringBookings: s.allowRecurringBookings || false
+                    }))
+                } : undefined
             },
-            include: { services: true }
+            include: { services: true, slots: true }
         });
     }
 
@@ -166,7 +177,7 @@ export class BusinessService {
     }
 
     async updateProfile(id: string, data: any) {
-        const { services, pincode, city, expertise, description, images, ...rest } = data;
+        const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
         
         const profileData = {
             profileType: rest.profileType,
@@ -197,32 +208,43 @@ export class BusinessService {
         // Remove undefined fields to prevent overwriting with null/undefined unless intended
         Object.keys(profileData).forEach(key => (profileData as any)[key] === undefined && delete (profileData as any)[key]);
 
-        // If services are provided, we replace them
+        const updateData: any = {
+            ...profileData
+        };
+
         if (services) {
             await this.prisma.serviceItem.deleteMany({ where: { businessProfileId: id } });
-            return this.prisma.businessProfile.update({
-                where: { id },
-                data: {
-                    ...profileData,
-                    services: {
-                        create: services.map((s: any) => ({
-                            name: s.name,
-                            description: s.description,
-                            pricingType: s.pricingType,
-                            price: typeof s.price === 'number' ? s.price : parseFloat(s.price?.toString().replace(/,/g, '') || '0'),
-                            responseTime: s.responseTime,
-                            isEmergency: s.isEmergency || false
-                        }))
-                    }
-                },
-                include: { services: true }
-            });
+            updateData.services = {
+                create: services.map((s: any) => ({
+                    name: s.name,
+                    description: s.description,
+                    pricingType: s.pricingType,
+                    price: typeof s.price === 'number' ? s.price : parseFloat(s.price?.toString().replace(/,/g, '') || '0'),
+                    responseTime: s.responseTime,
+                    isEmergency: s.isEmergency || false
+                }))
+            };
+        }
+
+        if (slots) {
+            await this.prisma.businessSlot.deleteMany({ where: { businessProfileId: id } });
+            updateData.slots = {
+                create: slots.map((s: any) => ({
+                    name: s.name,
+                    description: s.description || null,
+                    maxPersons: s.maxPersons || 1,
+                    timeSlots: s.timeSlots || [],
+                    scheduleType: s.scheduleType || 'WEEKLY',
+                    scheduleConfig: s.scheduleConfig ? (typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig)) : null,
+                    allowRecurringBookings: s.allowRecurringBookings || false
+                }))
+            };
         }
 
         return this.prisma.businessProfile.update({
             where: { id },
-            data: profileData,
-            include: { services: true }
+            data: updateData,
+            include: { services: true, slots: true }
         });
     }
 

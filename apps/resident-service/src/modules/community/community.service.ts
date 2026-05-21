@@ -338,7 +338,7 @@ export class CommunityService {
             return events;
         }
 
-        const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(member.role);
+        const isAdmin = member.role === 'APARTMENT_ADMIN';
         if (isAdmin) {
             return events;
         }
@@ -577,7 +577,7 @@ export class CommunityService {
             return rules;
         }
 
-        const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(member.role);
+        const isAdmin = member.role === 'APARTMENT_ADMIN';
         if (isAdmin) {
             return rules;
         }

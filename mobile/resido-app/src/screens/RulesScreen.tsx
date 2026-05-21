@@ -18,7 +18,7 @@ export default function RulesScreen() {
     const [loading, setLoading] = useState(true);
     const [showAdd, setShowAdd] = useState(false);
     
-    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
+    const isAdmin = activeWorkspace?.role === 'APARTMENT_ADMIN';
 
     const [newRule, setNewRule] = useState({ title: '', description: '', category: 'General' });
     const [audience, setAudience] = useState<Record<string, boolean>>({

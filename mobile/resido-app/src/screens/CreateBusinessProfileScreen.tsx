@@ -174,6 +174,7 @@ export default function CreateBusinessProfileScreen() {
     const fetchProfile = async () => {
         try {
             const res = await businessApi.getProfile(id as string);
+            const profile = res.data;
             
             const defaultCategories = [
                 'Plumbing', 'Electrical', 'Carpentry', 'Cleaning', 'Pest Control', 
@@ -182,30 +183,37 @@ export default function CreateBusinessProfileScreen() {
                 'Electrician', 'Carpenter', 'Cleaner', 'Painter', 'AC Repair'
             ];
             
-            if (res.data.category && !defaultCategories.includes(res.data.category)) {
-                setCustomCategory(res.data.category);
+            const hasSlots = profile.slots && profile.slots.length > 0;
+            if (profile.category && !defaultCategories.includes(profile.category)) {
+                setCustomCategory(profile.category);
                 setFormData({
-                    ...res.data,
-                    category: 'Others'
+                    ...profile,
+                    category: 'Others',
+                    enableBooking: hasSlots,
+                    bookingSlots: profile.slots || []
                 });
             } else {
-                setFormData(res.data);
+                setFormData({
+                    ...profile,
+                    enableBooking: hasSlots,
+                    bookingSlots: profile.slots || []
+                });
             }
 
-            if (res.data.latitude && res.data.longitude) {
-                const latDelta = (res.data.serviceRadiusKm * 2.5) / 111;
+            if (profile.latitude && profile.longitude) {
+                const latDelta = (profile.serviceRadiusKm * 2.5) / 111;
                 setMapRegion({
-                    latitude: res.data.latitude,
-                    longitude: res.data.longitude,
+                    latitude: profile.latitude,
+                    longitude: profile.longitude,
                     latitudeDelta: latDelta,
                     longitudeDelta: latDelta
                 });
                 setLocQuery('Saved Location');
             }
 
-            if (res.data.serviceAreaType) {
-                const type = res.data.serviceAreaType;
-                const values = res.data.serviceAreaValues || [];
+            if (profile.serviceAreaType) {
+                const type = profile.serviceAreaType;
+                const values = profile.serviceAreaValues || [];
                 if (type === 'PAN_INDIA') {
                     setReachMode('PAN_INDIA');
                 } else if (type === 'STATE') {
@@ -634,7 +642,7 @@ export default function CreateBusinessProfileScreen() {
         if (step === 3) {
             syncServiceReach();
         }
-        setStep(Math.min(step + 1, 4));
+        setStep(Math.min(step + 1, 5));
     };
     const prevStep = () => setStep(Math.max(step - 1, 1));
 
@@ -653,7 +661,7 @@ export default function CreateBusinessProfileScreen() {
 
     const renderStepper = () => (
         <View style={styles.stepperContainer}>
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
                 <React.Fragment key={i}>
                     <View style={styles.stepWrapper}>
                         <View style={[
@@ -667,10 +675,10 @@ export default function CreateBusinessProfileScreen() {
                             )}
                         </View>
                         <Text style={[styles.stepLabel, step === i && styles.stepLabelActive]}>
-                            {i === 1 ? 'Business Info' : i === 2 ? 'Services' : i === 3 ? 'Location' : 'Review & Publish'}
+                            {i === 1 ? 'Business Info' : i === 2 ? 'Services' : i === 3 ? 'Location' : i === 4 ? 'Booking Settings' : 'Review & Publish'}
                         </Text>
                     </View>
-                    {i < 4 && <View style={[styles.stepLine, step > i && styles.stepLineActive]} />}
+                    {i < 5 && <View style={[styles.stepLine, step > i && styles.stepLineActive]} />}
                 </React.Fragment>
             ))}
         </View>
@@ -1229,6 +1237,458 @@ export default function CreateBusinessProfileScreen() {
     );
 
     const renderStep4 = () => {
+        return (
+            <View style={styles.stepContent}>
+                <Text style={styles.sectionTitle}>Booking Settings</Text>
+                <Text style={styles.subText}>
+                    Enable booking to allow customers and community residents to book service slots directly from your profile.
+                </Text>
+
+                <View style={[styles.summaryCard, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18 }]}>
+                    <View style={{ flex: 1, marginRight: 16 }}>
+                        <Text style={[styles.label, { marginBottom: 4 }]}>Enable Slot Booking</Text>
+                        <Text style={{ fontSize: 13, color: '#94a3b8' }}>
+                            {formData.enableBooking ? 'Customers can book scheduled appointments' : 'No online bookings allowed'}
+                        </Text>
+                    </View>
+                    <Switch
+                        value={formData.enableBooking}
+                        onValueChange={(val) => setFormData({ ...formData, enableBooking: val })}
+                        trackColor={{ false: '#334155', true: '#1d4ed8' }}
+                        thumbColor={formData.enableBooking ? '#fff' : '#94a3b8'}
+                    />
+                </View>
+
+                {formData.enableBooking && (
+                    <View style={{ marginTop: 12 }}>
+                        <Text style={[styles.label, { marginBottom: 12 }]}>Configure Booking Slots</Text>
+                        
+                        {formData.bookingSlots.length === 0 ? (
+                            <View style={{ padding: 24, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                                <Ionicons name="calendar-outline" size={36} color="#64748b" style={{ marginBottom: 12 }} />
+                                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', textAlign: 'center' }}>No Booking Slots Created</Text>
+                                <Text style={{ color: '#64748b', fontSize: 12, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 }}>
+                                    Add your first slot (e.g., "General Consulting" or "Morning Visit") to define when you're available.
+                                </Text>
+                            </View>
+                        ) : (
+                            formData.bookingSlots.map((slot: any, index: number) => {
+                                // Parse operational days from scheduleConfig
+                                let daysText = 'No days selected';
+                                try {
+                                    const config = typeof slot.scheduleConfig === 'string' 
+                                        ? JSON.parse(slot.scheduleConfig) 
+                                        : slot.scheduleConfig;
+                                    if (config) {
+                                        const reverseMapping: { [key: string]: string } = { 
+                                            'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 
+                                            'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun' 
+                                        };
+                                        const days: string[] = [];
+                                        Object.keys(config).forEach(k => {
+                                            if (config[k] && config[k].length > 0 && reverseMapping[k]) {
+                                                days.push(reverseMapping[k]);
+                                            }
+                                        });
+                                        if (days.length > 0) {
+                                            const weekOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                                            days.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+                                            daysText = days.join(', ');
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('Failed to parse schedule config in renderStep4:', e);
+                                }
+
+                                return (
+                                    <View key={slot.id || index.toString()} style={styles.serviceCard}>
+                                        <View style={[styles.serviceIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                                            <Ionicons name="time" size={18} color="#10b981" />
+                                        </View>
+                                        <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
+                                            <Text style={styles.serviceName}>{slot.name}</Text>
+                                            {slot.description ? <Text style={styles.serviceDesc}>{slot.description}</Text> : null}
+                                            <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                                                Days: <Text style={{ color: '#fff', fontWeight: '600' }}>{daysText}</Text>
+                                            </Text>
+                                            <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                                                Capacity: <Text style={{ color: '#fff', fontWeight: '600' }}>{slot.maxPersons} person(s)</Text>
+                                                {slot.allowRecurringBookings ? ' • Recurring allowed' : ''}
+                                            </Text>
+                                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                                                {slot.timeSlots && slot.timeSlots.map((ts: string, idx: number) => (
+                                                    <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                                                        <Text style={{ fontSize: 11, color: '#fff', fontWeight: '500' }}>{ts}</Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        </View>
+                                        <TouchableOpacity 
+                                            style={styles.iconBtn} 
+                                            onPress={() => {
+                                                // Load slot to edit
+                                                let daysList: string[] = [];
+                                                try {
+                                                    const config = typeof slot.scheduleConfig === 'string' 
+                                                        ? JSON.parse(slot.scheduleConfig) 
+                                                        : slot.scheduleConfig;
+                                                    if (config) {
+                                                        const reverseMapping: { [key: string]: string } = { 
+                                                            'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 
+                                                            'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun' 
+                                                        };
+                                                        Object.keys(config).forEach(k => {
+                                                            if (config[k] && config[k].length > 0 && reverseMapping[k]) {
+                                                                daysList.push(reverseMapping[k]);
+                                                            }
+                                                        });
+                                                    }
+                                                } catch (e) {
+                                                    console.error('Failed to parse schedule config in edit slot:', e);
+                                                }
+                                                setSelectedSlotDays(daysList);
+                                                setCurrentSlot(slot);
+                                                setShowSlotModal(true);
+                                            }}
+                                        >
+                                            <Feather name="edit-2" size={16} color="#3b82f6" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={styles.iconBtn} 
+                                            onPress={() => {
+                                                Alert.alert(
+                                                    'Delete Slot',
+                                                    `Are you sure you want to delete the slot "${slot.name}"?`,
+                                                    [
+                                                        { text: 'Cancel', style: 'cancel' },
+                                                        { 
+                                                            text: 'Delete', 
+                                                            style: 'destructive',
+                                                            onPress: () => {
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    bookingSlots: formData.bookingSlots.filter((s: any) => s.id !== slot.id)
+                                                                });
+                                                            }
+                                                        }
+                                                    ]
+                                                );
+                                            }}
+                                        >
+                                            <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                                        </TouchableOpacity>
+                                    </View>
+                                );
+                            })
+                        )}
+
+                        <TouchableOpacity 
+                            style={styles.addAnotherBtn}
+                            onPress={() => {
+                                setCurrentSlot({
+                                    id: Date.now().toString(),
+                                    name: '',
+                                    description: '',
+                                    maxPersons: 1,
+                                    scheduleType: 'WEEKLY',
+                                    scheduleConfig: '',
+                                    timeSlots: [],
+                                    allowRecurringBookings: false,
+                                });
+                                setSelectedSlotDays([]);
+                                setShowSlotModal(true);
+                            }}
+                        >
+                            <Ionicons name="add-circle-outline" size={20} color="#1d4ed8" />
+                            <Text style={styles.addAnotherText}>Add Booking Slot</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        );
+    };
+
+    const renderSlotModal = () => {
+        const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+        const addTimeInterval = () => {
+            const startStr = `${tempIntervalStartHour}:${tempIntervalStartMin} ${tempIntervalStartAmPm}`;
+            const endStr = `${tempIntervalEndHour}:${tempIntervalEndMin} ${tempIntervalEndAmPm}`;
+            const interval = `${startStr} - ${endStr}`;
+            
+            if (currentSlot.timeSlots.includes(interval)) {
+                Alert.alert('Duplicate Interval', 'This time interval is already added.');
+                return;
+            }
+            
+            if (startStr === endStr) {
+                Alert.alert('Invalid Time', 'End time cannot be equal to start time.');
+                return;
+            }
+
+            setCurrentSlot({
+                ...currentSlot,
+                timeSlots: [...currentSlot.timeSlots, interval]
+            });
+        };
+
+        const removeTimeInterval = (interval: string) => {
+            setCurrentSlot({
+                ...currentSlot,
+                timeSlots: currentSlot.timeSlots.filter(t => t !== interval)
+            });
+        };
+
+        const handleSaveSlot = () => {
+            if (!currentSlot.name || !currentSlot.name.trim()) {
+                Alert.alert('Validation Error', 'Slot name is required.');
+                return;
+            }
+            if (selectedSlotDays.length === 0) {
+                Alert.alert('Validation Error', 'Please select at least one operational day for this slot.');
+                return;
+            }
+            if (currentSlot.timeSlots.length === 0) {
+                Alert.alert('Validation Error', 'Please add at least one time interval.');
+                return;
+            }
+
+            const dayMapping: { [key: string]: string } = {
+                'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday', 
+                'Thu': 'Thursday', 'Fri': 'Friday', 'Sat': 'Saturday', 'Sun': 'Sunday'
+            };
+            const config: any = {};
+            selectedSlotDays.forEach(day => {
+                const fullDay = dayMapping[day];
+                if (fullDay) {
+                    config[fullDay] = currentSlot.timeSlots;
+                }
+            });
+
+            const savedSlot = {
+                ...currentSlot,
+                scheduleType: 'WEEKLY',
+                scheduleConfig: JSON.stringify(config)
+            };
+
+            const idx = formData.bookingSlots.findIndex((s: any) => s.id === currentSlot.id);
+            let updatedSlots = [...formData.bookingSlots];
+            if (idx !== -1) {
+                updatedSlots[idx] = savedSlot;
+            } else {
+                updatedSlots.push(savedSlot);
+            }
+
+            setFormData({
+                ...formData,
+                bookingSlots: updatedSlots
+            });
+            setShowSlotModal(false);
+        };
+
+        return (
+            <Modal visible={showSlotModal} transparent animationType="slide">
+                <View style={pickerStyles.modalOverlay}>
+                    <View style={[pickerStyles.modalContent, { height: '88%' }]}>
+                        <View style={pickerStyles.modalHeader}>
+                            <Text style={pickerStyles.modalTitle}>{formData.bookingSlots.some((s: any) => s.id === currentSlot.id) ? 'Edit Slot' : 'Add Slot'}</Text>
+                            <TouchableOpacity onPress={() => setShowSlotModal(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }}>
+                            
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Slot Name *</Text>
+                                <TextInput 
+                                    style={styles.input} 
+                                    placeholder="e.g., Morning Appointment, General Consulting" 
+                                    placeholderTextColor="#94a3b8"
+                                    value={currentSlot.name}
+                                    onChangeText={t => setCurrentSlot({ ...currentSlot, name: t })}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Description (Optional)</Text>
+                                <TextInput 
+                                    style={[styles.input, styles.textArea]} 
+                                    placeholder="Provide details about what this slot includes..." 
+                                    placeholderTextColor="#94a3b8"
+                                    multiline
+                                    value={currentSlot.description}
+                                    onChangeText={t => setCurrentSlot({ ...currentSlot, description: t })}
+                                />
+                            </View>
+
+                            <View style={styles.row}>
+                                <View style={[styles.inputGroup, { flex: 1 }]}>
+                                    <Text style={styles.label}>Max Persons Capacity *</Text>
+                                    <TextInput 
+                                        style={styles.input} 
+                                        placeholder="e.g. 1, 5" 
+                                        placeholderTextColor="#94a3b8"
+                                        keyboardType="numeric"
+                                        value={currentSlot.maxPersons.toString()}
+                                        onChangeText={t => {
+                                            const num = parseInt(t) || 1;
+                                            setCurrentSlot({ ...currentSlot, maxPersons: num });
+                                        }}
+                                    />
+                                </View>
+                                
+                                <View style={{ flex: 1, justifyContent: 'center', paddingLeft: 12 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+                                        <Switch
+                                            value={currentSlot.allowRecurringBookings}
+                                            onValueChange={(val) => setCurrentSlot({ ...currentSlot, allowRecurringBookings: val })}
+                                            trackColor={{ false: '#334155', true: '#1d4ed8' }}
+                                            thumbColor={currentSlot.allowRecurringBookings ? '#fff' : '#94a3b8'}
+                                        />
+                                        <Text style={[styles.label, { marginLeft: 8, marginBottom: 0, fontSize: 13 }]}>Recurring Booking</Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={workingHoursStyles.daysSection}>
+                                <Text style={workingHoursStyles.sectionHeader}>Operational Days *</Text>
+                                <View style={workingHoursStyles.customDaysContainer}>
+                                    {dayOrder.map(day => {
+                                        const isSelected = selectedSlotDays.includes(day);
+                                        return (
+                                            <TouchableOpacity
+                                                key={day}
+                                                style={[workingHoursStyles.dayCircle, isSelected && workingHoursStyles.dayCircleActive]}
+                                                onPress={() => {
+                                                    if (isSelected) {
+                                                        setSelectedSlotDays(selectedSlotDays.filter(d => d !== day));
+                                                    } else {
+                                                        setSelectedSlotDays([...selectedSlotDays, day]);
+                                                    }
+                                                }}
+                                            >
+                                                <Text style={[workingHoursStyles.dayCircleText, isSelected && workingHoursStyles.dayCircleTextActive]}>
+                                                    {day}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+
+                            <View style={[workingHoursStyles.timeSelectSection, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 16 }]}>
+                                <Text style={workingHoursStyles.sectionHeader}>Add Time Slots *</Text>
+                                
+                                <Text style={[workingHoursStyles.timeHeader, { fontSize: 13, color: '#94a3b8' }]}>Start Time</Text>
+                                <View style={workingHoursStyles.row}>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={workingHoursStyles.scrollContainer}>
+                                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(h => (
+                                            <TouchableOpacity 
+                                                key={h} 
+                                                style={[workingHoursStyles.timeButton, tempIntervalStartHour === h && workingHoursStyles.timeButtonActive]}
+                                                onPress={() => setTempIntervalStartHour(h)}
+                                            >
+                                                <Text style={[workingHoursStyles.timeButtonText, tempIntervalStartHour === h && workingHoursStyles.timeButtonTextActive]}>{h}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                                <View style={[workingHoursStyles.row, { marginTop: 8, marginBottom: 12 }]}>
+                                    {['00', '15', '30', '45'].map(m => (
+                                        <TouchableOpacity 
+                                            key={m} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempIntervalStartMin === m && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempIntervalStartMin(m)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempIntervalStartMin === m && workingHoursStyles.timeButtonTextActive]}>{m}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                    <View style={{ width: 16 }} />
+                                    {['AM', 'PM'].map(p => (
+                                        <TouchableOpacity 
+                                            key={p} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempIntervalStartAmPm === p && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempIntervalStartAmPm(p)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempIntervalStartAmPm === p && workingHoursStyles.timeButtonTextActive]}>{p}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <Text style={[workingHoursStyles.timeHeader, { fontSize: 13, color: '#94a3b8', marginTop: 12 }]}>End Time</Text>
+                                <View style={workingHoursStyles.row}>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={workingHoursStyles.scrollContainer}>
+                                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(h => (
+                                            <TouchableOpacity 
+                                                key={h} 
+                                                style={[workingHoursStyles.timeButton, tempIntervalEndHour === h && workingHoursStyles.timeButtonActive]}
+                                                onPress={() => setTempIntervalEndHour(h)}
+                                            >
+                                                <Text style={[workingHoursStyles.timeButtonText, tempIntervalEndHour === h && workingHoursStyles.timeButtonTextActive]}>{h}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                                <View style={[workingHoursStyles.row, { marginTop: 8, marginBottom: 12 }]}>
+                                    {['00', '15', '30', '45'].map(m => (
+                                        <TouchableOpacity 
+                                            key={m} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempIntervalEndMin === m && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempIntervalEndMin(m)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempIntervalEndMin === m && workingHoursStyles.timeButtonTextActive]}>{m}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                    <View style={{ width: 16 }} />
+                                    {['AM', 'PM'].map(p => (
+                                        <TouchableOpacity 
+                                            key={p} 
+                                            style={[workingHoursStyles.timeButton, { flex: 1 }, tempIntervalEndAmPm === p && workingHoursStyles.timeButtonActive]}
+                                            onPress={() => setTempIntervalEndAmPm(p)}
+                                        >
+                                            <Text style={[workingHoursStyles.timeButtonText, tempIntervalEndAmPm === p && workingHoursStyles.timeButtonTextActive]}>{p}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <TouchableOpacity 
+                                    style={[styles.addAnotherBtn, { marginVertical: 12, borderStyle: 'solid', backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}
+                                    onPress={addTimeInterval}
+                                >
+                                    <Ionicons name="time" size={18} color="#3b82f6" />
+                                    <Text style={[styles.addAnotherText, { color: '#3b82f6' }]}>Add Time Slot Interval</Text>
+                                </TouchableOpacity>
+
+                                <Text style={[styles.label, { fontSize: 13, marginTop: 12 }]}>Configured Intervals ({currentSlot.timeSlots.length})</Text>
+                                <View style={styles.chipContainer}>
+                                    {currentSlot.timeSlots.length === 0 ? (
+                                        <Text style={{ fontStyle: 'italic', color: '#64748b', fontSize: 12 }}>No intervals added yet.</Text>
+                                    ) : (
+                                        currentSlot.timeSlots.map((ts, idx) => (
+                                            <View key={idx} style={[styles.chip, { backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]}>
+                                                <Text style={[styles.chipText, { color: '#fff' }]}>{ts}</Text>
+                                                <TouchableOpacity onPress={() => removeTimeInterval(ts)}>
+                                                    <Ionicons name="close-circle" size={16} color="#ef4444" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))
+                                    )}
+                                </View>
+                            </View>
+
+                        </ScrollView>
+
+                        <TouchableOpacity style={[styles.continueBtn, { marginTop: 12 }]} onPress={handleSaveSlot}>
+                            <Text style={styles.continueBtnText}>Save Booking Slot</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        );
+    };
+
+    const renderStep5 = () => {
         const displayCategory = formData.category === 'Others'
             ? (customCategory ? `Others (${customCategory})` : 'Others')
             : (formData.category || 'N/A');
@@ -1360,6 +1820,60 @@ export default function CreateBusinessProfileScreen() {
                     )}
                 </View>
 
+                {/* Booking Settings Card */}
+                <View style={styles.summaryCard}>
+                    <View style={styles.summaryHeader}>
+                        <View style={styles.summaryIconBox}><Ionicons name="calendar" size={18} color="#1d4ed8" /></View>
+                        <Text style={styles.summaryTitle}>Booking Settings</Text>
+                        <TouchableOpacity onPress={() => setStep(4)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
+                    </View>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.sumLabel}>Slot Booking</Text>
+                        <Text style={styles.sumValue}>{formData.enableBooking ? 'Enabled' : 'Disabled'}</Text>
+                    </View>
+                    {formData.enableBooking && formData.bookingSlots.length > 0 && (
+                        <View style={{ marginTop: 8 }}>
+                            <Text style={[styles.sumLabel, { marginBottom: 8 }]}>Active Slots ({formData.bookingSlots.length})</Text>
+                            {formData.bookingSlots.map((slot: any, idx: number) => {
+                                let daysText = '';
+                                try {
+                                    const config = typeof slot.scheduleConfig === 'string' 
+                                        ? JSON.parse(slot.scheduleConfig) 
+                                        : slot.scheduleConfig;
+                                    if (config) {
+                                        const reverseMapping: { [key: string]: string } = { 
+                                            'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 
+                                            'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun' 
+                                        };
+                                        const days: string[] = [];
+                                        Object.keys(config).forEach(k => {
+                                            if (config[k] && config[k].length > 0 && reverseMapping[k]) {
+                                                days.push(reverseMapping[k]);
+                                            }
+                                        });
+                                        if (days.length > 0) {
+                                            const weekOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                                            days.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+                                            daysText = days.join(', ');
+                                        }
+                                    }
+                                } catch (e) {}
+
+                                return (
+                                    <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 10, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{slot.name}</Text>
+                                            <Text style={{ fontSize: 11, color: '#94a3b8' }}>Cap: {slot.maxPersons}</Text>
+                                        </View>
+                                        <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Days: {daysText || 'None'}</Text>
+                                        <Text style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>Intervals: {slot.timeSlots?.join(', ')}</Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )}
+                </View>
+
                 <View style={styles.publishBox}>
                     <View style={styles.publishIconBox}><Ionicons name="send" size={24} color="#1d4ed8" /></View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
@@ -1386,7 +1900,16 @@ export default function CreateBusinessProfileScreen() {
                 expertise: formData.experience,
                 description: formData.about,
                 images: formData.logo ? [formData.logo] : [], // Use logo as primary image
-                services: formData.services // Ensure services list is sent
+                services: formData.services, // Ensure services list is sent
+                slots: formData.enableBooking ? formData.bookingSlots.map((s: any) => ({
+                    name: s.name,
+                    description: s.description || null,
+                    maxPersons: s.maxPersons || 1,
+                    timeSlots: s.timeSlots || [],
+                    scheduleType: s.scheduleType || 'WEEKLY',
+                    scheduleConfig: typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig),
+                    allowRecurringBookings: s.allowRecurringBookings || false
+                })) : []
             };
 
             if (id) {
@@ -1706,6 +2229,7 @@ export default function CreateBusinessProfileScreen() {
                 {step === 2 && renderStep2()}
                 {step === 3 && renderStep3()}
                 {step === 4 && renderStep4()}
+                {step === 5 && renderStep5()}
             </ScrollView>
 
             <View style={styles.footer}>
@@ -1717,17 +2241,17 @@ export default function CreateBusinessProfileScreen() {
                     )}
                     <TouchableOpacity 
                         style={[styles.continueBtn, step === 1 && { flex: 1 }]} 
-                        onPress={step === 4 ? handlePublish : nextStep}
+                        onPress={step === 5 ? handlePublish : nextStep}
                         disabled={loading}
                     >
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
                             <Text style={styles.continueBtnText}>
-                                {step === 4 ? 'Publish My Business Profile' : 'Save & Continue'}
+                                {step === 5 ? 'Publish My Business Profile' : 'Save & Continue'}
                             </Text>
                         )}
-                        {step === 4 && !loading && <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 8 }} />}
+                        {step === 5 && !loading && <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 8 }} />}
                     </TouchableOpacity>
                 </View>
                 <View style={styles.safetyInfo}>
@@ -1825,6 +2349,9 @@ export default function CreateBusinessProfileScreen() {
                     </View>
                 </View>
             </Modal>
+            
+            {/* Slot Modal */}
+            {renderSlotModal()}
         </SafeAreaView>
     );
 };

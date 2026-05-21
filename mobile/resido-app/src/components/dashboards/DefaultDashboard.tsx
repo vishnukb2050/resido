@@ -147,7 +147,6 @@ export default function DefaultDashboard() {
     const [touchStartX, setTouchStartX] = React.useState(0);
     const { width: windowWidth } = Dimensions.get('window');
     const workspaceScrollRef = React.useRef<ScrollView>(null);
-    const pageScrollRef = React.useRef<ScrollView>(null);
     const [switchingRole, setSwitchingRole] = React.useState(false);
 
     const [items, setItems] = React.useState<any[]>([]);
@@ -247,18 +246,16 @@ export default function DefaultDashboard() {
         }
     }, [user]);
 
-    // Align ScrollViews if default activeWorkspace is already selected on mount
+    // Align workspace bubbles (top horizontal ScrollView) when activeWorkspace changes or on mount
     React.useEffect(() => {
         if (activeWorkspace && workspaces.length > 0) {
             const idx = workspaces.findIndex(w => w.tenantId === activeWorkspace.tenantId);
             if (idx !== -1) {
                 const targetIndex = idx + 1;
-                const timer = setTimeout(() => {
-                    pageScrollRef.current?.scrollTo({ x: targetIndex * windowWidth, animated: false });
-                    workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: false });
-                }, 150);
-                return () => clearTimeout(timer);
+                workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: true });
             }
+        } else {
+            workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
         }
     }, [activeWorkspace, workspaces]);
 
@@ -267,14 +264,12 @@ export default function DefaultDashboard() {
         try {
             if (ws === null) {
                 setActiveWorkspace(null as any, '');
-                pageScrollRef.current?.scrollTo({ x: 0, animated: true });
                 workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
             } else {
                 // When selecting a workspace, default to the first role
                 const defaultRole = ws.roles?.[0] || ws.role;
 
-                // Optimistically transition UI instantly
-                pageScrollRef.current?.scrollTo({ x: targetIndex * windowWidth, animated: true });
+                // Scroll the workspace bubble to active position
                 workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: true });
 
                 const currentToken = useAuthStore.getState().token || '';
@@ -437,18 +432,9 @@ export default function DefaultDashboard() {
                         </View>
 
                         {/* Dashboard Body */}
-                        <ScrollView 
-                            ref={pageScrollRef}
-                            horizontal 
-                            pagingEnabled 
-                            scrollEnabled={false}
-                            showsHorizontalScrollIndicator={false}
-                            style={{ width: windowWidth }}
-                        >
-                            {/* Page 1: My Space View (Flares + Quick Access) */}
-                            <View style={{ width: windowWidth, paddingHorizontal: 20 }}>
-
-
+                        {!activeWorkspace ? (
+                            /* My Space View (Flares + Quick Access) */
+                            <View style={{ paddingHorizontal: 20 }}>
                                 <View style={styles.psQuickAccessBar}>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll} nestedScrollEnabled={true}>
                                         <QuickAccessItem icon="add-circle-outline" label="Create" color={darkLavender} onPress={() => router.push('/create-community')} />
@@ -578,33 +564,31 @@ export default function DefaultDashboard() {
                                     )}
                                 </View>
                             </View>
+                        ) : (
+                            /* Community View */
+                            <View style={{ paddingHorizontal: 20 }}>
+                                <View style={styles.gridContainer}>
+                                    <DashboardIcon icon="newspaper" label="Feed" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/thread')} />
+                                    <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/events')} />
+                                    <DashboardIcon icon="megaphone" label="Requests" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/complaints')} />
+                                </View>
 
-                            {/* Pages 2+: Communities */}
-                            {workspaces.map((ws: any) => (
-                                <View style={{ width: windowWidth, paddingHorizontal: 20 }} key={ws.tenantId}>
-                                    <View style={styles.gridContainer}>
-                                        <DashboardIcon icon="newspaper" label="Feed" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/thread')} />
-                                        <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/events')} />
-                                        <DashboardIcon icon="megaphone" label="Requests" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/complaints')} />
-                                    </View>
-
-                                    {/* Featured Sections */}
-                                    <View style={styles.sectionContainer}>
-                                        <Text style={[styles.sectionTitle, { color: '#fff' }]}>Community Services</Text>
-                                        <View style={[styles.gridContainer, { justifyContent: 'flex-start', gap: 12 }]}>
-                                            <DashboardIcon icon="people" label="Directory" color="#fff" bg={darkLavender} onPress={() => router.push('/members')} />
-                                            <DashboardIcon icon="people" label="Families" color="#fff" bg={darkLavender} onPress={() => router.push('/view-families')} />
-                                            <DashboardIcon icon="id-card" label="Staff" color="#fff" bg={darkLavender} onPress={() => router.push('/staff')} />
-                                            <DashboardIcon icon="chatbubbles" label="Complaints" color="#fff" bg={darkLavender} onPress={() => router.push('/complaints')} />
-                                            <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg={darkLavender} onPress={() => router.push('/gatepass')} />
-                                            <DashboardIcon icon="document-text" label="Rules" color="#fff" bg={darkLavender} onPress={() => router.push('/rules')} />
-                                            <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg={darkLavender} onPress={() => router.push('/notices')} />
-                                            <DashboardIcon icon="tennisball" label="Amenities" color="#fff" bg={darkLavender} onPress={() => router.push('/amenities')} />
-                                        </View>
+                                {/* Featured Sections */}
+                                <View style={styles.sectionContainer}>
+                                    <Text style={[styles.sectionTitle, { color: '#ffffff' }]}>Community Services</Text>
+                                    <View style={[styles.gridContainer, { justifyContent: 'flex-start', gap: 12 }]}>
+                                        <DashboardIcon icon="people" label="Directory" color="#fff" bg={darkLavender} onPress={() => router.push('/members')} />
+                                        <DashboardIcon icon="people" label="Families" color="#fff" bg={darkLavender} onPress={() => router.push('/view-families')} />
+                                        <DashboardIcon icon="id-card" label="Staff" color="#fff" bg={darkLavender} onPress={() => router.push('/staff')} />
+                                        <DashboardIcon icon="chatbubbles" label="Complaints" color="#fff" bg={darkLavender} onPress={() => router.push('/complaints')} />
+                                        <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg={darkLavender} onPress={() => router.push('/gatepass')} />
+                                        <DashboardIcon icon="document-text" label="Rules" color="#fff" bg={darkLavender} onPress={() => router.push('/rules')} />
+                                        <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg={darkLavender} onPress={() => router.push('/notices')} />
+                                        <DashboardIcon icon="tennisball" label="Amenities" color="#fff" bg={darkLavender} onPress={() => router.push('/amenities')} />
                                     </View>
                                 </View>
-                            ))}
-                        </ScrollView>
+                            </View>
+                        )}
                     </View>
                 </View>
             </ScrollView>

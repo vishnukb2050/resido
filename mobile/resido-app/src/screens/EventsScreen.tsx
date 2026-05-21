@@ -71,7 +71,7 @@ export default function EventsScreen() {
     const { activeWorkspace, user } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
 
-    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
+    const isAdmin = activeWorkspace?.role === 'APARTMENT_ADMIN';
 
     const today = new Date();
     const [selectedDate, setSelectedDate] = useState(toDateStr(today));
