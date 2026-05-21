@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -142,18 +142,27 @@ export class BusinessService {
     }
 
     async getProfilesByUserId(userId: string) {
-        return this.prisma.businessProfile.findMany({
+        const profiles = await this.prisma.businessProfile.findMany({
             where: { userId },
-            include: { services: true },
+            include: { services: true, slots: true },
             orderBy: { createdAt: 'desc' }
         });
+        return profiles.map(profile => ({
+            ...profile,
+            qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=resido://business/book?profileId=${profile.id}`
+        }));
     }
 
     async getProfile(id: string) {
-        return this.prisma.businessProfile.findUnique({
+        const profile = await this.prisma.businessProfile.findUnique({
             where: { id },
-            include: { services: true }
+            include: { services: true, slots: true }
         });
+        if (!profile) return null;
+        return {
+            ...profile,
+            qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=resido://business/book?profileId=${profile.id}`
+        };
     }
 
     async updateProfile(id: string, data: any) {
@@ -225,4 +234,282 @@ export class BusinessService {
         const categories = Array.from(new Set(profiles.map(p => p.category as string).filter(Boolean)));
         return categories.sort((a, b) => a.localeCompare(b));
     }
+
+    // ─── Business Slot & Booking Logic (Mirroring Amenities) ──────────────────
+
+    async createSlot(userId: string, profileId: string, data: any) {
+        const profile = await this.prisma.businessProfile.findFirst({
+            where: { id: profileId, userId }
+        });
+        if (!profile) throw new Error('Unauthorized or Business Profile not found');
+
+        return this.prisma.businessSlot.create({
+            data: {
+                businessProfileId: profileId,
+                name: data.name,
+                description: data.description || null,
+                maxPersons: data.maxPersons || 1,
+                timeSlots: data.timeSlots || [],
+                availableDates: data.availableDates || [],
+                scheduleType: data.scheduleType || 'CUSTOM',
+                scheduleConfig: data.scheduleConfig ? JSON.stringify(data.scheduleConfig) : null,
+                allowRecurringBookings: data.allowRecurringBookings || false,
+            }
+        });
+    }
+
+    async updateSlot(userId: string, profileId: string, slotId: string, data: any) {
+        const profile = await this.prisma.businessProfile.findFirst({
+            where: { id: profileId, userId }
+        });
+        if (!profile) throw new Error('Unauthorized or Business Profile not found');
+
+        const updateData: any = {};
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.description !== undefined) updateData.description = data.description;
+        if (data.maxPersons !== undefined) updateData.maxPersons = data.maxPersons;
+        if (data.timeSlots !== undefined) updateData.timeSlots = data.timeSlots;
+        if (data.availableDates !== undefined) updateData.availableDates = data.availableDates;
+        if (data.isActive !== undefined) updateData.isActive = data.isActive;
+        if (data.scheduleType !== undefined) updateData.scheduleType = data.scheduleType;
+        if (data.scheduleConfig !== undefined) updateData.scheduleConfig = data.scheduleConfig ? JSON.stringify(data.scheduleConfig) : null;
+        if (data.allowRecurringBookings !== undefined) updateData.allowRecurringBookings = data.allowRecurringBookings;
+
+        return this.prisma.businessSlot.update({
+            where: { id: slotId },
+            data: updateData
+        });
+    }
+
+    async deleteSlot(userId: string, profileId: string, slotId: string) {
+        const profile = await this.prisma.businessProfile.findFirst({
+            where: { id: profileId, userId }
+        });
+        if (!profile) throw new Error('Unauthorized or Business Profile not found');
+
+        return this.prisma.businessSlot.delete({
+            where: { id: slotId }
+        });
+    }
+
+    async getSlots(profileId: string, date?: string) {
+        const slots = await this.prisma.businessSlot.findMany({
+            where: { businessProfileId: profileId, isActive: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        return Promise.all(slots.map(s => this.getSlotById(profileId, s.id, date)));
+    }
+
+    async getSlotById(profileId: string, id: string, date?: string) {
+        const slot = await this.prisma.businessSlot.findFirst({
+            where: { id, businessProfileId: profileId }
+        });
+        if (!slot) throw new NotFoundException('Business Slot not found');
+
+        let resolvedSlots = slot.timeSlots;
+        let resolvedDates = slot.availableDates;
+
+        if (slot.scheduleType && slot.scheduleConfig) {
+            try {
+                const config = JSON.parse(slot.scheduleConfig);
+                const today = new Date();
+                const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+                if (slot.scheduleType === 'WEEKLY') {
+                    const dates: string[] = [];
+                    for (let i = 0; i < 90; i++) {
+                        const d = new Date(today);
+                        d.setDate(today.getDate() + i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        const dayName = weekdays[d.getDay()];
+                        if (config[dayName] && config[dayName].length > 0) {
+                            dates.push(dateStr);
+                        }
+                    }
+                    resolvedDates = dates;
+
+                    if (date) {
+                        const d = new Date(date);
+                        const dayName = weekdays[d.getDay()];
+                        resolvedSlots = config[dayName] || [];
+                    } else {
+                        const allSlots = new Set<string>();
+                        Object.values(config).forEach((slots: any) => {
+                            if (Array.isArray(slots)) slots.forEach(s => allSlots.add(s));
+                        });
+                        resolvedSlots = Array.from(allSlots);
+                    }
+                } 
+                else if (slot.scheduleType === 'MONTHLY') {
+                    const dates: string[] = [];
+                    const allowedDays = config.daysOfMonth || [];
+                    for (let i = 0; i < 90; i++) {
+                        const d = new Date(today);
+                        d.setDate(today.getDate() + i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        if (allowedDays.includes(d.getDate())) {
+                            dates.push(dateStr);
+                        }
+                    }
+                    resolvedDates = dates;
+
+                    if (date) {
+                        const d = new Date(date);
+                        if (allowedDays.includes(d.getDate())) {
+                            resolvedSlots = config.slots || [];
+                        } else {
+                            resolvedSlots = [];
+                        }
+                    } else {
+                        resolvedSlots = config.slots || [];
+                    }
+                } 
+                else if (slot.scheduleType === 'CUSTOM') {
+                    resolvedDates = Object.keys(config.dates || {});
+                    if (date) {
+                        resolvedSlots = config.dates?.[date] || [];
+                    } else {
+                        const allSlots = new Set<string>();
+                        Object.values(config.dates || {}).forEach((slots: any) => {
+                            if (Array.isArray(slots)) slots.forEach(s => allSlots.add(s));
+                        });
+                        resolvedSlots = Array.from(allSlots);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to parse scheduleConfig:', err);
+            }
+        }
+
+        return {
+            ...slot,
+            timeSlots: resolvedSlots,
+            availableDates: resolvedDates,
+        };
+    }
+
+    async createBooking(userId: string, profileId: string, slotId: string, data: any) {
+        const slot = await this.getSlotById(profileId, slotId, data.bookingDate);
+        const requestedPersons = data.persons || 1;
+        const isRecurring = data.isRecurring || false;
+        const recurringPeriod = data.recurringPeriod || null;
+
+        const performSingleBooking = async (bookingDate: string, timeSlot: string, parentBookingId?: string) => {
+            const existingBookings = await this.prisma.businessBooking.findMany({
+                where: {
+                    businessProfileId: profileId,
+                    slotId,
+                    bookingDate,
+                    timeSlot,
+                    status: 'CONFIRMED'
+                }
+            });
+
+            const totalBookedPersons = existingBookings.reduce((sum, b) => sum + b.persons, 0);
+            if (totalBookedPersons + requestedPersons > slot.maxPersons) {
+                throw new Error(`Time slot (${timeSlot}) on ${bookingDate} is fully booked. Only ${slot.maxPersons - totalBookedPersons} slot(s) left.`);
+            }
+
+            return this.prisma.businessBooking.create({
+                data: {
+                    businessProfileId: profileId,
+                    slotId,
+                    userId,
+                    userName: data.userName || null,
+                    userPhone: data.userPhone || null,
+                    bookingDate,
+                    timeSlot,
+                    persons: requestedPersons,
+                    status: 'CONFIRMED',
+                    notes: data.notes || null,
+                    isRecurring,
+                    recurringPeriod,
+                    parentBookingId,
+                },
+            });
+        };
+
+        const primaryBooking = await performSingleBooking(data.bookingDate, data.timeSlot);
+
+        if (isRecurring && recurringPeriod) {
+            let currentDate = new Date(data.bookingDate);
+            for (let i = 1; i <= 3; i++) {
+                if (recurringPeriod === 'WEEKLY') {
+                    currentDate.setDate(currentDate.getDate() + 7);
+                } else if (recurringPeriod === 'MONTHLY') {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+                const nextDateStr = currentDate.toISOString().split('T')[0];
+                try {
+                    await performSingleBooking(nextDateStr, data.timeSlot, primaryBooking.id);
+                } catch (e: any) {
+                    console.warn(`Could not schedule recurring occurrence ${i} on ${nextDateStr}:`, e.message);
+                }
+            }
+        }
+
+        return primaryBooking;
+    }
+
+    async getSlotBookings(profileId: string, slotId: string, date: string) {
+        return this.prisma.businessBooking.findMany({
+            where: {
+                businessProfileId: profileId,
+                slotId,
+                bookingDate: date,
+                status: 'CONFIRMED'
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async getMyBookings(userId: string) {
+        return this.prisma.businessBooking.findMany({
+            where: { userId },
+            include: {
+                slot: {
+                    include: {
+                        businessProfile: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async getProfileBookings(userId: string, profileId: string) {
+        // Verify owner
+        const profile = await this.prisma.businessProfile.findFirst({
+            where: { id: profileId, userId }
+        });
+        if (!profile) throw new Error('Unauthorized or Business Profile not found');
+
+        return this.prisma.businessBooking.findMany({
+            where: { businessProfileId: profileId },
+            include: { slot: true },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async cancelBooking(userId: string, bookingId: string) {
+        const booking = await this.prisma.businessBooking.findUnique({
+            where: { id: bookingId }
+        });
+        if (!booking) throw new NotFoundException('Booking not found');
+
+        // Check if user is either the one who booked, or the owner of the business profile
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { id: booking.businessProfileId }
+        });
+
+        if (booking.userId !== userId && profile?.userId !== userId) {
+            throw new Error('Unauthorized to cancel this booking');
+        }
+
+        return this.prisma.businessBooking.update({
+            where: { id: bookingId },
+            data: { status: 'CANCELLED' }
+        });
+    }
 }
+

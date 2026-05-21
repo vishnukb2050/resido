@@ -720,6 +720,7 @@ model BusinessProfile {
   updatedAt       DateTime @updatedAt
 
   services        ServiceItem[]
+  slots           BusinessSlot[]
 
   @@index([userId])
   @@index([tenantId])
@@ -739,6 +740,56 @@ model ServiceItem {
   isEmergency       Boolean         @default(false)
   
   @@map("business_services")
+}
+
+// ─── Business Slot Booking ────────────────────────────────────────────────────
+model BusinessSlot {
+  id                     String   @id @default(cuid())
+  businessProfileId      String
+  businessProfile        BusinessProfile @relation(fields: [businessProfileId], references: [id])
+  name                   String
+  description            String?
+  maxPersons             Int      @default(1)
+  timeSlots              String[]
+  availableDates         String[]
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  scheduleType           String   @default("CUSTOM") // "WEEKLY", "MONTHLY", "CUSTOM"
+  scheduleConfig         String?
+  allowRecurringBookings Boolean  @default(false)
+
+  bookings               BusinessBooking[]
+
+  @@index([businessProfileId])
+  @@map("business_slots")
+}
+
+model BusinessBooking {
+  id                String   @id @default(cuid())
+  businessProfileId String
+  slotId            String
+  userId            String
+  userName          String?
+  userPhone         String?
+  bookingDate       String
+  timeSlot          String
+  persons           Int      @default(1)
+  status            String   @default("CONFIRMED")
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  isRecurring       Boolean  @default(false)
+  recurringPeriod   String?
+  parentBookingId   String?
+
+  slot              BusinessSlot @relation(fields: [slotId], references: [id])
+
+  @@index([businessProfileId])
+  @@index([slotId])
+  @@index([userId])
+  @@map("business_bookings")
 }
 
 // ─── Visitors (Entry/Exit) ────────────────────────────────────

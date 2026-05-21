@@ -49,6 +49,7 @@ model BusinessProfile {
   updatedAt       DateTime @updatedAt
 
   services        ServiceItem[]
+  slots           BusinessSlot[]
 
   @@index([userId])
   @@index([tenantId])
@@ -68,4 +69,56 @@ model ServiceItem {
   isEmergency       Boolean         @default(false)
   
   @@map("business_services")
+}
+
+// ─── Business Slot Booking ────────────────────────────────────────────────────
+model BusinessSlot {
+  id                     String   @id @default(cuid())
+  businessProfileId      String
+  businessProfile        BusinessProfile @relation(fields: [businessProfileId], references: [id])
+  name                   String   // e.g. "Consultation", "Home Visit"
+  description            String?
+  maxPersons             Int      @default(1)
+  timeSlots              String[] // e.g. ["09:00-10:00", "10:00-11:00"]
+  availableDates         String[] // e.g. ["2024-10-01"]
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Dynamic scheduling (same as Amenity)
+  scheduleType           String   @default("CUSTOM") // "WEEKLY", "MONTHLY", "CUSTOM"
+  scheduleConfig         String?  // JSON serialized config
+  allowRecurringBookings Boolean  @default(false)
+
+  bookings               BusinessBooking[]
+
+  @@index([businessProfileId])
+  @@map("business_slots")
+}
+
+model BusinessBooking {
+  id                String   @id @default(cuid())
+  businessProfileId String
+  slotId            String
+  userId            String   // Global user ID (public, not just residents)
+  userName          String?
+  userPhone         String?
+  bookingDate       String   // YYYY-MM-DD
+  timeSlot          String
+  persons           Int      @default(1)
+  status            String   @default("CONFIRMED") // CONFIRMED, CANCELLED
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  // Recurrence (same as AmenityBooking)
+  isRecurring       Boolean  @default(false)
+  recurringPeriod   String?  // "WEEKLY", "MONTHLY"
+  parentBookingId   String?
+
+  slot              BusinessSlot @relation(fields: [slotId], references: [id])
+
+  @@index([businessProfileId])
+  @@index([slotId])
+  @@index([userId])
+  @@map("business_bookings")
 }

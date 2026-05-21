@@ -162,6 +162,20 @@ export const businessApi = {
     getProfile: (id: string) => api.get(`/business/profiles/${id}`),
     updateProfile: (id: string, data: any) => api.patch(`/business/profiles/${id}`, data),
     getCategories: () => api.get('/business/categories'),
+
+    // Slots
+    createSlot: (profileId: string, data: any) => api.post(`/business/profiles/${profileId}/slots`, data),
+    updateSlot: (profileId: string, slotId: string, data: any) => api.patch(`/business/profiles/${profileId}/slots/${slotId}`, data),
+    deleteSlot: (profileId: string, slotId: string) => api.delete(`/business/profiles/${profileId}/slots/${slotId}`),
+    getSlots: (profileId: string, date?: string) => api.get(`/business/profiles/${profileId}/slots`, { params: { date } }),
+    getSlot: (profileId: string, slotId: string, date?: string) => api.get(`/business/profiles/${profileId}/slots/${slotId}`, { params: { date } }),
+    
+    // Bookings
+    bookSlot: (profileId: string, slotId: string, data: any) => api.post(`/business/profiles/${profileId}/slots/${slotId}/book`, data),
+    getSlotBookings: (profileId: string, slotId: string, date: string) => api.get(`/business/profiles/${profileId}/slots/${slotId}/bookings`, { params: { date } }),
+    getProfileBookings: (profileId: string) => api.get(`/business/profiles/${profileId}/bookings`),
+    getMyBookings: () => api.get('/business/bookings/my'),
+    cancelBooking: (bookingId: string) => api.patch(`/business/bookings/${bookingId}/cancel`),
 };
 
 // Accounting APIs
