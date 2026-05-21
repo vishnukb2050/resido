@@ -101,7 +101,7 @@ export const communityApi = {
     getEvents: (memberId: string) => api.get(`/community/events?memberId=${memberId}`),
     createEvent: (data: any) => api.post('/community/events', data),
     deleteEvent: (id: string) => api.delete(`/community/events/${id}`),
-    getRules: () => api.get('/community/rules'),
+    getRules: (memberId?: string) => api.get(`/community/rules${memberId ? `?memberId=${memberId}` : ''}`),
     createRule: (data: any) => api.post('/community/rules', data),
     getMembers: () => api.get('/community/members'),
     getGallery: () => api.get('/community/gallery'),

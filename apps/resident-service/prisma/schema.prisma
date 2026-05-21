@@ -150,6 +150,7 @@ model Notice {
   title           String
   body            String
   postedBy        String   // member id
+  photoUrl        String?
   sendWhatsApp    Boolean  @default(false)
   whatsAppSentAt  DateTime?
   createdAt       DateTime @default(now())
@@ -304,6 +305,7 @@ model Event {
   endDate       DateTime
   visibility    EventVisibility @default(COMMUNITY)
   sharedWithIds String[]     // IDs of members/groups if not COMMUNITY/PRIVATE
+  audience      String[]       @default([])
   hasAlert      Boolean        @default(false)
   alertTime     DateTime?
   createdBy     String
@@ -897,6 +899,7 @@ model Rule {
   title       String
   description String   @db.Text
   category    String?  // e.g. "Parking", "Pets", "Common Area"
+  audience    String[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

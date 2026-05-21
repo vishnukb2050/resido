@@ -5,6 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { communityApi } from '../services/api';
 
+const AUDIENCE_OPTIONS = [
+    { key: 'MEMBERS',   label: 'Members',   icon: 'people-circle-outline',   color: '#3b82f6' },
+    { key: 'RESIDENTS', label: 'Residents',  icon: 'home-outline',            color: '#10b981' },
+    { key: 'STAFF',     label: 'Staff',      icon: 'shield-checkmark-outline', color: '#f59e0b' },
+];
+
 export default function RulesScreen() {
     const router = useRouter();
     const { activeWorkspace } = useAuthStore();
@@ -15,6 +21,9 @@ export default function RulesScreen() {
     const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
 
     const [newRule, setNewRule] = useState({ title: '', description: '', category: 'General' });
+    const [audience, setAudience] = useState<Record<string, boolean>>({
+        MEMBERS: true, RESIDENTS: true, STAFF: false,
+    });
 
     useEffect(() => {
         fetchRules();
@@ -22,8 +31,9 @@ export default function RulesScreen() {
 
     const fetchRules = async () => {
         try {
-            const { data } = await communityApi.getRules();
-            setRules(data);
+            const memberId = activeWorkspace?.memberId || '';
+            const { data } = await communityApi.getRules(memberId);
+            setRules(data || []);
         } catch (e) {
             console.error('Fetch rules failed', e);
         } finally {
@@ -32,13 +42,24 @@ export default function RulesScreen() {
     };
 
     const handleCreate = async () => {
-        if (!newRule.title || !newRule.description) return;
+        if (!newRule.title || !newRule.description) {
+            Alert.alert('Required', 'Please fill in all rule details');
+            return;
+        }
+        const selectedAudiences = Object.entries(audience).filter(([, v]) => v).map(([k]) => k);
+        if (selectedAudiences.length === 0) {
+            Alert.alert('Required', 'Please select at least one audience');
+            return;
+        }
+
         try {
             await communityApi.createRule({
-                ...newRule
+                ...newRule,
+                audience: selectedAudiences
             });
             setShowAdd(false);
             setNewRule({ title: '', description: '', category: 'General' });
+            setAudience({ MEMBERS: true, RESIDENTS: true, STAFF: false });
             fetchRules();
             Alert.alert('Success', 'Community rule added!');
         } catch (e) {
@@ -90,6 +111,16 @@ export default function RulesScreen() {
                                 </View>
                                 <Text style={styles.ruleTitle}>{item.title}</Text>
                                 <Text style={styles.ruleDesc}>{item.description}</Text>
+
+                                {item.audience && item.audience.length > 0 && (
+                                    <View style={styles.audienceTags}>
+                                        {item.audience.map((a: string) => (
+                                            <View key={a} style={styles.audienceTag}>
+                                                <Text style={styles.audienceTagText}>{a}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
                             </View>
                         );
                     }}
@@ -103,32 +134,54 @@ export default function RulesScreen() {
                 />
             )}
 
-            <Modal visible={showAdd} transparent animationType="slide">
+            <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>New Community Rule</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Rule Title"
-                            placeholderTextColor="#64748b"
-                            value={newRule.title}
-                            onChangeText={(t) => setNewRule({...newRule, title: t})}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Category (e.g. Pets, Parking)"
-                            placeholderTextColor="#64748b"
-                            value={newRule.category}
-                            onChangeText={(t) => setNewRule({...newRule, category: t})}
-                        />
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            placeholder="Rule Description"
-                            placeholderTextColor="#64748b"
-                            multiline
-                            value={newRule.description}
-                            onChangeText={(t) => setNewRule({...newRule, description: t})}
-                        />
+                        
+                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 450 }} keyboardShouldPersistTaps="handled">
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Rule Title"
+                                placeholderTextColor="#64748b"
+                                value={newRule.title}
+                                onChangeText={(t) => setNewRule({...newRule, title: t})}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Category (e.g. Pets, Parking)"
+                                placeholderTextColor="#64748b"
+                                value={newRule.category}
+                                onChangeText={(t) => setNewRule({...newRule, category: t})}
+                            />
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Rule Description"
+                                placeholderTextColor="#64748b"
+                                multiline
+                                value={newRule.description}
+                                onChangeText={(t) => setNewRule({...newRule, description: t})}
+                            />
+
+                            <Text style={styles.fieldLabel}>Share With</Text>
+                            <Text style={styles.fieldHint}>Select who can view this rule</Text>
+                            {AUDIENCE_OPTIONS.map(opt => (
+                                <TouchableOpacity
+                                    key={opt.key}
+                                    style={[styles.audienceRow, audience[opt.key] && { borderColor: opt.color, backgroundColor: `${opt.color}15` }]}
+                                    onPress={() => setAudience(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))}
+                                >
+                                    <View style={[styles.audienceIconBox, { backgroundColor: `${opt.color}20` }]}>
+                                        <Ionicons name={opt.icon as any} size={20} color={opt.color} />
+                                    </View>
+                                    <Text style={[styles.audienceLabel, audience[opt.key] && { color: '#fff' }]}>{opt.label}</Text>
+                                    <View style={[styles.checkBox, audience[opt.key] && { backgroundColor: opt.color, borderColor: opt.color }]}>
+                                        {audience[opt.key] && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
                         <View style={styles.modalActions}>
                             <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAdd(false)}>
                                 <Text style={styles.cancelText}>Cancel</Text>
@@ -165,9 +218,23 @@ const styles = StyleSheet.create({
     modalTitle: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 20, textAlign: 'center' },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600', marginBottom: 15 },
     textArea: { height: 100, textAlignVertical: 'top' },
-    modalActions: { flexDirection: 'row', gap: 15 },
+    modalActions: { flexDirection: 'row', gap: 15, marginTop: 15 },
     cancelBtn: { flex: 1, padding: 18, alignItems: 'center' },
     cancelText: { color: '#64748b', fontWeight: '700' },
     submitBtn: { flex: 2, backgroundColor: '#f59e0b', borderRadius: 16, padding: 18, alignItems: 'center' },
-    submitText: { color: '#fff', fontWeight: '900' }
+    submitText: { color: '#fff', fontWeight: '900' },
+
+    // Audience selection within modal
+    fieldLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 16 },
+    fieldHint: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 10, marginTop: -6 },
+    audienceRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    audienceIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+    audienceLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#94a3b8' },
+    checkBox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+
+    // Tags inside card
+    audienceTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
+    audienceTag: { backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.2)' },
+    audienceTagText: { fontSize: 10, color: '#f59e0b', fontWeight: '800', textTransform: 'uppercase' },
 });
+

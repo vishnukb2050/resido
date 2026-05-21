@@ -6,6 +6,7 @@ import {
 import { communityApi } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useAuthStore } from '../store/authStore';
 
 const CATEGORIES = [
     {
@@ -71,6 +72,8 @@ const ALL_STAFF_ROLES = CATEGORIES.map(c => c.role);
 type Category = typeof CATEGORIES[0];
 
 export default function StaffManagementScreen() {
+    const { activeWorkspace } = useAuthStore();
+    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
     const [allStaff, setAllStaff] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -109,7 +112,7 @@ export default function StaffManagementScreen() {
                         <Ionicons name="arrow-back" size={22} color="#fff" />
                     </TouchableOpacity>
                     <View style={styles.headerCenter}>
-                        <Text style={styles.headerTitle}>Manage Staff</Text>
+                        <Text style={styles.headerTitle}>{isAdmin ? 'Manage Staff' : 'Staff Directory'}</Text>
                         <Text style={styles.headerSub}>
                             {loading ? 'Loading…' : `${allStaff.length} total personnel`}
                         </Text>
@@ -182,16 +185,20 @@ export default function StaffManagementScreen() {
                     </Text>
                 </View>
                 {/* Add Staff Button */}
-                <TouchableOpacity
-                    style={[styles.addBtn, { backgroundColor: selectedCategory.color }]}
-                    onPress={() =>
-                        router.push(
-                            `/add-staff?role=${selectedCategory.role}&category=${encodeURIComponent(selectedCategory.label)}`
-                        )
-                    }
-                >
-                    <Ionicons name="person-add" size={20} color="#fff" />
-                </TouchableOpacity>
+                {isAdmin ? (
+                    <TouchableOpacity
+                        style={[styles.addBtn, { backgroundColor: selectedCategory.color }]}
+                        onPress={() =>
+                            router.push(
+                                `/add-staff?role=${selectedCategory.role}&category=${encodeURIComponent(selectedCategory.label)}`
+                            )
+                        }
+                    >
+                        <Ionicons name="person-add" size={20} color="#fff" />
+                    </TouchableOpacity>
+                ) : (
+                    <View style={{ width: 44 }} />
+                )}
             </View>
 
             {/* Category header accent bar */}
@@ -209,20 +216,23 @@ export default function StaffManagementScreen() {
                     </View>
                     <Text style={styles.emptyTitle}>No {selectedCategory.label} Yet</Text>
                     <Text style={styles.emptyText}>
-                        Tap the button below to add your first{' '}
-                        {selectedCategory.label.toLowerCase()} member.
+                        {isAdmin
+                            ? `Tap the button below to add your first ${selectedCategory.label.toLowerCase()} member.`
+                            : `There are no active ${selectedCategory.label.toLowerCase()} staff members in this workspace.`}
                     </Text>
-                    <TouchableOpacity
-                        style={[styles.emptyAddBtn, { backgroundColor: selectedCategory.color }]}
-                        onPress={() =>
-                            router.push(
-                                `/add-staff?role=${selectedCategory.role}&category=${encodeURIComponent(selectedCategory.label)}`
-                            )
-                        }
-                    >
-                        <Ionicons name="person-add" size={18} color="#fff" />
-                        <Text style={styles.emptyAddText}>Add {selectedCategory.label}</Text>
-                    </TouchableOpacity>
+                    {isAdmin && (
+                        <TouchableOpacity
+                            style={[styles.emptyAddBtn, { backgroundColor: selectedCategory.color }]}
+                            onPress={() =>
+                                router.push(
+                                    `/add-staff?role=${selectedCategory.role}&category=${encodeURIComponent(selectedCategory.label)}`
+                                )
+                            }
+                        >
+                            <Ionicons name="person-add" size={18} color="#fff" />
+                            <Text style={styles.emptyAddText}>Add {selectedCategory.label}</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             ) : (
                 /* Staff List */

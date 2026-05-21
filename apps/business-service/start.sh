@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 # Sync prisma schema
 echo "🔄 Syncing database schema..."

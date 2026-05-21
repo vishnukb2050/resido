@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 # 1. Initialize Databases (if they don't exist)
 echo "🏗️ Initializing Databases..."

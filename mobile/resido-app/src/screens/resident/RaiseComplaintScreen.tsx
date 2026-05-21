@@ -12,7 +12,7 @@ import { useAuthStore } from '../../store/authStore';
 const CATEGORIES = ['PLUMBING', 'ELECTRICAL', 'CLEANING', 'SECURITY', 'CARPENTRY', 'LIFT', 'COMMON_AREA', 'OTHER'];
 
 export default function RaiseComplaintScreen() {
-    const { user } = useAuthStore();
+    const { user, activeWorkspace } = useAuthStore();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('OTHER');
@@ -46,7 +46,7 @@ export default function RaiseComplaintScreen() {
                 description,
                 category,
                 mediaUrls: uploadedUrls,
-                memberId: user.id
+                memberId: activeWorkspace?.memberId || user.id
             });
 
             Alert.alert('Success', 'Complaint raised successfully');

@@ -66,7 +66,7 @@ export default function AdminComplaintsScreen() {
     const fetchComplaints = async () => {
         try {
             setLoading(true);
-            const params = isStaff ? { staffId: user?.id } : {};
+            const params = isStaff ? { staffId: activeWorkspace?.memberId || user?.id } : {};
             const res = await communityApi.getComplaintsAdmin(params);
             setComplaints(res.data);
         } catch (e) {

@@ -605,24 +605,16 @@ export default function DefaultDashboard() {
                                 <View style={{ width: windowWidth, paddingHorizontal: 20 }} key={ws.tenantId}>
                                     <View style={styles.gridContainer}>
                                         <DashboardIcon icon="newspaper" label="Feed" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/thread')} />
-                                        <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/calendar')} />
+                                        <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/events')} />
                                         <DashboardIcon icon="megaphone" label="Requests" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/complaints')} />
-                                    </View>
-
-                                    {/* Small Stats Section */}
-                                    <View style={styles.statsRow}>
-                                        {ws.role !== 'RESIDENT' && (
-                                            <StatBox count="128" label="Families" icon="people" color={theme.accent} />
-                                        )}
-                                        <StatBox count="24" label="Staff" icon="person-circle" color={theme.accent} />
-                                        <StatBox count="56" label="Visitors" icon="walk" color={theme.accent} />
                                     </View>
 
                                     {/* Featured Sections */}
                                     <View style={styles.sectionContainer}>
-                                        <Text style={styles.sectionTitle}>Community Services</Text>
+                                        <Text style={[styles.sectionTitle, { color: '#fff' }]}>Community Services</Text>
                                         <View style={[styles.gridContainer, { justifyContent: 'flex-start', gap: 12 }]}>
                                             <DashboardIcon icon="people" label="Directory" color="#fff" bg={darkLavender} onPress={() => router.push('/members')} />
+                                            <DashboardIcon icon="people" label="Families" color="#fff" bg={darkLavender} onPress={() => router.push('/view-families')} />
                                             <DashboardIcon icon="id-card" label="Staff" color="#fff" bg={darkLavender} onPress={() => router.push('/staff')} />
                                             <DashboardIcon icon="chatbubbles" label="Complaints" color="#fff" bg={darkLavender} onPress={() => router.push('/complaints')} />
                                             <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg={darkLavender} onPress={() => router.push('/gatepass')} />

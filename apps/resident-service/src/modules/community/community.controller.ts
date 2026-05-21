@@ -164,8 +164,8 @@ export class CommunityController {
     // Rules
 
     @Get('rules')
-    getRules() {
-        return this.communityService.getRules();
+    getRules(@Query('memberId') memberId?: string) {
+        return this.communityService.getRules(memberId);
     }
 
     @Post('rules')

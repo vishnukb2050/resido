@@ -18,7 +18,7 @@ export default function ComplaintsListScreen() {
 
     const fetchComplaints = async () => {
         try {
-            const { data } = await communityApi.getComplaints(user?.id || '');
+            const { data } = await communityApi.getComplaints(activeWorkspace?.memberId || user?.id || '');
             setComplaints(data);
         } catch (e) {
             console.error('Fetch complaints failed', e);

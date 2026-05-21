@@ -33,11 +33,33 @@ export class CommunityService {
 
     // ─── Complaints ─────────────────────────────────────────────
     async getComplaints(memberId?: string, staffId?: string) {
+        let staffMemberId = staffId;
+        if (staffId) {
+            // Find the member record if staffId is actually a global Auth userId
+            const staffMember = await this.prisma.reader.member.findFirst({
+                where: { userId: staffId }
+            });
+            if (staffMember) {
+                staffMemberId = staffMember.id;
+            }
+        }
+
+        let actualMemberId = memberId;
+        if (memberId) {
+            // Find the member record if memberId is actually a global Auth userId
+            const residentMember = await this.prisma.reader.member.findFirst({
+                where: { userId: memberId }
+            });
+            if (residentMember) {
+                actualMemberId = residentMember.id;
+            }
+        }
+
         const complaints = await this.prisma.reader.complaint.findMany({
             where: {
                 OR: [
-                    memberId ? { memberId } : {},
-                    staffId ? { assignedTo: staffId } : {}
+                    actualMemberId ? { memberId: actualMemberId } : {},
+                    staffMemberId ? { assignedTo: staffMemberId } : {}
                 ].filter(o => Object.keys(o).length > 0)
             },
             include: {
@@ -61,9 +83,13 @@ export class CommunityService {
     }
 
     async createComplaint(userId: string, data: any) {
+        // Robust lookup checking both ID and global Auth userId
         let member = await this.prisma.reader.member.findFirst({
             where: { 
-                userId: userId,
+                OR: [
+                    { id: userId },
+                    { userId: userId }
+                ],
                 ...(data.tenantId ? { tenantId: data.tenantId } : {})
             }
         });
@@ -299,15 +325,31 @@ export class CommunityService {
 
     // ─── Events / Calendar ──────────────────────────────────────
     async getEvents(memberId: string) {
-        return this.prisma.reader.event.findMany({
-            where: {
-                OR: [
-                    { visibility: 'COMMUNITY' },
-                    { createdBy: memberId },
-                    { sharedWithIds: { has: memberId } }
-                ]
-            },
+        const events = await this.prisma.reader.event.findMany({
             orderBy: { startDate: 'asc' }
+        });
+
+        if (!memberId) {
+            return events;
+        }
+
+        const member = await this.prisma.reader.member.findUnique({ where: { id: memberId } });
+        if (!member) {
+            return events;
+        }
+
+        const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(member.role);
+        if (isAdmin) {
+            return events;
+        }
+
+        const targetAudience = member.role === 'MEMBER' ? 'MEMBERS' : (member.role === 'RESIDENT' ? 'RESIDENTS' : 'STAFF');
+        return events.filter((e: any) => {
+            const aud = e.audience || [];
+            return e.createdBy === memberId ||
+                   (e.sharedWithIds && e.sharedWithIds.includes(memberId)) ||
+                   aud.length === 0 ||
+                   aud.includes(targetAudience);
         });
     }
 
@@ -388,29 +430,35 @@ export class CommunityService {
 
 
     async createBlock(data: any) {
-        // Find or create a default apartment for this tenant
-        let apartment = await this.prisma.reader.apartment.findFirst();
-        
-        if (!apartment) {
-            apartment = await this.prisma.client.apartment.create({
+        try {
+            // Find or create a default apartment for this tenant
+            let apartment = await this.prisma.reader.apartment.findFirst();
+            
+            if (!apartment) {
+                apartment = await this.prisma.client.apartment.create({
+                    data: {
+                        tenantId: data.tenantId || '',
+                        name: 'Default Apartment',
+                        address: '',
+                        city: '',
+                        state: '',
+                        pincode: ''
+                    }
+                });
+            }
+
+            return await this.prisma.client.block.create({
                 data: {
-                    tenantId: data.tenantId || '',
-                    name: 'Default Apartment',
-                    address: '',
-                    city: '',
-                    state: '',
-                    pincode: ''
+                    name: data.name,
+                    apartmentId: apartment.id,
+                    tenantId: data.tenantId || ''
                 }
             });
+        } catch (error: any) {
+            console.error('[Error in createBlock] Input data:', JSON.stringify(data));
+            console.error('[Error in createBlock] Exception details:', error);
+            throw error;
         }
-
-        return this.prisma.client.block.create({
-            data: {
-                name: data.name,
-                apartmentId: apartment.id,
-                tenantId: data.tenantId || ''
-            }
-        });
     }
 
     async updateBlock(id: string, data: any) {
@@ -448,47 +496,53 @@ export class CommunityService {
 
 
     async createUnit(data: any) {
-        let blockId = data.blockId;
+        try {
+            let blockId = data.blockId;
 
-        if (blockId === 'default') {
-            let block = await this.prisma.reader.block.findFirst({
-                where: { name: 'Block 1' }
-            });
+            if (blockId === 'default') {
+                let block = await this.prisma.reader.block.findFirst({
+                    where: { name: 'Block 1' }
+                });
 
-            if (!block) {
-                let apartment = await this.prisma.reader.apartment.findFirst();
-                if (!apartment) {
-                    apartment = await this.prisma.client.apartment.create({
+                if (!block) {
+                    let apartment = await this.prisma.reader.apartment.findFirst();
+                    if (!apartment) {
+                        apartment = await this.prisma.client.apartment.create({
+                            data: {
+                                tenantId: data.tenantId || '',
+                                name: 'Default Apartment',
+                                address: '',
+                                city: '',
+                                state: '',
+                                pincode: ''
+                            }
+                        });
+                    }
+
+                    block = await this.prisma.client.block.create({
                         data: {
-                            tenantId: data.tenantId || '',
-                            name: 'Default Apartment',
-                            address: '',
-                            city: '',
-                            state: '',
-                            pincode: ''
+                            name: 'Block 1',
+                            apartmentId: apartment.id,
+                            tenantId: data.tenantId || ''
                         }
                     });
                 }
-
-                block = await this.prisma.client.block.create({
-                    data: {
-                        name: 'Block 1',
-                        apartmentId: apartment.id,
-                        tenantId: data.tenantId || ''
-                    }
-                });
+                blockId = block.id;
             }
-            blockId = block.id;
+
+            return await this.prisma.client.unit.create({
+                data: {
+                    number: data.number,
+                    floor: parseInt(data.floor) || 0,
+                    blockId: blockId,
+                    tenantId: data.tenantId || ''
+                }
+            });
+        } catch (error: any) {
+            console.error('[Error in createUnit] Input data:', JSON.stringify(data));
+            console.error('[Error in createUnit] Exception details:', error);
+            throw error;
         }
-
-        return this.prisma.client.unit.create({
-            data: {
-                number: data.number,
-                floor: parseInt(data.floor) || 0,
-                blockId: blockId,
-                tenantId: data.tenantId || ''
-            }
-        });
     }
 
     async updateUnit(id: string, data: any) {
@@ -511,8 +565,28 @@ export class CommunityService {
 
     // ─── Rules ──────────────────────────────────────────────────
 
-    async getRules() {
-        return (this.prisma.reader as any).rule.findMany({ orderBy: { title: 'asc' } });
+    async getRules(memberId?: string) {
+        const rules = await (this.prisma.reader as any).rule.findMany({ orderBy: { title: 'asc' } });
+        
+        if (!memberId) {
+            return rules;
+        }
+
+        const member = await this.prisma.reader.member.findUnique({ where: { id: memberId } });
+        if (!member) {
+            return rules;
+        }
+
+        const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(member.role);
+        if (isAdmin) {
+            return rules;
+        }
+
+        const targetAudience = member.role === 'MEMBER' ? 'MEMBERS' : (member.role === 'RESIDENT' ? 'RESIDENTS' : 'STAFF');
+        return rules.filter((r: any) => {
+            const aud = r.audience || [];
+            return aud.length === 0 || aud.includes(targetAudience);
+        });
     }
 
     async createRule(data: any) {

@@ -140,6 +140,7 @@ export default function AdminDashboard() {
                     <View style={styles.featureGrid}>
                         <FeatureCard icon="people" title="Manage Residents" color="#fff" bg="#3182ce" onPress={() => router.push('/manage-residents')} />
                         <FeatureCard icon="people-circle" title="Manage Staff" color="#fff" bg="#10b981" onPress={() => router.push('/staff')} />
+                        <FeatureCard icon="megaphone" title="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
 
 
                         <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />

@@ -124,7 +124,7 @@ export default function CleaningDashboard() {
                         <Ionicons name="lock-closed" size={18} color="#fff" />
                     </View>
                     <Text style={styles.restrictedText}>
-                        Community features like Notices, Chat, and Gallery are restricted for staff roles.
+                        Community features like Chat and Gallery are restricted for staff roles.
                     </Text>
                 </View>
 
@@ -146,6 +146,9 @@ export default function CleaningDashboard() {
                         <FeatureCard icon="document-text" title="Manuals" color="#fff" bg="#2d3748" />
                         <FeatureCard icon="chatbubble-ellipses" title="Staff Chat" color="#fff" bg="#1a365d" />
                         <FeatureCard icon="settings" title="Profile" color="#fff" bg="#2d3748" />
+                        <FeatureCard icon="megaphone" title="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
+                        <FeatureCard icon="book" title="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
+                        <FeatureCard icon="calendar" title="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
                     </View>
                 </View>
 

@@ -73,7 +73,7 @@ export default function CreateComplaintScreen() {
             await communityApi.createComplaint({
                 ...formData,
                 title: `${formData.category} Issue`,
-                memberId: user?.id,
+                memberId: activeWorkspace?.memberId || user?.id,
                 tenantId: activeWorkspace?.tenantId,
                 mediaUrls,
             });

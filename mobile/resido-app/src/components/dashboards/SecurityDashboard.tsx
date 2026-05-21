@@ -170,7 +170,7 @@ export default function SecurityDashboard() {
                         <Ionicons name="lock-closed" size={18} color="#fff" />
                     </View>
                     <Text style={styles.restrictedText}>
-                        Community features like Notices, Chat, and Gallery are restricted for staff roles.
+                        Community features like Chat and Gallery are restricted for staff roles.
                     </Text>
                 </View>
 
@@ -180,10 +180,13 @@ export default function SecurityDashboard() {
                     <View style={styles.featureGrid}>
                         <FeatureCard icon="shield-checkmark" title="Gate Access" color="#fff" bg="#3182ce" />
                         <FeatureCard icon="car-sport" title="Vehicle Logs" color="#fff" bg="#2c5282" />
-                        <FeatureCard icon="megaphone" title="Emergency" color="#fff" bg="#744210" />
+                        <FeatureCard icon="alert-circle" title="Emergency" color="#fff" bg="#744210" />
                         <FeatureCard icon="scan-circle" title="Gate Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                         <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="id-card" title="Visitor Register" color="#fff" bg="#10b981" onPress={() => router.push('/visitor-register')} />
+                        <FeatureCard icon="megaphone" title="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
+                        <FeatureCard icon="book" title="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
+                        <FeatureCard icon="calendar" title="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
                     </View>
                 </View>
 

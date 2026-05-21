@@ -1,4 +1,4 @@
-// resident-service Prisma schema (Shared Core DB)
+// resident-service Prisma schema (Shared Master Core DB)
 generator client {
   provider = "prisma-client-js"
   output   = "../../node_modules/@resido/resident-client"
@@ -47,6 +47,8 @@ model Unit {
   blockId  String
   block    Block   @relation(fields: [blockId], references: [id])
   families Family[]
+
+  superBuiltUpArea Float @default(0) // Size in sq. ft. for area-based billing
   maintenanceBills MaintenanceBill[]
 
   @@index([tenantId])
@@ -148,6 +150,7 @@ model Notice {
   title           String
   body            String
   postedBy        String   // member id
+  photoUrl        String?
   sendWhatsApp    Boolean  @default(false)
   whatsAppSentAt  DateTime?
   createdAt       DateTime @default(now())
@@ -273,6 +276,10 @@ model Visitor {
   name          String
   phone         String
   purpose       String?
+  category      String?
+  description   String?
+  personsCount  Int          @default(1)
+  unitToVisit   String?
   entryTime     DateTime?
   exitTime      DateTime?
   passCode      String       
@@ -298,6 +305,7 @@ model Event {
   endDate       DateTime
   visibility    EventVisibility @default(COMMUNITY)
   sharedWithIds String[]     // IDs of members/groups if not COMMUNITY/PRIVATE
+  audience      String[]       @default([])
   hasAlert      Boolean        @default(false)
   alertTime     DateTime?
   createdBy     String
@@ -705,6 +713,7 @@ model BusinessProfile {
   // Social Links
   instagram       String?
   linkedin        String?
+  hashtags        String?  // Comma-separated hashtags or space-separated
 
   // Location
   location        String?  // block/unit
@@ -749,17 +758,18 @@ model BusinessSlot {
   id                     String   @id @default(cuid())
   businessProfileId      String
   businessProfile        BusinessProfile @relation(fields: [businessProfileId], references: [id])
-  name                   String
+  name                   String   // e.g. "Consultation", "Home Visit"
   description            String?
   maxPersons             Int      @default(1)
-  timeSlots              String[]
-  availableDates         String[]
+  timeSlots              String[] // e.g. ["09:00-10:00", "10:00-11:00"]
+  availableDates         String[] // e.g. ["2024-10-01"]
   isActive               Boolean  @default(true)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
+  // Dynamic scheduling (same as Amenity)
   scheduleType           String   @default("CUSTOM") // "WEEKLY", "MONTHLY", "CUSTOM"
-  scheduleConfig         String?
+  scheduleConfig         String?  // JSON serialized config
   allowRecurringBookings Boolean  @default(false)
 
   bookings               BusinessBooking[]
@@ -772,18 +782,19 @@ model BusinessBooking {
   id                String   @id @default(cuid())
   businessProfileId String
   slotId            String
-  userId            String
+  userId            String   // Global user ID (public, not just residents)
   userName          String?
   userPhone         String?
-  bookingDate       String
+  bookingDate       String   // YYYY-MM-DD
   timeSlot          String
   persons           Int      @default(1)
-  status            String   @default("CONFIRMED")
+  status            String   @default("CONFIRMED") // CONFIRMED, CANCELLED
   notes             String?
   createdAt         DateTime @default(now())
 
+  // Recurrence (same as AmenityBooking)
   isRecurring       Boolean  @default(false)
-  recurringPeriod   String?
+  recurringPeriod   String?  // "WEEKLY", "MONTHLY"
   parentBookingId   String?
 
   slot              BusinessSlot @relation(fields: [slotId], references: [id])
@@ -801,13 +812,44 @@ model VisitorEntry {
   phone       String?
   purpose     String?
   unitToVisit String
+  category    String?   // Visitor, Delivery, Maintenance & Repair
+  description String?
+  vehicleNumber String?
   photoUrl    String?   // S3 key
   inTime      DateTime  @default(now())
   outTime     DateTime?
   loggedBy    String    // security member id
+  gatepassId  String?   // Link to gatepass if used
   createdAt   DateTime  @default(now())
 
   @@map("visitor_entries")
+}
+
+model Gatepass {
+  id              String   @id @default(cuid())
+  visitorName     String
+  phone           String?
+  personsCount    Int      @default(1)
+  purpose         String?
+  vehicleNumber   String?
+  visitTime       String?
+  visitDate       String?
+  status          GatepassStatus @default(PENDING)
+  residentId      String   // ID of resident who created it
+  residentName    String?
+  residentUnit    String?
+  approvedAt      DateTime?
+  approvedBy      String?  // security member id
+  createdAt       DateTime @default(now())
+
+  @@map("gatepasses")
+}
+
+enum GatepassStatus {
+  PENDING
+  APPROVED
+  CANCELLED
+  EXPIRED
 }
 
 // ─── Enums ───────────────────────────────────────────────────
@@ -823,6 +865,8 @@ enum MemberRole {
   STAFF
   SERVICE_STAFF
   ACCOUNTS
+  MANAGER_STAFF
+  MEMBER
   NOT_APPLICABLE
 }
 
@@ -846,6 +890,21 @@ enum NotificationType {
   CHAT
   GENERAL
   EVENT
+}
+
+// ─── Community Rules ──────────────────────────────────────────
+model Rule {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  description String   @db.Text
+  category    String?  // e.g. "Parking", "Pets", "Common Area"
+  audience    String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("rules")
 }
 
 enum ComplaintStatus {
