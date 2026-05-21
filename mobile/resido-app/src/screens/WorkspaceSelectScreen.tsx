@@ -24,7 +24,7 @@ export default function WorkspaceSelectScreen() {
 
     const handleSelect = async (ws: any) => {
         try {
-            const res = await authApi.switchWorkspace(ws.tenantId);
+            const res = await authApi.switchWorkspace(ws.tenantId, ws.role);
             const { accessToken } = res.data;
             await SecureStore.setItemAsync('resido_token', accessToken);
             await SecureStore.setItemAsync('resido_tenant_id', ws.tenantId);

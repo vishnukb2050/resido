@@ -30,7 +30,7 @@ export default function GatepassDetailsScreen() {
     const handleShare = async () => {
         try {
             await Share.share({
-                message: `Resido Gatepass for ${gatepass.visitorName}\nDate: ${gatepass.visitDate}\nTime: ${gatepass.visitTime}\nPass Code: ${gatepass.passCode}\n\nQR Code: https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.passCode}\n\nPlease show this at the gate.`,
+                message: `Resido Gatepass for ${gatepass.visitorName}\nDate: ${gatepass.visitDate}\nTime: ${gatepass.visitTime}\nPass Code: ${gatepass.passCode}\n\nQR Code: https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.id}\n\nPlease show this at the gate.`,
             });
         } catch (error) {
             console.error(error);
@@ -56,7 +56,7 @@ export default function GatepassDetailsScreen() {
                 <View style={styles.qrContainer}>
                     <View style={styles.qrBox}>
                         <Image 
-                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.passCode}` }} 
+                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${gatepass.id}` }} 
                             style={{ width: 200, height: 200, borderRadius: 16 }} 
                         />
                     </View>

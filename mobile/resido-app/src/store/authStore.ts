@@ -91,26 +91,52 @@ export const useAuthStore = create<AuthState>()(
             })),
 
             setActiveWorkspace: (ws, token) =>
-                set((state) => ({
-                    activeWorkspace: ws ? { ...ws, roles: ws.roles || [ws.role] } : null,
-                    token: ws === null ? state.personalToken || state.token : token
-                })),
+                set((state) => {
+                    const activeWorkspace = ws ? { ...ws, roles: ws.roles || [ws.role] } : null;
+                    return {
+                        activeWorkspace,
+                        token: ws === null ? state.personalToken || state.token : token,
+                        workspaces: ws
+                            ? state.workspaces.map((w) =>
+                                  w.tenantId === ws.tenantId ? { ...w, role: ws.role } : w
+                              )
+                            : state.workspaces,
+                    };
+                }),
 
-            setWorkspaces: (workspaces) => set({
-                workspaces: workspaces.map((ws: any) => ({
-                    ...ws,
-                    roles: ws.roles || [ws.role],
-                }))
-            }),
+            setWorkspaces: (workspaces) =>
+                set((state) => ({
+                    workspaces: workspaces.map((ws: any) => {
+                        const existingActive = state.activeWorkspace;
+                        const matchingRole = (existingActive && existingActive.tenantId === ws.tenantId)
+                            ? existingActive.role
+                            : ws.role;
+                        return {
+                            ...ws,
+                            role: matchingRole,
+                            roles: ws.roles || [ws.role],
+                        };
+                    }),
+                })),
 
             // Switch role within the current active workspace (already switched community)
             switchRole: (role, token) =>
-                set((state) => ({
-                    activeWorkspace: state.activeWorkspace
+                set((state) => {
+                    const activeWorkspace = state.activeWorkspace
                         ? { ...state.activeWorkspace, role }
-                        : null,
-                    token,
-                })),
+                        : null;
+                    return {
+                        activeWorkspace,
+                        token,
+                        workspaces: activeWorkspace
+                            ? state.workspaces.map((w) =>
+                                  w.tenantId === activeWorkspace.tenantId
+                                      ? { ...w, role }
+                                      : w
+                              )
+                            : state.workspaces,
+                    };
+                }),
 
             logout: () =>
                 set({

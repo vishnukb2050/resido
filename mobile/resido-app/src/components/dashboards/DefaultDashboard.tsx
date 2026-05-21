@@ -266,8 +266,8 @@ export default function DefaultDashboard() {
                 setActiveWorkspace(null as any, '');
                 workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
             } else {
-                // When selecting a workspace, default to the first role
-                const defaultRole = ws.roles?.[0] || ws.role;
+                // When selecting a workspace, prioritize active role over default first role
+                const defaultRole = ws.role || ws.roles?.[0];
 
                 // Scroll the workspace bubble to active position
                 workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: true });
