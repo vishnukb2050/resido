@@ -139,7 +139,7 @@ export default function AdminDashboard() {
                     <Text style={styles.sectionTitle}>People Management</Text>
                     <View style={styles.featureGrid}>
                         <FeatureCard icon="people" title="Manage Residents" color="#fff" bg="#3182ce" onPress={() => router.push('/manage-residents')} />
-                        <FeatureCard icon="people-circle" title="Add Staff" color="#fff" bg="#10b981" onPress={() => router.push('/create-member?mode=STAFF')} />
+                        <FeatureCard icon="people-circle" title="Manage Staff" color="#fff" bg="#10b981" onPress={() => router.push('/staff')} />
 
 
                         <FeatureCard icon="people" title="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />

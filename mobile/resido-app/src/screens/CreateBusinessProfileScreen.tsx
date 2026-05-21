@@ -77,6 +77,10 @@ export default function CreateBusinessProfileScreen() {
         
         // Services
         services: [] as any[],
+        
+        // Booking Settings
+        enableBooking: false,
+        bookingSlots: [] as any[],
     });
 
     // Temporary state for adding/editing a service
@@ -90,6 +94,26 @@ export default function CreateBusinessProfileScreen() {
         isEmergency: false,
     });
     const [showServiceModal, setShowServiceModal] = useState(false);
+
+    // Slot Booking States
+    const [showSlotModal, setShowSlotModal] = useState(false);
+    const [currentSlot, setCurrentSlot] = useState({
+        id: '',
+        name: '',
+        description: '',
+        maxPersons: 1,
+        scheduleType: 'WEEKLY' as 'WEEKLY' | 'CUSTOM',
+        scheduleConfig: '',
+        timeSlots: [] as string[],
+        allowRecurringBookings: false,
+    });
+    const [selectedSlotDays, setSelectedSlotDays] = useState<string[]>([]);
+    const [tempIntervalStartHour, setTempIntervalStartHour] = useState('09');
+    const [tempIntervalStartMin, setTempIntervalStartMin] = useState('00');
+    const [tempIntervalStartAmPm, setTempIntervalStartAmPm] = useState('AM');
+    const [tempIntervalEndHour, setTempIntervalEndHour] = useState('10');
+    const [tempIntervalEndMin, setTempIntervalEndMin] = useState('00');
+    const [tempIntervalEndAmPm, setTempIntervalEndAmPm] = useState('AM');
 
     // UI state for Step 3 operational area
     const [reachMode, setReachMode] = useState<'RADIUS' | 'PINCODE' | 'STATE_DISTRICT' | 'PAN_INDIA'>('RADIUS');

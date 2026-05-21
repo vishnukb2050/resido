@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { residentApi, authApi } from '../services/api';
@@ -16,15 +16,21 @@ const CATEGORIES = [
 export default function AddStaffScreen() {
     const router = useRouter();
     const { activeWorkspace } = useAuthStore();
+    const params = useLocalSearchParams<{ role?: string; category?: string }>();
     const [loading, setLoading] = useState(false);
     const [showCategories, setShowCategories] = useState(false);
+
+    // Pre-select category from route params (when launched from category folder)
+    const initialCategory = params.category
+        ? CATEGORIES.find(c => c.role === params.role) ?? CATEGORIES[0]
+        : CATEGORIES[0];
 
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
         jobRole: '',
-        category: 'Security',
-        role: 'SECURITY_STAFF',
+        category: initialCategory.label,
+        role: initialCategory.role,
         description: '',
         contactDetails: ''
     });

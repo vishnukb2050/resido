@@ -35,6 +35,8 @@ services:
     env_file: .env
     ports:
       - '3002:3002'
+    environment:
+      - PORT=3002
     networks:
       - resido-net
     restart: unless-stopped
@@ -47,6 +49,8 @@ services:
     env_file: .env
     ports:
       - '3003:3003'
+    environment:
+      - PORT=3003
     networks:
       - resido-net
     restart: unless-stopped
@@ -59,6 +63,8 @@ services:
     env_file: .env
     ports:
       - '3004:3004'
+    environment:
+      - PORT=3004
     networks:
       - resido-net
     restart: unless-stopped
@@ -71,6 +77,8 @@ services:
     env_file: .env
     ports:
       - '3005:3005'
+    environment:
+      - PORT=3005
     networks:
       - resido-net
     restart: unless-stopped
@@ -82,7 +90,9 @@ services:
     container_name: resido-complaint
     env_file: .env
     ports:
-      - '3006:3006'
+      - '3007:3007'
+    environment:
+      - PORT=3007
     networks:
       - resido-net
     restart: unless-stopped
@@ -94,7 +104,9 @@ services:
     container_name: resido-visitor
     env_file: .env
     ports:
-      - '3007:3007'
+      - '3006:3006'
+    environment:
+      - PORT=3006
     networks:
       - resido-net
     restart: unless-stopped

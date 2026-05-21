@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../store/authStore';
 import { communityApi } from '../services/api';
+import { storageApi } from '../services/storage';
 
 const CATEGORIES = [
     'Plumbing', 'Electrical', 'Handyman', 'Lift', 'Kitchen', 
@@ -16,6 +18,7 @@ export default function CreateComplaintScreen() {
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
     const [loading, setLoading] = useState(false);
+    const [photoUri, setPhotoUri] = useState<string | null>(null);
     
     const [formData, setFormData] = useState({
         category: 'Plumbing',
@@ -25,6 +28,25 @@ export default function CreateComplaintScreen() {
 
     const [showCategories, setShowCategories] = useState(false);
 
+    const handlePickPhoto = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Permission to access gallery is required to upload photos.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.7,
+        });
+
+        if (!result.canceled) {
+            setPhotoUri(result.assets[0].uri);
+        }
+    };
+
     const handleSave = async () => {
         if (!formData.description) {
             Alert.alert('Error', 'Description is required');
@@ -33,11 +55,27 @@ export default function CreateComplaintScreen() {
 
         setLoading(true);
         try {
+            const mediaUrls: string[] = [];
+
+            if (photoUri) {
+                // Upload photo to S3/R2 storage
+                const uploadedUrl = await storageApi.uploadFile(
+                    photoUri,
+                    `complaint_${user?.id || 'unknown'}_${Date.now()}.jpg`,
+                    'image/jpeg',
+                    'complaints'
+                );
+                if (uploadedUrl) {
+                    mediaUrls.push(uploadedUrl as string);
+                }
+            }
+
             await communityApi.createComplaint({
                 ...formData,
                 title: `${formData.category} Issue`,
                 memberId: user?.id,
                 tenantId: activeWorkspace?.tenantId,
+                mediaUrls,
             });
 
             Alert.alert('Success', 'Request raised successfully!', [
@@ -119,6 +157,23 @@ export default function CreateComplaintScreen() {
                         />
                     </View>
 
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Photo Evidence</Text>
+                        {photoUri ? (
+                            <View style={styles.photoContainer}>
+                                <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                                <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setPhotoUri(null)}>
+                                    <Ionicons name="trash-outline" size={18} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity style={styles.photoPicker} onPress={handlePickPhoto}>
+                                <Ionicons name="camera-outline" size={32} color="#1d4ed8" />
+                                <Text style={styles.photoPickerText}>Attach Photo</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
                     <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={loading}>
                         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Raise Request</Text>}
                     </TouchableOpacity>
@@ -150,6 +205,11 @@ const styles = StyleSheet.create({
     priorityTextActive: { color: '#fff' },
     input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },
     textArea: { height: 150, textAlignVertical: 'top' },
+    photoPicker: { height: 120, borderRadius: 16, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(29, 78, 216, 0.3)', backgroundColor: 'rgba(255, 255, 255, 0.02)', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    photoPickerText: { color: '#94a3b8', fontSize: 14, fontWeight: '700' },
+    photoContainer: { height: 200, borderRadius: 16, overflow: 'hidden', position: 'relative', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    photoPreview: { width: '100%', height: '100%' },
+    removePhotoBtn: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(239, 68, 68, 0.85)', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     submitBtn: { backgroundColor: '#1d4ed8', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
     submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
 });
