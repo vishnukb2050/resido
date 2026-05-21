@@ -10,6 +10,8 @@ import { Role } from '@resido/user-client';
 
 @Injectable()
 export class AuthService {
+    private memoryOtpStore = new Map<string, { otp: string; expiresAt: number }>();
+
     constructor(
         private prisma: PrismaService,
         private jwt: JwtService,
@@ -31,8 +33,13 @@ export class AuthService {
             const otp = Math.floor(1000 + Math.random() * 9000).toString();
             console.log(`[DEBUG] Generated OTP for ${phone}: ${otp}`);
             
-            await this.redis.set(`otp:${phone}`, otp, 'EX', 300);
-            console.log(`[DEBUG] OTP cached in Redis for: ${phone}`);
+            try {
+                await this.redis.set(`otp:${phone}`, otp, 'EX', 300);
+                console.log(`[DEBUG] OTP cached in Redis for: ${phone}`);
+            } catch (redisError: any) {
+                console.warn(`[WARN] Redis set failed, falling back to memory store:`, redisError.message);
+                this.memoryOtpStore.set(phone, { otp, expiresAt: Date.now() + 300 * 1000 });
+            }
             
             await this.otpService.sendOtp(phone, otp);
             console.log(`[DEBUG] OTP service call successful for: ${phone}`);
@@ -48,11 +55,31 @@ export class AuthService {
         const user = await this.prisma.userRead.user.findUnique({ where: { phone } });
         if (!user) throw new UnauthorizedException('User not found');
 
-        const cachedOtp = await this.redis.get(`otp:${phone}`);
+        let cachedOtp: string | null = null;
+        try {
+            cachedOtp = await this.redis.get(`otp:${phone}`);
+        } catch (redisError: any) {
+            console.warn(`[WARN] Redis get failed, falling back to memory store:`, redisError.message);
+            const entry = this.memoryOtpStore.get(phone);
+            if (entry) {
+                if (entry.expiresAt > Date.now()) {
+                    cachedOtp = entry.otp;
+                } else {
+                    this.memoryOtpStore.delete(phone);
+                }
+            }
+        }
+
         if (!cachedOtp || cachedOtp !== otp) {
             throw new UnauthorizedException('Invalid or expired OTP');
         }
-        await this.redis.del(`otp:${phone}`);
+
+        try {
+            await this.redis.del(`otp:${phone}`);
+        } catch (redisError: any) {
+            console.warn(`[WARN] Redis del failed, removing from memory store:`, redisError.message);
+            this.memoryOtpStore.delete(phone);
+        }
 
         const memberships = await this.prisma.userRead.workspaceMembership.findMany({
             where: { userId: user.id, isActive: true },

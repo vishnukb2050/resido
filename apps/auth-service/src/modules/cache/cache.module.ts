@@ -20,8 +20,9 @@ import Redis from 'ioredis';
                     port,
                     password,
                     ...(redisTls ? { tls: {} } : {}), // Only use TLS if configured
-                    connectTimeout: 10000,
-                    maxRetriesPerRequest: 3,
+                    connectTimeout: 5000,
+                    maxRetriesPerRequest: 1,
+                    enableOfflineQueue: false,
                 });
 
                 client.on('connect', () => console.log('[DEBUG] Redis Client Connected'));
