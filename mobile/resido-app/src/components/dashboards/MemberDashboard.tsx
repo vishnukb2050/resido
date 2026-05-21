@@ -13,13 +13,38 @@ export default function MemberDashboard() {
     const router = useRouter();
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
+    const [switchingRole, setSwitchingRole] = React.useState(false);
 
-    const handleSwitch = async (ws: Workspace) => {
+    const handleSwitch = async (ws: any) => {
         try {
-            const res = await authApi.switchWorkspace(ws.tenantId);
+            const defaultRole = ws.roles?.[0] || ws.role;
+            const currentToken = useAuthStore.getState().token || '';
+            
+            // Optimistically set activeWorkspace
+            setActiveWorkspace({ ...ws, role: defaultRole }, currentToken);
+
+            const res = await authApi.switchWorkspace(ws.tenantId, defaultRole);
             setActiveWorkspace(res.data.workspace, res.data.accessToken);
         } catch (e) {
             console.error('Switch failed', e);
+        }
+    };
+
+    const handleSwitchRole = async (role: string) => {
+        if (!activeWorkspace || switchingRole) return;
+        const currentToken = useAuthStore.getState().token || '';
+        try {
+            setSwitchingRole(true);
+            // Optimistically set role
+            setActiveWorkspace({ ...activeWorkspace, role: role as any }, currentToken);
+
+            const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
+            setActiveWorkspace(res.data.workspace, res.data.accessToken);
+        } catch (e) {
+            console.error('Failed to switch role:', e);
+            setActiveWorkspace(activeWorkspace, currentToken);
+        } finally {
+            setSwitchingRole(false);
         }
     };
 
@@ -67,6 +92,32 @@ export default function MemberDashboard() {
                         ))}
                     </ScrollView>
                 </View>
+
+                {/* Role Switcher — shown only when active workspace has multiple roles */}
+                {activeWorkspace && (activeWorkspace.roles?.length ?? 0) > 1 && (
+                    <View style={styles.roleSwitcherRow}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+                            {activeWorkspace.roles.map((r) => (
+                                <TouchableOpacity
+                                    key={r}
+                                    onPress={() => handleSwitchRole(r)}
+                                    style={[
+                                        styles.rolePill,
+                                        activeWorkspace.role === r && [styles.rolePillActive, { backgroundColor: theme.primary, borderColor: theme.primary }]
+                                    ]}
+                                    disabled={switchingRole}
+                                >
+                                    <Text style={[
+                                        styles.rolePillText,
+                                        activeWorkspace.role === r && styles.rolePillTextActive
+                                    ]}>
+                                        {r.replace(/_/g, ' ')}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
 
                 {/* Member Feature Grid (As Requested) */}
                 <View style={styles.gridContainer}>
@@ -177,5 +228,12 @@ const styles = StyleSheet.create({
     annSub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
     rulesGrid: { backgroundColor: 'rgba(37, 99, 235, 0.05)', borderRadius: 22, padding: 20, gap: 12, borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.1)' },
     ruleItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    ruleText: { color: '#cbd5e1', fontSize: 13, fontWeight: '600' }
+    ruleText: { color: '#cbd5e1', fontSize: 13, fontWeight: '600' },
+
+    // Role Switcher
+    roleSwitcherRow: { marginBottom: 20 },
+    rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    rolePillActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
+    rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+    rolePillTextActive: { color: '#fff' }
 });

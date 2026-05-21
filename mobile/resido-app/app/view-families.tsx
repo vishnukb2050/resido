@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { communityApi, residentApi } from '../src/services/api';
+import { communityApi, residentApi, authApi } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 export default function ViewFamiliesScreen() {
     const router = useRouter();
+    const activeWorkspace = useAuthStore(state => state.activeWorkspace);
     const [loadingBlocks, setLoadingBlocks] = useState(true);
     const [blocks, setBlocks] = useState<any[]>([]);
     
@@ -131,6 +133,21 @@ export default function ViewFamiliesScreen() {
             { text: "Remove", style: "destructive", onPress: async () => {
                 try { 
                     await residentApi.deleteMember(member.id); 
+
+                    if (member.phone && activeWorkspace?.tenantId && member.role) {
+                        try {
+                            await authApi.syncMembershipDeactivation({
+                                phone: member.phone,
+                                tenantId: activeWorkspace.tenantId,
+                                role: member.role
+                            });
+                            const res = await authApi.getWorkspaces();
+                            useAuthStore.getState().setWorkspaces(res.data);
+                        } catch (syncError) {
+                            console.error('Failed to sync resident deactivation:', syncError);
+                        }
+                    }
+
                     const { data } = await communityApi.getUnits(blockId);
                     setUnitsCache(prev => ({ ...prev, [blockId]: data || [] }));
                 } catch (error: any) { Alert.alert("Error", "Failed to remove resident."); }

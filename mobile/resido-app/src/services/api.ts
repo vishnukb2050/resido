@@ -69,6 +69,7 @@ export const authApi = {
     searchUsers: (query: string) => api.get(`/profile/users/search?query=${query}`),
     createMember: (data: any) => api.post('/members', data),
     syncMembership: (data: any) => api.post('/auth/sync-membership', data),
+    syncMembershipDeactivation: (data: { phone: string; tenantId: string; role: string }) => api.post('/auth/sync-membership-deactivation', data),
     getUser: (id: string) => api.get(`/auth/users/${id}`),
     toggleFollow: (id: string, isFollowing: boolean) => isFollowing ? api.delete(`/profile/follow/${id}`) : api.post(`/profile/follow/${id}`),
     getFollowing: () => api.get('/profile/following'),

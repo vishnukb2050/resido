@@ -247,6 +247,24 @@ export class AuthService {
         return { user, membership };
     }
 
+    async syncMembershipDeactivation(phone: string, tenantId: string, role: string) {
+        const user = await this.prisma.userRead.user.findUnique({ where: { phone } });
+        if (!user) {
+            return { success: false, message: 'User not found' };
+        }
+
+        try {
+            const membership = await this.prisma.userClient.workspaceMembership.update({
+                where: { userId_tenantId_role: { userId: user.id, tenantId, role: role as Role } },
+                data: { isActive: false }
+            });
+            return { success: true, membership };
+        } catch (error: any) {
+            console.error('Failed to deactivate workspace membership:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
     async syncContacts(userId: string, phones: string[]) {
         const normalized = phones.map(p => p.replace(/\D/g, ''));
         

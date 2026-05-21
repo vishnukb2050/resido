@@ -283,8 +283,8 @@ export default function DefaultDashboard() {
                 // Run network switch in the background
                 const res = await authApi.switchWorkspace(ws.tenantId, defaultRole);
                 
-                // Silently update once resolved
-                setActiveWorkspace({ ...ws, role: defaultRole }, res.data.accessToken);
+                // Silently update with the full backend workspace object once resolved (ensuring correct memberId)
+                setActiveWorkspace(res.data.workspace, res.data.accessToken);
             }
         } catch (e) {
             console.error('Failed to switch workspace on selection:', e);
@@ -293,19 +293,18 @@ export default function DefaultDashboard() {
 
     const handleSwitchRole = async (role: string) => {
         if (!activeWorkspace || switchingRole) return;
-        const previousRole = activeWorkspace.role;
         const currentToken = useAuthStore.getState().token || '';
         try {
             setSwitchingRole(true);
             // Optimistically update role state
-            switchRole(role as any, currentToken);
+            setActiveWorkspace({ ...activeWorkspace, role: role as any }, currentToken);
 
             const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
-            switchRole(role as any, res.data.accessToken);
+            setActiveWorkspace(res.data.workspace, res.data.accessToken);
         } catch (e) {
             console.error('Failed to switch role:', e);
             // Revert on failure
-            switchRole(previousRole as any, currentToken);
+            setActiveWorkspace(activeWorkspace, currentToken);
         } finally {
             setSwitchingRole(false);
         }

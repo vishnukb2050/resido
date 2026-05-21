@@ -62,7 +62,13 @@ export default function SecurityDashboard() {
 
     const handleSwitch = async (ws: any) => {
         try {
-            const res = await authApi.switchWorkspace(ws.tenantId);
+            const defaultRole = ws.roles?.[0] || ws.role;
+            const currentToken = useAuthStore.getState().token || '';
+            
+            // Optimistically set activeWorkspace
+            setActiveWorkspace({ ...ws, role: defaultRole }, currentToken);
+
+            const res = await authApi.switchWorkspace(ws.tenantId, defaultRole);
             setActiveWorkspace(res.data.workspace, res.data.accessToken);
         } catch (e) {
             console.error('Switch failed', e);
@@ -71,12 +77,17 @@ export default function SecurityDashboard() {
 
     const handleSwitchRole = async (role: string) => {
         if (!activeWorkspace || switchingRole) return;
+        const currentToken = useAuthStore.getState().token || '';
         try {
             setSwitchingRole(true);
+            // Optimistically set role
+            setActiveWorkspace({ ...activeWorkspace, role: role as any }, currentToken);
+
             const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
-            switchRole(role as any, res.data.accessToken);
+            setActiveWorkspace(res.data.workspace, res.data.accessToken);
         } catch (e) {
             console.error('Failed to switch role:', e);
+            setActiveWorkspace(activeWorkspace, currentToken);
         } finally {
             setSwitchingRole(false);
         }

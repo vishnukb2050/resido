@@ -63,4 +63,10 @@ export class AuthController {
     syncMembership(@Body() body: { phone: string; tenantId: string; tenantName: string; role: string; name?: string; age?: number; address?: string }) {
         return this.authService.syncMembership(body.phone, body.tenantId, body.tenantName, body.role, body.name, body.age, body.address);
     }
+
+    @Public()
+    @Post('sync-membership-deactivation')
+    syncMembershipDeactivation(@Body() body: { phone: string; tenantId: string; role: string }) {
+        return this.authService.syncMembershipDeactivation(body.phone, body.tenantId, body.role);
+    }
 }

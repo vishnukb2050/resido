@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useFocusEffect } from '@react-navigation/native';
-import { residentApi } from '../services/api';
+import { residentApi, authApi } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 
 export default function StaffDocumentsScreen() {
     const router = useRouter();
+    const activeWorkspace = useAuthStore(state => state.activeWorkspace);
     const [loading, setLoading] = useState(true);
     const [staffGrouped, setStaffGrouped] = useState<Record<string, any[]>>({});
     const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
@@ -58,10 +60,10 @@ export default function StaffDocumentsScreen() {
         Linking.openURL(url);
     };
 
-    const handleDelete = (id: string, name: string) => {
+    const handleDelete = (staff: any) => {
         Alert.alert(
             'Remove Staff',
-            `Are you sure you want to remove ${name}? This action cannot be undone.`,
+            `Are you sure you want to remove ${staff.name}? This action cannot be undone.`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 { 
@@ -69,7 +71,22 @@ export default function StaffDocumentsScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await residentApi.deleteMember(id);
+                            await residentApi.deleteMember(staff.id);
+                            
+                            if (staff.phone && activeWorkspace?.tenantId && staff.role) {
+                                try {
+                                    await authApi.syncMembershipDeactivation({
+                                        phone: staff.phone,
+                                        tenantId: activeWorkspace.tenantId,
+                                        role: staff.role
+                                    });
+                                    const res = await authApi.getWorkspaces();
+                                    useAuthStore.getState().setWorkspaces(res.data);
+                                } catch (syncError) {
+                                    console.error('Failed to sync staff deactivation:', syncError);
+                                }
+                            }
+
                             fetchStaff();
                             Alert.alert('Success', 'Staff removed successfully');
                         } catch (error) {
@@ -190,7 +207,7 @@ export default function StaffDocumentsScreen() {
                                                             <TouchableOpacity style={styles.iconBtn} onPress={() => handleEdit(staff)}>
                                                                 <Ionicons name="pencil" size={18} color="#64748b" />
                                                             </TouchableOpacity>
-                                                            <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(staff.id, staff.name)}>
+                                                            <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(staff)}>
                                                                 <Ionicons name="trash" size={18} color="#ef4444" />
                                                             </TouchableOpacity>
                                                         </View>
