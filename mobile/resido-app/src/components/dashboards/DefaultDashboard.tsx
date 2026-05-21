@@ -262,39 +262,6 @@ export default function DefaultDashboard() {
         }
     }, [activeWorkspace, workspaces]);
 
-    const handlePageScroll = async (offsetX: number) => {
-        const index = Math.round(offsetX / windowWidth);
-        try {
-            if (index === 0) {
-                setActiveWorkspace(null as any, '');
-                workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
-            } else if (index > 0 && index <= workspaces.length) {
-                const ws = workspaces[index - 1];
-                const res = await authApi.switchWorkspace(ws.tenantId);
-                setActiveWorkspace(ws, res.data.accessToken);
-                workspaceScrollRef.current?.scrollTo({ x: index * 100, animated: true });
-            }
-        } catch (e) {
-            console.error('Failed to switch workspace on page scroll:', e);
-        }
-    };
-
-    const handleWorkspaceScroll = async (offsetX: number) => {
-        const index = Math.round(offsetX / 100);
-        try {
-            if (index === 0) {
-                setActiveWorkspace(null as any, '');
-                pageScrollRef.current?.scrollTo({ x: 0, animated: true });
-            } else if (index > 0 && index <= workspaces.length) {
-                const ws = workspaces[index - 1];
-                const res = await authApi.switchWorkspace(ws.tenantId);
-                setActiveWorkspace(ws, res.data.accessToken);
-                pageScrollRef.current?.scrollTo({ x: index * windowWidth, animated: true });
-            }
-        } catch (e) {
-            console.error('Failed to switch workspace on workspace scroll:', e);
-        }
-    };
 
     const handleSelectWorkspace = async (ws: any, targetIndex: number) => {
         try {
@@ -305,10 +272,19 @@ export default function DefaultDashboard() {
             } else {
                 // When selecting a workspace, default to the first role
                 const defaultRole = ws.roles?.[0] || ws.role;
-                const res = await authApi.switchWorkspace(ws.tenantId, defaultRole);
-                setActiveWorkspace({ ...ws, role: defaultRole }, res.data.accessToken);
+
+                // Optimistically transition UI instantly
                 pageScrollRef.current?.scrollTo({ x: targetIndex * windowWidth, animated: true });
                 workspaceScrollRef.current?.scrollTo({ x: targetIndex * 100, animated: true });
+
+                const currentToken = useAuthStore.getState().token || '';
+                setActiveWorkspace({ ...ws, role: defaultRole }, currentToken);
+
+                // Run network switch in the background
+                const res = await authApi.switchWorkspace(ws.tenantId, defaultRole);
+                
+                // Silently update once resolved
+                setActiveWorkspace({ ...ws, role: defaultRole }, res.data.accessToken);
             }
         } catch (e) {
             console.error('Failed to switch workspace on selection:', e);
@@ -317,12 +293,19 @@ export default function DefaultDashboard() {
 
     const handleSwitchRole = async (role: string) => {
         if (!activeWorkspace || switchingRole) return;
+        const previousRole = activeWorkspace.role;
+        const currentToken = useAuthStore.getState().token || '';
         try {
             setSwitchingRole(true);
+            // Optimistically update role state
+            switchRole(role as any, currentToken);
+
             const res = await authApi.switchWorkspace(activeWorkspace.tenantId, role);
             switchRole(role as any, res.data.accessToken);
         } catch (e) {
             console.error('Failed to switch role:', e);
+            // Revert on failure
+            switchRole(previousRole as any, currentToken);
         } finally {
             setSwitchingRole(false);
         }
@@ -391,8 +374,6 @@ export default function DefaultDashboard() {
                                 contentContainerStyle={styles.psWorkspaceScroll}
                                 snapToInterval={100}
                                 decelerationRate="fast"
-                                onMomentumScrollEnd={e => handleWorkspaceScroll(e.nativeEvent.contentOffset.x)}
-                                onScrollEndDrag={e => handleWorkspaceScroll(e.nativeEvent.contentOffset.x)}
                             >
                                 <WorkspaceBubble 
                                     label="My Space" 
@@ -461,10 +442,9 @@ export default function DefaultDashboard() {
                             ref={pageScrollRef}
                             horizontal 
                             pagingEnabled 
+                            scrollEnabled={false}
                             showsHorizontalScrollIndicator={false}
                             style={{ width: windowWidth }}
-                            onMomentumScrollEnd={e => handlePageScroll(e.nativeEvent.contentOffset.x)}
-                            onScrollEndDrag={e => handlePageScroll(e.nativeEvent.contentOffset.x)}
                         >
                             {/* Page 1: My Space View (Flares + Quick Access) */}
                             <View style={{ width: windowWidth, paddingHorizontal: 20 }}>
