@@ -166,7 +166,7 @@ export default function SecurityDashboard() {
                     <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                     <DashboardIcon icon="person-add" label="Add Visitor" color="#fff" bg="#10b981" onPress={() => router.push('/add-visitor')} />
                     <DashboardIcon icon="id-card" label="Visitor Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
-                    <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" />
+                    <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" onPress={() => router.push('/vehicle-log')} />
                 </View>
 
                 {/* Live Security Stats Row */}
@@ -191,7 +191,7 @@ export default function SecurityDashboard() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Daily Operations</Text>
                     <View style={styles.featureGrid}>
-                        <FeatureCard icon="car-sport" title="Vehicle Logs" color="#fff" bg="#2c5282" />
+                        <FeatureCard icon="car-sport" title="Vehicle Logs" color="#fff" bg="#2c5282" onPress={() => router.push('/vehicle-log')} />
                         <FeatureCard icon="scan-circle" title="Gate Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                         <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="id-card" title="Visitor Register" color="#fff" bg="#10b981" onPress={() => router.push('/visitor-register')} />

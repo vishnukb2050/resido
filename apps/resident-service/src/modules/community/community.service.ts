@@ -205,8 +205,26 @@ export class CommunityService {
 
     // ─── Visitors / Gatepass ────────────────────────────────────
     async getVisitors(memberId?: string) {
+        let queryFilter: any = {};
+        if (memberId) {
+            // Find the member record if memberId is actually a global Auth userId or a direct CUID
+            const member = await this.prisma.reader.member.findFirst({
+                where: {
+                    OR: [
+                        { id: memberId },
+                        { userId: memberId }
+                    ]
+                }
+            });
+            if (member) {
+                queryFilter = { memberId: member.id };
+            } else {
+                queryFilter = { memberId };
+            }
+        }
+
         const visitors = await this.prisma.reader.visitor.findMany({
-            where: memberId ? { memberId } : {},
+            where: queryFilter,
             orderBy: { createdAt: 'desc' }
         });
 

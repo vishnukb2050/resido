@@ -314,7 +314,7 @@ export default function GatepassScannerScreen() {
                                     </View>
                                     <View style={styles.nonEditableSummaryItem}>
                                         <Text style={styles.nonEditableLabel}>Unit: </Text>
-                                        <Text style={styles.nonEditableValue}>{verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                        <Text style={styles.nonEditableValue}>{verifiedGatepass.unitToVisit || verifiedGatepass.residentUnit || 'N/A'}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -348,7 +348,7 @@ export default function GatepassScannerScreen() {
                                     <Ionicons name="business" size={16} color={theme.primary} />
                                     <View>
                                         <Text style={styles.detailLabel}>Unit Number</Text>
-                                        <Text style={styles.detailValue}>{verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                        <Text style={styles.detailValue}>{verifiedGatepass.unitToVisit || verifiedGatepass.residentUnit || 'N/A'}</Text>
                                     </View>
                                 </View>
 
