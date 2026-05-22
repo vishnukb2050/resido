@@ -77,7 +77,17 @@ export class CommunityController {
     @Patch('visitors/:id/approve')
     approveGatepassEntry(
         @Param('id') id: string,
-        @Body() body: { securityMemberId: string; name?: string; phone?: string; vehicleNumber?: string; purpose?: string }
+        @Body() body: { 
+            securityMemberId: string; 
+            name?: string; 
+            phone?: string; 
+            vehicleNumber?: string; 
+            purpose?: string;
+            category?: string;
+            description?: string;
+            unitToVisit?: string;
+            inTime?: string;
+        }
     ) {
         return this.communityService.approveGatepassEntry(id, body.securityMemberId, body);
     }

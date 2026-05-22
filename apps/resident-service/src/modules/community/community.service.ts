@@ -274,7 +274,16 @@ export class CommunityService {
     async approveGatepassEntry(
         id: string,
         securityMemberId: string,
-        updates?: { name?: string; phone?: string; vehicleNumber?: string; purpose?: string }
+        updates?: { 
+            name?: string; 
+            phone?: string; 
+            vehicleNumber?: string; 
+            purpose?: string;
+            category?: string;
+            description?: string;
+            unitToVisit?: string;
+            inTime?: string;
+        }
     ) {
         const visitor = await this.prisma.reader.visitor.findUnique({
             where: { id }
@@ -289,15 +298,23 @@ export class CommunityService {
         const vehicleNumber = updates?.vehicleNumber !== undefined ? updates.vehicleNumber : visitor.vehicleNumber;
         const purpose = updates?.purpose !== undefined ? updates.purpose : visitor.purpose;
 
+        const category = updates?.category !== undefined ? updates.category : (visitor.category || 'Visitor');
+        const description = updates?.description !== undefined ? updates.description : visitor.description;
+        const unitToVisit = updates?.unitToVisit !== undefined ? updates.unitToVisit : (visitor.unitToVisit || 'N/A');
+        const inTime = updates?.inTime !== undefined ? new Date(updates.inTime) : new Date();
+
         const updated = await this.prisma.client.visitor.update({
             where: { id },
             data: {
                 status: 'APPROVED',
-                entryTime: new Date(),
+                entryTime: inTime,
                 name,
                 phone,
                 vehicleNumber,
-                purpose
+                purpose,
+                category,
+                description,
+                unitToVisit
             }
         });
 
@@ -307,13 +324,13 @@ export class CommunityService {
                 visitorName: name,
                 phone: phone,
                 purpose: purpose,
-                category: visitor.category || 'Visitor',
-                unitToVisit: visitor.unitToVisit || 'N/A',
+                category: category,
+                unitToVisit: unitToVisit,
                 vehicleNumber: vehicleNumber,
                 gatepassId: visitor.id,
                 loggedBy: securityMemberId,
-                description: visitor.description,
-                inTime: new Date()
+                description: description,
+                inTime: inTime
             }
         });
 

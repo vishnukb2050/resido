@@ -6,9 +6,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '../store/authStore';
 import { communityApi } from '../services/api';
 import { getThemeColors } from '../utils/theme';
+
+const CATEGORIES = ['Visitor', 'Delivery', 'Maintenance & Repair'];
 
 export default function GatepassScannerScreen() {
     const router = useRouter();
@@ -34,12 +37,70 @@ export default function GatepassScannerScreen() {
     const [editPhone, setEditPhone] = useState('');
     const [editVehicle, setEditVehicle] = useState('');
     const [editPurpose, setEditPurpose] = useState('');
+    
+    // Additional Aligned Edit States
+    const [editCategory, setEditCategory] = useState('Visitor');
+    const [editDescription, setEditDescription] = useState('');
+    const [editUnitToVisit, setEditUnitToVisit] = useState('');
+
+    const [blocks, setBlocks] = useState<any[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+    const [selectedBlockId, setSelectedBlockId] = useState('');
+    const [selectedUnitId, setSelectedUnitId] = useState('');
+    
+    const [showBlockDropdown, setShowBlockDropdown] = useState(false);
+    const [showUnitDropdown, setShowUnitDropdown] = useState(false);
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+    const [entryDate, setEntryDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
 
     useEffect(() => {
         if (mode === 'SCAN') {
             requestPermission();
         }
     }, [mode]);
+
+    useEffect(() => {
+        fetchBlocks();
+    }, []);
+
+    const fetchBlocks = async () => {
+        try {
+            const { data } = await communityApi.getBlocks();
+            setBlocks(data || []);
+        } catch (error) {
+            console.error('Failed to fetch blocks:', error);
+        }
+    };
+
+    const fetchUnits = async (blockId: string) => {
+        try {
+            const { data } = await communityApi.getUnits(blockId);
+            setUnits(data || []);
+        } catch (error) {
+            console.error('Failed to fetch units:', error);
+        }
+    };
+
+    const onDateChange = (event: any, selectedDate?: Date) => {
+        setShowDatePicker(false);
+        if (selectedDate) {
+            const currentDate = new Date(entryDate);
+            currentDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+            setEntryDate(currentDate);
+        }
+    };
+
+    const onTimeChange = (event: any, selectedTime?: Date) => {
+        setShowTimePicker(false);
+        if (selectedTime) {
+            const currentDate = new Date(entryDate);
+            currentDate.setHours(selectedTime.getHours(), selectedTime.getMinutes());
+            setEntryDate(currentDate);
+        }
+    };
 
     const requestPermission = async () => {
         const { status } = await Camera.requestCameraPermissionsAsync();
@@ -87,6 +148,56 @@ export default function GatepassScannerScreen() {
             setEditPhone(gp.phone || '');
             setEditVehicle(gp.vehicleNumber || '');
             setEditPurpose(gp.purpose || '');
+            
+            // Set additional fields
+            setEditCategory(gp.category || 'Visitor');
+            setEditDescription(gp.description || '');
+            const initialUnitToVisit = gp.unitToVisit || gp.residentUnit || '';
+            setEditUnitToVisit(initialUnitToVisit);
+            setEntryDate(gp.inTime ? new Date(gp.inTime) : new Date());
+
+            // Pre-select Block and Unit from unitToVisit if possible
+            if (initialUnitToVisit && initialUnitToVisit.includes(' - ')) {
+                const parts = initialUnitToVisit.split(' - ');
+                const bName = parts[0]?.trim();
+                const uNum = parts[1]?.trim();
+
+                const foundBlock = blocks.find(b => b.name?.toLowerCase() === bName.toLowerCase());
+                if (foundBlock) {
+                    setSelectedBlockId(foundBlock.id);
+                    try {
+                        const { data: fetchedUnits } = await communityApi.getUnits(foundBlock.id);
+                        setUnits(fetchedUnits || []);
+                        const foundUnit = fetchedUnits?.find((u: any) => u.number?.toLowerCase() === uNum.toLowerCase());
+                        if (foundUnit) {
+                            setSelectedUnitId(foundUnit.id);
+                        } else {
+                            setSelectedUnitId('');
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch units for match:', error);
+                    }
+                } else {
+                    setSelectedBlockId('');
+                    setSelectedUnitId('');
+                    setUnits([]);
+                }
+            } else if (initialUnitToVisit) {
+                const foundBlock = blocks.find(b => b.name?.toLowerCase() === initialUnitToVisit.toLowerCase());
+                if (foundBlock) {
+                    setSelectedBlockId(foundBlock.id);
+                    setSelectedUnitId('');
+                    fetchUnits(foundBlock.id);
+                } else {
+                    setSelectedBlockId('');
+                    setSelectedUnitId('');
+                    setUnits([]);
+                }
+            } else {
+                setSelectedBlockId('');
+                setSelectedUnitId('');
+                setUnits([]);
+            }
         } catch (e) {
             Alert.alert('Verification Failed', 'Invalid Gatepass ID or failed to fetch details.');
             setScanned(false); // Reset scan lock
@@ -98,6 +209,11 @@ export default function GatepassScannerScreen() {
     const handleApprove = async () => {
         if (!verifiedGatepass) return;
 
+        if (!editName.trim() || !editPhone.trim() || !editUnitToVisit.trim()) {
+            Alert.alert('Error', 'Visitor Name, Phone Number, and Destination Unit are required');
+            return;
+        }
+
         setApproving(true);
         try {
             const updates = {
@@ -105,6 +221,10 @@ export default function GatepassScannerScreen() {
                 phone: editPhone.trim(),
                 vehicleNumber: editVehicle.trim(),
                 purpose: editPurpose.trim(),
+                category: editCategory,
+                description: editDescription.trim(),
+                unitToVisit: editUnitToVisit.trim(),
+                inTime: entryDate.toISOString(),
             };
             await communityApi.approveGatepassEntry(verifiedGatepass.id, user?.id || 'security-01', updates);
             Alert.alert('Approved', 'Visitor entry recorded and gatepass approved successfully!');
@@ -283,16 +403,118 @@ export default function GatepassScannerScreen() {
                                     />
                                 </View>
 
+                                {/* Select Block Dropdown */}
                                 <View style={styles.editInputGroup}>
-                                    <Text style={styles.editInputLabel}>Vehicle Number</Text>
-                                    <TextInput
-                                        style={[styles.editInput, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.08)' }]}
-                                        value={editVehicle}
-                                        onChangeText={setEditVehicle}
-                                        placeholder="Vehicle Number (e.g. MH12AB1234)"
-                                        placeholderTextColor="#64748b"
-                                        autoCapitalize="characters"
-                                    />
+                                    <Text style={styles.editInputLabel}>Select Block</Text>
+                                    <TouchableOpacity 
+                                        style={styles.selector} 
+                                        onPress={() => setShowBlockDropdown(!showBlockDropdown)}
+                                    >
+                                        <Text style={[styles.selectorText, !selectedBlockId && { color: '#64748b' }]}>
+                                            {selectedBlockId ? blocks.find(b => b.id === selectedBlockId)?.name : 'Choose Block'}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={20} color="#10b981" />
+                                    </TouchableOpacity>
+                                    
+                                    {showBlockDropdown && (
+                                        <View style={styles.dropdown}>
+                                            {blocks.map(b => (
+                                                <TouchableOpacity 
+                                                    key={b.id} 
+                                                    style={styles.dropdownItem}
+                                                    onPress={() => {
+                                                        setSelectedBlockId(b.id);
+                                                        setSelectedUnitId(''); // Reset selected unit
+                                                        fetchUnits(b.id);
+                                                        setShowBlockDropdown(false);
+                                                        setEditUnitToVisit('');
+                                                    }}
+                                                >
+                                                    <Text style={[styles.dropdownItemText, selectedBlockId === b.id && styles.selectedItemText]}>{b.name}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                            {blocks.length === 0 && (
+                                                <View style={styles.dropdownItem}>
+                                                    <Text style={styles.dropdownItemText}>No blocks available</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
+
+                                {/* Select Unit Dropdown */}
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Select Unit</Text>
+                                    <TouchableOpacity 
+                                        style={styles.selector} 
+                                        onPress={() => {
+                                            if (!selectedBlockId) {
+                                                Alert.alert('Info', 'Please select a block first');
+                                                return;
+                                            }
+                                            setShowUnitDropdown(!showUnitDropdown);
+                                        }}
+                                    >
+                                        <Text style={[styles.selectorText, !selectedUnitId && { color: '#64748b' }]}>
+                                            {selectedUnitId ? units.find(u => u.id === selectedUnitId)?.number : 'Choose Unit'}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={20} color="#10b981" />
+                                    </TouchableOpacity>
+                                    
+                                    {showUnitDropdown && (
+                                        <View style={styles.dropdown}>
+                                            {units.map(u => (
+                                                <TouchableOpacity 
+                                                    key={u.id} 
+                                                    style={styles.dropdownItem}
+                                                    onPress={() => {
+                                                        setSelectedUnitId(u.id);
+                                                        setShowUnitDropdown(false);
+                                                        const blockName = blocks.find(b => b.id === selectedBlockId)?.name || '';
+                                                        const unitName = u.number || '';
+                                                        const combinedDestination = blockName ? `${blockName} - ${unitName}` : unitName;
+                                                        setEditUnitToVisit(combinedDestination);
+                                                    }}
+                                                >
+                                                    <Text style={[styles.dropdownItemText, selectedUnitId === u.id && styles.selectedItemText]}>{u.number}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                            {units.length === 0 && (
+                                                <View style={styles.dropdownItem}>
+                                                    <Text style={styles.dropdownItemText}>No units in this block</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
+
+                                {/* Select Category Dropdown */}
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Category</Text>
+                                    <TouchableOpacity 
+                                        style={styles.selector} 
+                                        onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                                    >
+                                        <Text style={styles.selectorText}>{editCategory}</Text>
+                                        <Ionicons name="chevron-down" size={20} color="#10b981" />
+                                    </TouchableOpacity>
+                                    
+                                    {showCategoryDropdown && (
+                                        <View style={styles.dropdown}>
+                                            {CATEGORIES.map(cat => (
+                                                <TouchableOpacity 
+                                                    key={cat} 
+                                                    style={styles.dropdownItem}
+                                                    onPress={() => {
+                                                        setEditCategory(cat);
+                                                        setShowCategoryDropdown(false);
+                                                    }}
+                                                >
+                                                    <Text style={[styles.dropdownItemText, editCategory === cat && styles.selectedItemText]}>{cat}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
                                 </View>
 
                                 <View style={styles.editInputGroup}>
@@ -306,6 +528,70 @@ export default function GatepassScannerScreen() {
                                     />
                                 </View>
 
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Vehicle Number</Text>
+                                    <TextInput
+                                        style={[styles.editInput, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.08)' }]}
+                                        value={editVehicle}
+                                        onChangeText={setEditVehicle}
+                                        placeholder="Vehicle Number (e.g. MH12AB1234)"
+                                        placeholderTextColor="#64748b"
+                                        autoCapitalize="characters"
+                                    />
+                                </View>
+
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Description</Text>
+                                    <TextInput
+                                        style={[styles.editInput, styles.textArea, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.08)' }]}
+                                        placeholder="Additional details..."
+                                        placeholderTextColor="#64748b"
+                                        multiline
+                                        numberOfLines={3}
+                                        value={editDescription}
+                                        onChangeText={setEditDescription}
+                                    />
+                                </View>
+
+                                {/* Date and Time Selection */}
+                                <View style={styles.row}>
+                                    <View style={[styles.editInputGroup, { flex: 1 }]}>
+                                        <Text style={styles.editInputLabel}>Date</Text>
+                                        <TouchableOpacity style={styles.selector} onPress={() => setShowDatePicker(true)}>
+                                            <Text style={styles.selectorText}>{entryDate.toLocaleDateString()}</Text>
+                                            <Ionicons name="calendar-outline" size={20} color="#10b981" />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={{ width: 15 }} />
+                                    <View style={[styles.editInputGroup, { flex: 1 }]}>
+                                        <Text style={styles.editInputLabel}>Time</Text>
+                                        <TouchableOpacity style={styles.selector} onPress={() => setShowTimePicker(true)}>
+                                            <Text style={styles.selectorText}>
+                                                {entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                            <Ionicons name="time-outline" size={20} color="#10b981" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {showDatePicker && (
+                                    <DateTimePicker
+                                        value={entryDate}
+                                        mode="date"
+                                        display="default"
+                                        onChange={onDateChange}
+                                    />
+                                )}
+
+                                {showTimePicker && (
+                                    <DateTimePicker
+                                        value={entryDate}
+                                        mode="time"
+                                        display="default"
+                                        onChange={onTimeChange}
+                                    />
+                                )}
+
                                 {/* Host Details summary inside edit mode */}
                                 <View style={styles.nonEditableSummary}>
                                     <View style={styles.nonEditableSummaryItem}>
@@ -314,7 +600,7 @@ export default function GatepassScannerScreen() {
                                     </View>
                                     <View style={styles.nonEditableSummaryItem}>
                                         <Text style={styles.nonEditableLabel}>Unit: </Text>
-                                        <Text style={styles.nonEditableValue}>{verifiedGatepass.unitToVisit || verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                        <Text style={styles.nonEditableValue}>{editUnitToVisit || verifiedGatepass.unitToVisit || verifiedGatepass.residentUnit || 'N/A'}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -348,15 +634,41 @@ export default function GatepassScannerScreen() {
                                     <Ionicons name="business" size={16} color={theme.primary} />
                                     <View>
                                         <Text style={styles.detailLabel}>Unit Number</Text>
-                                        <Text style={styles.detailValue}>{verifiedGatepass.unitToVisit || verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                        <Text style={styles.detailValue}>{editUnitToVisit || verifiedGatepass.unitToVisit || verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="apps-outline" size={16} color={theme.primary} />
+                                    <View>
+                                        <Text style={styles.detailLabel}>Category</Text>
+                                        <Text style={styles.detailValue}>{editCategory || 'Visitor'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="clipboard-outline" size={16} color={theme.primary} />
+                                    <View>
+                                        <Text style={styles.detailLabel}>Purpose of Visit</Text>
+                                        <Text style={styles.detailValue}>{editPurpose || 'Visitor entry'}</Text>
                                     </View>
                                 </View>
 
                                 <View style={[styles.detailItemFull, { backgroundColor: theme.surface }]}>
-                                    <Ionicons name="clipboard-outline" size={16} color={theme.primary} />
+                                    <Ionicons name="document-text-outline" size={16} color={theme.primary} />
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.detailLabel}>Purpose of Visit</Text>
-                                        <Text style={styles.detailValue}>{editPurpose || 'Visitor entry'}</Text>
+                                        <Text style={styles.detailLabel}>Description</Text>
+                                        <Text style={styles.detailValue}>{editDescription || 'No description provided'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailItemFull, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="time-outline" size={16} color={theme.primary} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.detailLabel}>Entry Date & Time</Text>
+                                        <Text style={styles.detailValue}>
+                                            {`${entryDate.toLocaleDateString()} ${entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                        </Text>
                                     </View>
                                 </View>
                             </View>
@@ -528,5 +840,48 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#94a3b8',
         fontWeight: '700',
+    },
+    row: { 
+        flexDirection: 'row', 
+        alignItems: 'center' 
+    },
+    selector: { 
+        backgroundColor: 'rgba(255,255,255,0.03)', 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: 'rgba(255,255,255,0.1)', 
+        padding: 14, 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+    },
+    selectorText: { 
+        color: '#fff', 
+        fontSize: 14, 
+        fontWeight: '600' 
+    },
+    dropdown: { 
+        backgroundColor: '#1e293b', 
+        borderRadius: 12, 
+        marginTop: 8, 
+        padding: 10, 
+        borderWidth: 1, 
+        borderColor: 'rgba(255,255,255,0.1)' 
+    },
+    dropdownItem: { 
+        padding: 12, 
+        borderRadius: 8 
+    },
+    dropdownItemText: { 
+        color: '#94a3b8', 
+        fontSize: 14, 
+        fontWeight: '600' 
+    },
+    selectedItemText: { 
+        color: '#10b981' 
+    },
+    textArea: { 
+        height: 80, 
+        textAlignVertical: 'top' 
     },
 });
