@@ -32,6 +32,7 @@ export default function AdminComplaintsScreen() {
     const [showAssign, setShowAssign] = useState(false);
     const [showStatus, setShowStatus] = useState(false);
     const [showCreate, setShowCreate] = useState(false);
+    const [assignDropdownComplaintId, setAssignDropdownComplaintId] = useState<string | null>(null);
 
     // Progress Update Form States
     const [progressMessage, setProgressMessage] = useState('');
@@ -55,8 +56,8 @@ export default function AdminComplaintsScreen() {
     const [showResidentDropdown, setShowResidentDropdown] = useState(false);
     const [showStaffDropdown, setShowStaffDropdown] = useState(false);
 
-    const isStaff = ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF', 'STAFF'].includes(activeWorkspace?.role || '');
-    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
+    const isStaff = ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF', 'STAFF', 'MANAGER_STAFF'].includes(activeWorkspace?.role || '');
+    const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF', 'ACCOUNTS_STAFF'].includes(activeWorkspace?.role || '');
 
     useEffect(() => {
         fetchComplaints();
@@ -81,7 +82,7 @@ export default function AdminComplaintsScreen() {
             const res = await communityApi.getMembers();
             // Filter Staff
             const staffList = res.data.filter((m: any) => 
-                ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'STAFF'].includes(m.role)
+                ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF', 'CARETAKER', 'STAFF', 'ADMIN_STAFF', 'ACCOUNTS_STAFF', 'MANAGER_STAFF'].includes(m.role)
             );
             setStaff(staffList);
 
@@ -98,6 +99,17 @@ export default function AdminComplaintsScreen() {
             await communityApi.assignComplaint(selectedComplaint.id, staffId);
             Alert.alert('Success', 'Complaint assigned successfully');
             setShowAssign(false);
+            fetchComplaints();
+        } catch (e) {
+            Alert.alert('Error', 'Failed to assign complaint');
+        }
+    };
+
+    const handleAssignInline = async (complaintId: string, staffId: string) => {
+        try {
+            await communityApi.assignComplaint(complaintId, staffId);
+            Alert.alert('Success', 'Complaint assigned successfully');
+            setAssignDropdownComplaintId(null);
             fetchComplaints();
         } catch (e) {
             Alert.alert('Error', 'Failed to assign complaint');
@@ -312,10 +324,10 @@ export default function AdminComplaintsScreen() {
                                                     return (
                                                         <View key={note.id || idx} style={styles.timelineItem}>
                                                             <View style={styles.timelineLineWrapper}>
-                                                                <View style={styles.timelineDot} />
-                                                                {idx !== progressList.length - 1 && (
-                                                                    <View style={styles.timelineLine} />
-                                                                )}
+                                                                 <View style={styles.timelineDot} />
+                                                                 {idx !== progressList.length - 1 && (
+                                                                     <View style={styles.timelineLine} />
+                                                                 )}
                                                             </View>
                                                             <View style={styles.timelineContent}>
                                                                 <View style={styles.timelineHeader}>
@@ -342,18 +354,67 @@ export default function AdminComplaintsScreen() {
                                     </View>
                                 )}
 
+                                {/* Inline Glassmorphic Assignment Dropdown */}
+                                {assignDropdownComplaintId === item.id && (
+                                    <TouchableOpacity 
+                                        activeOpacity={1}
+                                        onPress={(e) => e.stopPropagation()}
+                                        style={styles.inlineAssignDropdown}
+                                    >
+                                        <Text style={styles.dropdownTitle}>Assign Staff Member</Text>
+                                        <ScrollView 
+                                            nestedScrollEnabled={true} 
+                                            style={styles.dropdownScroll}
+                                            contentContainerStyle={{ gap: 8 }}
+                                        >
+                                            {staff.map((s: any) => (
+                                                <TouchableOpacity 
+                                                    key={s.id} 
+                                                    style={styles.dropdownItem}
+                                                    onPress={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAssignInline(item.id, s.id);
+                                                    }}
+                                                >
+                                                    <View style={styles.dropdownItemLeft}>
+                                                        <View style={styles.avatarMini}>
+                                                            <Text style={styles.avatarMiniText}>
+                                                                {s.name ? s.name.charAt(0).toUpperCase() : 'S'}
+                                                            </Text>
+                                                        </View>
+                                                        <View style={{ marginLeft: 10 }}>
+                                                            <Text style={styles.dropdownStaffName}>{s.name}</Text>
+                                                            <Text style={styles.dropdownStaffRole}>
+                                                                {s.role ? s.role.replace('_STAFF', '') : 'STAFF'}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                    <Ionicons name="checkmark-circle-outline" size={20} color="#6366f1" />
+                                                </TouchableOpacity>
+                                            ))}
+                                            {staff.length === 0 && (
+                                                <Text style={styles.noProgressText}>No staff members found.</Text>
+                                            )}
+                                        </ScrollView>
+                                    </TouchableOpacity>
+                                )}
+
                                 <View style={styles.actionRow}>
                                     {isAdmin && (
                                         <TouchableOpacity 
-                                            style={styles.actionBtn}
+                                            style={[
+                                                styles.actionBtn,
+                                                assignDropdownComplaintId === item.id && { backgroundColor: 'rgba(99, 102, 241, 0.2)' }
+                                            ]}
                                             onPress={(e) => { 
                                                 e.stopPropagation();
-                                                setSelectedComplaint(item); 
-                                                setShowAssign(true); 
+                                                setAssignDropdownComplaintId(assignDropdownComplaintId === item.id ? null : item.id);
                                             }}
                                         >
-                                            <Ionicons name="person-add" size={18} color="#fff" />
-                                            <Text style={styles.actionBtnText}>Assign Staff</Text>
+                                            <Ionicons name={assignDropdownComplaintId === item.id ? "close-circle" : "person-add"} size={18} color="#fff" />
+                                            <Text style={styles.actionBtnText}>
+                                                {assignDropdownComplaintId === item.id ? 'Cancel' : 'Assign Staff'}
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
                                     {(isAdmin || isStaff) && (
@@ -788,5 +849,68 @@ const styles = StyleSheet.create({
     timelineImage: { width: 60, height: 60, borderRadius: 8, marginRight: 8 },
     
     statusBadgeSmall: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginBottom: 4 },
-    statusTextSmall: { fontSize: 9, fontWeight: '800' }
+    statusTextSmall: { fontSize: 9, fontWeight: '800' },
+    
+    // Inline Assignment Dropdown Styles
+    inlineAssignDropdown: {
+        marginTop: 15,
+        padding: 15,
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    dropdownTitle: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        marginBottom: 10,
+        letterSpacing: 0.5,
+    },
+    dropdownScroll: {
+        maxHeight: 180,
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        marginBottom: 8,
+    },
+    dropdownItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    avatarMini: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(99, 102, 241, 0.3)',
+    },
+    avatarMiniText: {
+        color: '#6366f1',
+        fontSize: 12,
+        fontWeight: '900',
+    },
+    dropdownStaffName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    dropdownStaffRole: {
+        fontSize: 10,
+        color: '#94a3b8',
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        marginTop: 2,
+    }
 });

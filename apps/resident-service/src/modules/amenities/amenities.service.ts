@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -129,10 +129,28 @@ export class AmenitiesService {
 
   // Bookings logic
   async createBooking(tenantId: string, userId: string, amenityId: string, data: any) {
-    const member = await this.prisma.client.member.findFirst({
-      where: { userId, tenantId }
+    let member = await this.prisma.client.member.findFirst({
+      where: {
+        tenantId,
+        OR: [
+          { id: userId },
+          { userId: userId }
+        ]
+      }
     });
-    if (!member) throw new Error('Resident profile not found in this community.');
+
+    if (!member) {
+      console.log(`Member not found for user ${userId} in tenant ${tenantId}. Creating on the fly...`);
+      member = await this.prisma.client.member.create({
+        data: {
+          userId: userId,
+          tenantId: tenantId,
+          name: 'Default Member',
+          phone: '0000000000',
+          role: 'RESIDENT'
+        }
+      });
+    }
     const actualMemberId = member.id;
 
     const amenity = await this.getAmenityById(amenityId, tenantId, data.bookingDate);
@@ -152,7 +170,7 @@ export class AmenitiesService {
       });
 
       if (existingBookings.length > 0) {
-        throw new Error(`Time slot (${timeSlot}) on ${bookingDate} is already booked.`);
+        throw new ConflictException(`Time slot (${timeSlot}) on ${bookingDate} is already booked.`);
       }
 
       return this.prisma.client.amenityBooking.create({
@@ -166,7 +184,7 @@ export class AmenitiesService {
           status: 'CONFIRMED',
           isRecurring,
           recurringPeriod,
-          parentBookingId,
+          parentBookingId: parentBookingId || null,
         },
       });
     };
@@ -211,7 +229,13 @@ export class AmenitiesService {
 
   async getMyBookings(tenantId: string, userId: string) {
     const member = await this.prisma.client.member.findFirst({
-      where: { userId, tenantId }
+      where: {
+        tenantId,
+        OR: [
+          { id: userId },
+          { userId: userId }
+        ]
+      }
     });
     if (!member) return [];
 

@@ -25,4 +25,11 @@ export class VisitorsService {
   async createEntry(data: any) {
     return this.prisma.visitorEntry.create({ data });
   }
+
+  async checkout(id: string) {
+    return this.prisma.visitorEntry.update({
+      where: { id },
+      data: { outTime: new Date() },
+    });
+  }
 }

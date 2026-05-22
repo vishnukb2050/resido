@@ -572,23 +572,23 @@ export default function DefaultDashboard() {
                             /* Community View */
                             <View style={{ paddingHorizontal: 20 }}>
                                 <View style={styles.gridContainer}>
-                                    <DashboardIcon icon="newspaper" label="Feed" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/thread')} />
-                                    <DashboardIcon icon="calendar" label="Events" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/events')} />
-                                    <DashboardIcon icon="megaphone" label="Requests" color={darkLavender} bg="#E8E2F2" onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="newspaper" label="Feed" color="#fff" bg="#3b82f6" onPress={() => router.push('/thread')} />
+                                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#ec4899" onPress={() => router.push('/events')} />
+                                    <DashboardIcon icon="megaphone" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
                                 </View>
 
                                 {/* Featured Sections */}
                                 <View style={styles.sectionContainer}>
                                     <Text style={[styles.sectionTitle, { color: '#ffffff' }]}>Community Services</Text>
                                     <View style={[styles.gridContainer, { justifyContent: 'flex-start', gap: 12 }]}>
-                                        <DashboardIcon icon="people" label="Directory" color="#fff" bg={darkLavender} onPress={() => router.push('/members')} />
-                                        <DashboardIcon icon="people" label="Families" color="#fff" bg={darkLavender} onPress={() => router.push('/view-families')} />
-                                        <DashboardIcon icon="id-card" label="Staff" color="#fff" bg={darkLavender} onPress={() => router.push('/staff')} />
-                                        <DashboardIcon icon="chatbubbles" label="Complaints" color="#fff" bg={darkLavender} onPress={() => router.push('/complaints')} />
-                                        <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg={darkLavender} onPress={() => router.push('/gatepass')} />
-                                        <DashboardIcon icon="document-text" label="Rules" color="#fff" bg={darkLavender} onPress={() => router.push('/rules')} />
-                                        <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg={darkLavender} onPress={() => router.push('/notices')} />
-                                        <DashboardIcon icon="tennisball" label="Amenities" color="#fff" bg={darkLavender} onPress={() => router.push('/amenities')} />
+                                        <DashboardIcon icon="people" label="Directory" color="#fff" bg="#10b981" onPress={() => router.push('/members')} />
+                                        <DashboardIcon icon="people" label="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />
+                                        <DashboardIcon icon="id-card" label="Staff" color="#fff" bg="#3b82f6" onPress={() => router.push('/staff')} />
+                                        <DashboardIcon icon="chatbubbles" label="Complaints" color="#fff" bg="#f43f5e" onPress={() => router.push('/complaints')} />
+                                        <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
+                                        <DashboardIcon icon="document-text" label="Rules" color="#fff" bg="#64748b" onPress={() => router.push('/rules')} />
+                                        <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notices')} />
+                                        <DashboardIcon icon="tennisball" label="Amenities" color="#fff" bg="#0ea5e9" onPress={() => router.push('/amenities')} />
                                     </View>
                                 </View>
                             </View>

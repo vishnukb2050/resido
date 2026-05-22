@@ -59,6 +59,17 @@ export default function VisitorRegisterScreen() {
         }
     };
 
+    const handleCheckout = async (id: string) => {
+        try {
+            await visitorApi.checkoutVisitor(id);
+            Alert.alert('Success', 'Visitor marked as checked out.');
+            fetchRegister();
+        } catch (e) {
+            console.error('Checkout failed', e);
+            Alert.alert('Error', 'Failed to check out visitor.');
+        }
+    };
+
     const handleExportPDF = async () => {
         if (entries.length === 0) {
             Alert.alert('No Entries', 'There are no visitor entries to export for the selected date range.');
@@ -344,6 +355,19 @@ export default function VisitorRegisterScreen() {
                                             <Text style={styles.detailLabel}>Gatepass Ref</Text>
                                             <Text style={styles.detailValue}>{item.gatepassId || 'Manual Entry'}</Text>
                                         </View>
+
+                                        {!item.outTime && (
+                                            <TouchableOpacity 
+                                                style={styles.markOutBtn}
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCheckout(item.id);
+                                                }}
+                                            >
+                                                <Ionicons name="log-out-outline" size={16} color="#fff" style={{ marginRight: 8 }} />
+                                                <Text style={styles.markOutBtnText}>Mark Out Visitor</Text>
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -407,4 +431,24 @@ const styles = StyleSheet.create({
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
     emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
     emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
+    
+    markOutBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ea580c',
+        paddingVertical: 12,
+        borderRadius: 14,
+        marginTop: 15,
+        shadowColor: '#ea580c',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    markOutBtnText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+    },
 });

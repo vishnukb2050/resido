@@ -167,6 +167,7 @@ export default function SecurityDashboard() {
                     <DashboardIcon icon="person-add" label="Add Visitor" color="#fff" bg="#10b981" onPress={() => router.push('/add-visitor')} />
                     <DashboardIcon icon="id-card" label="Visitor Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
                     <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" onPress={() => router.push('/vehicle-log')} />
+                    <DashboardIcon icon="construct" label="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
                 </View>
 
                 {/* Live Security Stats Row */}
@@ -195,6 +196,7 @@ export default function SecurityDashboard() {
                         <FeatureCard icon="scan-circle" title="Gate Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                         <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="id-card" title="Visitor Register" color="#fff" bg="#10b981" onPress={() => router.push('/visitor-register')} />
+                        <FeatureCard icon="construct" title="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
                         <FeatureCard icon="megaphone" title="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
                         <FeatureCard icon="book" title="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                         <FeatureCard icon="calendar" title="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
 
     // Grid Icons
     gridContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 25 },
-    dbIconItem: { width: '22%', alignItems: 'center' },
+    dbIconItem: { width: '18%', alignItems: 'center' },
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 

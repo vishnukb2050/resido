@@ -125,6 +125,7 @@ export const visitorApi = {
     getRegister: () => api.get('/visitors/register'),
     createEntry: (data: any) => api.post('/visitors', data),
     getEntries: (params?: any) => api.get('/visitors/register', { params }),
+    checkoutVisitor: (id: string) => api.post(`/visitors/${id}/checkout`),
 };
 
 // Resident APIs (Proxy to resident-service via /members, /community, etc)
