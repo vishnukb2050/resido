@@ -16,6 +16,10 @@ export default function AdminDashboard() {
 
     const handleSwitch = async (ws: Workspace) => {
         try {
+            if (activeWorkspace?.tenantId === ws.tenantId) {
+                setShowWS(false);
+                return;
+            }
             const defaultRole = ws.role || ws.roles?.[0];
             const currentToken = useAuthStore.getState().token || '';
             

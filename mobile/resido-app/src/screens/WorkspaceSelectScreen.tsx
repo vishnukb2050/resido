@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     View, Text, TouchableOpacity, FlatList,
-    StyleSheet, Alert, Image
+    StyleSheet, Alert, Image, Modal, Pressable
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -14,21 +14,38 @@ const ROLE_ICONS: Record<string, string> = {
     CLEANING_STAFF: '🧹',
     CARETAKER: '🔧',
     SECURITY: '🛡️',
+    SECURITY_STAFF: '🛡️',
     ACCOUNTS_STAFF: '📊',
     MAINTENANCE_STAFF: '⚙️',
+    ADMIN_STAFF: '💼',
+    STAFF: '👤',
+    SERVICE_STAFF: '🛠️',
 };
 
 export default function WorkspaceSelectScreen() {
     const { workspaces, setActiveWorkspace, token } = useAuthStore();
     const router = useRouter();
 
-    const handleSelect = async (ws: any) => {
+    const [selectedWorkspace, setSelectedWorkspace] = React.useState<any>(null);
+    const [modalVisible, setModalVisible] = React.useState(false);
+
+    const handleWorkspacePress = (ws: any) => {
+        if (ws.roles && ws.roles.length > 1) {
+            setSelectedWorkspace(ws);
+            setModalVisible(true);
+        } else {
+            handleSelect(ws, ws.roles?.[0] || ws.role);
+        }
+    };
+
+    const handleSelect = async (ws: any, selectedRole: string) => {
         try {
-            const res = await authApi.switchWorkspace(ws.tenantId, ws.role);
-            const { accessToken } = res.data;
+            setModalVisible(false);
+            const res = await authApi.switchWorkspace(ws.tenantId, selectedRole);
+            const { accessToken, workspace } = res.data;
             await SecureStore.setItemAsync('resido_token', accessToken);
             await SecureStore.setItemAsync('resido_tenant_id', ws.tenantId);
-            setActiveWorkspace(ws, accessToken);
+            setActiveWorkspace(workspace, accessToken);
             router.replace('/(app)/home');
         } catch {
             Alert.alert('Error', 'Failed to switch workspace');
@@ -70,7 +87,7 @@ export default function WorkspaceSelectScreen() {
                     scrollEnabled={false}
                     contentContainerStyle={{ gap: 12 }}
                     renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.card} onPress={() => handleSelect(item)}>
+                        <TouchableOpacity style={styles.card} onPress={() => handleWorkspacePress(item)}>
                             {item.photoUrl ? (
                                 <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
                             ) : (
@@ -85,6 +102,58 @@ export default function WorkspaceSelectScreen() {
                     )}
                 />
             </View>
+
+            {/* Premium Role Selection Sheet Modal */}
+            <Modal
+                visible={modalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHandle} />
+                            <Text style={styles.modalTitle}>Choose your role</Text>
+                            <Text style={styles.modalSubtitle}>
+                                Select which role to use in {selectedWorkspace?.tenantName}
+                            </Text>
+                        </View>
+
+                        <FlatList
+                            data={selectedWorkspace?.roles || []}
+                            keyExtractor={(role) => role}
+                            contentContainerStyle={styles.roleList}
+                            renderItem={({ item: role }) => (
+                                <TouchableOpacity
+                                    style={styles.roleOption}
+                                    onPress={() => handleSelect(selectedWorkspace, role)}
+                                >
+                                    <View style={styles.roleIconBox}>
+                                        <Text style={styles.roleIcon}>{ROLE_ICONS[role] || '🏠'}</Text>
+                                    </View>
+                                    <View style={styles.roleInfoCol}>
+                                        <Text style={styles.roleOptionText}>
+                                            {role.replace(/_/g, ' ')}
+                                        </Text>
+                                        <Text style={styles.roleDesc}>
+                                            Access features for {role.replace(/_/g, ' ').toLowerCase()}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.roleArrow}>→</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+
+                        <TouchableOpacity
+                            style={styles.cancelBtn}
+                            onPress={() => setModalVisible(false)}
+                        >
+                            <Text style={styles.cancelBtnText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Pressable>
+            </Modal>
         </View>
     );
 }
@@ -115,4 +184,97 @@ const styles = StyleSheet.create({
         borderStyle: 'dashed'
     },
     createBtnText: { color: '#1d4ed8', fontWeight: '700', fontSize: 16 },
+
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#111118',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 24,
+        paddingBottom: 40,
+        borderTopWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    modalHeader: {
+        alignItems: 'center',
+    },
+    modalHandle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        marginTop: 10,
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#e2e8f0',
+        marginBottom: 6,
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        color: '#64748b',
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    roleList: {
+        gap: 12,
+        marginBottom: 20,
+    },
+    roleOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1e1e2e',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    roleIconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: 'rgba(37,99,235,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 14,
+    },
+    roleIcon: {
+        fontSize: 20,
+    },
+    roleInfoCol: {
+        flex: 1,
+    },
+    roleOptionText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#f1f5f9',
+    },
+    roleDesc: {
+        fontSize: 11,
+        color: '#64748b',
+        marginTop: 2,
+    },
+    roleArrow: {
+        fontSize: 16,
+        color: '#475569',
+    },
+    cancelBtn: {
+        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: 14,
+        padding: 14,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    cancelBtnText: {
+        color: '#94a3b8',
+        fontSize: 15,
+        fontWeight: '600',
+    },
 });

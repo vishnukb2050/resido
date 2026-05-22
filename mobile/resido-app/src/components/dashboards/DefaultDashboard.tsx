@@ -263,9 +263,13 @@ export default function DefaultDashboard() {
     const handleSelectWorkspace = async (ws: any, targetIndex: number) => {
         try {
             if (ws === null) {
+                if (activeWorkspace === null) return;
                 setActiveWorkspace(null as any, '');
                 workspaceScrollRef.current?.scrollTo({ x: 0, animated: true });
             } else {
+                if (activeWorkspace?.tenantId === ws.tenantId) {
+                    return;
+                }
                 // When selecting a workspace, prioritize active role over default first role
                 const defaultRole = ws.role || ws.roles?.[0];
 

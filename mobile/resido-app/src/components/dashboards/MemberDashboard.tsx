@@ -17,6 +17,9 @@ export default function MemberDashboard() {
 
     const handleSwitch = async (ws: any) => {
         try {
+            if (activeWorkspace?.tenantId === ws.tenantId) {
+                return;
+            }
             const defaultRole = ws.role || ws.roles?.[0];
             const currentToken = useAuthStore.getState().token || '';
             

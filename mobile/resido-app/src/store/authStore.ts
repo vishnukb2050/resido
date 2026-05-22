@@ -98,8 +98,8 @@ export const useAuthStore = create<AuthState>()(
                         token: ws === null ? state.personalToken || state.token : token,
                         workspaces: ws
                             ? state.workspaces.map((w) =>
-                                  w.tenantId === ws.tenantId ? { ...w, role: ws.role } : w
-                              )
+                                  w.tenantId === ws.tenantId ? { ...w, role: ws.role, memberId: ws.memberId } : w
+                               )
                             : state.workspaces,
                     };
                 }),
@@ -108,12 +108,16 @@ export const useAuthStore = create<AuthState>()(
                 set((state) => ({
                     workspaces: workspaces.map((ws: any) => {
                         const existingActive = state.activeWorkspace;
-                        const matchingRole = (existingActive && existingActive.tenantId === ws.tenantId)
-                            ? existingActive.role
-                            : ws.role;
+                        if (existingActive && existingActive.tenantId === ws.tenantId) {
+                            return {
+                                ...ws,
+                                role: existingActive.role,
+                                memberId: existingActive.memberId,
+                                roles: ws.roles || [ws.role],
+                            };
+                        }
                         return {
                             ...ws,
-                            role: matchingRole,
                             roles: ws.roles || [ws.role],
                         };
                     }),
@@ -131,9 +135,9 @@ export const useAuthStore = create<AuthState>()(
                         workspaces: activeWorkspace
                             ? state.workspaces.map((w) =>
                                   w.tenantId === activeWorkspace.tenantId
-                                      ? { ...w, role }
+                                      ? { ...w, role, memberId: activeWorkspace.memberId }
                                       : w
-                              )
+                               )
                             : state.workspaces,
                     };
                 }),
