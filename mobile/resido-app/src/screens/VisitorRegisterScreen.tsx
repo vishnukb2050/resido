@@ -307,6 +307,11 @@ export default function VisitorRegisterScreen() {
                                         </View>
 
                                         <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>Destination</Text>
+                                            <Text style={styles.detailValue}>{item.unitToVisit || 'N/A'}</Text>
+                                        </View>
+
+                                        <View style={styles.detailRow}>
                                             <Text style={styles.detailLabel}>Vehicle No.</Text>
                                             <Text style={styles.detailValue}>{item.vehicleNumber || 'No vehicle logged'}</Text>
                                         </View>
