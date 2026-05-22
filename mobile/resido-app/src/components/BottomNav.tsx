@@ -16,9 +16,9 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     const themeStyles = {
         background: '#000000', // Pure black always
         border: 'rgba(255,255,255,0.06)',
-        activeIcon: '#3b82f6', // Radial Blue
+        activeIcon: '#8b5cf6', // Violet
         inactiveIcon: 'rgba(255,255,255,0.35)',
-        activeLabel: '#3b82f6', // Radial Blue
+        activeLabel: '#8b5cf6', // Violet
         inactiveLabel: 'rgba(255,255,255,0.35)'
     };
 

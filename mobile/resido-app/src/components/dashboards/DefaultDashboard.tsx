@@ -314,7 +314,7 @@ export default function DefaultDashboard() {
     const isMySpace = !activeWorkspace;
     const mySpaceBg = theme.background;
     const mySpaceText = '#ffffff';
-    const mySpaceSubText = '#60a5fa';
+    const mySpaceSubText = theme.accent;
     const darkLavender = theme.primary;
     const lightLavender = theme.accent;
  
