@@ -17,6 +17,11 @@ export class MembersController {
         return this.membersService.getUnits();
     }
 
+    @Get(':id')
+    getMember(@Param('id') id: string) {
+        return this.membersService.getMember(id);
+    }
+
     @Post()
     createMember(@Body() data: any) {
         return this.membersService.createMember(data);

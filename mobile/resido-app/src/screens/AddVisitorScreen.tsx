@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '../store/authStore';
-import { visitorApi } from '../services/api';
+import { visitorApi, communityApi } from '../services/api';
 
 const CATEGORIES = ['Visitor', 'Delivery', 'Maintenance & Repair'];
 
@@ -23,10 +23,39 @@ export default function AddVisitorScreen() {
         unitToVisit: '',
     });
 
+    const [blocks, setBlocks] = useState<any[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+    const [selectedBlockId, setSelectedBlockId] = useState('');
+    const [selectedUnitId, setSelectedUnitId] = useState('');
+    const [showBlockDropdown, setShowBlockDropdown] = useState(false);
+    const [showUnitDropdown, setShowUnitDropdown] = useState(false);
+
     const [showCategories, setShowCategories] = useState(false);
     const [entryDate, setEntryDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+
+    React.useEffect(() => {
+        fetchBlocks();
+    }, []);
+
+    const fetchBlocks = async () => {
+        try {
+            const { data } = await communityApi.getBlocks();
+            setBlocks(data || []);
+        } catch (error) {
+            console.error('Failed to fetch blocks:', error);
+        }
+    };
+
+    const fetchUnits = async (blockId: string) => {
+        try {
+            const { data } = await communityApi.getUnits(blockId);
+            setUnits(data || []);
+        } catch (error) {
+            console.error('Failed to fetch units:', error);
+        }
+    };
 
     const onDateChange = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
@@ -112,15 +141,89 @@ export default function AddVisitorScreen() {
                         />
                     </View>
 
+                    {/* Select Block */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Unit/Address to Visit</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="E.g., A-101"
-                            placeholderTextColor="#64748b"
-                            value={formData.unitToVisit}
-                            onChangeText={(t) => setFormData({...formData, unitToVisit: t})}
-                        />
+                        <Text style={styles.label}>Select Block</Text>
+                        <TouchableOpacity 
+                            style={styles.selector} 
+                            onPress={() => setShowBlockDropdown(!showBlockDropdown)}
+                        >
+                            <Text style={[styles.selectorText, !selectedBlockId && { color: '#64748b' }]}>
+                                {selectedBlockId ? blocks.find(b => b.id === selectedBlockId)?.name : 'Choose Block'}
+                            </Text>
+                            <Ionicons name="chevron-down" size={20} color="#10b981" />
+                        </TouchableOpacity>
+                        
+                        {showBlockDropdown && (
+                            <View style={styles.dropdown}>
+                                {blocks.map(b => (
+                                    <TouchableOpacity 
+                                        key={b.id} 
+                                        style={styles.dropdownItem}
+                                        onPress={() => {
+                                            setSelectedBlockId(b.id);
+                                            setSelectedUnitId(''); // Reset selected unit
+                                            fetchUnits(b.id);
+                                            setShowBlockDropdown(false);
+                                            setFormData(prev => ({ ...prev, unitToVisit: '' }));
+                                        }}
+                                    >
+                                        <Text style={[styles.dropdownItemText, selectedBlockId === b.id && styles.selectedItemText]}>{b.name}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                                {blocks.length === 0 && (
+                                    <View style={styles.dropdownItem}>
+                                        <Text style={styles.dropdownItemText}>No blocks available</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Select Unit */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Select Unit</Text>
+                        <TouchableOpacity 
+                            style={styles.selector} 
+                            onPress={() => {
+                                if (!selectedBlockId) {
+                                    Alert.alert('Info', 'Please select a block first');
+                                    return;
+                                }
+                                setShowUnitDropdown(!showUnitDropdown);
+                            }}
+                        >
+                            <Text style={[styles.selectorText, !selectedUnitId && { color: '#64748b' }]}>
+                                {selectedUnitId ? units.find(u => u.id === selectedUnitId)?.number : 'Choose Unit'}
+                            </Text>
+                            <Ionicons name="chevron-down" size={20} color="#10b981" />
+                        </TouchableOpacity>
+                        
+                        {showUnitDropdown && (
+                            <View style={styles.dropdown}>
+                                {units.map(u => (
+                                    <TouchableOpacity 
+                                        key={u.id} 
+                                        style={styles.dropdownItem}
+                                        onPress={() => {
+                                            setSelectedUnitId(u.id);
+                                            setShowUnitDropdown(false);
+                                            const blockName = blocks.find(b => b.id === selectedBlockId)?.name || '';
+                                            const unitName = u.number || '';
+                                            const combinedDestination = blockName ? `${blockName} - ${unitName}` : unitName;
+                                            setFormData(prev => ({ ...prev, unitToVisit: combinedDestination }));
+                                        }}
+                                    >
+                                        <Text style={[styles.dropdownItemText, selectedUnitId === u.id && styles.selectedItemText]}>{u.number}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                                {units.length === 0 && (
+                                    <View style={styles.dropdownItem}>
+                                        <Text style={styles.dropdownItemText}>No units in this block</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>

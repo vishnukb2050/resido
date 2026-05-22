@@ -31,6 +31,13 @@ export class MembersService {
         });
     }
 
+    async getMember(id: string) {
+        return this.prisma.reader.member.findUnique({
+            where: { id },
+            include: { family: { include: { unit: { include: { block: true } } } } }
+        });
+    }
+
     private sanitizeMemberData(data: any) {
         const allowedKeys = [
             'tenantId', 'userId', 'name', 'phone', 'email', 'role',

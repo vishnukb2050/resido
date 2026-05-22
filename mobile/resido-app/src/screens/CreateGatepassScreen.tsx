@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '../store/authStore';
-import { communityApi } from '../services/api';
+import { communityApi, residentApi } from '../services/api';
 
 const CATEGORIES = ['Visitor', 'Delivery', 'Maintenance & Repair'];
 
@@ -27,6 +27,27 @@ export default function CreateGatepassScreen() {
     const [entryDate, setEntryDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+
+    React.useEffect(() => {
+        const fetchResidentAddress = async () => {
+            if (activeWorkspace?.memberId && activeWorkspace?.role === 'RESIDENT') {
+                try {
+                    const { data } = await residentApi.getMember(activeWorkspace.memberId);
+                    if (data?.family?.unit) {
+                        const blockName = data.family.unit.block?.name || '';
+                        const unitNumber = data.family.unit.number || '';
+                        const addressStr = blockName ? `${blockName} - ${unitNumber}` : unitNumber;
+                        if (addressStr) {
+                            setFormData(prev => ({ ...prev, unitToVisit: addressStr }));
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to pre-fill resident address:', e);
+                }
+            }
+        };
+        fetchResidentAddress();
+    }, [activeWorkspace]);
 
     const onDateChange = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
