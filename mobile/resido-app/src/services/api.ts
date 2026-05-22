@@ -98,7 +98,7 @@ export const communityApi = {
     getVisitors: (memberId: string) => api.get(`/community/visitors?memberId=${memberId}`),
     createGatepass: (data: any) => api.post('/community/visitors/gatepass', data),
     getGatepassDetails: (id: string) => api.get(`/community/visitors/${id}`),
-    approveGatepassEntry: (id: string, securityMemberId: string) => api.patch(`/community/visitors/${id}/approve`, { securityMemberId }),
+    approveGatepassEntry: (id: string, securityMemberId: string, updates?: any) => api.patch(`/community/visitors/${id}/approve`, { securityMemberId, ...updates }),
     getEvents: (memberId: string) => api.get(`/community/events?memberId=${memberId}`),
     createEvent: (data: any) => api.post('/community/events', data),
     deleteEvent: (id: string) => api.delete(`/community/events/${id}`),

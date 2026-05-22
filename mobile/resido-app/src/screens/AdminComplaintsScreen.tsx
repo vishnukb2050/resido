@@ -55,7 +55,7 @@ export default function AdminComplaintsScreen() {
     const [showResidentDropdown, setShowResidentDropdown] = useState(false);
     const [showStaffDropdown, setShowStaffDropdown] = useState(false);
 
-    const isStaff = ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF'].includes(activeWorkspace?.role || '');
+    const isStaff = ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF', 'STAFF'].includes(activeWorkspace?.role || '');
     const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(activeWorkspace?.role || '');
 
     useEffect(() => {

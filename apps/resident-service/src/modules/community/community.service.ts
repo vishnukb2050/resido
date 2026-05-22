@@ -33,11 +33,20 @@ export class CommunityService {
 
     // ─── Complaints ─────────────────────────────────────────────
     async getComplaints(memberId?: string, staffId?: string) {
+        console.log(`[getComplaints] Fetching complaints for memberId: ${memberId}, staffId: ${staffId}`);
+        const tenantId = PrismaService.als.getStore()?.tenantId;
+        console.log(`[getComplaints] active tenantId context: ${tenantId}`);
+
         let staffMemberId = staffId;
         if (staffId) {
-            // Find the member record if staffId is actually a global Auth userId
+            // Find the member record if staffId is actually a global Auth userId or a direct CUID
             const staffMember = await this.prisma.reader.member.findFirst({
-                where: { userId: staffId }
+                where: {
+                    OR: [
+                        { id: staffId },
+                        { userId: staffId }
+                    ]
+                }
             });
             if (staffMember) {
                 staffMemberId = staffMember.id;
@@ -46,27 +55,40 @@ export class CommunityService {
 
         let actualMemberId = memberId;
         if (memberId) {
-            // Find the member record if memberId is actually a global Auth userId
+            // Find the member record if memberId is actually a global Auth userId or a direct CUID
             const residentMember = await this.prisma.reader.member.findFirst({
-                where: { userId: memberId }
+                where: {
+                    OR: [
+                        { id: memberId },
+                        { userId: memberId }
+                    ]
+                }
             });
             if (residentMember) {
                 actualMemberId = residentMember.id;
             }
         }
 
+        // Build a robust where clause
+        const whereClause: any = {};
+        if (actualMemberId || staffMemberId) {
+            whereClause.OR = [
+                actualMemberId ? { memberId: actualMemberId } : null,
+                staffMemberId ? { assignedTo: staffMemberId } : null
+            ].filter(Boolean);
+        }
+
+        console.log(`[getComplaints] Querying complaints with whereClause:`, JSON.stringify(whereClause));
+
         const complaints = await this.prisma.reader.complaint.findMany({
-            where: {
-                OR: [
-                    actualMemberId ? { memberId: actualMemberId } : {},
-                    staffMemberId ? { assignedTo: staffMemberId } : {}
-                ].filter(o => Object.keys(o).length > 0)
-            },
+            where: whereClause,
             include: {
                 member: { select: { name: true, phone: true } }
             },
             orderBy: { createdAt: 'desc' }
         });
+
+        console.log(`[getComplaints] Found ${complaints.length} complaints.`);
 
         const staffIds = complaints.map((c: any) => c.assignedTo).filter(Boolean);
         const staffMembers = await this.prisma.reader.member.findMany({
@@ -83,14 +105,17 @@ export class CommunityService {
     }
 
     async createComplaint(userId: string, data: any) {
+        console.log(`[createComplaint] userId/memberId parameter: ${userId}, data:`, data);
+        const tenantId = PrismaService.als.getStore()?.tenantId || data.tenantId || 'resido-core';
+        console.log(`[createComplaint] active tenantId context: ${tenantId}`);
+
         // Robust lookup checking both ID and global Auth userId
         let member = await this.prisma.reader.member.findFirst({
             where: { 
                 OR: [
                     { id: userId },
                     { userId: userId }
-                ],
-                ...(data.tenantId ? { tenantId: data.tenantId } : {})
+                ]
             }
         });
 
@@ -100,7 +125,7 @@ export class CommunityService {
             member = await this.prisma.client.member.create({
                 data: {
                     userId: userId,
-                    tenantId: data.tenantId || 'resido-core',
+                    tenantId: tenantId,
                     name: 'Default Member',
                     phone: '0000000000',
                     role: 'RESIDENT'
@@ -110,12 +135,16 @@ export class CommunityService {
 
         const { memberId: _, ...complaintData } = data;
 
-        return this.prisma.client.complaint.create({
+        const complaint = await this.prisma.client.complaint.create({
             data: { 
                 ...complaintData, 
-                memberId: member.id 
+                memberId: member.id,
+                tenantId: tenantId
             }
         });
+
+        console.log(`[createComplaint] Created complaint successfully:`, complaint);
+        return complaint;
     }
 
     async assignComplaint(id: string, staffId: string) {
@@ -224,7 +253,11 @@ export class CommunityService {
         };
     }
 
-    async approveGatepassEntry(id: string, securityMemberId: string) {
+    async approveGatepassEntry(
+        id: string,
+        securityMemberId: string,
+        updates?: { name?: string; phone?: string; vehicleNumber?: string; purpose?: string }
+    ) {
         const visitor = await this.prisma.reader.visitor.findUnique({
             where: { id }
         });
@@ -233,23 +266,32 @@ export class CommunityService {
             throw new NotFoundException('Gatepass not found');
         }
 
+        const name = updates?.name !== undefined ? updates.name : visitor.name;
+        const phone = updates?.phone !== undefined ? updates.phone : visitor.phone;
+        const vehicleNumber = updates?.vehicleNumber !== undefined ? updates.vehicleNumber : visitor.vehicleNumber;
+        const purpose = updates?.purpose !== undefined ? updates.purpose : visitor.purpose;
+
         const updated = await this.prisma.client.visitor.update({
             where: { id },
             data: {
                 status: 'APPROVED',
-                entryTime: new Date()
+                entryTime: new Date(),
+                name,
+                phone,
+                vehicleNumber,
+                purpose
             }
         });
 
         // Automatically create a visitor entry in the visitor register
         await this.prisma.client.visitorEntry.create({
             data: {
-                visitorName: visitor.name,
-                phone: visitor.phone,
-                purpose: visitor.purpose,
+                visitorName: name,
+                phone: phone,
+                purpose: purpose,
                 category: visitor.category || 'Visitor',
                 unitToVisit: visitor.unitToVisit || 'N/A',
-                vehicleNumber: visitor.vehicleNumber,
+                vehicleNumber: vehicleNumber,
                 gatepassId: visitor.id,
                 loggedBy: securityMemberId,
                 description: visitor.description,

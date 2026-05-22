@@ -30,6 +30,9 @@ export class ClientsService {
     ) {}
 
     async createClient(dto: CreateClientDto) {
+        if (!dto || !dto.name) {
+            throw new BadRequestException('Community name is required.');
+        }
         await this.validateEmailsUnique(dto);
         const slug = this.slugify(dto.name);
         const dbName = `resido_${slug}`;

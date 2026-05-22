@@ -28,6 +28,13 @@ export default function GatepassScannerScreen() {
     // Double-Step Verification State
     const [verifiedGatepass, setVerifiedGatepass] = useState<any | null>(null);
 
+    // Inline Edit States
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState('');
+    const [editPhone, setEditPhone] = useState('');
+    const [editVehicle, setEditVehicle] = useState('');
+    const [editPurpose, setEditPurpose] = useState('');
+
     useEffect(() => {
         if (mode === 'SCAN') {
             requestPermission();
@@ -72,9 +79,14 @@ export default function GatepassScannerScreen() {
     const verifyGatepass = async (id: string) => {
         setLoading(true);
         setVerifiedGatepass(null);
+        setIsEditing(false);
         try {
             const { data: gp } = await communityApi.getGatepassDetails(id);
             setVerifiedGatepass(gp);
+            setEditName(gp.visitorName || gp.name || '');
+            setEditPhone(gp.phone || '');
+            setEditVehicle(gp.vehicleNumber || '');
+            setEditPurpose(gp.purpose || '');
         } catch (e) {
             Alert.alert('Verification Failed', 'Invalid Gatepass ID or failed to fetch details.');
             setScanned(false); // Reset scan lock
@@ -88,13 +100,20 @@ export default function GatepassScannerScreen() {
 
         setApproving(true);
         try {
-            await communityApi.approveGatepassEntry(verifiedGatepass.id, user?.id || 'security-01');
+            const updates = {
+                name: editName.trim(),
+                phone: editPhone.trim(),
+                vehicleNumber: editVehicle.trim(),
+                purpose: editPurpose.trim(),
+            };
+            await communityApi.approveGatepassEntry(verifiedGatepass.id, user?.id || 'security-01', updates);
             Alert.alert('Approved', 'Visitor entry recorded and gatepass approved successfully!');
             
             // Reset states
             setVerifiedGatepass(null);
             setScannedId('');
             setScanned(false);
+            setIsEditing(false);
         } catch (e) {
             Alert.alert('Error', 'Failed to approve gatepass entry.');
         } finally {
@@ -106,6 +125,7 @@ export default function GatepassScannerScreen() {
         setScanned(false);
         setVerifiedGatepass(null);
         setScannedId('');
+        setIsEditing(false);
     };
 
     return (
@@ -208,59 +228,139 @@ export default function GatepassScannerScreen() {
                             <View style={styles.visitorIconBox}>
                                 <Ionicons name="person-outline" size={28} color="#fff" />
                             </View>
-                            <View>
-                                <Text style={styles.visitorNameText}>{verifiedGatepass.visitorName || 'Unknown Visitor'}</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.visitorNameText}>{isEditing ? editName || 'Unknown Visitor' : editName || verifiedGatepass.visitorName || 'Unknown Visitor'}</Text>
                                 <Text style={styles.visitorPassId}>{verifiedGatepass.id}</Text>
                             </View>
-                            <View style={[styles.statusBadge, { backgroundColor: verifiedGatepass.status === 'APPROVED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)' }]}>
-                                <Text style={[styles.statusBadgeText, { color: verifiedGatepass.status === 'APPROVED' ? '#34d399' : '#fbbf24' }]}>
-                                    {verifiedGatepass.status}
-                                </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <TouchableOpacity 
+                                    style={[styles.editModeToggleBtn, { borderColor: isEditing ? '#ef4444' : theme.primary }]} 
+                                    onPress={() => setIsEditing(!isEditing)}
+                                >
+                                    <Ionicons name={isEditing ? "close-circle-outline" : "create-outline"} size={14} color={isEditing ? '#ef4444' : theme.primary} />
+                                    <Text style={[styles.editModeToggleBtnText, { color: isEditing ? '#ef4444' : theme.primary }]}>
+                                        {isEditing ? 'Cancel' : 'Edit'}
+                                    </Text>
+                                </TouchableOpacity>
+                                {!isEditing && (
+                                    <View style={[styles.statusBadge, { backgroundColor: verifiedGatepass.status === 'APPROVED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)' }]}>
+                                        <Text style={[styles.statusBadgeText, { color: verifiedGatepass.status === 'APPROVED' ? '#34d399' : '#fbbf24' }]}>
+                                            {verifiedGatepass.status}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
 
-                        {/* Review Content Grid */}
-                        <View style={styles.detailsGrid}>
-                            <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="call" size={16} color={theme.primary} />
-                                <View>
-                                    <Text style={styles.detailLabel}>Phone Number</Text>
-                                    <Text style={styles.detailValue}>{verifiedGatepass.phone || 'Not Provided'}</Text>
+                        {/* Details View/Edit Grid */}
+                        {isEditing ? (
+                            <View style={styles.editFormContainer}>
+                                <View style={styles.editSectionHeader}>
+                                    <Ionicons name="create-outline" size={18} color={theme.primary} />
+                                    <Text style={[styles.editSectionTitle, { color: theme.primary }]}>Edit Visitor Details</Text>
                                 </View>
-                            </View>
 
-                            <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="car" size={16} color={theme.primary} />
-                                <View>
-                                    <Text style={styles.detailLabel}>Vehicle Number</Text>
-                                    <Text style={styles.detailValue}>{verifiedGatepass.vehicleNumber || 'No Vehicle'}</Text>
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Visitor Name</Text>
+                                    <TextInput
+                                        style={[styles.editInput, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.08)' }]}
+                                        value={editName}
+                                        onChangeText={setEditName}
+                                        placeholder="Visitor Name"
+                                        placeholderTextColor="#64748b"
+                                    />
                                 </View>
-                            </View>
 
-                            <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="home" size={16} color={theme.primary} />
-                                <View>
-                                    <Text style={styles.detailLabel}>Visiting Host</Text>
-                                    <Text style={styles.detailValue}>{verifiedGatepass.residentName || 'Resident'}</Text>
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Phone Number</Text>
+                                    <TextInput
+                                        style={[styles.editInput, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.08)' }]}
+                                        value={editPhone}
+                                        onChangeText={setEditPhone}
+                                        placeholder="Phone Number"
+                                        placeholderTextColor="#64748b"
+                                        keyboardType="phone-pad"
+                                    />
                                 </View>
-                            </View>
 
-                            <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="business" size={16} color={theme.primary} />
-                                <View>
-                                    <Text style={styles.detailLabel}>Unit Number</Text>
-                                    <Text style={styles.detailValue}>{verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Vehicle Number</Text>
+                                    <TextInput
+                                        style={[styles.editInput, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.08)' }]}
+                                        value={editVehicle}
+                                        onChangeText={setEditVehicle}
+                                        placeholder="Vehicle Number (e.g. MH12AB1234)"
+                                        placeholderTextColor="#64748b"
+                                        autoCapitalize="characters"
+                                    />
                                 </View>
-                            </View>
 
-                            <View style={[styles.detailItemFull, { backgroundColor: theme.surface }]}>
-                                <Ionicons name="clipboard-outline" size={16} color={theme.primary} />
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.detailLabel}>Purpose of Visit</Text>
-                                    <Text style={styles.detailValue}>{verifiedGatepass.purpose || 'Visitor entry'}</Text>
+                                <View style={styles.editInputGroup}>
+                                    <Text style={styles.editInputLabel}>Purpose of Visit</Text>
+                                    <TextInput
+                                        style={[styles.editInput, { backgroundColor: theme.surface, borderColor: 'rgba(255,255,255,0.08)' }]}
+                                        value={editPurpose}
+                                        onChangeText={setEditPurpose}
+                                        placeholder="Purpose of Visit"
+                                        placeholderTextColor="#64748b"
+                                    />
+                                </View>
+
+                                {/* Host Details summary inside edit mode */}
+                                <View style={styles.nonEditableSummary}>
+                                    <View style={styles.nonEditableSummaryItem}>
+                                        <Text style={styles.nonEditableLabel}>Host: </Text>
+                                        <Text style={styles.nonEditableValue}>{verifiedGatepass.residentName || 'Resident'}</Text>
+                                    </View>
+                                    <View style={styles.nonEditableSummaryItem}>
+                                        <Text style={styles.nonEditableLabel}>Unit: </Text>
+                                        <Text style={styles.nonEditableValue}>{verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                    </View>
                                 </View>
                             </View>
-                        </View>
+                        ) : (
+                            <View style={styles.detailsGrid}>
+                                <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="call" size={16} color={theme.primary} />
+                                    <View>
+                                        <Text style={styles.detailLabel}>Phone Number</Text>
+                                        <Text style={styles.detailValue}>{editPhone || 'Not Provided'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="car" size={16} color={theme.primary} />
+                                    <View>
+                                        <Text style={styles.detailLabel}>Vehicle Number</Text>
+                                        <Text style={styles.detailValue}>{editVehicle || 'No Vehicle'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="home" size={16} color={theme.primary} />
+                                    <View>
+                                        <Text style={styles.detailLabel}>Visiting Host</Text>
+                                        <Text style={styles.detailValue}>{verifiedGatepass.residentName || 'Resident'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailItem, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="business" size={16} color={theme.primary} />
+                                    <View>
+                                        <Text style={styles.detailLabel}>Unit Number</Text>
+                                        <Text style={styles.detailValue}>{verifiedGatepass.residentUnit || 'N/A'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailItemFull, { backgroundColor: theme.surface }]}>
+                                    <Ionicons name="clipboard-outline" size={16} color={theme.primary} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.detailLabel}>Purpose of Visit</Text>
+                                        <Text style={styles.detailValue}>{editPurpose || 'Visitor entry'}</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
 
                         {/* Actions */}
                         <View style={styles.actionContainer}>
@@ -274,7 +374,9 @@ export default function GatepassScannerScreen() {
                                 ) : (
                                     <>
                                         <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                                        <Text style={styles.approveActionBtnText}>Approve & Record Entry</Text>
+                                        <Text style={styles.approveActionBtnText}>
+                                            {isEditing ? 'Save & Record Entry' : 'Approve & Record Entry'}
+                                        </Text>
                                     </>
                                 )}
                             </TouchableOpacity>
@@ -352,5 +454,79 @@ const styles = StyleSheet.create({
     approveActionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, padding: 18 },
     approveActionBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
     resetBtn: { borderRadius: 12, padding: 14, alignItems: 'center' },
-    resetBtnText: { color: '#64748b', fontWeight: '700', fontSize: 14 }
+    resetBtnText: { color: '#64748b', fontWeight: '700', fontSize: 14 },
+    
+    // Inline Edit Styles
+    editModeToggleBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+    },
+    editModeToggleBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    editFormContainer: {
+        width: '100%',
+        gap: 16,
+    },
+    editSectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
+    editSectionTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    editInputGroup: {
+        width: '100%',
+    },
+    editInputLabel: {
+        fontSize: 11,
+        color: '#64748b',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        marginBottom: 6,
+        letterSpacing: 0.5,
+    },
+    editInput: {
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 14,
+        color: '#fff',
+        fontWeight: '600',
+        borderWidth: 1,
+    },
+    nonEditableSummary: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(255,255,255,0.01)',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.03)',
+        marginTop: 4,
+    },
+    nonEditableSummaryItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    nonEditableLabel: {
+        fontSize: 12,
+        color: '#64748b',
+        fontWeight: '600',
+    },
+    nonEditableValue: {
+        fontSize: 12,
+        color: '#94a3b8',
+        fontWeight: '700',
+    },
 });
