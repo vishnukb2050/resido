@@ -165,9 +165,8 @@ export default function SecurityDashboard() {
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="scan-circle" label="Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                     <DashboardIcon icon="person-add" label="Add Visitor" color="#fff" bg="#10b981" onPress={() => router.push('/add-visitor')} />
-                    <DashboardIcon icon="id-card" label="Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
+                    <DashboardIcon icon="id-card" label="Visitor Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
                     <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" />
-                    <DashboardIcon icon="warning" label="Alerts" color="#fff" bg="#ef4444" />
                 </View>
 
                 {/* Live Security Stats Row */}
@@ -192,9 +191,7 @@ export default function SecurityDashboard() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Daily Operations</Text>
                     <View style={styles.featureGrid}>
-                        <FeatureCard icon="shield-checkmark" title="Gate Access" color="#fff" bg="#3182ce" />
                         <FeatureCard icon="car-sport" title="Vehicle Logs" color="#fff" bg="#2c5282" />
-                        <FeatureCard icon="alert-circle" title="Emergency" color="#fff" bg="#744210" />
                         <FeatureCard icon="scan-circle" title="Gate Scanner" color="#fff" bg="#1d4ed8" onPress={() => router.push('/gatepass-scanner')} />
                         <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="id-card" title="Visitor Register" color="#fff" bg="#10b981" onPress={() => router.push('/visitor-register')} />
@@ -288,7 +285,7 @@ const styles = StyleSheet.create({
 
     // Grid Icons
     gridContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 25 },
-    dbIconItem: { width: '18%', alignItems: 'center' },
+    dbIconItem: { width: '22%', alignItems: 'center' },
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
