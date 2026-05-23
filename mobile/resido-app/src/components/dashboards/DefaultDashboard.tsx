@@ -443,6 +443,7 @@ export default function DefaultDashboard() {
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll} nestedScrollEnabled={true}>
                                         <QuickAccessItem icon="add-circle-outline" label="Create" color={darkLavender} onPress={() => router.push('/create-community')} />
                                         <QuickAccessItem icon="storefront-outline" label="Business" color={darkLavender} onPress={() => router.push('/business-profiles')} />
+                                        <QuickAccessItem icon="calendar-outline" label="Bookings" color={darkLavender} onPress={() => router.push('/business-bookings')} />
                                         <QuickAccessItem icon="wallet-outline" label="Finance" color={darkLavender} onPress={() => router.push('/finance')} />
                                         <QuickAccessItem icon="construct-outline" label="Services" color={darkLavender} onPress={() => router.push('/service-search')} />
                                         <QuickAccessItem icon="journal-outline" label="Notes" color={darkLavender} onPress={() => router.push('/notes')} />

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -7,6 +7,18 @@ export class BusinessService {
 
     async createProfile(userId: string, tenantId: string, data: any) {
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
+
+        const existing = await this.prisma.businessProfile.findFirst({
+            where: {
+                businessName: {
+                    equals: rest.businessName,
+                    mode: 'insensitive'
+                }
+            }
+        });
+        if (existing) {
+            throw new ConflictException('Business name already exists. Please choose a unique name.');
+        }
         
         const profileData = {
             profileType: rest.profileType || 'BUSINESS',
@@ -178,6 +190,23 @@ export class BusinessService {
 
     async updateProfile(id: string, data: any) {
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
+        
+        if (rest.businessName) {
+            const existing = await this.prisma.businessProfile.findFirst({
+                where: {
+                    businessName: {
+                        equals: rest.businessName,
+                        mode: 'insensitive'
+                    },
+                    id: {
+                        not: id
+                    }
+                }
+            });
+            if (existing) {
+                throw new ConflictException('Business name already exists. Please choose a unique name.');
+            }
+        }
         
         const profileData = {
             profileType: rest.profileType,

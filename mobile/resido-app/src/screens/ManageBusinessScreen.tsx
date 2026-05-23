@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     View, Text, StyleSheet, TouchableOpacity, ScrollView, 
     Image, SafeAreaView, ActivityIndicator, RefreshControl,
-    Dimensions, StatusBar
+    Dimensions, StatusBar, Modal
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -15,6 +15,8 @@ export default function ManageBusinessScreen() {
     const [profiles, setProfiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [qrVisible, setQrVisible] = useState(false);
+    const [selectedQrProfile, setSelectedQrProfile] = useState<any>(null);
 
     useEffect(() => {
         fetchProfiles();
@@ -135,6 +137,33 @@ export default function ManageBusinessScreen() {
                                     </TouchableOpacity>
                                 </View>
                                 
+                                <View style={styles.quickActionsContainer}>
+                                    <TouchableOpacity 
+                                        style={styles.quickActionBtn}
+                                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, initialStep: 2 } })}
+                                    >
+                                        <Ionicons name="images-outline" size={16} color="#3b82f6" />
+                                        <Text style={styles.quickActionText}>Gallery</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={styles.quickActionBtn}
+                                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, initialStep: 4 } })}
+                                    >
+                                        <Ionicons name="calendar-outline" size={16} color="#10b981" />
+                                        <Text style={styles.quickActionText}>Slots</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={styles.quickActionBtn}
+                                        onPress={() => {
+                                            setSelectedQrProfile(profile);
+                                            setQrVisible(true);
+                                        }}
+                                    >
+                                        <Ionicons name="qr-code-outline" size={16} color="#fbbf24" />
+                                        <Text style={styles.quickActionText}>QR Code</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                
                                 <View style={styles.statsRow}>
                                     <View style={styles.statBox}>
                                         <Text style={styles.statValue}>{profile.services?.length || 0}</Text>
@@ -166,6 +195,47 @@ export default function ManageBusinessScreen() {
                     </>
                 )}
             </ScrollView>
+
+            {/* Modal for QR Code Display */}
+            {selectedQrProfile && (
+                <Modal
+                    visible={qrVisible}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setQrVisible(false)}
+                >
+                    <View style={styles.qrBackdrop}>
+                        <View style={styles.qrCard}>
+                            <View style={styles.qrHeader}>
+                                <Text style={styles.qrTitle}>Business QR Code</Text>
+                                <TouchableOpacity onPress={() => setQrVisible(false)} style={styles.qrCloseBtn}>
+                                    <Ionicons name="close" size={24} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <Text style={styles.qrSubtitle}>
+                                Customers can scan this QR code using their Resido app to instantly view your profile and book services!
+                            </Text>
+
+                            <View style={styles.qrWrapper}>
+                                <Image
+                                    source={{ 
+                                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=25-99-235&data=resido://business-detail?id=${selectedQrProfile.id}` 
+                                    }}
+                                    style={styles.qrImage}
+                                />
+                            </View>
+
+                            <Text style={styles.qrBizName}>{selectedQrProfile.businessName}</Text>
+                            <Text style={styles.qrBizCat}>{selectedQrProfile.category}</Text>
+                            
+                            <TouchableOpacity style={styles.qrDoneBtn} onPress={() => setQrVisible(false)}>
+                                <Text style={styles.qrDoneBtnText}>Done</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            )}
         </SafeAreaView>
     );
 }
@@ -207,6 +277,32 @@ const styles = StyleSheet.create({
     statusText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
     editBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
     
+    quickActionsContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 16,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.03)',
+    },
+    quickActionBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 12,
+        paddingVertical: 10,
+        gap: 6,
+    },
+    quickActionText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#cbd5e1',
+    },
+    
     statsRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 16 },
     statBox: { flex: 1, alignItems: 'center' },
     statValue: { fontSize: 18, fontWeight: '800', color: '#fff' },
@@ -215,5 +311,19 @@ const styles = StyleSheet.create({
 
     addAnotherCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(37, 99, 235, 0.3)', marginTop: 8 },
     addIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    addText: { fontSize: 16, fontWeight: '700', color: '#1d4ed8' }
+    addText: { fontSize: 16, fontWeight: '700', color: '#1d4ed8' },
+
+    // QR Code Modal Styling
+    qrBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    qrCard: { backgroundColor: '#111827', borderRadius: 24, padding: 24, width: '90%', maxWidth: 360, alignItems: 'center', borderStyle: 'solid', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
+    qrHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 16 },
+    qrTitle: { fontSize: 18, fontWeight: '900', color: '#ffffff' },
+    qrCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    qrSubtitle: { fontSize: 13, color: '#94a3b8', textAlign: 'center', lineHeight: 18, marginBottom: 20 },
+    qrWrapper: { backgroundColor: '#ffffff', padding: 12, borderRadius: 16, marginBottom: 20 },
+    qrImage: { width: 200, height: 200 },
+    qrBizName: { fontSize: 20, fontWeight: '900', color: '#ffffff', textAlign: 'center', marginBottom: 4 },
+    qrBizCat: { fontSize: 14, color: '#a084ca', fontWeight: '800', textAlign: 'center', marginBottom: 24 },
+    qrDoneBtn: { width: '100%', height: 50, borderRadius: 12, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
+    qrDoneBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '800' }
 });

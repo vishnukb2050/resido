@@ -338,14 +338,19 @@ export default function ServiceSearchScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 
                 <View style={styles.header}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                         <Text style={styles.headerTitle}>Services</Text>
                         <Text style={styles.headerSubtitle}>Find trusted professionals for your needs</Text>
                     </View>
-                    <TouchableOpacity style={styles.notifBtn}>
-                        <Ionicons name="notifications-outline" size={26} color="#1e293b" />
-                        <View style={styles.notifBadge} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/business-scanner')}>
+                            <Ionicons name="qr-code-outline" size={24} color="#1e293b" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.notifBtn}>
+                            <Ionicons name="notifications-outline" size={26} color="#1e293b" />
+                            <View style={styles.notifBadge} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <View style={styles.searchContainer}>
@@ -534,7 +539,7 @@ export default function ServiceSearchScreen() {
                             <TouchableOpacity 
                                 key={pro.id} 
                                 style={styles.proCard}
-                                onPress={() => router.push(`/business/${pro.id}`)}
+                                onPress={() => router.push({ pathname: '/business-detail', params: { id: pro.id } })}
                             >
                                 <View style={styles.proImagePlaceholder}>
                                     <Ionicons name="person" size={30} color="#cbd5e1" />
@@ -549,6 +554,12 @@ export default function ServiceSearchScreen() {
                                         <Ionicons name="location-outline" size={14} color="#64748b" />
                                         <Text style={styles.proLocText}>{pro.location || 'Within Community'}</Text>
                                     </View>
+                                    {pro.slots && pro.slots.length > 0 ? (
+                                        <View style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Ionicons name="calendar" size={10} color="#10b981" />
+                                            <Text style={{ color: '#10b981', fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>Book Online</Text>
+                                        </View>
+                                    ) : null}
                                 </View>
                                 <View style={styles.proRight}>
                                     <View style={styles.proRatingRow}>

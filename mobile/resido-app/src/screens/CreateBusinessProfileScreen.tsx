@@ -38,10 +38,37 @@ const INDIAN_STATES = [
 
 export default function CreateBusinessProfileScreen() {
     const router = useRouter();
-    const { id } = useLocalSearchParams(); // If editing
-    const [step, setStep] = useState(1);
+    const { id, initialStep } = useLocalSearchParams(); // If editing
+    const [step, setStep] = useState(initialStep ? parseInt(initialStep as string) : 1);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(!!id);
+    const [nameChecking, setNameChecking] = useState(false);
+    const [nameError, setNameError] = useState('');
+
+    const validateBusinessName = async (name: string) => {
+        if (!name || !name.trim()) {
+            setNameError('');
+            return;
+        }
+        setNameChecking(true);
+        setNameError('');
+        try {
+            const { data } = await businessApi.getProfiles({ query: name.trim() });
+            if (data && Array.isArray(data)) {
+                const conflict = data.find((p: any) => 
+                    p.businessName.toLowerCase().trim() === name.toLowerCase().trim() && 
+                    p.id !== id
+                );
+                if (conflict) {
+                    setNameError('This business name is already taken. Please choose a unique name.');
+                }
+            }
+        } catch (e) {
+            console.error('Failed to validate business name:', e);
+        } finally {
+            setNameChecking(false);
+        }
+    };
 
     // Form State
     const [formData, setFormData] = useState({
@@ -184,21 +211,26 @@ export default function CreateBusinessProfileScreen() {
             ];
             
             const hasSlots = profile.slots && profile.slots.length > 0;
-            if (profile.category && !defaultCategories.includes(profile.category)) {
-                setCustomCategory(profile.category);
-                setFormData({
-                    ...profile,
-                    category: 'Others',
-                    enableBooking: hasSlots,
-                    bookingSlots: profile.slots || []
-                });
-            } else {
-                setFormData({
-                    ...profile,
-                    enableBooking: hasSlots,
-                    bookingSlots: profile.slots || []
-                });
+            let finalCategory = profile.category || '';
+            let parsedCustomCategory = '';
+            
+            if (profile.category) {
+                const cats = profile.category.split(', ').map((c: string) => c.trim());
+                const nonDefault = cats.filter((c: string) => !defaultCategories.includes(c));
+                if (nonDefault.length > 0) {
+                    parsedCustomCategory = nonDefault.join(', ');
+                    const activeCats = cats.map((c: string) => defaultCategories.includes(c) ? c : 'Others');
+                    finalCategory = Array.from(new Set(activeCats)).join(', ');
+                }
             }
+            
+            setCustomCategory(parsedCustomCategory);
+            setFormData({
+                ...profile,
+                category: finalCategory,
+                enableBooking: hasSlots,
+                bookingSlots: profile.slots || []
+            });
 
             if (profile.latitude && profile.longitude) {
                 const latDelta = (profile.serviceRadiusKm * 2.5) / 111;
@@ -626,6 +658,14 @@ export default function CreateBusinessProfileScreen() {
                 Alert.alert('Validation Error', 'Business Name is required');
                 return;
             }
+            if (nameError) {
+                Alert.alert('Validation Error', 'Please choose a unique business name');
+                return;
+            }
+            if (nameChecking) {
+                Alert.alert('Validation Error', 'Validating business name, please wait...');
+                return;
+            }
             if (!formData.category) {
                 Alert.alert('Validation Error', 'Business Category is required');
                 return;
@@ -675,7 +715,7 @@ export default function CreateBusinessProfileScreen() {
                             )}
                         </View>
                         <Text style={[styles.stepLabel, step === i && styles.stepLabelActive]}>
-                            {i === 1 ? 'Business Info' : i === 2 ? 'Services' : i === 3 ? 'Location' : i === 4 ? 'Booking Settings' : 'Review & Publish'}
+                            {i === 1 ? 'Business Info' : i === 2 ? 'Gallery & Showcase' : i === 3 ? 'Location' : i === 4 ? 'Book Service' : 'Review & Publish'}
                         </Text>
                     </View>
                     {i < 5 && <View style={[styles.stepLine, step > i && styles.stepLineActive]} />}
@@ -704,29 +744,56 @@ export default function CreateBusinessProfileScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Business Name *</Text>
                         <TextInput 
-                            style={styles.input} 
+                            style={[styles.input, nameError ? { borderColor: '#ef4444' } : null]} 
                             placeholder="Enter business name" 
                             placeholderTextColor="#94a3b8"
                             value={formData.businessName}
-                            onChangeText={t => setFormData({...formData, businessName: t})}
+                            onChangeText={t => {
+                                setFormData({...formData, businessName: t});
+                                setNameError('');
+                            }}
+                            onBlur={() => validateBusinessName(formData.businessName)}
                         />
+                        {nameChecking && <Text style={{ fontSize: 11, color: '#3b82f6', marginTop: 4 }}>Checking availability...</Text>}
+                        {nameError ? <Text style={{ fontSize: 11, color: '#ef4444', marginTop: 4, fontWeight: '600' }}>{nameError}</Text> : null}
                     </View>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Business Category *</Text>
+                        <Text style={styles.label}>Business Categories *</Text>
                         <TouchableOpacity 
                             style={styles.pickerContainer}
                             onPress={() => setFormData({...formData, showCategoryModal: true})}
                         >
                             <Text style={[styles.pickerValue, !formData.category && { color: '#94a3b8' }]}>
-                                {formData.category === 'Others' ? (customCategory ? `Others (${customCategory})` : 'Others') : (formData.category || 'Select a category')}
+                                Select categories...
                             </Text>
                             <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
                         </TouchableOpacity>
+                        
+                        {formData.category ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                                {formData.category.split(', ').filter(Boolean).map(cat => (
+                                    <View key={cat} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.2)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 }}>
+                                        <Text style={{ fontSize: 13, color: '#60a5fa', fontWeight: '600', marginRight: 4 }}>
+                                            {cat === 'Others' && customCategory ? `Others (${customCategory})` : cat}
+                                        </Text>
+                                        <TouchableOpacity 
+                                            onPress={() => {
+                                                const active = formData.category.split(', ').filter(Boolean);
+                                                const updated = active.filter(c => c !== cat).join(', ');
+                                                setFormData({ ...formData, category: updated });
+                                            }}
+                                        >
+                                            <Ionicons name="close-circle" size={16} color="#60a5fa" />
+                                        </TouchableOpacity>
+                                    </View>
+                                ))}
+                            </View>
+                        ) : null}
                     </View>
                 </View>
             </View>
 
-            {formData.category === 'Others' && (
+            {formData.category.split(', ').includes('Others') && (
                 <View style={[styles.inputGroup, { marginTop: 12 }]}>
                     <Text style={styles.label}>Custom Category *</Text>
                     <TextInput 
@@ -864,136 +931,104 @@ export default function CreateBusinessProfileScreen() {
         </View>
     );
 
-    const renderStep2 = () => (
-        <View style={styles.stepContent}>
-            <Text style={styles.sectionTitle}>Add Your Services</Text>
-            <Text style={styles.subText}>Select the services you offer and add details to help customers find you.</Text>
+    const renderStep2 = () => {
+        return (
+            <View style={styles.stepContent}>
+                <Text style={styles.sectionTitle}>Business Gallery & Showcase</Text>
+                <Text style={styles.subText}>
+                    Showcase your work, upload photos or videos, and write descriptions with headings to wow your customers.
+                </Text>
 
-            <View style={styles.searchBox}>
-                <Ionicons name="search" size={20} color="#94a3b8" />
-                <TextInput 
-                    style={styles.searchInput} 
-                    placeholder="Search services (e.g., Plumbing, Installation)" 
-                    placeholderTextColor="#94a3b8"
-                />
-                <TouchableOpacity><Text style={styles.browseAll}>Browse All</Text></TouchableOpacity>
-            </View>
-
-            <View style={styles.serviceHeader}>
-                <Text style={styles.serviceTitle}>Selected Services ({formData.services.length})</Text>
-                <TouchableOpacity style={styles.reorderBtn}>
-                    <Text style={styles.reorderText}>Reorder</Text>
-                    <MaterialCommunityIcons name="menu" size={16} color="#64748b" />
-                </TouchableOpacity>
-            </View>
-
-            {formData.services.map((s, i) => (
-                <View key={i} style={styles.serviceCard}>
-                    <View style={styles.dragHandle}><MaterialCommunityIcons name="dots-vertical" size={20} color="#cbd5e1" /></View>
-                    <View style={styles.serviceIconBox}>
-                        <FontAwesome5 name="tools" size={16} color="#1d4ed8" />
+                {formData.services.length === 0 ? (
+                    <View style={{ padding: 40, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                        <Ionicons name="images-outline" size={48} color="#64748b" style={{ marginBottom: 12 }} />
+                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>Your Gallery is Empty</Text>
+                        <Text style={{ color: '#64748b', fontSize: 13, textAlign: 'center', marginTop: 4, paddingHorizontal: 20, lineHeight: 18 }}>
+                            Add images, videos, or highlight text sections to build a stunning profile.
+                        </Text>
                     </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.serviceName}>{s.name}</Text>
-                        <Text style={styles.serviceDesc} numberOfLines={1}>{s.description}</Text>
-                    </View>
-                    <TouchableOpacity 
-                        style={styles.iconBtn}
-                        onPress={() => {
-                            setCurrentService(s);
-                            setShowServiceModal(true);
-                        }}
-                    >
-                        <Feather name="edit-2" size={18} color="#64748b" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={styles.iconBtn}
-                        onPress={() => {
-                            setFormData({
-                                ...formData,
-                                services: formData.services.filter((_, idx) => idx !== i)
-                            });
-                        }}
-                    >
-                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                    </TouchableOpacity>
-                </View>
-            ))}
+                ) : (
+                    <View style={{ gap: 16, marginBottom: 20 }}>
+                        {formData.services.map((item: any, i: number) => (
+                            <View key={item.id || i.toString()} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                                {item.pricingType === 'IMAGE' && item.responseTime ? (
+                                    <Image source={{ uri: item.responseTime }} style={{ width: '100%', height: 180, resizeMode: 'cover' }} />
+                                ) : item.pricingType === 'VIDEO' && item.responseTime ? (
+                                    <View style={{ width: '100%', height: 180, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Ionicons name="play-circle" size={48} color="#3b82f6" />
+                                        <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 8 }}>Video Showcase Attached</Text>
+                                    </View>
+                                ) : null}
 
-            <TouchableOpacity 
-                style={styles.addAnotherBtn} 
-                onPress={() => {
-                    setCurrentService({ id: '', name: '', description: '', pricingType: 'CONTACT', price: '', responseTime: 'Within 2 Hours', isEmergency: false });
-                    setShowServiceModal(true);
-                }}
-            >
-                <Ionicons name="add-circle-outline" size={20} color="#1d4ed8" />
-                <Text style={styles.addAnotherText}>Add Another Service</Text>
-            </TouchableOpacity>
-
-            {formData.services.length > 0 && (
-                <View style={styles.detailsSection}>
-                    <Text style={styles.sectionTitle}>Service Details (For {formData.services[0].name})</Text>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Service Description</Text>
-                        <TextInput 
-                            style={[styles.input, styles.textArea]} 
-                            placeholder="Describe what you offer in this service" 
-                            multiline
-                            maxLength={250}
-                            value={currentService.description}
-                            onChangeText={t => setCurrentService({...currentService, description: t})}
-                        />
-                        <Text style={styles.charCount}>{currentService.description.length}/250</Text>
-                    </View>
-                    
-                    <Text style={styles.label}>Pricing Type</Text>
-                    <View style={styles.radioGroup}>
-                        {['FIXED', 'STARTING', 'CONTACT'].map(p => (
-                            <TouchableOpacity 
-                                key={p} 
-                                style={styles.radioItem}
-                                onPress={() => setCurrentService({...currentService, pricingType: p})}
-                            >
-                                <View style={[styles.radioCircle, currentService.pricingType === p && styles.radioCircleActive]}>
-                                    {currentService.pricingType === p && <View style={styles.radioInner} />}
+                                <View style={{ padding: 16 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <View style={{ flex: 1, marginRight: 12 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                                <View style={{ backgroundColor: item.pricingType === 'IMAGE' ? 'rgba(59, 130, 246, 0.1)' : item.pricingType === 'VIDEO' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                                                    <Text style={{ fontSize: 10, color: item.pricingType === 'IMAGE' ? '#60a5fa' : item.pricingType === 'VIDEO' ? '#fbbf24' : '#34d399', fontWeight: '800' }}>
+                                                        {item.pricingType}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff' }}>{item.name}</Text>
+                                        </View>
+                                        
+                                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                                            <TouchableOpacity 
+                                                style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' }}
+                                                onPress={() => {
+                                                    setCurrentService(item);
+                                                    setShowServiceModal(true);
+                                                }}
+                                            >
+                                                <Feather name="edit-2" size={14} color="#94a3b8" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity 
+                                                style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.1)', alignItems: 'center', justifyContent: 'center' }}
+                                                onPress={() => {
+                                                    setFormData({
+                                                        ...formData,
+                                                        services: formData.services.filter((_, idx) => idx !== i)
+                                                    });
+                                                }}
+                                            >
+                                                <Ionicons name="trash-outline" size={14} color="#ef4444" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                    
+                                    {item.description ? (
+                                        <Text style={{ fontSize: 14, color: '#94a3b8', marginTop: 8, lineHeight: 20 }}>
+                                            {item.description}
+                                        </Text>
+                                    ) : null}
                                 </View>
-                                <Text style={styles.radioLabel}>{p === 'CONTACT' ? 'Contact for Price' : p === 'STARTING' ? 'Starting From' : 'Fixed Price'}</Text>
-                            </TouchableOpacity>
+                            </View>
                         ))}
                     </View>
+                )}
 
-                    {currentService.pricingType !== 'CONTACT' && (
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Price (₹)</Text>
-                            <TextInput 
-                                style={styles.input} 
-                                placeholder="Enter amount" 
-                                keyboardType="numeric"
-                                value={currentService.price}
-                                onChangeText={t => setCurrentService({...currentService, price: t})}
-                            />
-                        </View>
-                    )}
-
-
-
-                    <View style={styles.emergencyRow}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.label}>Emergency Service</Text>
-                            <Text style={styles.subText}>Do you provide emergency services?</Text>
-                        </View>
-                        <Switch 
-                            value={currentService.isEmergency} 
-                            onValueChange={v => setCurrentService({...currentService, isEmergency: v})}
-                            trackColor={{ false: '#e2e8f0', true: '#1d4ed8' }} 
-                        />
-                    </View>
-
-                </View>
-            )}
-        </View>
-    );
+                <TouchableOpacity 
+                    style={styles.addAnotherBtn} 
+                    onPress={() => {
+                        setCurrentService({ 
+                            id: '', 
+                            name: '', 
+                            description: '', 
+                            pricingType: 'IMAGE',
+                            price: '', 
+                            responseTime: '',
+                            isEmergency: false 
+                        });
+                        setShowServiceModal(true);
+                    }}
+                >
+                    <Ionicons name="add-circle-outline" size={20} color="#1d4ed8" />
+                    <Text style={styles.addAnotherText}>Add Showcase/Gallery Item</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
 
     const renderStep3 = () => (
         <View style={styles.stepContent}>
@@ -1890,9 +1925,20 @@ export default function CreateBusinessProfileScreen() {
         try {
             const synced = syncServiceReach();
             
+            let finalCategory = formData.category || '';
+            if (finalCategory) {
+                const cats = finalCategory.split(', ').map(c => c.trim());
+                const idx = cats.indexOf('Others');
+                if (idx !== -1 && customCategory) {
+                    cats[idx] = customCategory;
+                }
+                finalCategory = cats.join(', ');
+            }
+
             // Include all business details in the payload
             const payload = {
                 ...formData,
+                category: finalCategory,
                 serviceAreaType: synced.serviceAreaType,
                 serviceAreaValues: synced.serviceAreaValues,
                 pincode: formData.location, // Mapping for backend
@@ -1900,7 +1946,14 @@ export default function CreateBusinessProfileScreen() {
                 expertise: formData.experience,
                 description: formData.about,
                 images: formData.logo ? [formData.logo] : [], // Use logo as primary image
-                services: formData.services, // Ensure services list is sent
+                services: formData.services.map((s: any) => ({
+                    name: s.name,
+                    description: s.description || '',
+                    pricingType: s.pricingType || 'TEXT',
+                    price: 0,
+                    responseTime: s.responseTime || '',
+                    isEmergency: false
+                })), // Ensure services list is sent
                 slots: formData.enableBooking ? formData.bookingSlots.map((s: any) => ({
                     name: s.name,
                     description: s.description || null,
@@ -1919,9 +1972,10 @@ export default function CreateBusinessProfileScreen() {
             }
             Alert.alert('Success', 'Profile published successfully! 🚀');
             router.replace('/business-profiles');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Publish error:', error);
-            Alert.alert('Error', 'Failed to publish profile. Please check your network and try again.');
+            const msg = error.response?.data?.message || 'Failed to publish profile. Please check your network and try again.';
+            Alert.alert('Error', msg);
         } finally {
             setLoading(false);
         }
@@ -1952,18 +2006,31 @@ export default function CreateBusinessProfileScreen() {
             ? [...allOptions.filter(c => c.toLowerCase().includes(query) && c !== 'Others'), 'Others']
             : allOptions;
 
+        const activeList = formData.category ? formData.category.split(', ').filter(Boolean) : [];
+
         return (
             <Modal visible={formData.showCategoryModal} transparent animationType="slide">
                 <View style={pickerStyles.modalOverlay}>
                     <View style={[pickerStyles.modalContent, { height: '80%' }]}>
                         <View style={pickerStyles.modalHeader}>
-                            <Text style={pickerStyles.modalTitle}>Select Business Category</Text>
-                            <TouchableOpacity onPress={() => {
-                                setCategorySearch('');
-                                setFormData({...formData, showCategoryModal: false});
-                            }}>
-                                <Ionicons name="close" size={24} color="#fff" />
-                            </TouchableOpacity>
+                            <Text style={pickerStyles.modalTitle}>Select Categories</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                <TouchableOpacity 
+                                    style={{ backgroundColor: '#1d4ed8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+                                    onPress={() => {
+                                        setCategorySearch('');
+                                        setFormData({...formData, showCategoryModal: false});
+                                    }}
+                                >
+                                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Done</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => {
+                                    setCategorySearch('');
+                                    setFormData({...formData, showCategoryModal: false});
+                                }}>
+                                    <Ionicons name="close" size={24} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                         
                         {/* Search input */}
@@ -1984,26 +2051,36 @@ export default function CreateBusinessProfileScreen() {
                         </View>
 
                         <ScrollView keyboardShouldPersistTaps="handled">
-                            {filtered.map(opt => (
-                                <TouchableOpacity 
-                                    key={opt} 
-                                    style={pickerStyles.optionItem} 
-                                    onPress={() => {
-                                        setFormData({...formData, category: opt, showCategoryModal: false});
-                                        setCategorySearch('');
-                                    }}
-                                >
-                                    <Text style={[
-                                        pickerStyles.optionText, 
-                                        formData.category === opt && { color: '#3b82f6', fontWeight: '800' }
-                                    ]}>
-                                        {opt}
-                                    </Text>
-                                    {formData.category === opt && (
-                                        <Ionicons name="checkmark" size={18} color="#3b82f6" />
-                                    )}
-                                </TouchableOpacity>
-                            ))}
+                            {filtered.map(opt => {
+                                const isSelected = activeList.includes(opt);
+                                return (
+                                    <TouchableOpacity 
+                                        key={opt} 
+                                        style={pickerStyles.optionItem} 
+                                        onPress={() => {
+                                            let updated: string[];
+                                            if (isSelected) {
+                                                updated = activeList.filter(c => c !== opt);
+                                            } else {
+                                                updated = [...activeList, opt];
+                                            }
+                                            setFormData({...formData, category: updated.join(', ')});
+                                        }}
+                                    >
+                                        <Text style={[
+                                            pickerStyles.optionText, 
+                                            isSelected && { color: '#3b82f6', fontWeight: '800' }
+                                        ]}>
+                                            {opt}
+                                        </Text>
+                                        <Ionicons 
+                                            name={isSelected ? "checkbox" : "square-outline"} 
+                                            size={20} 
+                                            color={isSelected ? "#3b82f6" : "#64748b"} 
+                                        />
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </ScrollView>
                     </View>
                 </View>
@@ -2280,48 +2357,111 @@ export default function CreateBusinessProfileScreen() {
                 () => setFormData({...formData, showTypeModal: false})
             )}
 
-            {/* Service Modal */}
+            {/* Showcase Item Modal */}
             <Modal visible={showServiceModal} transparent animationType="slide">
                 <View style={pickerStyles.modalOverlay}>
-                    <View style={[pickerStyles.modalContent, { maxHeight: '80%' }]}>
+                    <View style={[pickerStyles.modalContent, { maxHeight: '85%' }]}>
                         <View style={pickerStyles.modalHeader}>
-                            <Text style={pickerStyles.modalTitle}>{currentService.id ? 'Edit Service' : 'Add New Service'}</Text>
+                            <Text style={pickerStyles.modalTitle}>{currentService.id ? 'Edit Showcase Item' : 'Add Showcase Item'}</Text>
                             <TouchableOpacity onPress={() => setShowServiceModal(false)}>
                                 <Ionicons name="close" size={24} color="#fff" />
                             </TouchableOpacity>
                         </View>
-                        <ScrollView showsVerticalScrollIndicator={false}>
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Service Name *</Text>
+                                <Text style={styles.label}>Heading / Title *</Text>
                                 <TextInput 
                                     style={styles.input} 
-                                    placeholder="e.g., Pipe Fixing, Full Cleaning" 
+                                    placeholder="e.g., Completed Bathroom Makeover, Video Tour" 
                                     placeholderTextColor="#94a3b8"
                                     value={currentService.name}
                                     onChangeText={t => setCurrentService({...currentService, name: t})}
                                 />
                             </View>
+                            
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Media Type</Text>
+                                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                                    {[
+                                        { label: 'Photo', type: 'IMAGE', icon: 'image-outline' },
+                                        { label: 'Video', type: 'VIDEO', icon: 'videocam-outline' },
+                                        { label: 'Text Only', type: 'TEXT', icon: 'document-text-outline' },
+                                    ].map(item => {
+                                        const isSel = currentService.pricingType === item.type;
+                                        return (
+                                            <TouchableOpacity 
+                                                key={item.type}
+                                                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: isSel ? 'rgba(37, 99, 235, 0.15)' : 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: isSel ? '#1d4ed8' : 'rgba(255,255,255,0.05)', borderRadius: 12, paddingVertical: 12, gap: 6 }}
+                                                onPress={() => setCurrentService({
+                                                    ...currentService,
+                                                    pricingType: item.type,
+                                                    responseTime: currentService.pricingType === item.type ? currentService.responseTime : ''
+                                                })}
+                                            >
+                                                <Ionicons name={item.icon as any} size={16} color={isSel ? '#3b82f6' : '#64748b'} />
+                                                <Text style={{ fontSize: 13, fontWeight: '700', color: isSel ? '#3b82f6' : '#94a3b8' }}>{item.label}</Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+
+                            {currentService.pricingType !== 'TEXT' && (
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Upload {currentService.pricingType === 'IMAGE' ? 'Photo' : 'Video'} *</Text>
+                                    <TouchableOpacity 
+                                        style={{ width: '100%', height: 160, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderStyle: 'dashed', borderWidth: 2, borderColor: currentService.responseTime ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+                                        onPress={async () => {
+                                            const mediaTypes = currentService.pricingType === 'IMAGE'
+                                                ? ImagePicker.MediaTypeOptions.Images
+                                                : ImagePicker.MediaTypeOptions.Videos;
+                                            const result = await ImagePicker.launchImageLibraryAsync({
+                                                mediaTypes,
+                                                allowsEditing: true,
+                                                quality: 0.7,
+                                            });
+                                            if (!result.canceled) {
+                                                setCurrentService({
+                                                    ...currentService,
+                                                    responseTime: result.assets[0].uri
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        {currentService.responseTime ? (
+                                            currentService.pricingType === 'IMAGE' ? (
+                                                <Image source={{ uri: currentService.responseTime }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                                            ) : (
+                                                <View style={{ alignItems: 'center' }}>
+                                                    <Ionicons name="play-circle" size={40} color="#10b981" />
+                                                    <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '600', marginTop: 8 }}>Video Selected</Text>
+                                                    <Text style={{ color: '#64748b', fontSize: 10, marginTop: 2 }}>Tap to change video</Text>
+                                                </View>
+                                            )
+                                        ) : (
+                                            <>
+                                                <Ionicons name="cloud-upload-outline" size={32} color="#64748b" />
+                                                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '600', marginTop: 8 }}>
+                                                    Select {currentService.pricingType === 'IMAGE' ? 'Photo' : 'Video'}
+                                                </Text>
+                                                <Text style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+                                                    Max file size 10MB
+                                                </Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Description</Text>
                                 <TextInput 
                                     style={[styles.input, styles.textArea]} 
-                                    placeholder="Describe the service details..." 
+                                    placeholder="Write a clear, helpful description about this gallery item..." 
                                     placeholderTextColor="#94a3b8"
                                     multiline
                                     value={currentService.description}
                                     onChangeText={t => setCurrentService({...currentService, description: t})}
-                                />
-                            </View>
-                            
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Average Price (Optional)</Text>
-                                <TextInput 
-                                    style={styles.input} 
-                                    placeholder="Enter price" 
-                                    placeholderTextColor="#94a3b8"
-                                    keyboardType="numeric"
-                                    value={currentService.price}
-                                    onChangeText={t => setCurrentService({...currentService, price: t})}
                                 />
                             </View>
 
@@ -2329,7 +2469,11 @@ export default function CreateBusinessProfileScreen() {
                                 style={[styles.continueBtn, { marginTop: 20 }]}
                                 onPress={() => {
                                     if (!currentService.name) {
-                                        Alert.alert('Error', 'Please enter a service name');
+                                        Alert.alert('Error', 'Please enter a heading/title');
+                                        return;
+                                    }
+                                    if (currentService.pricingType !== 'TEXT' && !currentService.responseTime) {
+                                        Alert.alert('Error', `Please select a ${currentService.pricingType === 'IMAGE' ? 'photo' : 'video'} to upload.`);
                                         return;
                                     }
                                     const newServices = [...formData.services];
@@ -2343,7 +2487,7 @@ export default function CreateBusinessProfileScreen() {
                                     setShowServiceModal(false);
                                 }}
                             >
-                                <Text style={styles.continueBtnText}>Save Service</Text>
+                                <Text style={styles.continueBtnText}>Save Gallery Item</Text>
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
