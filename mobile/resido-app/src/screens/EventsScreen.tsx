@@ -97,6 +97,37 @@ export default function EventsScreen() {
     });
     const [timePickerFor, setTimePickerFor] = useState<'start' | 'end' | null>(null);
 
+    // ── Double-Layer Client Role Security ──────────────────────────────
+    const filteredEvents = React.useMemo(() => {
+        const memberId = activeWorkspace?.memberId || user?.id || '';
+        const role = (activeWorkspace?.role || 'RESIDENT') as string;
+        const isStaff = role.endsWith('STAFF') || role === 'CARETAKER' || role === 'ACCOUNTS';
+        const targetAudience = role === 'MEMBER' ? 'MEMBERS' : (role === 'RESIDENT' ? 'RESIDENTS' : (isStaff ? 'STAFF' : 'RESIDENTS'));
+        
+        return events.filter((e: any) => {
+            const aud = e.audience || [];
+            const isCreator = e.createdBy === memberId || e.createdBy === user?.id;
+            const isShared = e.sharedWithIds && (e.sharedWithIds.includes(memberId) || e.sharedWithIds.includes(user?.id || ''));
+            
+            return isAdmin ||
+                   isCreator ||
+                   isShared ||
+                   aud.length === 0 ||
+                   aud.includes(targetAudience);
+        });
+    }, [events, activeWorkspace?.role, activeWorkspace?.memberId, user?.id, isAdmin]);
+
+    // ── WeekDays Resolver ──────────────────────────────────────────────────
+    const weekDays = React.useMemo(() => {
+        const current = new Date(selectedDate);
+        const { start } = getWeekRange(current);
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            return d;
+        });
+    }, [selectedDate]);
+
     // ── Fetch ──────────────────────────────────────────────────────────────
 
     const fetchEvents = useCallback(async () => {
@@ -110,16 +141,16 @@ export default function EventsScreen() {
             const marks: any = {};
             list.forEach((ev: any) => {
                 const d = toDateStr(new Date(ev.startDate));
-                marks[d] = { marked: true, dotColor: '#3b82f6' };
+                marks[d] = { marked: true, dotColor: theme.primary };
             });
-            marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: '#3b82f6' };
+            marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: theme.primary };
             setMarkedDates(marks);
         } catch (e) {
             console.error('Fetch events failed', e);
         } finally {
             setLoading(false);
         }
-    }, [activeWorkspace?.memberId, user?.id]);
+    }, [activeWorkspace?.memberId, user?.id, theme.primary, selectedDate]);
 
     useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
@@ -137,7 +168,7 @@ export default function EventsScreen() {
                 delete marks[k].selectedColor;
             }
         });
-        marks[newDate] = { ...marks[newDate], selected: true, selectedColor: '#3b82f6' };
+        marks[newDate] = { ...marks[newDate], selected: true, selectedColor: theme.primary };
         setMarkedDates(marks);
     };
 
@@ -146,18 +177,18 @@ export default function EventsScreen() {
     const visibleEvents = (() => {
         const base = new Date(selectedDate);
         if (viewMode === 'day') {
-            return events.filter(e => isSameDay(new Date(e.startDate), base));
+            return filteredEvents.filter(e => isSameDay(new Date(e.startDate), base));
         }
         if (viewMode === 'week') {
             const { start, end } = getWeekRange(base);
-            return events.filter(e => {
+            return filteredEvents.filter(e => {
                 const d = new Date(e.startDate);
                 return d >= start && d <= new Date(end.setHours(23, 59, 59));
             });
         }
         // month
         const { start, end } = getMonthRange(base);
-        return events.filter(e => {
+        return filteredEvents.filter(e => {
             const d = new Date(e.startDate);
             return d >= start && d <= new Date(end.setHours(23, 59, 59));
         });
@@ -254,24 +285,130 @@ export default function EventsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Calendar */}
-                <Calendar
-                    theme={{
-                        backgroundColor:            theme.background,
-                        calendarBackground:         theme.background,
-                        textSectionTitleColor:      '#94a3b8',
-                        selectedDayBackgroundColor: '#3b82f6',
-                        selectedDayTextColor:       '#ffffff',
-                        todayTextColor:             '#3b82f6',
-                        dayTextColor:               '#fff',
-                        textDisabledColor:          'rgba(255,255,255,0.15)',
-                        dotColor:                   '#3b82f6',
-                        monthTextColor:             '#fff',
-                        arrowColor:                 '#3b82f6',
-                    }}
-                    markedDates={markedDates}
-                    onDayPress={handleDayPress}
-                    style={styles.calendar}
-                />
+                {viewMode === 'month' && (
+                    <Calendar
+                        theme={{
+                            backgroundColor:            theme.background,
+                            calendarBackground:         theme.background,
+                            textSectionTitleColor:      '#94a3b8',
+                            selectedDayBackgroundColor: theme.primary,
+                            selectedDayTextColor:       '#ffffff',
+                            todayTextColor:             theme.primary,
+                            dayTextColor:               '#fff',
+                            textDisabledColor:          'rgba(255,255,255,0.15)',
+                            dotColor:                   theme.primary,
+                            monthTextColor:             '#fff',
+                            arrowColor:                 theme.primary,
+                        }}
+                        markedDates={markedDates}
+                        onDayPress={handleDayPress}
+                        style={styles.calendar}
+                    />
+                )}
+
+                {viewMode === 'week' && (
+                    <View style={styles.weekCalendar}>
+                        {weekDays.map(d => {
+                            const dateStr = toDateStr(d);
+                            const isSelected = dateStr === selectedDate;
+                            const isTodayDate = dateStr === toDateStr(new Date());
+                            const hasEvent = filteredEvents.some(e => toDateStr(new Date(e.startDate)) === dateStr);
+                            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                            const dayNum = d.getDate();
+                            
+                            return (
+                                <TouchableOpacity
+                                    key={dateStr}
+                                    style={[
+                                        styles.weekDayBtn,
+                                        isSelected && [styles.weekDayBtnSelected, { backgroundColor: theme.primary }],
+                                        isTodayDate && !isSelected && styles.weekDayBtnToday
+                                    ]}
+                                    onPress={() => {
+                                        setSelectedDate(dateStr);
+                                        const marks = { ...markedDates };
+                                        Object.keys(marks).forEach(k => {
+                                            if (marks[k].selected) {
+                                                marks[k] = { ...marks[k] };
+                                                delete marks[k].selected;
+                                                delete marks[k].selectedColor;
+                                            }
+                                        });
+                                        marks[dateStr] = { ...marks[dateStr], selected: true, selectedColor: theme.primary };
+                                        setMarkedDates(marks);
+                                    }}
+                                >
+                                    <Text style={[styles.weekDayName, isSelected && styles.weekDayNameSelected]}>
+                                        {dayName}
+                                    </Text>
+                                    <Text style={[styles.weekDayNum, isSelected && styles.weekDayNumSelected]}>
+                                        {dayNum}
+                                    </Text>
+                                    {hasEvent && (
+                                        <View style={[styles.weekDayDot, isSelected && styles.weekDayDotSelected, { backgroundColor: theme.primary }]} />
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                )}
+
+                {viewMode === 'day' && (
+                    <View style={styles.daySelectorHeader}>
+                        <TouchableOpacity
+                            style={styles.dayArrowBtn}
+                            onPress={() => {
+                                const prev = new Date(selectedDate);
+                                prev.setDate(prev.getDate() - 1);
+                                const prevStr = toDateStr(prev);
+                                setSelectedDate(prevStr);
+                                const marks = { ...markedDates };
+                                Object.keys(marks).forEach(k => {
+                                    if (marks[k].selected) {
+                                        marks[k] = { ...marks[k] };
+                                        delete marks[k].selected;
+                                        delete marks[k].selectedColor;
+                                    }
+                                });
+                                marks[prevStr] = { ...marks[prevStr], selected: true, selectedColor: theme.primary };
+                                setMarkedDates(marks);
+                            }}
+                        >
+                            <Ionicons name="chevron-back" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        
+                        <View style={styles.daySelectorLabelContainer}>
+                            <Text style={styles.daySelectorTitle}>
+                                {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })}
+                            </Text>
+                            <Text style={styles.daySelectorSubtitle}>
+                                {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                            </Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.dayArrowBtn}
+                            onPress={() => {
+                                const next = new Date(selectedDate);
+                                next.setDate(next.getDate() + 1);
+                                const nextStr = toDateStr(next);
+                                setSelectedDate(nextStr);
+                                const marks = { ...markedDates };
+                                Object.keys(marks).forEach(k => {
+                                    if (marks[k].selected) {
+                                        marks[k] = { ...marks[k] };
+                                        delete marks[k].selected;
+                                        delete marks[k].selectedColor;
+                                    }
+                                });
+                                marks[nextStr] = { ...marks[nextStr], selected: true, selectedColor: theme.primary };
+                                setMarkedDates(marks);
+                            }}
+                        >
+                            <Ionicons name="chevron-forward" size={24} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 {/* View Mode Tabs */}
                 <View style={styles.viewTabs}>
@@ -572,16 +709,112 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
     headerSub:   { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
     backBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    createBtn:   { width: 44, height: 44, borderRadius: 22, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
+    createBtn:   { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
 
     calendar: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 8 },
 
     // View mode tabs
     viewTabs:         { flexDirection: 'row', marginHorizontal: 20, marginTop: 16, marginBottom: 4, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
     viewTab:          { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-    viewTabActive:    { backgroundColor: '#3b82f6' },
+    viewTabActive:    { backgroundColor: '#8b5cf6' },
     viewTabText:      { fontSize: 13, fontWeight: '700', color: '#64748b' },
     viewTabTextActive:{ color: '#fff', fontWeight: '900' },
+
+    weekCalendar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginHorizontal: 20,
+        marginTop: 16,
+        marginBottom: 8,
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderRadius: 20,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    weekDayBtn: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderRadius: 12,
+        marginHorizontal: 2,
+    },
+    weekDayBtnSelected: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 6,
+    },
+    weekDayBtnToday: {
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    weekDayName: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#64748b',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    weekDayNameSelected: {
+        color: '#fff',
+        fontWeight: '900',
+    },
+    weekDayNum: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#fff',
+    },
+    weekDayNumSelected: {
+        fontWeight: '900',
+    },
+    weekDayDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        marginTop: 4,
+    },
+    weekDayDotSelected: {
+        backgroundColor: '#fff',
+    },
+    daySelectorHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginHorizontal: 20,
+        marginTop: 16,
+        marginBottom: 8,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 20,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    dayArrowBtn: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    daySelectorLabelContainer: {
+        alignItems: 'center',
+    },
+    daySelectorTitle: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#fff',
+    },
+    daySelectorSubtitle: {
+        fontSize: 11,
+        color: '#64748b',
+        fontWeight: '700',
+        marginTop: 2,
+    },
 
     eventsSection:    { padding: 20 },
     sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },

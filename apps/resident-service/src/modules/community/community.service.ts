@@ -400,19 +400,26 @@ export class CommunityService {
         });
     }
 
-    // ─── Events / Calendar ──────────────────────────────────────
     async getEvents(memberId: string) {
         const events = await this.prisma.reader.event.findMany({
             orderBy: { startDate: 'asc' }
         });
 
         if (!memberId) {
-            return events;
+            return events.filter((e: any) => !e.audience || e.audience.length === 0);
         }
 
-        const member = await this.prisma.reader.member.findUnique({ where: { id: memberId } });
+        const member = await this.prisma.reader.member.findFirst({
+            where: {
+                OR: [
+                    { id: memberId },
+                    { userId: memberId }
+                ]
+            }
+        });
+
         if (!member) {
-            return events;
+            return events.filter((e: any) => !e.audience || e.audience.length === 0);
         }
 
         const isAdmin = member.role === 'APARTMENT_ADMIN';
@@ -420,11 +427,27 @@ export class CommunityService {
             return events;
         }
 
-        const targetAudience = member.role === 'MEMBER' ? 'MEMBERS' : (member.role === 'RESIDENT' ? 'RESIDENTS' : 'STAFF');
+        const isStaff = member.role.toString().endsWith('STAFF') || 
+                        member.role === 'CARETAKER' || 
+                        member.role === 'MAINTENANCE_STAFF' || 
+                        member.role === 'SECURITY_STAFF' || 
+                        member.role === 'CLEANING_STAFF' || 
+                        member.role === 'SERVICE_STAFF' || 
+                        member.role === 'STAFF' ||
+                        member.role === 'ACCOUNTS' ||
+                        member.role === 'ACCOUNTS_STAFF' ||
+                        member.role === 'MANAGER_STAFF' ||
+                        member.role === 'ADMIN_STAFF';
+
+        const targetAudience = member.role === 'MEMBER' ? 'MEMBERS' : (member.role === 'RESIDENT' ? 'RESIDENTS' : (isStaff ? 'STAFF' : 'RESIDENTS'));
+
         return events.filter((e: any) => {
             const aud = e.audience || [];
-            return e.createdBy === memberId ||
-                   (e.sharedWithIds && e.sharedWithIds.includes(memberId)) ||
+            const isCreator = e.createdBy === member.id || e.createdBy === member.userId;
+            const isShared = e.sharedWithIds && (e.sharedWithIds.includes(member.id) || e.sharedWithIds.includes(member.userId));
+            
+            return isCreator ||
+                   isShared ||
                    aud.length === 0 ||
                    aud.includes(targetAudience);
         });
