@@ -156,8 +156,6 @@ export default function DefaultDashboard() {
         React.useCallback(() => {
             const syncProfileAndWorkspaces = async () => {
                 try {
-                    setImageTimestamp(Date.now());
-                    
                     const userRes = await authApi.getProfile();
                     if (userRes?.data) {
                         useAuthStore.getState().updateUser(userRes.data);
@@ -167,6 +165,9 @@ export default function DefaultDashboard() {
                     if (wsRes?.data) {
                         useAuthStore.getState().setWorkspaces(wsRes.data);
                     }
+
+                    // Bust image cache AFTER data is loaded so new URLs are reflected
+                    setImageTimestamp(Date.now());
                 } catch (e) {
                     console.warn('Failed to sync profile on screen focus:', e);
                 }

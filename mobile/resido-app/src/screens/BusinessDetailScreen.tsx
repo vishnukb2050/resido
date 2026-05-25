@@ -253,6 +253,51 @@ export default function BusinessDetailScreen() {
                 </TouchableOpacity>
             </View>
 
+            {/* Owner Actions Bar — only visible to profile owner */}
+            {user && profile.userId && profile.userId === user.id && (
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    backgroundColor: '#0f172a',
+                    borderBottomWidth: 1,
+                    borderBottomColor: 'rgba(255,255,255,0.07)'
+                }}>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
+                        <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>Owner View</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 6,
+                            backgroundColor: 'rgba(29, 78, 216, 0.15)',
+                            paddingHorizontal: 14, paddingVertical: 8,
+                            borderRadius: 20, borderWidth: 1, borderColor: '#1d4ed8'
+                        }}
+                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id } })}
+                    >
+                        <Feather name="edit-3" size={14} color="#60a5fa" />
+                        <Text style={{ color: '#60a5fa', fontSize: 12, fontWeight: '800' }}>Edit Profile</Text>
+                    </TouchableOpacity>
+                    {profile.slots && profile.slots.length > 0 && (
+                        <TouchableOpacity
+                            style={{
+                                flexDirection: 'row', alignItems: 'center', gap: 6,
+                                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                                paddingHorizontal: 14, paddingVertical: 8,
+                                borderRadius: 20, borderWidth: 1, borderColor: '#10b981'
+                            }}
+                            onPress={() => router.push({ pathname: '/business-bookings-manage', params: { profileId: profile.id } })}
+                        >
+                            <Ionicons name="calendar" size={14} color="#10b981" />
+                            <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '800' }}>Manage Bookings</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            )}
+
             <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Hero / Cover */}
                 <View style={styles.heroSection}>

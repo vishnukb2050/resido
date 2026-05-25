@@ -1547,6 +1547,45 @@ export default function CreateBusinessProfileScreen() {
                         </TouchableOpacity>
                     </View>
                 )}
+
+                {/* Save Slots shortcut button for existing profiles */}
+                {id && formData.bookingSlots.length > 0 && (
+                    <TouchableOpacity
+                        style={[styles.continueBtn, { marginTop: 20, backgroundColor: '#10b981', shadowColor: '#10b981' }]}
+                        onPress={async () => {
+                            setLoading(true);
+                            try {
+                                const slotPayload = formData.enableBooking ? formData.bookingSlots.map((s: any) => ({
+                                    name: s.name,
+                                    description: s.description || null,
+                                    maxPersons: s.maxPersons || 1,
+                                    timeSlots: s.timeSlots || [],
+                                    scheduleType: s.scheduleType || 'WEEKLY',
+                                    scheduleConfig: typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig),
+                                    allowRecurringBookings: s.allowRecurringBookings || false
+                                })) : [];
+                                await businessApi.updateProfile(id as string, {
+                                    enableBooking: formData.enableBooking,
+                                    slots: slotPayload
+                                });
+                                Alert.alert('✅ Saved!', 'Booking slots updated successfully.');
+                            } catch (err: any) {
+                                const msg = err.response?.data?.message || 'Failed to save slots.';
+                                Alert.alert('Error', msg);
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        disabled={loading}
+                    >
+                        {loading ? <ActivityIndicator color="#fff" /> : (
+                            <>
+                                <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                <Text style={styles.continueBtnText}>Save & Update Slots</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                )}
             </View>
         );
     };

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useFocusEffect } from 'expo-router';
 
 interface BottomNavProps {
     activeTab?: 'Home' | 'Flares' | 'Threads' | 'Chats' | 'Account';
@@ -12,6 +13,14 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
     const isMySpace = activeWorkspace === null;
+    const [imageKey, setImageKey] = useState(Date.now());
+
+    useFocusEffect(
+        useCallback(() => {
+            setImageKey(Date.now());
+        }, [])
+    );
+
 
     const themeStyles = {
         background: '#000000', // Pure black always
@@ -60,7 +69,7 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
                     activeTab === 'Account' && { borderColor: themeStyles.activeIcon, borderWidth: 2 }
                 ]}>
                     {user?.profilePhoto ? (
-                        <Image source={{ uri: user.profilePhoto }} style={styles.navAvatar} />
+                        <Image source={{ uri: `${user.profilePhoto}?t=${imageKey}` }} style={styles.navAvatar} />
                     ) : (
                         <View style={[styles.navAvatarPlaceholder, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
                             <Ionicons 

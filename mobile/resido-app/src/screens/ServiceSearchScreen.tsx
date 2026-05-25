@@ -470,7 +470,7 @@ export default function ServiceSearchScreen() {
                                 setShowTopDropdown(true);
                             }}
                             onFocus={() => setShowTopDropdown(true)}
-                            onBlur={() => setTimeout(() => setShowTopDropdown(false), 200)}
+                            onBlur={() => setTimeout(() => setShowTopDropdown(false), 400)}
                         />
                         {searchQuery ? (
                             <TouchableOpacity onPress={() => {
@@ -551,7 +551,7 @@ export default function ServiceSearchScreen() {
                                 placeholderTextColor="#94a3b8"
                                 value={searchLocation}
                                 onChangeText={handleLocationSearch}
-                                onBlur={() => setTimeout(() => setShowGlobalDropdown(false), 200)}
+                                onBlur={() => setTimeout(() => setShowGlobalDropdown(false), 400)}
                             />
                             <TouchableOpacity style={styles.nearMeBtn} onPress={handleUseCurrentLocation}>
                                 <MaterialCommunityIcons name="google-maps" size={18} color="#1d4ed8" />
