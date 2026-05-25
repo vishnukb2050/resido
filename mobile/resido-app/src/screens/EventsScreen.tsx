@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { useAuthStore } from '../store/authStore';
-import { communityApi } from '../services/api';
+import { communityApi, authApi, chatApi } from '../services/api';
 import { getThemeColors } from '../utils/theme';
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -71,7 +71,7 @@ export default function EventsScreen() {
     const { activeWorkspace, user } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
 
-    const isAdmin = activeWorkspace?.role === 'APARTMENT_ADMIN';
+    const isAdmin = !activeWorkspace || activeWorkspace?.role === 'APARTMENT_ADMIN';
 
     const today = new Date();
     const [selectedDate, setSelectedDate] = useState(toDateStr(today));
@@ -97,9 +97,25 @@ export default function EventsScreen() {
     });
     const [timePickerFor, setTimePickerFor] = useState<'start' | 'end' | null>(null);
 
+    // Sharing states for Personal Space (My Space)
+    const [conversationsList, setConversationsList] = useState<any[]>([]);
+    const [followingList, setFollowingList] = useState<any[]>([]);
+    const [selectedConvs, setSelectedConvs] = useState<Record<string, boolean>>({});
+    const [selectedUsers, setSelectedUsers] = useState<Record<string, boolean>>({});
+
     // ── Double-Layer Client Role Security ──────────────────────────────
     const filteredEvents = React.useMemo(() => {
         const memberId = activeWorkspace?.memberId || user?.id || '';
+
+        if (!activeWorkspace) {
+            // My Space event filter: only show if created by user OR shared with user
+            return events.filter((e: any) => {
+                const isCreator = e.createdBy === user?.id;
+                const isShared = e.sharedWithIds && e.sharedWithIds.includes(user?.id || '');
+                return isCreator || isShared;
+            });
+        }
+
         const role = (activeWorkspace?.role || 'RESIDENT') as string;
         const isStaff = role.endsWith('STAFF') || role === 'CARETAKER' || role === 'ACCOUNTS';
         const targetAudience = role === 'MEMBER' ? 'MEMBERS' : (role === 'RESIDENT' ? 'RESIDENTS' : (isStaff ? 'STAFF' : 'RESIDENTS'));
@@ -115,7 +131,7 @@ export default function EventsScreen() {
                    aud.length === 0 ||
                    aud.includes(targetAudience);
         });
-    }, [events, activeWorkspace?.role, activeWorkspace?.memberId, user?.id, isAdmin]);
+    }, [events, activeWorkspace, user?.id, isAdmin]);
 
     // ── WeekDays Resolver ──────────────────────────────────────────────────
     const weekDays = React.useMemo(() => {
@@ -153,6 +169,25 @@ export default function EventsScreen() {
     }, [activeWorkspace?.memberId, user?.id, theme.primary, selectedDate]);
 
     useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+    useEffect(() => {
+        if (!activeWorkspace && showAdd) {
+            loadSharingData();
+        }
+    }, [activeWorkspace, showAdd]);
+
+    const loadSharingData = async () => {
+        try {
+            const [convsRes, followRes] = await Promise.all([
+                chatApi.getConversations(),
+                authApi.getFollowing()
+            ]);
+            setConversationsList(convsRes?.data || []);
+            setFollowingList(followRes?.data || []);
+        } catch (error) {
+            console.error('Failed to load MySpace sharing data:', error);
+        }
+    };
 
     // ── Calendar day press ─────────────────────────────────────────────────
 
@@ -198,9 +233,7 @@ export default function EventsScreen() {
 
     const handleCreate = async () => {
         if (!form.title.trim()) { Alert.alert('Required', 'Please enter an event title'); return; }
-        const selectedAudiences = Object.entries(audience).filter(([, v]) => v).map(([k]) => k);
-        if (selectedAudiences.length === 0) { Alert.alert('Required', 'Select at least one audience'); return; }
-
+        
         const startDate = new Date(`${selectedDate}T${form.startHour}:${form.startMin}:00`);
         const endDate   = new Date(`${selectedDate}T${form.endHour}:${form.endMin}:00`);
         if (endDate <= startDate) { Alert.alert('Invalid Time', 'End time must be after start time'); return; }
@@ -208,21 +241,48 @@ export default function EventsScreen() {
         setSaving(true);
         try {
             const memberId = activeWorkspace?.memberId || user?.id || '';
-            await communityApi.createEvent({
-                title:       form.title.trim(),
-                description: form.description.trim(),
-                location:    form.location.trim(),
-                startDate:   startDate.toISOString(),
-                endDate:     endDate.toISOString(),
-                memberId,
-                audience:    selectedAudiences,
-                visibility:  'COMMUNITY',
-            });
+            
+            if (!activeWorkspace) {
+                // My Space private or shared event
+                const sharedWithIds = [
+                    ...Object.entries(selectedConvs).filter(([, v]) => v).map(([k]) => k),
+                    ...Object.entries(selectedUsers).filter(([, v]) => v).map(([k]) => k)
+                ];
+
+                await communityApi.createEvent({
+                    title:       form.title.trim(),
+                    description: form.description.trim(),
+                    location:    form.location.trim(),
+                    startDate:   startDate.toISOString(),
+                    endDate:     endDate.toISOString(),
+                    memberId,
+                    audience:    [],
+                    visibility:  sharedWithIds.length > 0 ? 'GROUPS' : 'PRIVATE',
+                    sharedWithIds,
+                });
+            } else {
+                const selectedAudiences = Object.entries(audience).filter(([, v]) => v).map(([k]) => k);
+                if (selectedAudiences.length === 0) { Alert.alert('Required', 'Select at least one audience'); return; }
+
+                await communityApi.createEvent({
+                    title:       form.title.trim(),
+                    description: form.description.trim(),
+                    location:    form.location.trim(),
+                    startDate:   startDate.toISOString(),
+                    endDate:     endDate.toISOString(),
+                    memberId,
+                    audience:    selectedAudiences,
+                    visibility:  'COMMUNITY',
+                });
+            }
+
             setShowAdd(false);
             setForm({ title: '', description: '', location: '', startHour: '10', startMin: '00', endHour: '11', endMin: '00' });
             setAudience({ MEMBERS: true, RESIDENTS: true, STAFF: false });
+            setSelectedConvs({});
+            setSelectedUsers({});
             fetchEvents();
-            Alert.alert('✅ Event Created', 'Event added to the community calendar.');
+            Alert.alert('✅ Event Created', 'Event added to your calendar successfully.');
         } catch { Alert.alert('Error', 'Failed to create event. Please try again.'); }
         finally { setSaving(false); }
     };
@@ -532,23 +592,83 @@ export default function EventsScreen() {
                                 onChangeText={t => setForm({ ...form, description: t })}
                             />
 
-                            <Text style={styles.fieldLabel}>Assign To</Text>
-                            <Text style={styles.fieldHint}>Select who can view this event</Text>
-                            {AUDIENCE_OPTIONS.map(opt => (
-                                <TouchableOpacity
-                                    key={opt.key}
-                                    style={[styles.audienceRow, audience[opt.key] && { borderColor: opt.color, backgroundColor: `${opt.color}15` }]}
-                                    onPress={() => setAudience(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))}
-                                >
-                                    <View style={[styles.audienceIconBox, { backgroundColor: `${opt.color}20` }]}>
-                                        <Ionicons name={opt.icon as any} size={20} color={opt.color} />
-                                    </View>
-                                    <Text style={[styles.audienceLabel, audience[opt.key] && { color: '#fff' }]}>{opt.label}</Text>
-                                    <View style={[styles.checkBox, audience[opt.key] && { backgroundColor: opt.color, borderColor: opt.color }]}>
-                                        {audience[opt.key] && <Ionicons name="checkmark" size={14} color="#fff" />}
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
+                            {!activeWorkspace ? (
+                                <>
+                                    <Text style={styles.fieldLabel}>Share with Chat Groups</Text>
+                                    <Text style={styles.fieldHint}>Select conversations to share this event with</Text>
+                                    {conversationsList.length === 0 ? (
+                                        <Text style={styles.noSharingText}>No active conversations found</Text>
+                                    ) : (
+                                        conversationsList.map(conv => {
+                                            const isSelected = !!selectedConvs[conv.id];
+                                            return (
+                                                <TouchableOpacity
+                                                    key={conv.id}
+                                                    style={[styles.audienceRow, isSelected && { borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.08)' }]}
+                                                    onPress={() => setSelectedConvs(prev => ({ ...prev, [conv.id]: !prev[conv.id] }))}
+                                                >
+                                                    <View style={[styles.audienceIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+                                                        <Ionicons name="chatbubbles-outline" size={20} color="#8b5cf6" />
+                                                    </View>
+                                                    <Text style={[styles.audienceLabel, isSelected && { color: '#fff' }]} numberOfLines={1}>
+                                                        {conv.name || 'Chat Group'}
+                                                    </Text>
+                                                    <View style={[styles.checkBox, isSelected && { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }]}>
+                                                        {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })
+                                    )}
+
+                                    <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Share with Profiles</Text>
+                                    <Text style={styles.fieldHint}>Select followed profiles to share this event with</Text>
+                                    {followingList.length === 0 ? (
+                                        <Text style={styles.noSharingText}>You are not following anyone yet</Text>
+                                    ) : (
+                                        followingList.map(profile => {
+                                            const isSelected = !!selectedUsers[profile.id];
+                                            return (
+                                                <TouchableOpacity
+                                                    key={profile.id}
+                                                    style={[styles.audienceRow, isSelected && { borderColor: '#c084fc', backgroundColor: 'rgba(192, 132, 252, 0.08)' }]}
+                                                    onPress={() => setSelectedUsers(prev => ({ ...prev, [profile.id]: !prev[profile.id] }))}
+                                                >
+                                                    <View style={[styles.audienceIconBox, { backgroundColor: 'rgba(192, 132, 252, 0.15)' }]}>
+                                                        <Ionicons name="person-outline" size={20} color="#c084fc" />
+                                                    </View>
+                                                    <Text style={[styles.audienceLabel, isSelected && { color: '#fff' }]} numberOfLines={1}>
+                                                        {profile.name || profile.profileName || 'Followed User'}
+                                                    </Text>
+                                                    <View style={[styles.checkBox, isSelected && { backgroundColor: '#c084fc', borderColor: '#c084fc' }]}>
+                                                        {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <Text style={styles.fieldLabel}>Assign To</Text>
+                                    <Text style={styles.fieldHint}>Select who can view this event</Text>
+                                    {AUDIENCE_OPTIONS.map(opt => (
+                                        <TouchableOpacity
+                                            key={opt.key}
+                                            style={[styles.audienceRow, audience[opt.key] && { borderColor: opt.color, backgroundColor: `${opt.color}15` }]}
+                                            onPress={() => setAudience(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))}
+                                        >
+                                            <View style={[styles.audienceIconBox, { backgroundColor: `${opt.color}20` }]}>
+                                                <Ionicons name={opt.icon as any} size={20} color={opt.color} />
+                                            </View>
+                                            <Text style={[styles.audienceLabel, audience[opt.key] && { color: '#fff' }]}>{opt.label}</Text>
+                                            <View style={[styles.checkBox, audience[opt.key] && { backgroundColor: opt.color, borderColor: opt.color }]}>
+                                                {audience[opt.key] && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </>
+                            )}
 
                             <TouchableOpacity
                                 style={[styles.submitBtn, saving && { opacity: 0.7 }]}
@@ -858,6 +978,14 @@ const styles = StyleSheet.create({
 
     fieldLabel:  { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 16 },
     fieldHint:   { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 10, marginTop: -6 },
+    noSharingText: {
+        color: '#64748b',
+        fontSize: 12,
+        fontWeight: '600',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        fontStyle: 'italic',
+    },
     input:       { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', color: '#fff', padding: 16, fontSize: 15, fontWeight: '600' },
     textArea:    { height: 90, textAlignVertical: 'top' },
 

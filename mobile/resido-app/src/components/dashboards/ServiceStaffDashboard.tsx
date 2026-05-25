@@ -116,7 +116,7 @@ export default function ServiceStaffDashboard() {
 
                 {/* Quick Icon Grid */}
                 <View style={styles.gridContainer}>
-                    <DashboardIcon icon="construct" label="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
+                    <DashboardIcon icon="construct" label="Requests & Complaints" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="clipboard" label="Task Log" color="#fff" bg="#2563eb" />
                     <DashboardIcon icon="call" label="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
                 </View>
@@ -143,7 +143,7 @@ export default function ServiceStaffDashboard() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Maintenance Tools</Text>
                     <View style={styles.featureGrid}>
-                        <FeatureCard icon="construct" title="Work Orders" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
+                        <FeatureCard icon="construct" title="Requests & Complaints" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
                         <FeatureCard icon="clipboard" title="Task Log" color="#fff" bg="#2563eb" />
                         <FeatureCard icon="call" title="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
                         <FeatureCard icon="calendar" title="Events" color="#fff" bg="#1d4ed8" onPress={() => router.push('/events')} />

@@ -109,7 +109,7 @@ export default function ManageBusinessScreen() {
                             <TouchableOpacity 
                                 key={profile.id} 
                                 style={styles.profileCard}
-                                onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id } })}
+                                onPress={() => router.push({ pathname: '/business-detail', params: { id: profile.id } })}
                             >
                                 <View style={styles.profileInfo}>
                                     <View style={styles.logoContainer}>
@@ -163,6 +163,16 @@ export default function ManageBusinessScreen() {
                                         <Text style={styles.quickActionText}>QR Code</Text>
                                     </TouchableOpacity>
                                 </View>
+
+                                {profile.slots && profile.slots.length > 0 ? (
+                                    <TouchableOpacity 
+                                        style={styles.manageBookingsBtn}
+                                        onPress={() => router.push({ pathname: '/business-bookings-manage', params: { profileId: profile.id } })}
+                                    >
+                                        <Ionicons name="calendar" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                                        <Text style={styles.manageBookingsBtnText}>Manage Bookings</Text>
+                                    </TouchableOpacity>
+                                ) : null}
                                 
                                 <View style={styles.statsRow}>
                                     <View style={styles.statBox}>
@@ -308,6 +318,21 @@ const styles = StyleSheet.create({
     statValue: { fontSize: 18, fontWeight: '800', color: '#fff' },
     statLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
     statDivider: { width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.05)' },
+
+    manageBookingsBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#8b5cf6',
+        borderRadius: 12,
+        paddingVertical: 10,
+        marginBottom: 16,
+    },
+    manageBookingsBtnText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#ffffff',
+    },
 
     addAnotherCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(37, 99, 235, 0.3)', marginTop: 8 },
     addIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },

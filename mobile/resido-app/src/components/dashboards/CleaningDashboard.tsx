@@ -126,7 +126,7 @@ export default function CleaningDashboard() {
                 {/* Task Grid (Matching Image) */}
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="clipboard" label="Register" color="#fff" bg="rgba(37, 99, 235, 0.2)" />
-                    <DashboardIcon icon="construct" label="Work Orders" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
+                    <DashboardIcon icon="construct" label="Requests & Complaints" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="camera" label="Photos" color="#fff" bg="rgba(16, 185, 129, 0.2)" />
                     <DashboardIcon icon="warning" label="Report" color="#fff" bg="rgba(245, 158, 11, 0.2)" />
                     <DashboardIcon icon="help-buoy" label="Support" color="#fff" bg="rgba(59, 130, 246, 0.2)" />

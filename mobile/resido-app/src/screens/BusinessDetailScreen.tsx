@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     View, Text, StyleSheet, ScrollView, TouchableOpacity, 
     Image, SafeAreaView, ActivityIndicator, Dimensions, 
@@ -17,6 +17,9 @@ export default function BusinessDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const { user } = useAuthStore();
+
+    const scrollViewRef = useRef<ScrollView>(null);
+    const [bookingY, setBookingY] = useState(0);
 
     // Data states
     const [profile, setProfile] = useState<any>(null);
@@ -41,6 +44,23 @@ export default function BusinessDetailScreen() {
     const [notes, setNotes] = useState('');
     const [bookingSubmitting, setBookingSubmitting] = useState(false);
     const [successModalVisible, setSuccessModalVisible] = useState(false);
+
+    const parseSlotDescription = (desc: string | null) => {
+        if (!desc) return { text: '', rules: '', photoUrl: '' };
+        try {
+            const parsed = JSON.parse(desc);
+            if (parsed && typeof parsed === 'object') {
+                return {
+                    text: parsed.text || '',
+                    rules: parsed.rules || '',
+                    photoUrl: parsed.photoUrl || '',
+                };
+            }
+        } catch (e) {
+            // Not JSON
+        }
+        return { text: desc, rules: '', photoUrl: '' };
+    };
 
     useEffect(() => {
         if (id) {
@@ -233,7 +253,7 @@ export default function BusinessDetailScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Hero / Cover */}
                 <View style={styles.heroSection}>
                     {profile.logo ? (
@@ -262,6 +282,16 @@ export default function BusinessDetailScreen() {
                 {/* Main Information */}
                 <View style={styles.infoSection}>
                     <Text style={styles.businessTitle}>{profile.businessName}</Text>
+                    
+                    {profile.slots && profile.slots.length > 0 ? (
+                        <TouchableOpacity 
+                            style={styles.topBookBtn} 
+                            onPress={() => scrollViewRef.current?.scrollTo({ y: bookingY, animated: true })}
+                        >
+                            <Ionicons name="calendar-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.topBookBtnText}>Book a Slot</Text>
+                        </TouchableOpacity>
+                    ) : null}
                     
                     {profile.about ? (
                         <Text style={styles.aboutText}>{profile.about}</Text>
@@ -328,7 +358,12 @@ export default function BusinessDetailScreen() {
                 ) : null}
 
                 {/* Slots Strip Calendar & Booking */}
-                <View style={styles.section}>
+                <View 
+                    style={styles.section}
+                    onLayout={(event) => {
+                        setBookingY(event.nativeEvent.layout.y);
+                    }}
+                >
                     <View style={styles.bookingHeaderRow}>
                         <Text style={styles.sectionHeaderTitle}>Book an Appointment</Text>
                         <Ionicons name="sparkles" size={18} color="#fbbf24" />
@@ -371,33 +406,51 @@ export default function BusinessDetailScreen() {
                         </View>
                     ) : (
                         <View style={styles.slotsContainer}>
-                            {slots.map((slot) => (
-                                <View key={slot.id} style={styles.slotItemRow}>
-                                    <View style={styles.slotInfoCol}>
-                                        <Text style={styles.slotItemName}>{slot.name}</Text>
-                                        {slot.description ? (
-                                            <Text style={styles.slotItemDesc} numberOfLines={1}>{slot.description}</Text>
+                            {slots.map((slot) => {
+                                const parsed = parseSlotDescription(slot.description);
+                                return (
+                                    <View key={slot.id} style={styles.slotItemRow}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                                            {parsed.photoUrl ? (
+                                                <Image source={{ uri: parsed.photoUrl }} style={{ width: 44, height: 44, borderRadius: 8, marginRight: 12, resizeMode: 'cover' }} />
+                                            ) : (
+                                                <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: 'rgba(139, 92, 246, 0.1)', marginRight: 12, alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Ionicons name="time" size={18} color="#8b5cf6" />
+                                                </View>
+                                            )}
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.slotItemName}>{slot.name}</Text>
+                                                {parsed.text ? (
+                                                    <Text style={styles.slotItemDesc} numberOfLines={2}>{parsed.text}</Text>
+                                                ) : null}
+                                            </View>
+                                        </View>
+                                        
+                                        {parsed.rules ? (
+                                            <View style={{ backgroundColor: 'rgba(251, 191, 36, 0.05)', borderLeftWidth: 3, borderColor: '#fbbf24', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, marginBottom: 12 }}>
+                                                <Text style={{ fontSize: 11, color: '#fbbf24', fontWeight: '600' }}>Rules: {parsed.rules}</Text>
+                                            </View>
                                         ) : null}
+                                        
+                                        <View style={styles.intervalsWrap}>
+                                            {slot.timeSlots && slot.timeSlots.length > 0 ? (
+                                                slot.timeSlots.map((interval: string) => (
+                                                    <TouchableOpacity
+                                                        key={interval}
+                                                        style={styles.intervalBtn}
+                                                        onPress={() => handleSelectSlot(slot, interval)}
+                                                    >
+                                                        <Ionicons name="time-outline" size={14} color="#fff" style={{ marginRight: 4 }} />
+                                                        <Text style={styles.intervalText}>{interval}</Text>
+                                                    </TouchableOpacity>
+                                                ))
+                                            ) : (
+                                                <Text style={styles.noIntervals}>Closed</Text>
+                                            )}
+                                        </View>
                                     </View>
-                                    
-                                    <View style={styles.intervalsWrap}>
-                                        {slot.timeSlots && slot.timeSlots.length > 0 ? (
-                                            slot.timeSlots.map((interval: string) => (
-                                                <TouchableOpacity
-                                                    key={interval}
-                                                    style={styles.intervalBtn}
-                                                    onPress={() => handleSelectSlot(slot, interval)}
-                                                >
-                                                    <Ionicons name="time-outline" size={14} color="#fff" style={{ marginRight: 4 }} />
-                                                    <Text style={styles.intervalText}>{interval}</Text>
-                                                </TouchableOpacity>
-                                            ))
-                                        ) : (
-                                            <Text style={styles.noIntervals}>Closed</Text>
-                                        )}
-                                    </View>
-                                </View>
-                            ))}
+                                );
+                            })}
                         </View>
                     )}
                 </View>
@@ -435,6 +488,15 @@ export default function BusinessDetailScreen() {
                                 <Text style={styles.summaryVal}>
                                     {selectedDate} • {selectedInterval}
                                 </Text>
+
+                                {selectedSlot && parseSlotDescription(selectedSlot.description).rules ? (
+                                    <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' }}>
+                                        <Text style={[styles.summaryLabel, { color: '#fbbf24' }]}>Important Rules</Text>
+                                        <Text style={{ fontSize: 12, color: '#fbbf24', fontWeight: '600' }}>
+                                            {parseSlotDescription(selectedSlot.description).rules}
+                                        </Text>
+                                    </View>
+                                ) : null}
                             </View>
 
                             {/* Guest modifier */}
@@ -569,6 +631,27 @@ const styles = StyleSheet.create({
     infoSection: { padding: 20, backgroundColor: 'rgba(255,255,255,0.02)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
     businessTitle: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 12 },
     aboutText: { fontSize: 15, color: '#cbd5e1', lineHeight: 22, marginBottom: 20 },
+    topBookBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#8b5cf6',
+        borderRadius: 14,
+        paddingVertical: 14,
+        marginBottom: 16,
+        shadowColor: '#8b5cf6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    topBookBtnText: {
+        color: '#ffffff',
+        fontSize: 15,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
     specsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     specCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     specVal: { fontSize: 13, color: '#94a3b8', fontWeight: '700' },

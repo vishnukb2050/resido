@@ -126,7 +126,6 @@ export default function MemberDashboard() {
                 <View style={styles.gridContainer}>
                     <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
                     <DashboardIcon icon="chatbubbles" label="Chats" color="#fff" bg="#1d4ed8" onPress={() => router.push('/chat-list')} />
-                    <DashboardIcon icon="notifications-circle" label="Announce" color="#fff" bg="#10b981" onPress={() => router.push('/thread')} />
                     <DashboardIcon icon="document-text" label="Notes" color="#fff" bg="#3b82f6" onPress={() => router.push('/notes')} />
                     <DashboardIcon icon="folder" label="Documents" color="#fff" bg="#3b82f6" onPress={() => router.push('/documents')} />
                     <DashboardIcon icon="call" label="Contacts" color="#fff" bg="#10b981" onPress={() => router.push('/staff-contacts')} />

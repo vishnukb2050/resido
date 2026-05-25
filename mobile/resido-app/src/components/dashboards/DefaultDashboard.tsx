@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { threadApi, authApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -36,10 +36,10 @@ const styles = StyleSheet.create({
     wsBubble: { alignItems: 'center', width: 85, opacity: 0.5 },
     wsBubbleActive: { opacity: 1 },
     wsBubbleImgBox: { width: 45, height: 45, borderRadius: 22.5, padding: 2, backgroundColor: '#1e293b', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#1d4ed8', borderWidth: 3 },
+    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#8b5cf6', borderWidth: 3 },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 37.5 },
     wsBubbleLabel: { color: '#94a3b8', fontSize: 10, fontWeight: '700', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#1d4ed8', fontSize: 12, fontWeight: '900' },
+    wsBubbleLabelActive: { color: '#8b5cf6', fontSize: 12, fontWeight: '900' },
 
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', gap: 10 },
@@ -148,6 +148,32 @@ export default function DefaultDashboard() {
     const { width: windowWidth } = Dimensions.get('window');
     const workspaceScrollRef = React.useRef<ScrollView>(null);
     const [switchingRole, setSwitchingRole] = React.useState(false);
+
+    const [imageTimestamp, setImageTimestamp] = React.useState(Date.now());
+
+    // Synchronize latest profile & workspaces on focus to load R2 assets immediately and bust caching
+    useFocusEffect(
+        React.useCallback(() => {
+            const syncProfileAndWorkspaces = async () => {
+                try {
+                    setImageTimestamp(Date.now());
+                    
+                    const userRes = await authApi.getProfile();
+                    if (userRes?.data) {
+                        useAuthStore.getState().updateUser(userRes.data);
+                    }
+
+                    const wsRes = await authApi.getWorkspaces();
+                    if (wsRes?.data) {
+                        useAuthStore.getState().setWorkspaces(wsRes.data);
+                    }
+                } catch (e) {
+                    console.warn('Failed to sync profile on screen focus:', e);
+                }
+            };
+            syncProfileAndWorkspaces();
+        }, [])
+    );
 
     const [items, setItems] = React.useState<any[]>([]);
     const [loadingActivity, setLoadingActivity] = React.useState(false);
@@ -345,14 +371,23 @@ export default function DefaultDashboard() {
                         {/* Premium Header */}
                         <View style={[styles.psHeader, { backgroundColor: mySpaceBg }]}>
                             <View style={styles.psBrandInfo}>
-                                <View style={[styles.psLogoBox, { backgroundColor: lightLavender, borderColor: 'rgba(91, 75, 138, 0.2)' }]}>
-                                    <Image 
-                                        source={(activeWorkspace as any)?.photoUrl ? { uri: (activeWorkspace as any).photoUrl } : (activeWorkspace ? require('../../../assets/greenwoods_logo.jpg') : require('../../../assets/resido_logo.jpg'))} 
-                                        style={styles.psWorkspaceImg} 
-                                    />
+                                <View style={[styles.psLogoBox, { 
+                                    backgroundColor: activeWorkspace ? lightLavender : '#8b5cf6', 
+                                    borderColor: activeWorkspace ? 'rgba(91, 75, 138, 0.2)' : '#8b5cf6' 
+                                }]}>
+                                    {activeWorkspace && (activeWorkspace as any).photoUrl ? (
+                                        <Image 
+                                            source={{ uri: (activeWorkspace as any).photoUrl + `?t=${imageTimestamp}` }} 
+                                            style={styles.psWorkspaceImg} 
+                                        />
+                                    ) : activeWorkspace ? (
+                                        <Image source={require('../../../assets/greenwoods_logo.jpg')} style={styles.psWorkspaceImg} />
+                                    ) : (
+                                        <Ionicons name="home" size={22} color="#ffffff" />
+                                    )}
                                 </View>
                                 <View style={{ marginLeft: 15 }}>
-                                    <Text style={[styles.psBrandTitleText, { color: mySpaceText }]}>
+                                    <Text style={[styles.psBrandTitleText, { color: activeWorkspace ? '#ffffff' : '#8b5cf6' }]}>
                                         {activeWorkspace ? (activeWorkspace as any).tenantName : "Resido"}
                                     </Text>
                                     <Text style={[styles.psBrandTaglineText, { color: mySpaceSubText }]}>
@@ -360,7 +395,6 @@ export default function DefaultDashboard() {
                                     </Text>
                                 </View>
                             </View>
-
                         </View>
  
                         {/* Premium Workspace Switcher (Bubbles) */}
@@ -377,7 +411,7 @@ export default function DefaultDashboard() {
                                     label="My Space" 
                                     isActive={!activeWorkspace} 
                                     onPress={() => handleSelectWorkspace(null, 0)} 
-                                    image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
+                                    image={user?.profilePhoto ? `${user.profilePhoto}?t=${imageTimestamp}` : "https://i.pravatar.cc/100?u=resido"}
                                 />
                                 {workspaces.map((ws: any, idx: number) => (
                                     <WorkspaceBubble 
@@ -385,7 +419,7 @@ export default function DefaultDashboard() {
                                         label={ws.tenantName} 
                                         isActive={activeWorkspace?.tenantId === ws.tenantId} 
                                         onPress={() => handleSelectWorkspace(ws, idx + 1)} 
-                                        image={ws.photoUrl || "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
+                                        image={ws.photoUrl ? `${ws.photoUrl}?t=${imageTimestamp}` : "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
                                     />
                                 ))}
                             </ScrollView>
@@ -430,8 +464,11 @@ export default function DefaultDashboard() {
                                     <Ionicons name="clipboard-outline" size={20} color={isMySpace ? darkLavender : "#94a3b8"} />
                                 </View>
                             </View>
-                            <TouchableOpacity style={[styles.psBookmarkBtn, { backgroundColor: isMySpace ? darkLavender : theme.primary }]}>
-                                <Ionicons name="bookmark-outline" size={22} color="#fff" />
+                            <TouchableOpacity 
+                                style={[styles.psBookmarkBtn, { backgroundColor: isMySpace ? darkLavender : theme.primary }]}
+                                onPress={() => router.push('/business-scanner')}
+                            >
+                                <Ionicons name="qr-code-outline" size={22} color="#fff" />
                             </TouchableOpacity>
                         </View>
 
@@ -441,9 +478,10 @@ export default function DefaultDashboard() {
                             <View style={{ paddingHorizontal: 20 }}>
                                 <View style={styles.psQuickAccessBar}>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll} nestedScrollEnabled={true}>
-                                        <QuickAccessItem icon="add-circle-outline" label="Create" color={darkLavender} onPress={() => router.push('/create-community')} />
+                                        <QuickAccessItem icon="settings-outline" label="Manage Community" color={darkLavender} onPress={() => router.push('/manage-community')} />
                                         <QuickAccessItem icon="storefront-outline" label="Business" color={darkLavender} onPress={() => router.push('/business-profiles')} />
-                                        <QuickAccessItem icon="calendar-outline" label="Bookings" color={darkLavender} onPress={() => router.push('/business-bookings')} />
+                                        <QuickAccessItem icon="calendar-number-outline" label="My Bookings" color={darkLavender} onPress={() => router.push('/business-bookings')} />
+                                        <QuickAccessItem icon="calendar-outline" label="Events" color={darkLavender} onPress={() => router.push('/events')} />
                                         <QuickAccessItem icon="wallet-outline" label="Finance" color={darkLavender} onPress={() => router.push('/finance')} />
                                         <QuickAccessItem icon="construct-outline" label="Services" color={darkLavender} onPress={() => router.push('/service-search')} />
                                         <QuickAccessItem icon="journal-outline" label="Notes" color={darkLavender} onPress={() => router.push('/notes')} />
@@ -452,18 +490,20 @@ export default function DefaultDashboard() {
                                 </View>
 
                                 {/* Community Creation Banner */}
-                                <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
-                                    <View style={styles.psBannerContent}>
-                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="people" size={26} color="#fff" /></View>
-                                        <View style={styles.psBannerTextCol}>
-                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Create Your Community</Text>
-                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.7)' }]}>Set up a new space for your apartment or area</Text>
+                                {(!workspaces || workspaces.length === 0) && (
+                                    <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
+                                        <View style={styles.psBannerContent}>
+                                            <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="people" size={26} color="#fff" /></View>
+                                            <View style={styles.psBannerTextCol}>
+                                                <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Create Your Community</Text>
+                                                <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.7)' }]}>Set up a new space for your apartment or area</Text>
+                                            </View>
                                         </View>
+                                        <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/create-community')}>
+                                            <Text style={[styles.psBannerBtnText, { color: darkLavender }]}>Create Community</Text>
+                                        </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/create-community')}>
-                                        <Text style={[styles.psBannerBtnText, { color: darkLavender }]}>Create Community</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                )}
 
                                 {/* Business Banner */}
                                 <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
@@ -573,7 +613,6 @@ export default function DefaultDashboard() {
                             /* Community View */
                             <View style={{ paddingHorizontal: 20 }}>
                                 <View style={styles.gridContainer}>
-                                    <DashboardIcon icon="newspaper" label="Feed" color="#fff" bg="#3b82f6" onPress={() => router.push('/thread')} />
                                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#ec4899" onPress={() => router.push('/events')} />
                                     <DashboardIcon icon="megaphone" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
                                 </View>
@@ -585,7 +624,7 @@ export default function DefaultDashboard() {
                                         <DashboardIcon icon="people" label="Directory" color="#fff" bg="#10b981" onPress={() => router.push('/members')} />
                                         <DashboardIcon icon="people" label="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />
                                         <DashboardIcon icon="id-card" label="Staff" color="#fff" bg="#3b82f6" onPress={() => router.push('/staff')} />
-                                        <DashboardIcon icon="chatbubbles" label="Complaints" color="#fff" bg="#f43f5e" onPress={() => router.push('/complaints')} />
+                                        <DashboardIcon icon="chatbubbles" label="Requests & Complaints" color="#fff" bg="#f43f5e" onPress={() => router.push('/complaints')} />
                                         <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                                         <DashboardIcon icon="document-text" label="Rules" color="#fff" bg="#64748b" onPress={() => router.push('/rules')} />
                                         <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notices')} />

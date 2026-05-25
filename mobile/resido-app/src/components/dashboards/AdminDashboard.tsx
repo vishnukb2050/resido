@@ -142,7 +142,7 @@ export default function AdminDashboard() {
                 {/* Admin Grid */}
                 <View style={styles.adminGrid}>
                     <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(37, 99, 235, 0.2)" onPress={() => router.push('/admin-stats')} />
-                    <DashboardIcon icon="construct" label="Work Orders" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
+                    <DashboardIcon icon="construct" label="Requests & Complaints" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/events')} />
                     <DashboardIcon icon="book" label="Rules" color="#fff" bg="rgba(245, 158, 11, 0.2)" onPress={() => router.push('/rules')} />
                     <DashboardIcon icon="settings" label="Settings" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/manage-community')} />
@@ -174,7 +174,6 @@ export default function AdminDashboard() {
                         <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="chatbubbles" title="Resident Chat" color="#fff" bg="#4a5568" onPress={() => router.push('/chat-list')} />
                         <FeatureCard icon="folder" title="Docs & Legal" color="#fff" bg="#2d3748" onPress={() => router.push('/documents')} />
-                        <FeatureCard icon="newspaper" title="Feed Mgmt" color="#fff" bg="#1a365d" onPress={() => router.push('/thread')} />
                         <FeatureCard icon="tennisball" title="Amenities" color="#fff" bg="#6366f1" onPress={() => router.push('/amenities')} />
                         <FeatureCard icon="settings" title="Manage Community" color="#fff" bg="#ec4899" onPress={() => router.push('/manage-community')} />
                         <FeatureCard icon="cube" title="Community Assets" color="#fff" bg="#d97706" onPress={() => router.push('/admin-assets')} />
