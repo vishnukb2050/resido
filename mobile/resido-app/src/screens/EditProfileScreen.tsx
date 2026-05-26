@@ -10,7 +10,6 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import * as ImagePicker from 'expo-image-picker';
 import { authApi } from '../services/api';
-import { storageApi } from '../services/storage';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
@@ -54,19 +53,41 @@ export default function EditProfileScreen() {
         try {
             const hasNewImage = formData.profilePhoto && (formData.profilePhoto.startsWith('file://') || formData.profilePhoto.startsWith('content://') || !formData.profilePhoto.startsWith('http'));
             
-            let uploadedPhotoUrl = formData.profilePhoto;
+            let uploadedPhotoUrl: string = formData.profilePhoto;
             
             if (hasNewImage) {
                 const uriParts = formData.profilePhoto.split('.');
-                const fileExt = uriParts[uriParts.length - 1].toLowerCase();
+                const fileExt = uriParts[uriParts.length - 1].toLowerCase().split('?')[0];
                 const fileType = ['jpg', 'jpeg', 'png'].includes(fileExt) ? fileExt : 'jpeg';
-                
-                uploadedPhotoUrl = await storageApi.uploadFile(
-                    formData.profilePhoto,
-                    `profile_${Date.now()}.${fileType}`,
-                    `image/${fileType}`,
-                    'profiles'
-                ) as string;
+                const fileName = `profile_${Date.now()}.${fileType}`;
+                const contentType = `image/${fileType === 'jpg' ? 'jpeg' : fileType}`;
+
+                // 1. Get presigned URL from correct endpoint (uses req.user.userId)
+                const { data: presignedData } = await authApi.getPresignedUrl(fileName, contentType, 'profiles');
+                const { uploadUrl, fileUrl } = presignedData;
+
+                // 2. Upload directly to R2 via XHR
+                await new Promise<void>((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('PUT', uploadUrl);
+                    xhr.setRequestHeader('Content-Type', contentType);
+                    xhr.onreadystatechange = () => {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200 || xhr.status === 201) {
+                                resolve();
+                            } else {
+                                reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
+                            }
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('Network error during upload'));
+                    fetch(formData.profilePhoto)
+                        .then(r => r.blob())
+                        .then(blob => xhr.send(blob))
+                        .catch(reject);
+                });
+
+                uploadedPhotoUrl = fileUrl;
             }
 
             const dataToSubmit = {
