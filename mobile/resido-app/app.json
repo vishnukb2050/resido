@@ -47,7 +47,8 @@
                 "projectId": "your-eas-project-id"
             },
             "apiUrl": "https://residoapp.com/api",
-            "socketUrl": "https://residoapp.com"
+            "socketUrl": "https://residoapp.com",
+            "mediaBaseUrl": "https://residoapp.com/media"
         }
     }
 }

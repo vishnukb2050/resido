@@ -136,29 +136,30 @@ export default function CreateFlareScreen() {
             setIsUploading(true);
             setUploadProgress(0);
 
-            // 1. Upload Video
-            const uploadResult = await uploadToR2(
+            const tenantScope = activeWorkspace?.tenantId || `personal_${user.id}`;
+
+            const uploadResult: any = await uploadToR2(
                 video,
-                activeWorkspace?.tenantId || 'global',
+                tenantScope,
                 'FLARE',
                 'VIDEO',
                 (progress) => setUploadProgress(progress * 0.8)
             );
+            const videoUrl: string | undefined = uploadResult?.fileUrl;
+            if (!videoUrl) throw new Error('Video upload did not return a public URL');
 
-            // 2. Upload Audio if selected
-            let audioUrl = null;
+            let audioUrl: string | null = null;
             if (selectedAudio) {
-                const audioResult = await uploadToR2(
+                const audioResult: any = await uploadToR2(
                     selectedAudio.uri,
-                    activeWorkspace?.tenantId || 'global',
+                    tenantScope,
                     'FLARE',
-                    'VIDEO', // Use VIDEO bucket for consistent policy
+                    'VIDEO',
                     (progress) => setUploadProgress(0.8 + (progress * 0.2))
                 );
-                audioUrl = audioResult.fileUrl;
+                audioUrl = audioResult?.fileUrl || null;
             }
 
-            // 3. Extract hashtags
             const hashtagArray = hashtags.split(' ').filter(h => h.startsWith('#')).map(h => h.slice(1));
 
             const pinnedBusinessId =
@@ -166,16 +167,14 @@ export default function CreateFlareScreen() {
                     ? selectedBusinessId || myBusinesses[0]?.id
                     : null;
 
-            await threadApi.createFlare({
-                tenantId: activeWorkspace?.tenantId || 'global',
-                title: title.trim() || "New Flare",
-                content: title.trim() || "Flare Content",
+            const payload: any = {
+                title: title.trim() || 'New Flare',
+                content: title.trim() || 'Flare Content',
                 type: 'FLARE',
                 mediaType: 'VIDEO',
-                mediaUrls: [uploadResult.fileUrl],
-                audioUrl: audioUrl,
+                mediaUrls: [videoUrl],
                 authorName: user?.name || 'Resident',
-                authorAvatar: user?.profilePhoto,
+                authorAvatar: user?.profilePhoto || undefined,
                 musicName: selectedAudio ? selectedAudio.name : selectedMusic.name,
                 musicId: selectedMusic.id,
                 hashtags: hashtagArray,
@@ -183,8 +182,11 @@ export default function CreateFlareScreen() {
                 visibility: selectedVisibilities[0] || 'PUBLIC',
                 tags: taggedUsers,
                 location: activeWorkspace?.tenantName || 'Community',
-                businessProfileId: pinnedBusinessId,
-            });
+            };
+            if (audioUrl) payload.audioUrl = audioUrl;
+            if (pinnedBusinessId) payload.businessProfileId = pinnedBusinessId;
+
+            await threadApi.createFlare(payload);
 
             setUploadProgress(1);
             Alert.alert('Success', 'Your Flare has been published!', [
@@ -197,9 +199,11 @@ export default function CreateFlareScreen() {
                 }
             ]);
         } catch (error: any) {
-            console.error('Publish error:', error);
-            const msg = error.response?.data?.message || error.message || 'Unknown error';
-            Alert.alert('Publish Failed', `Reason: ${msg}\n\nPlease check your internet and try again.`);
+            console.error('Publish error:', error?.response?.status, error?.response?.data || error?.message || error);
+            const status = error?.response?.status;
+            const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
+            const reason = serverMsg || error?.message || 'Unknown error';
+            Alert.alert('Publish Failed', `${reason}${status ? ` (HTTP ${status})` : ''}\n\nPlease check your connection and try again.`);
         } finally {
             setIsUploading(false);
         }

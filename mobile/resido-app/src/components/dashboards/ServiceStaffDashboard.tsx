@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
     psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
-    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
+    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#2D2445' },
     psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
@@ -230,12 +230,12 @@ const styles = StyleSheet.create({
     gridContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 25 },
     dbIconItem: { width: '18%', alignItems: 'center' },
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
+    dbIconLabel: { color: '#2D2445', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
     // Stats Row
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 30, backgroundColor: 'rgba(255,255,255,0.03)', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     statBox: { alignItems: 'center', flex: 1 },
-    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
     statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
 
     // Restricted Banner
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
 
     // Feature Cards
     sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
-    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 15 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
     featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
     fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },

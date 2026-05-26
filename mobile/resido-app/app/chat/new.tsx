@@ -29,12 +29,15 @@ export default function NewChatRoute() {
                 if (data?.id) {
                     router.replace(`/chat/${data.id}`);
                 } else {
-                    Alert.alert('Error', 'Could not start chat.');
+                    Alert.alert('Could not start chat', 'The server returned an unexpected response. Please try again.');
                     router.back();
                 }
             } catch (e: any) {
-                console.error('[new chat] failed', e?.response?.data || e?.message);
-                Alert.alert('Error', 'Could not start chat. Please try again.');
+                const status = e?.response?.status;
+                const serverMessage = e?.response?.data?.message || e?.response?.data?.error;
+                const reason = serverMessage || e?.message || 'Unknown error';
+                console.error('[new chat] failed', status, reason, e?.response?.data || '');
+                Alert.alert('Could not start chat', `${reason}${status ? ` (HTTP ${status})` : ''}`);
                 router.back();
             }
         };
@@ -43,13 +46,13 @@ export default function NewChatRoute() {
 
     return (
         <View style={styles.container}>
-            <ActivityIndicator size="large" color="#1d4ed8" />
+            <ActivityIndicator size="large" color="#8b5cf6" />
             <Text style={styles.text}>Opening chat…</Text>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
-    text: { marginTop: 16, color: '#64748b', fontSize: 14, fontWeight: '600' },
+    container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F5FF' },
+    text: { marginTop: 16, color: '#7A6B9C', fontSize: 14, fontWeight: '600' },
 });

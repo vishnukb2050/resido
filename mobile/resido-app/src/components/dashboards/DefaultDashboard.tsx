@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 },
     dbIconItem: { width: '18%', alignItems: 'center' },
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
-    dbIconLabel: { color: '#ffffff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
+    dbIconLabel: { color: '#2D2445', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30, backgroundColor: '#E8E2F2', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     statBox: { alignItems: 'center', flex: 1 },
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     psQuickAccessScroll: { gap: 15 },
     psQuickAccessItem: { alignItems: 'center', width: 70 },
     psQuickAccessIconBox: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1 },
-    psQuickAccessLabel: { color: '#ffffff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+    psQuickAccessLabel: { color: '#2D2445', fontSize: 11, fontWeight: '800', textAlign: 'center' },
 
     psBusinessBanner: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 20, marginBottom: 15, borderWidth: 1 },
     psBannerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
@@ -339,10 +339,10 @@ export default function DefaultDashboard() {
     
     const isMySpace = !activeWorkspace;
     const mySpaceBg = theme.background;
-    const mySpaceText = '#ffffff';
-    const mySpaceSubText = theme.accent;
-    const darkLavender = theme.primary;
-    const lightLavender = theme.accent;
+    const mySpaceText = theme.textPrimary;       // Deep violet for readable headings on off-white
+    const mySpaceSubText = theme.textMuted;      // Muted purple for secondary text
+    const darkLavender = theme.primary;          // Primary violet
+    const lightLavender = theme.surfaceMuted;    // Soft lavender card surface
  
     if (isGuest) {
         return (
@@ -393,7 +393,7 @@ export default function DefaultDashboard() {
                                     )}
                                 </View>
                                 <View style={{ marginLeft: 15 }}>
-                                    <Text style={[styles.psBrandTitleText, { color: activeWorkspace ? '#ffffff' : '#8b5cf6' }]}>
+                                    <Text style={[styles.psBrandTitleText, { color: activeWorkspace ? '#2D2445' : '#8b5cf6' }]}>
                                         {activeWorkspace ? (activeWorkspace as any).tenantName : "Resido"}
                                     </Text>
                                     <Text style={[styles.psBrandTaglineText, { color: mySpaceSubText }]}>
@@ -463,14 +463,14 @@ export default function DefaultDashboard() {
                         {/* Search Bar (Floating Style) */}
                         <View style={styles.psSearchSection}>
                             <View style={[styles.psSearchBar, { backgroundColor: isMySpace ? lightLavender : theme.surface }]}>
-                                <Ionicons name="search" size={20} color={isMySpace ? darkLavender : "#94a3b8"} />
+                                <Ionicons name="search" size={20} color={darkLavender} />
                                 <TextInput 
                                     placeholder="Search for the services needed" 
-                                    style={[styles.psSearchInput, { color: '#ffffff' }]}
-                                    placeholderTextColor="rgba(255,255,255,0.6)"
+                                    style={[styles.psSearchInput, { color: '#2D2445' }]}
+                                    placeholderTextColor="#7A6B9C"
                                 />
                                 <View style={styles.psSearchIconsRight}>
-                                    <Ionicons name="clipboard-outline" size={20} color={isMySpace ? darkLavender : "#94a3b8"} />
+                                    <Ionicons name="clipboard-outline" size={20} color={darkLavender} />
                                 </View>
                             </View>
                             <TouchableOpacity 
@@ -629,7 +629,7 @@ export default function DefaultDashboard() {
 
                                 {/* Featured Sections */}
                                 <View style={styles.sectionContainer}>
-                                    <Text style={[styles.sectionTitle, { color: '#ffffff' }]}>Community Services</Text>
+                                    <Text style={[styles.sectionTitle, { color: '#2D2445' }]}>Community Services</Text>
                                     <View style={[styles.gridContainer, { justifyContent: 'flex-start', gap: 12 }]}>
                                         <DashboardIcon icon="people" label="Directory" color="#fff" bg="#10b981" onPress={() => router.push('/members')} />
                                         <DashboardIcon icon="people" label="Families" color="#fff" bg="#be185d" onPress={() => router.push('/view-families')} />

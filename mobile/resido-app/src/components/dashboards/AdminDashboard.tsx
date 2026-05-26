@@ -141,15 +141,15 @@ export default function AdminDashboard() {
                     </View>
                 </View>
 
-                {/* Admin Grid */}
+                {/* Admin Grid — 4 columns so all icons (incl. Attendance) fit on screen */}
                 <View style={styles.adminGrid}>
-                    <DashboardIcon icon="stats-chart" label="Stats" color="#fff" bg="rgba(37, 99, 235, 0.2)" onPress={() => router.push('/admin-stats')} />
-                    <DashboardIcon icon="construct" label="Requests & Complaints" color="#fff" bg="rgba(239, 68, 68, 0.2)" onPress={() => router.push('/admin-complaints')} />
-                    <DashboardIcon icon="calendar" label="Events" color="#fff" bg="rgba(59, 130, 246, 0.2)" onPress={() => router.push('/events')} />
-                    <DashboardIcon icon="book" label="Rules & Regulations" color="#fff" bg="rgba(245, 158, 11, 0.2)" onPress={() => router.push('/rules')} />
-                    <DashboardIcon icon="settings" label="Settings" color="#fff" bg="rgba(16, 185, 129, 0.2)" onPress={() => router.push('/manage-community')} />
-                    <DashboardIcon icon="cash" label="Finance" color="#fff" bg="rgba(14, 165, 233, 0.2)" onPress={() => router.push('/admin-finance')} />
-                    <DashboardIcon icon="finger-print" label="Attendance" color="#fff" bg="rgba(168, 85, 247, 0.2)" onPress={() => router.push('/admin-attendance')} />
+                    <DashboardIcon icon="stats-chart" label="Stats" color="#2563eb" bg="#E8DEFB" onPress={() => router.push('/admin-stats')} />
+                    <DashboardIcon icon="construct" label="Requests" color="#ef4444" bg="#fee2e2" onPress={() => router.push('/admin-complaints')} />
+                    <DashboardIcon icon="calendar" label="Events" color="#3b82f6" bg="#dbeafe" onPress={() => router.push('/events')} />
+                    <DashboardIcon icon="book" label="Rules" color="#f59e0b" bg="#fef3c7" onPress={() => router.push('/rules')} />
+                    <DashboardIcon icon="settings" label="Settings" color="#10b981" bg="#d1fae5" onPress={() => router.push('/manage-community')} />
+                    <DashboardIcon icon="cash" label="Finance" color="#0ea5e9" bg="#e0f2fe" onPress={() => router.push('/admin-finance')} />
+                    <DashboardIcon icon="finger-print" label="Attendance" color="#a855f7" bg="#f3e8ff" onPress={() => router.push('/admin-attendance')} />
                 </View>
 
                 {/* Management Sections */}
@@ -158,6 +158,7 @@ export default function AdminDashboard() {
                     <View style={styles.featureGrid}>
                         <FeatureCard icon="people" title="Manage Residents" color="#fff" bg="#3182ce" onPress={() => router.push('/manage-residents')} />
                         <FeatureCard icon="people-circle" title="Manage Staff" color="#fff" bg="#10b981" onPress={() => router.push('/staff')} />
+                        <FeatureCard icon="finger-print" title="Attendance" color="#fff" bg="#a855f7" onPress={() => router.push('/admin-attendance')} />
                         <FeatureCard icon="megaphone" title="Notice Board" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
 
 
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
     psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
-    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
+    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#2D2445' },
     psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
     
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -266,25 +267,25 @@ const styles = StyleSheet.create({
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20 },
     psSearchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, paddingHorizontal: 15, height: 48, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#fff', fontWeight: '600' },
+    psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#2D2445', fontWeight: '600' },
 
-    // Admin Grid
-    adminGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 25 },
-    dbIconItem: { width: '18%', alignItems: 'center' },
+    // Admin Grid — flexWrap so 7+ icons don't overflow off-screen
+    adminGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 20, marginBottom: 25 },
+    dbIconItem: { width: '22%', alignItems: 'center', marginBottom: 4 },
     dbIconBox: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    dbIconLabel: { color: '#fff', fontSize: 9, fontWeight: '800', textAlign: 'center' },
+    dbIconLabel: { color: '#2D2445', fontSize: 9, fontWeight: '800', textAlign: 'center' },
 
     statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 30, backgroundColor: 'rgba(255,255,255,0.03)', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     statBox: { alignItems: 'center', flex: 1 },
-    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    statBoxCount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
     statBoxLabel: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
 
     sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
-    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 15 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
     featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, justifyContent: 'space-between' },
     featureCard: { width: '30%', alignItems: 'center', marginBottom: 15 },
     fCardHeader: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    fCardTitle: { color: '#fff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+    fCardTitle: { color: '#2D2445', fontSize: 11, fontWeight: '800', textAlign: 'center' },
 
     // Role Switcher
     roleSwitcherRow: { marginBottom: 15 },

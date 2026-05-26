@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import BottomNav from '../components/BottomNav';
+import { resolveMediaUrl, withCacheBust } from '../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
 
@@ -40,7 +41,12 @@ export default function ProfileScreen() {
                 <View style={styles.identityCard}>
                     <View style={styles.avatarContainer}>
                         <Image 
-                            source={{ uri: user?.profilePhoto ? `${user.profilePhoto}?t=${imageTimestamp}` : `https://i.pravatar.cc/150?u=${user?.id}` }} 
+                            source={{
+                                uri: withCacheBust(
+                                    resolveMediaUrl(user?.profilePhoto) || `https://i.pravatar.cc/150?u=${user?.id}`,
+                                    imageTimestamp,
+                                ),
+                            }}
                             style={styles.mainAvatar} 
                         />
                         <View style={styles.verifiedBadge}>
@@ -140,12 +146,12 @@ function SocialBubble({ icon, color, label, isPresent }: any) {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },
     heroHeader: { height: 240, backgroundColor: '#8b5cf6', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60 },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#cbd5e1', alignItems: 'center', justifyContent: 'center' },
-    settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#cbd5e1', alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
+    settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
     
     identityCard: { backgroundColor: '#ffffff', marginHorizontal: 20, marginTop: -100, borderRadius: 32, padding: 25, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
     avatarContainer: { width: 110, height: 110, borderRadius: 55, padding: 4, backgroundColor: '#ffffff', marginTop: -80 },
-    mainAvatar: { width: '100%', height: '100%', borderRadius: 55, borderWidth: 4, borderColor: '#8b5cf6' },
+    mainAvatar: { width: '100%', height: '100%', borderRadius: 55, borderWidth: 4, borderColor: '#8b5cf6', backgroundColor: '#E8E2F2' },
     verifiedBadge: { position: 'absolute', bottom: 5, right: 5, backgroundColor: '#fff', borderRadius: 12 },
     
     profileName: { fontSize: 24, fontWeight: '900', color: '#2D2445', marginTop: 15 },

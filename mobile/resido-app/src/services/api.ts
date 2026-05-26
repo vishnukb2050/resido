@@ -17,7 +17,14 @@ export const SOCKET_URL: string =
 
 export const api = axios.create({ baseURL: API_URL });
 
-// Inject auth token and tenantId from secure store on every request
+// Inject auth token and tenantId from secure store on every request.
+//
+// The chat-service and several other tenant-scoped services REQUIRE the
+// `x-db-name` header. In MySpace mode (no active workspace) we used to send
+// the request without those headers, which broke chat ("could not start chat")
+// and any other tenant-scoped call. As a fallback, we use the first
+// workspace the user belongs to, then finally a synthetic `personal_<userId>`
+// db name so the request still reaches the service with something to scope on.
 api.interceptors.request.use(async (config) => {
     try {
         const authDataRaw = await SecureStore.getItemAsync('resido-auth-secure-storage');
@@ -27,23 +34,24 @@ api.interceptors.request.use(async (config) => {
             
             if (state.token) {
                 config.headers.set('Authorization', `Bearer ${state.token}`);
-            } else {
-                // console.warn(`[API Request] No token found for ${config.url}`);
             }
-            
+
             if (state.user?.id) {
                 config.headers.set('x-user-id', state.user.id);
             }
-            
-            if (state.activeWorkspace?.tenantId) {
-                config.headers.set('x-tenant-id', state.activeWorkspace.tenantId);
-            }
-            if (state.activeWorkspace?.dbName) {
-                config.headers.set('x-db-name', state.activeWorkspace.dbName);
-            } else if (state.activeWorkspace?.tenantId) {
-                config.headers.set('x-db-name', state.activeWorkspace.tenantId);
-            }
 
+            const active = state.activeWorkspace;
+            const firstWs = Array.isArray(state.workspaces) && state.workspaces.length > 0 ? state.workspaces[0] : null;
+
+            const tenantId = active?.tenantId || firstWs?.tenantId;
+            // Tenant-scoped services (chat-service in particular) look up an actual
+            // Postgres database with this name, so we MUST point at a real tenant.
+            // Fall back to the user's first workspace; if they have none, leave
+            // both headers off so the backend can respond with a clear error.
+            const dbName = active?.dbName || firstWs?.dbName || tenantId;
+
+            if (tenantId) config.headers.set('x-tenant-id', tenantId);
+            if (dbName) config.headers.set('x-db-name', dbName);
         }
     } catch (error) {
         console.error('Error reading auth state for interceptor:', error);

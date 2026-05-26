@@ -11,6 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import * as ImagePicker from 'expo-image-picker';
 import { authApi } from '../services/api';
 import BottomNav from '../components/BottomNav';
+import { resolveMediaUrl, withCacheBust } from '../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
 
@@ -148,7 +149,12 @@ export default function EditProfileScreen() {
                     <View style={styles.avatarSection}>
                         <View style={styles.avatarWrapper}>
                             <Image 
-                            source={{ uri: (formData.profilePhoto || `https://i.pravatar.cc/100?u=${user?.id}`) + (formData.profilePhoto?.startsWith('http') ? `?t=${imageTimestamp}` : '') }} 
+                            source={{
+                                uri: withCacheBust(
+                                    resolveMediaUrl(formData.profilePhoto) || `https://i.pravatar.cc/100?u=${user?.id}`,
+                                    imageTimestamp,
+                                ),
+                            }}
                             style={styles.avatar} 
                         />
                             <TouchableOpacity style={styles.cameraBtn} onPress={pickImage}>
@@ -350,7 +356,7 @@ export default function EditProfileScreen() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Profile Visibility</Text>
                             <TouchableOpacity onPress={() => setIsVisibilityModalVisible(false)}>
-                                <Ionicons name="close" size={24} color="#fff" />
+                                <Ionicons name="close" size={24} color="#2D2445" />
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.modalSub}>Choose who can see your profile and contact information</Text>
@@ -436,8 +442,8 @@ const styles = StyleSheet.create({
     
     avatarSection: { alignItems: 'center', marginBottom: 32 },
     avatarWrapper: { width: 100, height: 100, marginBottom: 12 },
-    avatar: { width: '100%', height: '100%', borderRadius: 50, borderWidth: 2, borderColor: '#8b5cf6' },
-    cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1e293b' },
+    avatar: { width: '100%', height: '100%', borderRadius: 50, borderWidth: 2, borderColor: '#8b5cf6', backgroundColor: '#E8E2F2' },
+    cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#ffffff' },
     changePhotoText: { fontSize: 14, fontWeight: '800', color: '#8b5cf6' },
     uploadHint: { fontSize: 11, color: '#7A6B9C', marginTop: 4 },
 
@@ -481,7 +487,7 @@ const styles = StyleSheet.create({
     
     // Modal Styles
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#272c35', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+    modalContent: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     modalTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
     modalSub: { fontSize: 14, color: '#9A8EBA', marginBottom: 24, lineHeight: 20 },

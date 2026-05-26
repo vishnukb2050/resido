@@ -88,17 +88,19 @@ export default function CreateThreadScreen() {
 
         setLoading(true);
         try {
-            const uploadedUrls = [];
+            const tenantScope = (useAuthStore.getState().activeWorkspace?.tenantId) || `personal_${user?.id || 'anon'}`;
+            const uploadedUrls: string[] = [];
             for (const item of mediaList) {
                 let finalUri = item.uri;
                 if (item.type === 'VIDEO') {
-                    // Compress video before upload
-                    finalUri = await VideoCompressor.compress(item.uri, {
-                        compressionMethod: 'auto',
-                    });
+                    try {
+                        finalUri = await VideoCompressor.compress(item.uri, { compressionMethod: 'auto' });
+                    } catch (e) {
+                        console.warn('Video compression failed, using original', e);
+                    }
                 }
-                const { fileUrl } = await uploadToR2(finalUri, 'global', 'THREAD', item.type);
-                uploadedUrls.push(fileUrl);
+                const result: any = await uploadToR2(finalUri, tenantScope, 'THREAD', item.type);
+                if (result?.fileUrl) uploadedUrls.push(result.fileUrl);
             }
 
             const pinnedBusinessId =
@@ -106,22 +108,25 @@ export default function CreateThreadScreen() {
                     ? selectedBusinessId || myBusinesses[0]?.id
                     : null;
 
-            const payload = {
+            const payload: any = {
                 title: title || 'New Post',
                 content,
                 category,
                 mediaUrls: uploadedUrls,
                 mediaType: mediaList.length > 0 ? mediaList[0].type : 'IMAGE',
-                visibility: selectedVisibilities[0], // Using primary for backend simple enum
-                visibilities: selectedVisibilities, // Extra info
-                authorAvatar: user?.profilePhoto,
-                businessProfileId: pinnedBusinessId,
-                poll: showPollBuilder && pollQuestion && pollOptions.filter(o => o).length >= 2 ? {
+                visibility: selectedVisibilities[0],
+                visibilities: selectedVisibilities,
+                authorName: user?.name || 'Resident',
+                authorAvatar: user?.profilePhoto || undefined,
+            };
+            if (pinnedBusinessId) payload.businessProfileId = pinnedBusinessId;
+            if (showPollBuilder && pollQuestion && pollOptions.filter(o => o).length >= 2) {
+                payload.poll = {
                     question: pollQuestion,
                     options: pollOptions.filter(o => o),
-                    durationDays: pollDuration
-                } : undefined
-            };
+                    durationDays: pollDuration,
+                };
+            }
 
             await threadApi.createThread(payload);
             Alert.alert('Success', 'Thread published!');
@@ -129,9 +134,12 @@ export default function CreateThreadScreen() {
                 pathname: '/thread', 
                 params: { refresh: Date.now().toString() } 
             });
-        } catch (error) {
-            console.error(error);
-            Alert.alert('Error', 'Failed to publish thread');
+        } catch (error: any) {
+            const status = error?.response?.status;
+            const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
+            const reason = serverMsg || error?.message || 'Unknown error';
+            console.error('Publish thread failed:', status, reason, error?.response?.data || '');
+            Alert.alert('Publish Failed', `${reason}${status ? ` (HTTP ${status})` : ''}`);
         } finally {
             setLoading(false);
         }
