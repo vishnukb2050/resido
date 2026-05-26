@@ -7,12 +7,14 @@ import { AuthService } from './auth.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from '../../common/strategies/jwt.strategy';
 import { FollowModule } from '../follow/follow.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
     imports: [
         PrismaModule,
         OtpModule,
         FollowModule,
+        StorageModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],

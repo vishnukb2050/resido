@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@resido/business-client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -19,6 +20,8 @@ export class BusinessService {
         if (existing) {
             throw new ConflictException('Business name already exists. Please choose a unique name.');
         }
+
+        this.validateServiceArea(rest.serviceAreaType, rest.serviceAreaValues);
         
         const profileData = {
             profileType: rest.profileType || 'BUSINESS',
@@ -77,91 +80,332 @@ export class BusinessService {
         });
     }
 
-    async listProfiles(params: { 
-        category?: string, 
-        pincode?: string, 
-        district?: string, 
-        state?: string, 
-        tenantId?: string,
-        lat?: number,
-        lng?: number,
-        radius?: number, // User's search radius (optional)
-        query?: string // Search keyword or hashtag
-    }) {
-        const { category, pincode, district, state, tenantId, lat, lng, radius, query } = params;
+    private validateServiceArea(serviceAreaType?: string, serviceAreaValues?: string[]) {
+        const type = serviceAreaType || 'RADIUS';
+        const values = serviceAreaValues || [];
+        if (type === 'PINCODE' && values.length === 0) {
+            throw new BadRequestException('Add at least one pincode for your service area.');
+        }
+        if (type === 'DISTRICT' && values.length === 0) {
+            throw new BadRequestException('Add at least one district for your service area.');
+        }
+        if (type === 'STATE' && values.length === 0) {
+            throw new BadRequestException('Select a state for your service area.');
+        }
+    }
 
-        // Base query for administrative matches
-        const adminConditions: any[] = [
-            { serviceAreaType: 'PAN_INDIA' },
-            state ? { serviceAreaType: 'STATE', serviceAreaValues: { has: state } } : null,
-            district ? { serviceAreaType: 'DISTRICT', serviceAreaValues: { has: district } } : null,
-            pincode ? { serviceAreaType: 'PINCODE', serviceAreaValues: { has: pincode } } : null,
-            pincode ? { location: pincode } : null
-        ].filter(Boolean);
+    private buildTextSearchFilter(query?: string): Prisma.BusinessProfileWhereInput | undefined {
+        if (!query?.trim()) return undefined;
+        const q = query.trim();
+        return {
+            OR: [
+                { businessName: { contains: q, mode: 'insensitive' } },
+                { category: { contains: q, mode: 'insensitive' } },
+                { hashtags: { contains: q, mode: 'insensitive' } },
+                { about: { contains: q, mode: 'insensitive' } },
+                { services: { some: { name: { contains: q, mode: 'insensitive' } } } },
+                { services: { some: { description: { contains: q, mode: 'insensitive' } } } },
+            ],
+        };
+    }
 
-        // If no lat/lng, stick to standard Prisma findMany
-        if (!lat || !lng) {
-            return this.prisma.businessProfile.findMany({
-                where: {
-                    tenantId: tenantId || undefined,
-                    category: category || undefined,
-                    isActive: true,
-                    OR: adminConditions.length > 0 ? adminConditions : undefined
-                },
-                include: { services: true },
-                orderBy: { createdAt: 'desc' }
-            });
+    private buildLocationReachFilter(params: {
+        pincode?: string;
+        district?: string;
+        state?: string;
+        lat?: number;
+        lng?: number;
+        radius?: number;
+    }): Prisma.BusinessProfileWhereInput | undefined {
+        const { pincode, district, state, lat, lng, radius } = params;
+        const hasAdminFilter = !!(pincode || district || state);
+        const hasGeoFilter = lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng);
+
+        if (!hasAdminFilter && !hasGeoFilter) {
+            return undefined;
         }
 
-        // Hybrid Geospatial Query using $queryRaw
-        // 1. Matches administrative tiers
-        // 2. Matches providers whose radius covers the user's current lat/lng
-        // 3. Matches providers within the user's requested search radius
-        const profiles = await this.prisma.$queryRawUnsafe(`
-            SELECT DISTINCT b.* FROM business_profiles b
-            WHERE b."isActive" = true
-            ${category ? `AND b.category = '${category}'` : ''}
-            ${tenantId ? `AND b."tenantId" = '${tenantId}'` : ''}
-            ${query ? `AND (b.category ILIKE '%${query}%' OR b."businessName" ILIKE '%${query}%' OR b.hashtags ILIKE '%${query}%')` : ''}
-            AND (
-                -- Administrative Matches
-                "serviceAreaType" = 'PAN_INDIA'
-                ${state ? `OR ("serviceAreaType" = 'STATE' AND '${state}' = ANY("serviceAreaValues"))` : ''}
-                ${district ? `OR ("serviceAreaType" = 'DISTRICT' AND '${district}' = ANY("serviceAreaValues"))` : ''}
-                ${pincode ? `OR ("serviceAreaType" = 'PINCODE' AND '${pincode}' = ANY("serviceAreaValues"))` : ''}
-                
-                -- Geospatial Match: User is within Provider's configured radius
-                OR (
-                    b.latitude IS NOT NULL AND b.longitude IS NOT NULL AND b."serviceRadiusKm" IS NOT NULL
-                    AND ST_DWithin(
-                        ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
-                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-                        b."serviceRadiusKm" * 1000
+        const reachOr: Prisma.BusinessProfileWhereInput[] = [
+            { serviceAreaType: 'PAN_INDIA' },
+        ];
+
+        if (state) {
+            reachOr.push({ serviceAreaType: 'STATE', serviceAreaValues: { has: state } });
+        }
+        if (district) {
+            reachOr.push({ serviceAreaType: 'DISTRICT', serviceAreaValues: { has: district } });
+        }
+        if (pincode) {
+            reachOr.push({ serviceAreaType: 'PINCODE', serviceAreaValues: { has: pincode } });
+            reachOr.push({ location: { contains: pincode, mode: 'insensitive' } });
+        }
+
+        // RADIUS-mode providers: visible when searcher has coordinates (approximated via raw query for geo)
+        if (!hasGeoFilter) {
+            return { OR: reachOr };
+        }
+
+        return { OR: reachOr };
+    }
+
+    async listProfiles(params: {
+        category?: string;
+        pincode?: string;
+        district?: string;
+        state?: string;
+        tenantId?: string;
+        lat?: number;
+        lng?: number;
+        radius?: number;
+        query?: string;
+        limit?: number;
+        offset?: number;
+    }) {
+        const { category, pincode, district, state, tenantId, lat, lng, radius, query } = params;
+        const limit = Math.min(Math.max(params.limit ?? 50, 1), 100);
+        const offset = Math.max(params.offset ?? 0, 0);
+        const hasGeo = lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng);
+        const searchRadiusKm = radius && radius > 0 ? radius : 10;
+
+        const textFilter = this.buildTextSearchFilter(query);
+        const locationFilter = this.buildLocationReachFilter({ pincode, district, state, lat, lng, radius });
+
+        const baseWhere: Prisma.BusinessProfileWhereInput = {
+            isActive: true,
+            ...(tenantId ? { tenantId } : {}),
+            ...(category ? { category: { contains: category, mode: 'insensitive' } } : {}),
+            ...(textFilter ? textFilter : {}),
+        };
+
+        if (hasGeo) {
+            const queryPattern = query?.trim() ? `%${query.trim()}%` : null;
+            const categoryPattern = category ? `%${category}%` : null;
+
+            const rows = await this.prisma.$queryRaw<{ id: string; distance_km: number | null; has_slots: boolean }[]>`
+                WITH matched AS (
+                    SELECT
+                        b.id,
+                        b."isVerified",
+                        CASE
+                            WHEN b.latitude IS NOT NULL AND b.longitude IS NOT NULL THEN
+                                ST_Distance(
+                                    ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
+                                    ST_SetSRID(ST_MakePoint(${lng}::double precision, ${lat}::double precision), 4326)::geography
+                                ) / 1000.0
+                            ELSE NULL
+                        END AS distance_km,
+                        EXISTS (
+                            SELECT 1 FROM business_slots s
+                            WHERE s."businessProfileId" = b.id AND s."isActive" = true
+                        ) AS has_slots,
+                        b."createdAt"
+                    FROM business_profiles b
+                    WHERE b."isActive" = true
+                    ${tenantId ? Prisma.sql`AND b."tenantId" = ${tenantId}` : Prisma.empty}
+                    ${categoryPattern ? Prisma.sql`AND b.category ILIKE ${categoryPattern}` : Prisma.empty}
+                    ${queryPattern ? Prisma.sql`AND (
+                        b.category ILIKE ${queryPattern}
+                        OR b."businessName" ILIKE ${queryPattern}
+                        OR b.hashtags ILIKE ${queryPattern}
+                        OR b.about ILIKE ${queryPattern}
+                        OR EXISTS (
+                            SELECT 1 FROM business_services sv
+                            WHERE sv."businessProfileId" = b.id
+                            AND (sv.name ILIKE ${queryPattern} OR sv.description ILIKE ${queryPattern})
+                        )
+                    )` : Prisma.empty}
+                    AND (
+                        b."serviceAreaType" = 'PAN_INDIA'
+                        ${state ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND ${state} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                        ${district ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND ${district} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                        ${pincode ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND ${pincode} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                        ${pincode ? Prisma.sql`OR (b.location ILIKE ${'%' + pincode + '%'})` : Prisma.empty}
+                        OR (
+                            b.latitude IS NOT NULL AND b.longitude IS NOT NULL
+                            AND b."serviceRadiusKm" IS NOT NULL
+                            AND ST_DWithin(
+                                ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
+                                ST_SetSRID(ST_MakePoint(${lng}::double precision, ${lat}::double precision), 4326)::geography,
+                                b."serviceRadiusKm" * 1000
+                            )
+                        )
+                        OR (
+                            b.latitude IS NOT NULL AND b.longitude IS NOT NULL
+                            AND ST_DWithin(
+                                ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
+                                ST_SetSRID(ST_MakePoint(${lng}::double precision, ${lat}::double precision), 4326)::geography,
+                                ${searchRadiusKm} * 1000
+                            )
+                        )
                     )
                 )
-                
-                -- Geospatial Match: Provider is within User's requested search radius
-                ${radius ? `
-                OR (
-                    b.latitude IS NOT NULL AND b.longitude IS NOT NULL
-                    AND ST_DWithin(
-                        ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
-                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-                        ${radius} * 1000
-                    )
-                )` : ''}
-            )
-            ORDER BY b."createdAt" DESC
-        `);
+                SELECT id, distance_km, has_slots
+                FROM matched
+                ORDER BY "isVerified" DESC, has_slots DESC, distance_km ASC NULLS LAST, "createdAt" DESC
+                LIMIT ${limit} OFFSET ${offset}
+            `;
 
-        // Get IDs to fetch with services (to maintain Prisma's nice include/typing)
-        const ids = (profiles as any[]).map(p => p.id);
-        
-        return this.prisma.businessProfile.findMany({
-            where: { id: { in: ids } },
-            include: { services: true },
-            orderBy: { createdAt: 'desc' }
-        });
+            const ids = rows.map((r) => r.id);
+            if (ids.length === 0) {
+                return { items: [], total: 0, hasMore: false };
+            }
+
+            const distanceMap = new Map(rows.map((r) => [r.id, r.distance_km]));
+            const profiles = await this.prisma.businessProfile.findMany({
+                where: { id: { in: ids } },
+                include: { services: true, slots: { where: { isActive: true } } },
+            });
+
+            const ordered = ids
+                .map((id) => profiles.find((p) => p.id === id))
+                .filter(Boolean)
+                .map((p) => ({
+                    ...p!,
+                    distanceKm: distanceMap.get(p!.id) ?? null,
+                }));
+
+            const totalResult = await this.prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT COUNT(DISTINCT b.id)::bigint AS count
+                FROM business_profiles b
+                WHERE b."isActive" = true
+                ${tenantId ? Prisma.sql`AND b."tenantId" = ${tenantId}` : Prisma.empty}
+                ${categoryPattern ? Prisma.sql`AND b.category ILIKE ${categoryPattern}` : Prisma.empty}
+                ${queryPattern ? Prisma.sql`AND (
+                    b.category ILIKE ${queryPattern}
+                    OR b."businessName" ILIKE ${queryPattern}
+                    OR b.hashtags ILIKE ${queryPattern}
+                    OR b.about ILIKE ${queryPattern}
+                    OR EXISTS (
+                        SELECT 1 FROM business_services sv
+                        WHERE sv."businessProfileId" = b.id
+                        AND (sv.name ILIKE ${queryPattern} OR sv.description ILIKE ${queryPattern})
+                    )
+                )` : Prisma.empty}
+                AND (
+                    b."serviceAreaType" = 'PAN_INDIA'
+                    ${state ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND ${state} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                    ${district ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND ${district} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                    ${pincode ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND ${pincode} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                    ${pincode ? Prisma.sql`OR (b.location ILIKE ${'%' + pincode + '%'})` : Prisma.empty}
+                    OR (
+                        b.latitude IS NOT NULL AND b.longitude IS NOT NULL
+                        AND b."serviceRadiusKm" IS NOT NULL
+                        AND ST_DWithin(
+                            ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
+                            ST_SetSRID(ST_MakePoint(${lng}::double precision, ${lat}::double precision), 4326)::geography,
+                            b."serviceRadiusKm" * 1000
+                        )
+                    )
+                    OR (
+                        b.latitude IS NOT NULL AND b.longitude IS NOT NULL
+                        AND ST_DWithin(
+                            ST_SetSRID(ST_MakePoint(b.longitude, b.latitude), 4326)::geography,
+                            ST_SetSRID(ST_MakePoint(${lng}::double precision, ${lat}::double precision), 4326)::geography,
+                            ${searchRadiusKm} * 1000
+                        )
+                    )
+                )
+            `;
+
+            const total = Number(totalResult[0]?.count ?? 0);
+            return { items: ordered, total, hasMore: offset + ordered.length < total };
+        }
+
+        const where: Prisma.BusinessProfileWhereInput = {
+            ...baseWhere,
+            ...(locationFilter ? locationFilter : {}),
+        };
+
+        const [profiles, total] = await Promise.all([
+            this.prisma.businessProfile.findMany({
+                where,
+                include: {
+                    services: true,
+                    slots: { where: { isActive: true } },
+                },
+                orderBy: [
+                    { isVerified: 'desc' },
+                    { createdAt: 'desc' },
+                ],
+                take: limit,
+                skip: offset,
+            }),
+            this.prisma.businessProfile.count({ where }),
+        ]);
+
+        const items = profiles.map((p) => ({
+            ...p,
+            distanceKm: null as number | null,
+        }));
+
+        return { items, total, hasMore: offset + items.length < total };
+    }
+
+    async suggest(query: string, limit = 10) {
+        if (!query || query.trim().length < 2) {
+            return { categories: [], profiles: [], services: [] };
+        }
+
+        const q = query.trim();
+        const take = Math.min(Math.max(limit, 1), 20);
+
+        const [profiles, serviceItems, categoryRows] = await Promise.all([
+            this.prisma.businessProfile.findMany({
+                where: {
+                    isActive: true,
+                    OR: [
+                        { businessName: { contains: q, mode: 'insensitive' } },
+                        { category: { contains: q, mode: 'insensitive' } },
+                    ],
+                },
+                select: { id: true, businessName: true, category: true },
+                take,
+                orderBy: { businessName: 'asc' },
+            }),
+            this.prisma.serviceItem.findMany({
+                where: {
+                    name: { contains: q, mode: 'insensitive' },
+                    businessProfile: { isActive: true },
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    businessProfileId: true,
+                    businessProfile: { select: { businessName: true } },
+                },
+                take,
+            }),
+            this.prisma.businessProfile.findMany({
+                where: { isActive: true, category: { contains: q, mode: 'insensitive' } },
+                select: { category: true },
+                take: 50,
+            }),
+        ]);
+
+        const categories = Array.from(
+            new Set(
+                categoryRows
+                    .flatMap((r) => (r.category || '').split(',').map((c) => c.trim()))
+                    .filter((c) => c.toLowerCase().includes(q.toLowerCase()))
+            )
+        ).slice(0, take);
+
+        return {
+            categories,
+            profiles: profiles.map((p) => ({
+                type: 'profile' as const,
+                id: p.id,
+                name: p.businessName,
+                category: p.category,
+            })),
+            services: serviceItems.map((s) => ({
+                type: 'service' as const,
+                id: s.id,
+                name: s.name,
+                profileId: s.businessProfileId,
+                businessName: s.businessProfile.businessName,
+            })),
+        };
     }
 
     async getProfilesByUserId(userId: string) {
@@ -190,6 +434,10 @@ export class BusinessService {
 
     async updateProfile(id: string, data: any) {
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
+
+        if (rest.serviceAreaType !== undefined) {
+            this.validateServiceArea(rest.serviceAreaType, rest.serviceAreaValues ?? []);
+        }
         
         if (rest.businessName) {
             const existing = await this.prisma.businessProfile.findFirst({

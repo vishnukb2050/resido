@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, UseInterceptors, Req, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, UseInterceptors, Req, Query, Param, Headers } from '@nestjs/common';
 import { CommunityService } from './community.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
 
@@ -31,13 +31,33 @@ export class CommunityController {
 
     // Complaints
     @Get('complaints')
-    getComplaints(@Query('memberId') memberId?: string, @Query('staffId') staffId?: string) {
-        return this.communityService.getComplaints(memberId, staffId);
+    getComplaints(
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+        @Query('memberId') memberId?: string,
+        @Query('staffId') staffId?: string,
+    ) {
+        return this.communityService.getComplaints({
+            memberId,
+            staffId,
+            authUserId,
+            authUserPhone,
+            authUserRole,
+        });
     }
 
     @Post('complaints')
-    createComplaint(@Body() data: any) {
-        return this.communityService.createComplaint(data.memberId, data);
+    createComplaint(
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Body() data: any,
+    ) {
+        return this.communityService.createComplaint(data.memberId || authUserId, {
+            ...data,
+            authUserId,
+            authUserPhone,
+        });
     }
 
     @Post('complaints/:id/assign')
@@ -53,9 +73,15 @@ export class CommunityController {
     @Post('complaints/:id/progress')
     addProgress(
         @Param('id') id: string,
-        @Body() body: { message: string; photos?: string[]; status?: string; updatedBy?: string }
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Body() body: { message: string; photos?: string[]; status?: string; updatedBy?: string },
     ) {
-        return this.communityService.addProgressNote(id, body);
+        return this.communityService.addProgressNote(id, {
+            ...body,
+            authUserId,
+            authUserPhone,
+        });
     }
 
     // Gatepass / Visitors
@@ -94,18 +120,48 @@ export class CommunityController {
 
     // Calendar / Events
     @Get('events')
-    getEvents(@Query('memberId') memberId: string) {
-        return this.communityService.getEvents(memberId);
+    getEvents(
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+        @Query('memberId') memberId?: string,
+    ) {
+        return this.communityService.getEvents({
+            memberId,
+            authUserId,
+            authUserPhone,
+            authUserRole,
+        });
     }
 
     @Post('events')
-    createEvent(@Body() data: any) {
-        return this.communityService.createEvent(data.memberId, data);
+    createEvent(
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+        @Body() data: any,
+    ) {
+        return this.communityService.createEvent({
+            memberId: data?.memberId,
+            authUserId,
+            authUserPhone,
+            authUserRole,
+            data,
+        });
     }
 
     @Delete('events/:id')
-    deleteEvent(@Param('id') id: string) {
-        return this.communityService.deleteEvent(id);
+    deleteEvent(
+        @Param('id') id: string,
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+    ) {
+        return this.communityService.deleteEvent(id, {
+            authUserId,
+            authUserPhone,
+            authUserRole,
+        });
     }
 
     @Get('members')
@@ -177,13 +233,63 @@ export class CommunityController {
     // Rules
 
     @Get('rules')
-    getRules(@Query('memberId') memberId?: string) {
-        return this.communityService.getRules(memberId);
+    getRules(
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+        @Query('memberId') memberId?: string,
+    ) {
+        return this.communityService.getRules({
+            memberId,
+            authUserId,
+            authUserPhone,
+            authUserRole,
+        });
     }
 
     @Post('rules')
-    createRule(@Body() data: any) {
-        return this.communityService.createRule(data);
+    createRule(
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+        @Body() data: any,
+    ) {
+        return this.communityService.createRule({
+            ...data,
+            authUserId,
+            authUserPhone,
+            authUserRole,
+        });
+    }
+
+    @Patch('rules/:id')
+    updateRule(
+        @Param('id') id: string,
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+        @Body() data: any,
+    ) {
+        return this.communityService.updateRule(id, {
+            ...data,
+            authUserId,
+            authUserPhone,
+            authUserRole,
+        });
+    }
+
+    @Delete('rules/:id')
+    deleteRule(
+        @Param('id') id: string,
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Headers('x-user-role') authUserRole: string,
+    ) {
+        return this.communityService.deleteRule(id, {
+            authUserId,
+            authUserPhone,
+            authUserRole,
+        });
     }
 
     @Get('stats/summary')

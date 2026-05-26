@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
     SafeAreaView, ActivityIndicator, Alert, Modal, ScrollView, TextInput,
-    Image
+    Image, RefreshControl
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuthStore } from '../store/authStore';
 import { communityApi, authApi } from '../services/api';
+
+const safeRoleLabel = (role?: string | null) =>
+    role ? role.replace('_STAFF', '').replace(/_/g, ' ') : 'STAFF';
 
 const CATEGORIES = [
     'Plumbing', 'Electrical', 'Handyman', 'Lift', 'Kitchen', 
@@ -25,6 +28,7 @@ export default function AdminComplaintsScreen() {
     const [staff, setStaff] = useState<any[]>([]);
     const [residents, setResidents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     // Modal Control States
@@ -59,22 +63,32 @@ export default function AdminComplaintsScreen() {
     const isStaff = ['CLEANING_STAFF', 'SECURITY_STAFF', 'SERVICE_STAFF', 'MAINTENANCE_STAFF', 'STAFF', 'MANAGER_STAFF'].includes(activeWorkspace?.role || '');
     const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF', 'ACCOUNTS_STAFF'].includes(activeWorkspace?.role || '');
 
-    useEffect(() => {
-        fetchComplaints();
-        fetchMembers();
-    }, []);
-
-    const fetchComplaints = async () => {
+    const fetchComplaints = useCallback(async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
+            // Staff: only complaints assigned to them
+            // Admin: full tenant view (backend sees role via x-user-role header)
             const params = isStaff ? { staffId: activeWorkspace?.memberId || user?.id } : {};
             const res = await communityApi.getComplaintsAdmin(params);
-            setComplaints(res.data);
+            setComplaints(Array.isArray(res.data) ? res.data : []);
         } catch (e) {
             console.error('Fetch failed', e);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    }, [isStaff, activeWorkspace?.memberId, user?.id]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchComplaints();
+            fetchMembers();
+        }, [fetchComplaints]),
+    );
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchComplaints(true);
     };
 
     const fetchMembers = async () => {
@@ -166,7 +180,7 @@ export default function AdminComplaintsScreen() {
                 message: progressMessage,
                 photos: uploadedUrls,
                 status: progressStatus,
-                updatedBy: `${activeWorkspace?.role.replace('_STAFF', '')} (${user?.name})`
+                updatedBy: `${user?.name || 'Member'} (${safeRoleLabel(activeWorkspace?.role)})`,
             });
 
             Alert.alert('Success', 'Progress update logged successfully!');
@@ -236,10 +250,13 @@ export default function AdminComplaintsScreen() {
     };
 
     // Search Filtering
-    const filteredResidents = residents.filter(r => 
-        r.name.toLowerCase().includes(searchResident.toLowerCase()) ||
-        r.phone.includes(searchResident)
-    );
+    const filteredResidents = residents.filter(r => {
+        const q = searchResident.toLowerCase();
+        return (
+            (r.name || '').toLowerCase().includes(q) ||
+            (r.phone || '').includes(searchResident)
+        );
+    });
 
     return (
         <SafeAreaView style={styles.container}>
@@ -266,6 +283,20 @@ export default function AdminComplaintsScreen() {
                     data={complaints}
                     keyExtractor={(item: any) => item.id}
                     contentContainerStyle={styles.listContent}
+                    refreshControl={<RefreshControl tintColor="#6366f1" refreshing={refreshing} onRefresh={onRefresh} />}
+                    ListEmptyComponent={
+                        <View style={{ alignItems: 'center', marginTop: 80, paddingHorizontal: 30 }}>
+                            <Ionicons name="construct-outline" size={56} color="rgba(255,255,255,0.08)" />
+                            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800', marginTop: 16 }}>
+                                {isStaff ? 'No tasks assigned to you yet' : 'No requests yet'}
+                            </Text>
+                            <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: 'center' }}>
+                                {isStaff
+                                    ? 'Once an admin assigns a request to you, it will appear here.'
+                                    : 'Tap + to raise a request on behalf of a resident.'}
+                            </Text>
+                        </View>
+                    }
                     renderItem={({ item }) => {
                         const isExpanded = expandedComplaintId === item.id;
                         return (
@@ -294,7 +325,7 @@ export default function AdminComplaintsScreen() {
                                     <View style={[styles.metaRow, styles.assignedBox]}>
                                         <Ionicons name="construct-outline" size={13} color="#10b981" />
                                         <Text style={[styles.metaText, { color: '#10b981', fontWeight: '800' }]}>
-                                            Assigned To: {item.assignedTo.name} ({item.assignedTo.role.replace('_STAFF', '')})
+                                            Assigned To: {item.assignedTo.name} ({safeRoleLabel(item.assignedTo.role)})
                                         </Text>
                                     </View>
                                 )}
@@ -385,7 +416,7 @@ export default function AdminComplaintsScreen() {
                                                         <View style={{ marginLeft: 10 }}>
                                                             <Text style={styles.dropdownStaffName}>{s.name}</Text>
                                                             <Text style={styles.dropdownStaffRole}>
-                                                                {s.role ? s.role.replace('_STAFF', '') : 'STAFF'}
+                                                                {safeRoleLabel(s.role)}
                                                             </Text>
                                                         </View>
                                                     </View>
@@ -559,7 +590,7 @@ export default function AdminComplaintsScreen() {
                                     <View style={styles.selectedStaffItem}>
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.staffItemName}>{selectedStaffToAssign.name}</Text>
-                                            <Text style={styles.staffItemRoleBadge}>{selectedStaffToAssign.role.replace('_STAFF', '')}</Text>
+                                            <Text style={styles.staffItemRoleBadge}>{safeRoleLabel(selectedStaffToAssign.role)}</Text>
                                         </View>
                                         <TouchableOpacity onPress={() => setSelectedStaffToAssign(null)}>
                                             <Ionicons name="close-circle" size={22} color="#ef4444" />
@@ -588,7 +619,7 @@ export default function AdminComplaintsScreen() {
                                             >
                                                 <View>
                                                     <Text style={styles.staffOptionName}>{s.name}</Text>
-                                                    <Text style={styles.staffOptionRole}>{s.role.replace('_STAFF', '')}</Text>
+                                                    <Text style={styles.staffOptionRole}>{safeRoleLabel(s.role)}</Text>
                                                 </View>
                                                 <Ionicons name="chevron-forward" size={16} color="#6366f1" />
                                             </TouchableOpacity>

@@ -3,7 +3,7 @@ import {
     View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
     Modal, TextInput, Alert, ScrollView, ActivityIndicator, FlatList
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { useAuthStore } from '../store/authStore';
@@ -103,35 +103,18 @@ export default function EventsScreen() {
     const [selectedConvs, setSelectedConvs] = useState<Record<string, boolean>>({});
     const [selectedUsers, setSelectedUsers] = useState<Record<string, boolean>>({});
 
-    // ── Double-Layer Client Role Security ──────────────────────────────
+    // Backend already filters by role + audience; we only need to scope My Space
+    // events to ones the user created or was directly invited to.
     const filteredEvents = React.useMemo(() => {
-        const memberId = activeWorkspace?.memberId || user?.id || '';
-
         if (!activeWorkspace) {
-            // My Space event filter: only show if created by user OR shared with user
             return events.filter((e: any) => {
                 const isCreator = e.createdBy === user?.id;
                 const isShared = e.sharedWithIds && e.sharedWithIds.includes(user?.id || '');
                 return isCreator || isShared;
             });
         }
-
-        const role = (activeWorkspace?.role || 'RESIDENT') as string;
-        const isStaff = role.endsWith('STAFF') || role === 'CARETAKER' || role === 'ACCOUNTS';
-        const targetAudience = role === 'MEMBER' ? 'MEMBERS' : (role === 'RESIDENT' ? 'RESIDENTS' : (isStaff ? 'STAFF' : 'RESIDENTS'));
-        
-        return events.filter((e: any) => {
-            const aud = e.audience || [];
-            const isCreator = e.createdBy === memberId || e.createdBy === user?.id;
-            const isShared = e.sharedWithIds && (e.sharedWithIds.includes(memberId) || e.sharedWithIds.includes(user?.id || ''));
-            
-            return isAdmin ||
-                   isCreator ||
-                   isShared ||
-                   aud.length === 0 ||
-                   aud.includes(targetAudience);
-        });
-    }, [events, activeWorkspace, user?.id, isAdmin]);
+        return events;
+    }, [events, activeWorkspace, user?.id]);
 
     // ── WeekDays Resolver ──────────────────────────────────────────────────
     const weekDays = React.useMemo(() => {
@@ -169,6 +152,14 @@ export default function EventsScreen() {
     }, [activeWorkspace?.memberId, user?.id, theme.primary, selectedDate]);
 
     useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+    // Refresh on screen focus so audience changes from admin are reflected
+    // immediately when residents/staff open the calendar.
+    useFocusEffect(
+        useCallback(() => {
+            fetchEvents();
+        }, [fetchEvents]),
+    );
 
     useEffect(() => {
         if (!activeWorkspace && showAdd) {

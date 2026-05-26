@@ -55,9 +55,10 @@ export default function CreateBusinessProfileScreen() {
         setNameChecking(true);
         setNameError('');
         try {
-            const { data } = await businessApi.getProfiles({ query: name.trim() });
-            if (data && Array.isArray(data)) {
-                const conflict = data.find((p: any) => 
+            const { data } = await businessApi.getProfiles({ query: name.trim(), limit: 20 });
+            const list = data?.items ?? (Array.isArray(data) ? data : []);
+            if (list.length > 0) {
+                const conflict = list.find((p: any) => 
                     p.businessName.toLowerCase().trim() === name.toLowerCase().trim() && 
                     p.id !== id
                 );
@@ -643,11 +644,11 @@ export default function CreateBusinessProfileScreen() {
     const handleReachModeChange = (mode: 'RADIUS' | 'PINCODE' | 'STATE_DISTRICT' | 'PAN_INDIA') => {
         setReachMode(mode);
         if (mode === 'PAN_INDIA') {
-            setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+            setFormData(prev => ({ ...prev, serviceAreaValues: [], serviceAreaType: 'PAN_INDIA' }));
         } else if (mode === 'RADIUS') {
-            setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+            setFormData(prev => ({ ...prev, serviceAreaValues: [], serviceAreaType: 'RADIUS' }));
         } else if (mode === 'PINCODE') {
-            setFormData(prev => ({ ...prev, serviceAreaValues: [] }));
+            setFormData(prev => ({ ...prev, serviceAreaValues: [], serviceAreaType: 'PINCODE' }));
         } else if (mode === 'STATE_DISTRICT') {
             if (formData.serviceAreaType === 'STATE' && formData.serviceAreaValues.length > 0) {
                 setSelectedState(formData.serviceAreaValues[0]);
@@ -704,6 +705,55 @@ export default function CreateBusinessProfileScreen() {
         return { serviceAreaType: finalType, serviceAreaValues: finalValues };
     };
 
+    const getReachPreviewText = () => {
+        if (reachMode === 'PAN_INDIA') {
+            return 'Visible to users across all of India.';
+        }
+        if (reachMode === 'RADIUS') {
+            return `Visible to users within ${formData.serviceRadiusKm} km of your business location.`;
+        }
+        if (reachMode === 'PINCODE') {
+            if (formData.serviceAreaValues.length === 0) {
+                return 'Add at least one pincode to define your service area.';
+            }
+            return `Visible in pincodes: ${formData.serviceAreaValues.join(', ')}.`;
+        }
+        if (reachMode === 'STATE_DISTRICT') {
+            if (!selectedState) {
+                return 'Select a state to define your service area.';
+            }
+            if (stateReachType === 'STATE') {
+                return `Visible to users in the entire state of ${selectedState}.`;
+            }
+            if (formData.serviceAreaValues.length === 0) {
+                return `Add districts in ${selectedState} for your service area.`;
+            }
+            return `Visible in districts: ${formData.serviceAreaValues.join(', ')} (${selectedState}).`;
+        }
+        return '';
+    };
+
+    const validateStep3Location = (): boolean => {
+        if (!formData.latitude || !formData.longitude) {
+            Alert.alert('Validation Error', 'Please set your business location on the map (search, GPS, or drag the pin).');
+            return false;
+        }
+        const synced = syncServiceReach();
+        if (synced.serviceAreaType === 'PINCODE' && synced.serviceAreaValues.length === 0) {
+            Alert.alert('Validation Error', 'Add at least one pincode for your service area, or switch to GPS Radius mode.');
+            return false;
+        }
+        if (synced.serviceAreaType === 'DISTRICT' && synced.serviceAreaValues.length === 0) {
+            Alert.alert('Validation Error', 'Add at least one district, or choose Entire State.');
+            return false;
+        }
+        if (synced.serviceAreaType === 'STATE' && synced.serviceAreaValues.length === 0) {
+            Alert.alert('Validation Error', 'Please select a state for your service area.');
+            return false;
+        }
+        return true;
+    };
+
     const nextStep = () => {
         if (step === 1) {
             if (!formData.businessName || !formData.businessName.trim()) {
@@ -732,7 +782,7 @@ export default function CreateBusinessProfileScreen() {
             }
         }
         if (step === 3) {
-            syncServiceReach();
+            if (!validateStep3Location()) return;
         }
         setStep(Math.min(step + 1, 5));
     };
@@ -1318,6 +1368,11 @@ export default function CreateBusinessProfileScreen() {
                     <Text style={styles.infoText}>Your profile will be visible to users across all of India.</Text>
                 </View>
             )}
+
+            <View style={[styles.infoBox, { marginTop: 16, borderColor: 'rgba(29, 78, 216, 0.3)' }]}>
+                <Ionicons name="eye-outline" size={20} color="#60a5fa" />
+                <Text style={[styles.infoText, { color: '#93c5fd' }]}>{getReachPreviewText()}</Text>
+            </View>
 
             <View style={styles.tipBox}>
                 <Ionicons name="information-circle-outline" size={20} color="#1d4ed8" />

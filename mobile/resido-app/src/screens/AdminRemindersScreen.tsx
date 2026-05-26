@@ -1,12 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, ScrollView,
+    View, Text, StyleSheet, TouchableOpacity, ScrollView, Image,
     SafeAreaView, StatusBar, ActivityIndicator, Alert, TextInput, Switch
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { communityRemindersApi, communityApi } from '../services/api';
+import { storageApi } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
+import { resolveMediaUrl } from '../utils/mediaUrl';
+
+/** Render an image at its natural aspect ratio. */
+function ReminderImage({ uri, style }: { uri: string; style?: any }) {
+    const [aspect, setAspect] = useState<number>(16 / 9);
+    useEffect(() => {
+        if (!uri) return;
+        Image.getSize(uri, (w, h) => { if (w && h) setAspect(w / h); }, () => {});
+    }, [uri]);
+    return (
+        <Image
+            source={{ uri }}
+            style={[{ width: '100%', aspectRatio: aspect, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)' }, style]}
+            resizeMode="contain"
+        />
+    );
+}
 
 const DAYS_OF_WEEK = [
     { label: 'Sun', value: 0 },
@@ -20,7 +39,7 @@ const DAYS_OF_WEEK = [
 
 export default function AdminRemindersScreen() {
     const router = useRouter();
-    const { activeWorkspace } = useAuthStore();
+    const { activeWorkspace, user } = useAuthStore();
     
     const [loading, setLoading] = useState(false);
     const [reminders, setReminders] = useState<any[]>([]);
@@ -34,8 +53,12 @@ export default function AdminRemindersScreen() {
 
     // Form states
     const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
+    const [imageUri, setImageUri] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [category, setCategory] = useState('MAINTENANCE'); // MAINTENANCE, DUTY_ROSTER, EVENT, GENERAL
     const [targetType, setTargetType] = useState('ALL'); // ALL, SPECIFIC_UNITS, STAFF_ROLE, SPECIFIC_MEMBERS
 
@@ -163,46 +186,131 @@ export default function AdminRemindersScreen() {
 
         setSaving(true);
         try {
-            await communityRemindersApi.createReminder({
-                title,
-                message,
-                category,
-                targetType,
-                targetRoles: selectedRoles,
-                targetUnits: selectedUnits,
-                targetMembers: selectedMembers,
-                recurrence,
-                recurrenceDetail: recurrenceDetailVal,
-                scheduledAt: scheduledAtDate ? scheduledAtDate.toISOString() : null
-            });
+            // Resolve image URL:
+            //   - new picker selection → upload and replace
+            //   - editing + existingImageUrl kept → undefined (don't touch field)
+            //   - editing + existingImageUrl cleared → null (remove image)
+            //   - create with no image → undefined
+            let imageUrl: string | null | undefined = undefined;
+            if (imageUri) {
+                setUploadingImage(true);
+                try {
+                    const uploaded = await storageApi.uploadFile(
+                        imageUri,
+                        `reminder_${user?.id || 'unknown'}_${Date.now()}.jpg`,
+                        'image/jpeg',
+                        'reminders',
+                        activeWorkspace?.tenantId,
+                    );
+                    if (uploaded) imageUrl = uploaded as string;
+                } finally {
+                    setUploadingImage(false);
+                }
+            } else if (editingId && !existingImageUrl) {
+                imageUrl = null;
+            }
 
-            Alert.alert(
-                'Success', 
-                recurrence !== 'ONCE' 
-                    ? `Recurring ${recurrence.toLowerCase()} reminder schedule added successfully!` 
-                    : (isScheduled ? 'Scheduled reminder added successfully!' : 'Reminder triggered and dispatched instantly!')
-            );
-            
+            if (editingId) {
+                const payload: any = {
+                    title,
+                    message,
+                    category,
+                    targetType,
+                    targetRoles: selectedRoles,
+                    targetUnits: selectedUnits,
+                    targetMembers: selectedMembers,
+                    recurrence,
+                    recurrenceDetail: recurrenceDetailVal,
+                    scheduledAt: scheduledAtDate ? scheduledAtDate.toISOString() : null,
+                };
+                if (imageUrl !== undefined) payload.imageUrl = imageUrl;
+                await communityRemindersApi.updateReminder(editingId, payload);
+                Alert.alert('Updated', 'Reminder configuration updated.');
+            } else {
+                await communityRemindersApi.createReminder({
+                    title,
+                    message,
+                    imageUrl,
+                    category,
+                    targetType,
+                    targetRoles: selectedRoles,
+                    targetUnits: selectedUnits,
+                    targetMembers: selectedMembers,
+                    recurrence,
+                    recurrenceDetail: recurrenceDetailVal,
+                    scheduledAt: scheduledAtDate ? scheduledAtDate.toISOString() : null,
+                });
+                Alert.alert(
+                    'Success',
+                    recurrence !== 'ONCE'
+                        ? `Recurring ${recurrence.toLowerCase()} reminder schedule added successfully!`
+                        : (isScheduled ? 'Scheduled reminder added successfully!' : 'Reminder triggered and dispatched instantly!'),
+                );
+            }
+
             // Reset form
-            setTitle('');
-            setMessage('');
-            setSelectedUnits([]);
-            setSelectedRoles([]);
-            setSelectedMembers([]);
-            setIsScheduled(false);
-            setScheduledDateTime('');
-            setRecurrence('ONCE');
-            setSelectedDayOfWeek(null);
-            setDateOfMonth('');
-            
+            resetForm();
+
             // Reload & switch tab
             loadData();
             setActiveTab('QUEUE');
         } catch (e) {
-            Alert.alert('Error', 'Failed to register reminder schedule.');
+            Alert.alert('Error', editingId ? 'Failed to update reminder.' : 'Failed to register reminder schedule.');
         } finally {
             setSaving(false);
         }
+    };
+
+    const resetForm = () => {
+        setEditingId(null);
+        setExistingImageUrl(null);
+        setTitle('');
+        setMessage('');
+        setImageUri(null);
+        setSelectedUnits([]);
+        setSelectedRoles([]);
+        setSelectedMembers([]);
+        setIsScheduled(false);
+        setScheduledDateTime('');
+        setRecurrence('ONCE');
+        setSelectedDayOfWeek(null);
+        setDateOfMonth('');
+        setCategory('MAINTENANCE');
+        setTargetType('ALL');
+    };
+
+    const handleEditReminder = (rem: any) => {
+        setEditingId(rem.id);
+        setTitle(rem.title || '');
+        setMessage(rem.message || '');
+        setCategory(rem.category || 'MAINTENANCE');
+        setTargetType(rem.targetType || 'ALL');
+        setSelectedUnits(rem.targetUnits || []);
+        setSelectedRoles(rem.targetRoles || []);
+        setSelectedMembers(rem.targetMembers || []);
+        setRecurrence((rem.recurrence as any) || 'ONCE');
+        setSelectedDayOfWeek(
+            rem.recurrence === 'WEEKLY' && typeof rem.recurrenceDetail === 'number'
+                ? rem.recurrenceDetail
+                : null,
+        );
+        setDateOfMonth(
+            rem.recurrence === 'MONTHLY' && typeof rem.recurrenceDetail === 'number'
+                ? String(rem.recurrenceDetail)
+                : '',
+        );
+        if (rem.scheduledAt && rem.recurrence === 'ONCE') {
+            setIsScheduled(true);
+            const d = new Date(rem.scheduledAt);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            setScheduledDateTime(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`);
+        } else {
+            setIsScheduled(false);
+            setScheduledDateTime('');
+        }
+        setExistingImageUrl(rem.imageUrl || null);
+        setImageUri(null);
+        setActiveTab('CREATE');
     };
 
     const handleTriggerInstantly = async (reminderId: string) => {
@@ -266,6 +374,23 @@ export default function AdminRemindersScreen() {
         setSelectedMembers(prev => 
             prev.includes(memberId) ? prev.filter(id => id !== memberId) : [...prev, memberId]
         );
+    };
+
+    const handlePickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission denied', 'Allow gallery access to attach an image.');
+            return;
+        }
+        // No cropping — attach the full image at its natural aspect ratio.
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: false,
+            quality: 0.9,
+        });
+        if (!result.canceled) {
+            setImageUri(result.assets[0].uri);
+        }
     };
 
     const getRecurrenceLabel = (rem: any) => {
@@ -358,7 +483,16 @@ export default function AdminRemindersScreen() {
 
                     {activeTab === 'CREATE' ? (
                         <View style={styles.formContainer}>
-                            
+
+                            {editingId ? (
+                                <View style={styles.editingBanner}>
+                                    <Ionicons name="create-outline" size={16} color="#3b82f6" />
+                                    <Text style={styles.editingBannerText}>
+                                        Editing reminder — changes save instantly to all future dispatches.
+                                    </Text>
+                                </View>
+                            ) : null}
+
                             {/* Title */}
                             <Text style={styles.inputLabel}>Reminder Title *</Text>
                             <TextInput
@@ -379,6 +513,32 @@ export default function AdminRemindersScreen() {
                                 onChangeText={setMessage}
                                 multiline
                             />
+
+                            {/* Image attachment */}
+                            <Text style={styles.inputLabel}>Attach Image (optional)</Text>
+                            {imageUri || existingImageUrl ? (
+                                <View style={styles.imagePreviewWrap}>
+                                    <ReminderImage uri={imageUri || (resolveMediaUrl(existingImageUrl) as string)} />
+                                    <View style={styles.imagePreviewActions}>
+                                        <TouchableOpacity style={styles.imagePreviewBtn} onPress={handlePickImage}>
+                                            <Ionicons name="image-outline" size={14} color="#fff" />
+                                            <Text style={styles.imagePreviewBtnText}>Change</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.imagePreviewBtn}
+                                            onPress={() => { setImageUri(null); setExistingImageUrl(null); }}
+                                        >
+                                            <Ionicons name="trash-outline" size={14} color="#fff" />
+                                            <Text style={styles.imagePreviewBtnText}>Remove</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ) : (
+                                <TouchableOpacity style={styles.imagePickBtn} onPress={handlePickImage}>
+                                    <Ionicons name="image-outline" size={18} color="#fbbf24" />
+                                    <Text style={styles.imagePickBtnText}>Pick a photo</Text>
+                                </TouchableOpacity>
+                            )}
 
                             {/* Category Selector */}
                             <Text style={styles.inputLabel}>Category</Text>
@@ -609,12 +769,26 @@ export default function AdminRemindersScreen() {
                                     <ActivityIndicator color="#fff" />
                                 ) : (
                                     <Text style={styles.submitBtnText}>
-                                        {recurrence !== 'ONCE' 
-                                            ? `Schedule Recurring ${recurrence.toLowerCase()} Alert` 
-                                            : (isScheduled ? 'Schedule Reminder Job' : 'Send Reminder Instantly')}
+                                        {uploadingImage
+                                            ? 'Uploading image…'
+                                            : editingId
+                                                ? 'Save Changes'
+                                                : recurrence !== 'ONCE'
+                                                    ? `Schedule Recurring ${recurrence.toLowerCase()} Alert`
+                                                    : (isScheduled ? 'Schedule Reminder Job' : 'Send Reminder Instantly')}
                                     </Text>
                                 )}
                             </TouchableOpacity>
+
+                            {editingId ? (
+                                <TouchableOpacity
+                                    style={[styles.submitBtn, { backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 10 }]}
+                                    onPress={resetForm}
+                                    disabled={saving}
+                                >
+                                    <Text style={[styles.submitBtnText, { color: '#cbd5e1' }]}>Cancel Edit</Text>
+                                </TouchableOpacity>
+                            ) : null}
 
                         </View>
                     ) : (
@@ -639,6 +813,10 @@ export default function AdminRemindersScreen() {
                                         </View>
 
                                         <Text style={styles.remMessage}>{rem.message}</Text>
+
+                                        {rem.imageUrl ? (
+                                            <ReminderImage uri={resolveMediaUrl(rem.imageUrl) as string} style={{ marginBottom: 12 }} />
+                                        ) : null}
 
                                         {/* Parameter rows */}
                                         <View style={styles.paramsGrid}>
@@ -671,6 +849,13 @@ export default function AdminRemindersScreen() {
                                                     <Text style={[styles.actionBtnText, { color: '#10b981' }]}>Send Now</Text>
                                                 </TouchableOpacity>
                                             )}
+                                            <TouchableOpacity
+                                                style={[styles.actionBtn, { borderColor: 'rgba(59, 130, 246, 0.4)' }]}
+                                                onPress={() => handleEditReminder(rem)}
+                                            >
+                                                <Ionicons name="create-outline" size={14} color="#3b82f6" style={{ marginRight: 6 }} />
+                                                <Text style={[styles.actionBtnText, { color: '#3b82f6' }]}>Edit</Text>
+                                            </TouchableOpacity>
                                             <TouchableOpacity 
                                                 style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.4)' }]}
                                                 onPress={() => handleDeleteReminder(rem.id)}
@@ -793,5 +978,15 @@ const styles = StyleSheet.create({
 
     actionsRow: { flexDirection: 'row', gap: 10, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', paddingTop: 15 },
     actionBtn: { flex: 1, height: 38, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-    actionBtnText: { color: '#cbd5e1', fontSize: 11, fontWeight: '800' }
+    actionBtnText: { color: '#cbd5e1', fontSize: 11, fontWeight: '800' },
+
+    imagePickBtn: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(251, 191, 36, 0.08)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(251, 191, 36, 0.25)' },
+    imagePickBtnText: { color: '#fbbf24', fontWeight: '800', fontSize: 13 },
+    imagePreviewWrap: { borderRadius: 14, overflow: 'hidden', position: 'relative', backgroundColor: 'rgba(255,255,255,0.04)' },
+    imagePreviewActions: { position: 'absolute', bottom: 8, right: 8, flexDirection: 'row', gap: 6 },
+    imagePreviewBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+    imagePreviewBtnText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+
+    editingBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.25)', borderWidth: 1, padding: 12, borderRadius: 14, marginBottom: 8 },
+    editingBannerText: { color: '#60a5fa', fontWeight: '700', fontSize: 12, flex: 1 },
 });

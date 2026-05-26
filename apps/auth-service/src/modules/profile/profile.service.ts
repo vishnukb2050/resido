@@ -139,7 +139,10 @@ export class ProfileService implements OnModuleInit {
         if (!user) {
             throw new NotFoundException('User profile not found');
         }
-        return user;
+        return {
+            ...user,
+            profilePhoto: this.storageService.resolvePublicMediaUrl(user.profilePhoto),
+        };
     }
 
     async updateProfile(userId: string, data: any, file?: any) {
@@ -204,7 +207,10 @@ export class ProfileService implements OnModuleInit {
             }
         }
 
-        return user;
+        return {
+            ...user,
+            profilePhoto: this.storageService.resolvePublicMediaUrl(user.profilePhoto),
+        };
     }
 
     async getJobProfile(userId: string) {

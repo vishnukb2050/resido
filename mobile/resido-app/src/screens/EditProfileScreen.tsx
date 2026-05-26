@@ -109,6 +109,10 @@ export default function EditProfileScreen() {
             try {
                 const { data: freshProfile } = await authApi.getProfile();
                 updateUser(freshProfile);
+                const wsRes = await authApi.getWorkspaces();
+                if (wsRes?.data) {
+                    useAuthStore.getState().setWorkspaces(wsRes.data);
+                }
             } catch {
                 // Fallback: use the returned user from the update
                 updateUser(updatedUser);

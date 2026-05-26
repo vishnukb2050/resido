@@ -127,7 +127,8 @@ export default function ManageCommunityScreen() {
                     photoUri,
                     `community_${Date.now()}.jpg`,
                     'image/jpeg',
-                    'communities'
+                    'communities',
+                    editingWorkspace.tenantId,
                 ) as string;
             }
 

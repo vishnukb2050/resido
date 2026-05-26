@@ -5,6 +5,7 @@ import { useAuthStore, Workspace } from '../../store/authStore';
 import { authApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
+import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
@@ -82,7 +83,7 @@ export default function MemberDashboard() {
                             label="My Space" 
                             isActive={!activeWorkspace} 
                             onPress={() => setActiveWorkspace(null as any, '')} 
-                            image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
+                            imageUri={user?.profilePhoto}
                         />
                         {workspaces.map((ws: any) => (
                             <WorkspaceBubble 
@@ -90,7 +91,8 @@ export default function MemberDashboard() {
                                 label={ws.tenantName} 
                                 isActive={activeWorkspace?.tenantId === ws.tenantId} 
                                 onPress={() => handleSwitch(ws)} 
-                                image={ws.photoUrl || "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
+                                imageUri={ws.photoUrl}
+                                fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
                             />
                         ))}
                     </ScrollView>
@@ -124,13 +126,14 @@ export default function MemberDashboard() {
 
                 {/* Member Feature Grid (As Requested) */}
                 <View style={styles.gridContainer}>
-                    <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
+                    <DashboardIcon icon="megaphone" label="Notice Board" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
+                    <DashboardIcon icon="notifications" label="Reminders" color="#fff" bg="#6366f1" onPress={() => router.push('/my-reminders')} />
                     <DashboardIcon icon="chatbubbles" label="Chats" color="#fff" bg="#1d4ed8" onPress={() => router.push('/chat-list')} />
                     <DashboardIcon icon="document-text" label="Notes" color="#fff" bg="#3b82f6" onPress={() => router.push('/notes')} />
                     <DashboardIcon icon="folder" label="Documents" color="#fff" bg="#3b82f6" onPress={() => router.push('/documents')} />
                     <DashboardIcon icon="call" label="Contacts" color="#fff" bg="#10b981" onPress={() => router.push('/staff-contacts')} />
                     <DashboardIcon icon="construct" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
-                    <DashboardIcon icon="book" label="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
+                    <DashboardIcon icon="book" label="Rules & Regulations" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
                     <DashboardIcon icon="cash" label="Payments" color="#fff" bg="#ec4899" onPress={() => router.push('/resident-payments')} />
                 </View>
@@ -161,18 +164,6 @@ export default function MemberDashboard() {
             </ScrollView>
             <BottomNav activeTab="Home" />
         </View>
-    );
-}
-
-// Sub-components
-function WorkspaceBubble({ label, isActive, onPress, image }: any) {
-    return (
-        <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
-            <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
-                <Image source={{ uri: image }} style={styles.wsBubbleImg} />
-            </View>
-            <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>{label}</Text>
-        </TouchableOpacity>
     );
 }
 

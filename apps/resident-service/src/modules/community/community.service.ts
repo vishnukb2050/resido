@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -31,129 +31,198 @@ export class CommunityService {
         });
     }
 
+    // ─── Member resolution helper ────────────────────────────────
+    /**
+     * Resolves a workspace `Member` from any combination of:
+     *   - resident-service Member.id (CUID)
+     *   - auth-service User.id (CUID stored in Member.userId)
+     *   - phone (from the JWT, unique within the tenant)
+     * When found via phone, links `Member.userId` so future lookups hit fast.
+     */
+    private async resolveMember(input: {
+        candidateId?: string | null;
+        authUserId?: string | null;
+        phone?: string | null;
+    }) {
+        const { candidateId, authUserId, phone } = input;
+        const ors: any[] = [];
+        if (candidateId) ors.push({ id: candidateId }, { userId: candidateId });
+        if (authUserId && authUserId !== candidateId) {
+            ors.push({ id: authUserId }, { userId: authUserId });
+        }
+        if (phone) ors.push({ phone });
+
+        if (!ors.length) return null;
+
+        const member = await this.prisma.reader.member.findFirst({
+            where: { OR: ors },
+        });
+        if (!member) return null;
+
+        // Auto-link the member's userId so subsequent lookups don't depend on phone
+        if (authUserId && !member.userId) {
+            try {
+                await this.prisma.client.member.update({
+                    where: { id: member.id },
+                    data: { userId: authUserId },
+                });
+            } catch (err: any) {
+                console.warn(`[resolveMember] auto-link userId failed for ${member.id}:`, err?.message);
+            }
+        }
+        return member;
+    }
+
     // ─── Complaints ─────────────────────────────────────────────
-    async getComplaints(memberId?: string, staffId?: string) {
-        console.log(`[getComplaints] Fetching complaints for memberId: ${memberId}, staffId: ${staffId}`);
+    async getComplaints(args: {
+        memberId?: string;
+        staffId?: string;
+        authUserId?: string;
+        authUserPhone?: string;
+        authUserRole?: string;
+    }) {
+        const { memberId, staffId, authUserId, authUserPhone, authUserRole } = args;
         const tenantId = PrismaService.als.getStore()?.tenantId;
-        console.log(`[getComplaints] active tenantId context: ${tenantId}`);
+        const ADMIN_ROLES = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF', 'ACCOUNTS_STAFF', 'MANAGER_STAFF'];
+        const isAdminRole = !!authUserRole && ADMIN_ROLES.includes(authUserRole);
 
-        let staffMemberId = staffId;
-        if (staffId) {
-            // Find the member record if staffId is actually a global Auth userId or a direct CUID
-            const staffMember = await this.prisma.reader.member.findFirst({
-                where: {
-                    OR: [
-                        { id: staffId },
-                        { userId: staffId }
-                    ]
-                }
-            });
-            if (staffMember) {
-                staffMemberId = staffMember.id;
-            }
+        console.log(
+            `[getComplaints] tenant=${tenantId} memberId=${memberId} staffId=${staffId} authUser=${authUserId} role=${authUserRole}`,
+        );
+
+        // Admin sees everything in the tenant when no scoping params provided.
+        if (isAdminRole && !memberId && !staffId) {
+            return this.enrichComplaints(
+                await this.prisma.reader.complaint.findMany({
+                    include: { member: { select: { id: true, name: true, phone: true } } },
+                    orderBy: { createdAt: 'desc' },
+                }),
+            );
         }
 
-        let actualMemberId = memberId;
+        const whereOr: any[] = [];
+
         if (memberId) {
-            // Find the member record if memberId is actually a global Auth userId or a direct CUID
-            const residentMember = await this.prisma.reader.member.findFirst({
-                where: {
-                    OR: [
-                        { id: memberId },
-                        { userId: memberId }
-                    ]
-                }
+            const member = await this.resolveMember({
+                candidateId: memberId,
+                authUserId,
+                phone: authUserPhone,
             });
-            if (residentMember) {
-                actualMemberId = residentMember.id;
+            if (member) whereOr.push({ memberId: member.id });
+        }
+
+        if (staffId) {
+            const staff = await this.resolveMember({
+                candidateId: staffId,
+                authUserId,
+                phone: authUserPhone,
+            });
+            if (staff) whereOr.push({ assignedTo: staff.id });
+        }
+
+        // No explicit scope but we know the caller — show what relates to them
+        if (!memberId && !staffId && (authUserId || authUserPhone)) {
+            const self = await this.resolveMember({
+                candidateId: authUserId,
+                authUserId,
+                phone: authUserPhone,
+            });
+            if (self) {
+                whereOr.push({ memberId: self.id }, { assignedTo: self.id });
             }
         }
 
-        // Build a robust where clause
-        const whereClause: any = {};
-        if (actualMemberId || staffMemberId) {
-            whereClause.OR = [
-                actualMemberId ? { memberId: actualMemberId } : null,
-                staffMemberId ? { assignedTo: staffMemberId } : null
-            ].filter(Boolean);
+        if (!whereOr.length) {
+            console.log('[getComplaints] no resolvable identity — returning []');
+            return [];
         }
-
-        console.log(`[getComplaints] Querying complaints with whereClause:`, JSON.stringify(whereClause));
 
         const complaints = await this.prisma.reader.complaint.findMany({
-            where: whereClause,
-            include: {
-                member: { select: { name: true, phone: true } }
-            },
-            orderBy: { createdAt: 'desc' }
+            where: { OR: whereOr },
+            include: { member: { select: { id: true, name: true, phone: true } } },
+            orderBy: { createdAt: 'desc' },
         });
 
-        console.log(`[getComplaints] Found ${complaints.length} complaints.`);
+        return this.enrichComplaints(complaints);
+    }
 
-        const staffIds = complaints.map((c: any) => c.assignedTo).filter(Boolean);
+    private async enrichComplaints(complaints: any[]) {
+        const staffIds = Array.from(
+            new Set(complaints.map((c: any) => c.assignedTo).filter(Boolean)),
+        );
+        if (!staffIds.length) {
+            return complaints.map((c: any) => ({ ...c, assignedTo: null }));
+        }
         const staffMembers = await this.prisma.reader.member.findMany({
-            where: { id: { in: staffIds } },
-            select: { id: true, name: true, role: true }
+            where: { id: { in: staffIds as string[] } },
+            select: { id: true, name: true, phone: true, role: true },
         });
-
         const staffMap = new Map(staffMembers.map((s: any) => [s.id, s]));
-
         return complaints.map((c: any) => ({
             ...c,
-            assignedTo: c.assignedTo ? staffMap.get(c.assignedTo) || null : null
+            assignedTo: c.assignedTo ? staffMap.get(c.assignedTo) || null : null,
         }));
     }
 
     async createComplaint(userId: string, data: any) {
-        console.log(`[createComplaint] userId/memberId parameter: ${userId}, data:`, data);
-        const tenantId = PrismaService.als.getStore()?.tenantId || data.tenantId || 'resido-core';
-        console.log(`[createComplaint] active tenantId context: ${tenantId}`);
+        const tenantId = PrismaService.als.getStore()?.tenantId || data.tenantId;
+        if (!tenantId) {
+            throw new BadRequestException('Tenant context missing');
+        }
 
-        // Robust lookup checking both ID and global Auth userId
-        let member = await this.prisma.reader.member.findFirst({
-            where: { 
-                OR: [
-                    { id: userId },
-                    { userId: userId }
-                ]
-            }
+        const { authUserId, authUserPhone, memberId: _bodyMemberId, ...complaintData } = data;
+
+        let member = await this.resolveMember({
+            candidateId: userId,
+            authUserId: authUserId || userId,
+            phone: authUserPhone,
         });
 
-        // Fallback: If no member record exists for this user, create one on the fly
-        if (!member) {
-            console.log(`Member not found for user ${userId}. Creating on the fly...`);
+        if (!member && authUserPhone) {
+            console.log(
+                `[createComplaint] no member found for user=${userId} phone=${authUserPhone}; creating minimal record`,
+            );
             member = await this.prisma.client.member.create({
                 data: {
-                    userId: userId,
-                    tenantId: tenantId,
-                    name: 'Default Member',
-                    phone: '0000000000',
-                    role: 'RESIDENT'
-                }
+                    tenantId,
+                    userId: authUserId || userId || null,
+                    name: data.raisedByName || 'Resident',
+                    phone: authUserPhone,
+                    role: 'RESIDENT',
+                },
             });
         }
 
-        const { memberId: _, ...complaintData } = data;
+        if (!member) {
+            throw new BadRequestException(
+                'Could not resolve a community member for this user. Please ask the admin to add you to the directory.',
+            );
+        }
 
         const complaint = await this.prisma.client.complaint.create({
-            data: { 
-                ...complaintData, 
+            data: {
+                ...complaintData,
+                tenantId,
                 memberId: member.id,
-                tenantId: tenantId
-            }
+                status: complaintData.status || 'OPEN',
+            },
         });
 
-        console.log(`[createComplaint] Created complaint successfully:`, complaint);
+        console.log(`[createComplaint] created ${complaint.id} for member=${member.id}`);
         return complaint;
     }
 
     async assignComplaint(id: string, staffId: string) {
+        const staff = await this.resolveMember({ candidateId: staffId });
+        if (!staff) {
+            throw new BadRequestException('Selected staff member not found.');
+        }
         return this.prisma.client.complaint.update({
             where: { id },
-            data: { 
-                assignedTo: staffId,
-                status: 'IN_PROGRESS'
-            }
+            data: {
+                assignedTo: staff.id,
+                status: 'IN_PROGRESS',
+            },
         });
     }
 
@@ -164,10 +233,18 @@ export class CommunityService {
         });
     }
 
-    async addProgressNote(id: string, data: { message: string; photos?: string[]; status?: string; updatedBy?: string }) {
-        const complaint = await this.prisma.reader.complaint.findUnique({
-            where: { id }
-        });
+    async addProgressNote(
+        id: string,
+        data: {
+            message: string;
+            photos?: string[];
+            status?: string;
+            updatedBy?: string;
+            authUserId?: string;
+            authUserPhone?: string;
+        },
+    ) {
+        const complaint = await this.prisma.reader.complaint.findUnique({ where: { id } });
         if (!complaint) {
             throw new NotFoundException('Complaint not found');
         }
@@ -176,10 +253,22 @@ export class CommunityService {
         if (complaint.progressNotes) {
             try {
                 currentNotes = Array.isArray(complaint.progressNotes)
-                    ? complaint.progressNotes
+                    ? (complaint.progressNotes as any[])
                     : JSON.parse(complaint.progressNotes as string) || [];
-            } catch (e) {
+            } catch {
                 currentNotes = [];
+            }
+        }
+
+        let updaterLabel = data.updatedBy;
+        if (!updaterLabel && (data.authUserId || data.authUserPhone)) {
+            const me = await this.resolveMember({
+                candidateId: data.authUserId,
+                authUserId: data.authUserId,
+                phone: data.authUserPhone,
+            });
+            if (me) {
+                updaterLabel = `${me.name}${me.role && me.role !== 'RESIDENT' ? ` (${me.role.replace('_STAFF', '')})` : ''}`;
             }
         }
 
@@ -187,9 +276,9 @@ export class CommunityService {
             id: Math.random().toString(36).substring(2, 9),
             message: data.message,
             photos: data.photos || [],
-            updatedBy: data.updatedBy || 'Staff',
+            updatedBy: updaterLabel || 'Staff',
             createdAt: new Date().toISOString(),
-            status: data.status || complaint.status
+            status: data.status || complaint.status,
         };
 
         currentNotes.push(newNote);
@@ -198,8 +287,8 @@ export class CommunityService {
             where: { id },
             data: {
                 progressNotes: currentNotes as any,
-                ...(data.status ? { status: data.status as any } : {})
-            }
+                ...(data.status ? { status: data.status as any } : {}),
+            },
         });
     }
 
@@ -400,70 +489,131 @@ export class CommunityService {
         });
     }
 
-    async getEvents(memberId: string) {
+    /**
+     * Map a Member.role to the audience bucket used on events.
+     * APARTMENT_ADMIN sees everything regardless.
+     */
+    private audienceForEventRole(role?: string | null): 'MEMBERS' | 'RESIDENTS' | 'STAFF' | null {
+        if (!role) return null;
+        if (role === 'APARTMENT_ADMIN') return null; // admin sees all
+        if (role === 'MEMBER') return 'MEMBERS';
+        if (role === 'RESIDENT') return 'RESIDENTS';
+        return 'STAFF';
+    }
+
+    async getEvents(args: {
+        memberId?: string;
+        authUserId?: string;
+        authUserPhone?: string;
+        authUserRole?: string;
+    }) {
         const events = await this.prisma.reader.event.findMany({
-            orderBy: { startDate: 'asc' }
+            orderBy: { startDate: 'asc' },
         });
 
-        if (!memberId) {
-            return events.filter((e: any) => !e.audience || e.audience.length === 0);
-        }
-
-        const member = await this.prisma.reader.member.findFirst({
-            where: {
-                OR: [
-                    { id: memberId },
-                    { userId: memberId }
-                ]
-            }
+        const member = await this.resolveMember({
+            candidateId: args.memberId,
+            authUserId: args.authUserId,
+            phone: args.authUserPhone,
         });
 
-        if (!member) {
-            return events.filter((e: any) => !e.audience || e.audience.length === 0);
-        }
+        const role = member?.role || args.authUserRole;
+        const isAdmin = role === 'APARTMENT_ADMIN';
+        if (isAdmin) return events;
 
-        const isAdmin = member.role === 'APARTMENT_ADMIN';
-        if (isAdmin) {
-            return events;
-        }
+        const myIds = new Set<string>();
+        if (member?.id) myIds.add(member.id);
+        if (member?.userId) myIds.add(member.userId);
+        if (args.authUserId) myIds.add(args.authUserId);
+        if (args.memberId) myIds.add(args.memberId);
 
-        const isStaff = member.role.toString().endsWith('STAFF') || 
-                        member.role === 'CARETAKER' || 
-                        member.role === 'MAINTENANCE_STAFF' || 
-                        member.role === 'SECURITY_STAFF' || 
-                        member.role === 'CLEANING_STAFF' || 
-                        member.role === 'SERVICE_STAFF' || 
-                        member.role === 'STAFF' ||
-                        member.role === 'ACCOUNTS' ||
-                        member.role === 'ACCOUNTS_STAFF' ||
-                        member.role === 'MANAGER_STAFF' ||
-                        member.role === 'ADMIN_STAFF';
-
-        const targetAudience = member.role === 'MEMBER' ? 'MEMBERS' : (member.role === 'RESIDENT' ? 'RESIDENTS' : (isStaff ? 'STAFF' : 'RESIDENTS'));
+        const target = this.audienceForEventRole(role);
 
         return events.filter((e: any) => {
-            const aud = e.audience || [];
-            const isCreator = e.createdBy === member.id || e.createdBy === member.userId;
-            const isShared = e.sharedWithIds && (e.sharedWithIds.includes(member.id) || e.sharedWithIds.includes(member.userId));
-            
-            return isCreator ||
-                   isShared ||
-                   aud.length === 0 ||
-                   aud.includes(targetAudience);
+            const aud: string[] = e.audience || [];
+            const sharedIds: string[] = e.sharedWithIds || [];
+
+            const isCreator = e.createdBy && myIds.has(e.createdBy);
+            const isShared = sharedIds.some((sid: string) => myIds.has(sid));
+
+            if (isCreator || isShared) return true;
+
+            // PRIVATE / GROUPS / CONTACTS events that don't include this user are hidden.
+            if (e.visibility && e.visibility !== 'COMMUNITY') return false;
+
+            // COMMUNITY events without an audience restriction are visible to everyone.
+            if (aud.length === 0) return true;
+
+            // Otherwise, audience must include the caller's bucket.
+            return !!target && aud.includes(target);
         });
     }
 
-    async createEvent(memberId: string, data: any) {
-        const { memberId: _, ...eventData } = data;
-        return this.prisma.client.event.create({
-            data: { 
-                ...eventData, 
-                createdBy: memberId 
+    async createEvent(args: {
+        memberId?: string;
+        authUserId?: string;
+        authUserPhone?: string;
+        authUserRole?: string;
+        data: any;
+    }) {
+        const { memberId: _omitMemberId, ...eventData } = args.data || {};
+
+        // Sanitize audience to allowed values (empty list = visible to everyone).
+        const allowed = ['MEMBERS', 'RESIDENTS', 'STAFF'];
+        const audience = Array.isArray(eventData.audience)
+            ? eventData.audience.filter((a: string) => allowed.includes(a))
+            : [];
+
+        const creator = await this.resolveMember({
+            candidateId: args.memberId,
+            authUserId: args.authUserId,
+            phone: args.authUserPhone,
+        });
+
+        // For COMMUNITY events, only admins should be able to broadcast — but we still
+        // allow individuals to create PRIVATE / GROUPS / CONTACTS events.
+        if (
+            (eventData.visibility === 'COMMUNITY' || !eventData.visibility) &&
+            audience.length > 0
+        ) {
+            const role = creator?.role || args.authUserRole;
+            if (role !== 'APARTMENT_ADMIN') {
+                throw new ForbiddenException('Only community admins can broadcast events to members, residents, or staff.');
             }
+        }
+
+        return this.prisma.client.event.create({
+            data: {
+                ...eventData,
+                audience,
+                createdBy: creator?.id || args.authUserId || args.memberId || '',
+            },
         });
     }
 
-    async deleteEvent(id: string) {
+    async deleteEvent(
+        id: string,
+        ctx: { authUserId?: string; authUserPhone?: string; authUserRole?: string },
+    ) {
+        const event = await this.prisma.reader.event.findUnique({ where: { id } });
+        if (!event) throw new NotFoundException('Event not found.');
+
+        const member = await this.resolveMember({
+            authUserId: ctx.authUserId,
+            phone: ctx.authUserPhone,
+        });
+        const role = member?.role || ctx.authUserRole;
+        const myIds = new Set<string>();
+        if (member?.id) myIds.add(member.id);
+        if (member?.userId) myIds.add(member.userId);
+        if (ctx.authUserId) myIds.add(ctx.authUserId);
+
+        const isOwner = !!event.createdBy && myIds.has(event.createdBy);
+        const isAdmin = role === 'APARTMENT_ADMIN';
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException('You can only delete events you created (or any event if you are the community admin).');
+        }
+
         return this.prisma.client.event.delete({ where: { id } });
     }
 
@@ -665,73 +815,256 @@ export class CommunityService {
 
     // ─── Rules ──────────────────────────────────────────────────
 
-    async getRules(memberId?: string) {
-        const rules = await (this.prisma.reader as any).rule.findMany({ orderBy: { title: 'asc' } });
-        
-        if (!memberId) {
-            return rules;
+    /** Only community admins may create, update, or delete rules. */
+    private async requireApartmentAdmin(ctx: {
+        authUserId?: string;
+        authUserPhone?: string;
+        authUserRole?: string;
+    }) {
+        const member = await this.resolveMember({
+            authUserId: ctx.authUserId,
+            phone: ctx.authUserPhone,
+        });
+        const role = member?.role || ctx.authUserRole;
+        if (role !== 'APARTMENT_ADMIN') {
+            throw new ForbiddenException('Only community admins can manage rules and regulations.');
+        }
+        return member;
+    }
+
+    /**
+     * Map a Member.role to the audience bucket used on rules.
+     * APARTMENT_ADMIN sees everything regardless.
+     */
+    private audienceForRole(role?: string | null): 'MEMBERS' | 'RESIDENTS' | 'STAFF' | null {
+        if (!role) return null;
+        if (role === 'APARTMENT_ADMIN') return null; // admin sees all
+        if (role === 'MEMBER') return 'MEMBERS';
+        if (role === 'RESIDENT') return 'RESIDENTS';
+        return 'STAFF';
+    }
+
+    async getRules(args: {
+        memberId?: string;
+        authUserId?: string;
+        authUserPhone?: string;
+        authUserRole?: string;
+    }) {
+        const rules = await (this.prisma.reader as any).rule.findMany({
+            orderBy: { createdAt: 'desc' },
+        });
+
+        const member = await this.resolveMember({
+            candidateId: args.memberId,
+            authUserId: args.authUserId,
+            phone: args.authUserPhone,
+        });
+
+        const role = member?.role || args.authUserRole;
+        const isAdmin = role === 'APARTMENT_ADMIN';
+        if (isAdmin) return rules;
+
+        const target = this.audienceForRole(role);
+        if (!target) {
+            // Unknown role — only show rules with no audience restriction
+            return rules.filter((r: any) => !r.audience || r.audience.length === 0);
         }
 
-        const member = await this.prisma.reader.member.findUnique({ where: { id: memberId } });
-        if (!member) {
-            return rules;
-        }
-
-        const isAdmin = member.role === 'APARTMENT_ADMIN';
-        if (isAdmin) {
-            return rules;
-        }
-
-        const targetAudience = member.role === 'MEMBER' ? 'MEMBERS' : (member.role === 'RESIDENT' ? 'RESIDENTS' : 'STAFF');
         return rules.filter((r: any) => {
             const aud = r.audience || [];
-            return aud.length === 0 || aud.includes(targetAudience);
+            // Empty audience = visible to everyone
+            return aud.length === 0 || aud.includes(target);
         });
     }
 
-    async createRule(data: any) {
-        return (this.prisma.client as any).rule.create({ data });
+    async createRule(data: {
+        title: string;
+        description: string;
+        category?: string;
+        photoUrl?: string;
+        audience?: string[];
+        authUserId?: string;
+        authUserPhone?: string;
+        authUserRole?: string;
+    }) {
+        await this.requireApartmentAdmin({
+            authUserId: data.authUserId,
+            authUserPhone: data.authUserPhone,
+            authUserRole: data.authUserRole,
+        });
+
+        const allowed = ['MEMBERS', 'RESIDENTS', 'STAFF'];
+        const audience = Array.isArray(data.audience)
+            ? data.audience.filter((a) => allowed.includes(a))
+            : [];
+        if (audience.length === 0) {
+            throw new BadRequestException('At least one audience (MEMBERS, RESIDENTS, or STAFF) is required.');
+        }
+
+        const creator = await this.resolveMember({
+            authUserId: data.authUserId,
+            phone: data.authUserPhone,
+        });
+
+        return (this.prisma.client as any).rule.create({
+            data: {
+                title: data.title,
+                description: data.description,
+                category: data.category || 'General',
+                photoUrl: data.photoUrl || null,
+                audience,
+                createdBy: creator?.id || null,
+            },
+        });
     }
 
-    async deleteRule(id: string) {
+    async updateRule(
+        id: string,
+        data: {
+            title?: string;
+            description?: string;
+            category?: string;
+            photoUrl?: string | null;
+            audience?: string[];
+            authUserId?: string;
+            authUserPhone?: string;
+            authUserRole?: string;
+        },
+    ) {
+        await this.requireApartmentAdmin({
+            authUserId: data.authUserId,
+            authUserPhone: data.authUserPhone,
+            authUserRole: data.authUserRole,
+        });
+
+        const existing = await (this.prisma.reader as any).rule.findFirst({ where: { id } });
+        if (!existing) {
+            throw new NotFoundException('Rule not found.');
+        }
+
+        const allowed = ['MEMBERS', 'RESIDENTS', 'STAFF'];
+        const payload: any = {};
+        if (typeof data.title === 'string') payload.title = data.title;
+        if (typeof data.description === 'string') payload.description = data.description;
+        if (typeof data.category === 'string') payload.category = data.category;
+        if (data.photoUrl === null || typeof data.photoUrl === 'string') payload.photoUrl = data.photoUrl;
+        if (Array.isArray(data.audience)) {
+            const filtered = data.audience.filter((a) => allowed.includes(a));
+            if (filtered.length === 0) {
+                throw new BadRequestException('At least one audience (MEMBERS, RESIDENTS, or STAFF) is required.');
+            }
+            payload.audience = filtered;
+        }
+        return (this.prisma.client as any).rule.update({ where: { id }, data: payload });
+    }
+
+    async deleteRule(
+        id: string,
+        ctx: { authUserId?: string; authUserPhone?: string; authUserRole?: string },
+    ) {
+        await this.requireApartmentAdmin(ctx);
+
+        const existing = await (this.prisma.reader as any).rule.findFirst({ where: { id } });
+        if (!existing) {
+            throw new NotFoundException('Rule not found.');
+        }
+
         return (this.prisma.client as any).rule.delete({ where: { id } });
     }
 
     async getSummaryStats() {
-        const totalMembers = await this.prisma.reader.member.count({
-            where: { role: 'RESIDENT' as any }
-        });
-        const totalFamilies = await this.prisma.reader.family.count();
-        const totalUnits = await this.prisma.reader.unit.count();
-        
-        const occupiedUnits = await this.prisma.reader.unit.count({
-            where: { families: { some: {} } }
-        });
-        const emptyUnits = Math.max(0, totalUnits - occupiedUnits);
-
-        const securityStaff = await this.prisma.reader.member.count({ where: { role: 'SECURITY_STAFF' as any } });
-        const cleaningStaff = await this.prisma.reader.member.count({ where: { role: 'CLEANING_STAFF' as any } });
-        const adminStaff = await this.prisma.reader.member.count({ where: { role: 'ADMIN_STAFF' as any } });
-        const maintenanceStaff = await this.prisma.reader.member.count({
-            where: { role: { in: ['MAINTENANCE_STAFF', 'STAFF'] as any } }
-        });
-
-        const totalStaff = securityStaff + cleaningStaff + adminStaff + maintenanceStaff;
-
-        const allBills = await this.prisma.reader.maintenanceBill.findMany({
-            select: {
-                totalAmount: true,
-                status: true,
-                unit: {
-                    select: {
-                        number: true,
-                        block: {
-                            select: { name: true }
-                        }
-                    }
-                }
+        const safe = async <T>(fn: () => Promise<T>, fallback: T, tag: string): Promise<T> => {
+            try {
+                return await fn();
+            } catch (err: any) {
+                console.warn(`[getSummaryStats] ${tag} failed:`, err?.message || err);
+                return fallback;
             }
-        });
+        };
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const [
+            totalMembers,
+            totalFamilies,
+            totalUnits,
+            occupiedUnits,
+            securityStaff,
+            cleaningStaff,
+            adminStaff,
+            maintenanceStaff,
+            allBills,
+            visitorsToday,
+            openComplaints,
+            progressComplaints,
+            resolvedComplaints,
+            gatepassesCreated,
+            gatepassesApproved,
+        ] = await Promise.all([
+            safe(() => this.prisma.reader.member.count({ where: { role: 'RESIDENT' as any } }), 0, 'totalMembers'),
+            safe(() => this.prisma.reader.family.count(), 0, 'totalFamilies'),
+            safe(() => this.prisma.reader.unit.count(), 0, 'totalUnits'),
+            safe(
+                () => this.prisma.reader.unit.count({ where: { families: { some: {} } } }),
+                0,
+                'occupiedUnits',
+            ),
+            safe(() => this.prisma.reader.member.count({ where: { role: 'SECURITY_STAFF' as any } }), 0, 'security'),
+            safe(() => this.prisma.reader.member.count({ where: { role: 'CLEANING_STAFF' as any } }), 0, 'cleaning'),
+            safe(() => this.prisma.reader.member.count({ where: { role: 'ADMIN_STAFF' as any } }), 0, 'admin'),
+            safe(
+                () =>
+                    this.prisma.reader.member.count({
+                        where: { role: { in: ['MAINTENANCE_STAFF', 'STAFF'] as any } },
+                    }),
+                0,
+                'maintenance',
+            ),
+            safe(
+                () =>
+                    this.prisma.reader.maintenanceBill.findMany({
+                        select: {
+                            totalAmount: true,
+                            status: true,
+                            unit: {
+                                select: {
+                                    number: true,
+                                    block: { select: { name: true } },
+                                },
+                            },
+                        },
+                    }),
+                [] as any[],
+                'allBills',
+            ),
+            safe(
+                () => this.prisma.reader.visitor.count({ where: { createdAt: { gte: startOfDay } } }),
+                0,
+                'visitorsToday',
+            ),
+            // ComplaintStatus enum: OPEN | IN_PROGRESS | RESOLVED | CLOSED — there's no PENDING.
+            safe(() => this.prisma.reader.complaint.count({ where: { status: 'OPEN' as any } }), 0, 'openComplaints'),
+            safe(
+                () => this.prisma.reader.complaint.count({ where: { status: 'IN_PROGRESS' as any } }),
+                0,
+                'progressComplaints',
+            ),
+            safe(
+                () => this.prisma.reader.complaint.count({ where: { status: 'RESOLVED' as any } }),
+                0,
+                'resolvedComplaints',
+            ),
+            safe(() => this.prisma.reader.visitor.count(), 0, 'gatepassesCreated'),
+            safe(
+                () => this.prisma.reader.visitor.count({ where: { status: 'APPROVED' as any } }),
+                0,
+                'gatepassesApproved',
+            ),
+        ]);
+
+        const emptyUnits = Math.max(0, totalUnits - occupiedUnits);
+        const totalStaff = securityStaff + cleaningStaff + adminStaff + maintenanceStaff;
 
         let totalInvoiced = 0;
         let totalCollected = 0;
@@ -740,20 +1073,21 @@ export class CommunityService {
         let unitsDue = 0;
         const pendingUnitsMap = new Map<string, { unit: string; amount: number }>();
 
-        allBills.forEach((bill: any) => {
-            totalInvoiced += bill.totalAmount;
+        (allBills as any[]).forEach((bill: any) => {
+            const amount = Number(bill.totalAmount) || 0;
+            totalInvoiced += amount;
             if (bill.status === 'PAID') {
-                totalCollected += bill.totalAmount;
+                totalCollected += amount;
                 unitsPaid++;
             } else {
-                totalDues += bill.totalAmount;
+                totalDues += amount;
                 unitsDue++;
                 const unitName = `${bill.unit?.block?.name || 'Block'} - ${bill.unit?.number || 'Unit'}`;
                 const existing = pendingUnitsMap.get(unitName);
                 if (existing) {
-                    existing.amount += bill.totalAmount;
+                    existing.amount += amount;
                 } else {
-                    pendingUnitsMap.set(unitName, { unit: unitName, amount: bill.totalAmount });
+                    pendingUnitsMap.set(unitName, { unit: unitName, amount });
                 }
             }
         });
@@ -761,21 +1095,6 @@ export class CommunityService {
         const recentPendingDues = Array.from(pendingUnitsMap.values())
             .sort((a, b) => b.amount - a.amount)
             .slice(0, 5);
-
-        const visitorsToday = await this.prisma.reader.visitor.count({
-            where: {
-                createdAt: {
-                    gte: new Date(new Date().setHours(0, 0, 0, 0))
-                }
-            }
-        });
-
-        const pendingComplaints = await this.prisma.reader.complaint.count({ where: { status: 'PENDING' as any } });
-        const progressComplaints = await this.prisma.reader.complaint.count({ where: { status: 'IN_PROGRESS' as any } });
-        const resolvedComplaints = await this.prisma.reader.complaint.count({ where: { status: 'RESOLVED' as any } });
-
-        const gatepassesCreated = await this.prisma.reader.visitor.count();
-        const gatepassesApproved = await this.prisma.reader.visitor.count({ where: { status: 'APPROVED' as any } });
 
         return {
             people: {
@@ -788,8 +1107,8 @@ export class CommunityService {
                     SECURITY: securityStaff,
                     CLEANING: cleaningStaff,
                     ADMIN: adminStaff,
-                    MAINTENANCE: maintenanceStaff
-                }
+                    MAINTENANCE: maintenanceStaff,
+                },
             },
             finance: {
                 totalInvoiced,
@@ -797,20 +1116,20 @@ export class CommunityService {
                 totalDues,
                 unitsPaid,
                 unitsDue,
-                recentPendingDues
+                recentPendingDues,
             },
             operations: {
                 visitorsToday,
                 activeComplaints: {
-                    PENDING: pendingComplaints,
+                    PENDING: openComplaints,
                     IN_PROGRESS: progressComplaints,
-                    RESOLVED: resolvedComplaints
+                    RESOLVED: resolvedComplaints,
                 },
                 gatepasses: {
                     totalCreated: gatepassesCreated,
-                    totalApproved: gatepassesApproved
-                }
-            }
+                    totalApproved: gatepassesApproved,
+                },
+            },
         };
     }
 }

@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { authApi, visitorApi, communityApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
 
 export default function SecurityDashboard() {
@@ -127,7 +128,7 @@ export default function SecurityDashboard() {
                             label="My Space"
                             isActive={!activeWorkspace}
                             onPress={() => setActiveWorkspace(null as any, '')}
-                            image={user?.profilePhoto || 'https://i.pravatar.cc/100?u=resido'}
+                            imageUri={user?.profilePhoto}
                         />
                         {workspaces?.map((ws: any) => (
                             <WorkspaceBubble
@@ -135,7 +136,8 @@ export default function SecurityDashboard() {
                                 label={ws.tenantName}
                                 isActive={activeWorkspace?.tenantId === ws.tenantId}
                                 onPress={() => handleSwitch(ws)}
-                                image={ws.photoUrl || 'https://cdn-icons-png.flaticon.com/512/9374/9374944.png'}
+                                imageUri={ws.photoUrl}
+                                fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
                             />
                         ))}
                     </ScrollView>
@@ -168,6 +170,8 @@ export default function SecurityDashboard() {
                     <DashboardIcon icon="id-card" label="Visitor Register" color="#fff" bg="#3b82f6" onPress={() => router.push('/visitor-register')} />
                     <DashboardIcon icon="car" label="Vehicle Log" color="#fff" bg="#f59e0b" onPress={() => router.push('/vehicle-log')} />
                     <DashboardIcon icon="construct" label="Requests & Complaints" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
+                    <DashboardIcon icon="finger-print" label="Attendance" color="#fff" bg="#a855f7" onPress={() => router.push('/staff-attendance')} />
+                    <DashboardIcon icon="notifications" label="Reminders" color="#fff" bg="#6366f1" onPress={() => router.push('/my-reminders')} />
                 </View>
 
                 {/* Live Security Stats Row */}
@@ -197,8 +201,8 @@ export default function SecurityDashboard() {
                         <FeatureCard icon="log-in" title="Gatepass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
                         <FeatureCard icon="id-card" title="Visitor Register" color="#fff" bg="#10b981" onPress={() => router.push('/visitor-register')} />
                         <FeatureCard icon="construct" title="Requests & Complaints" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
-                        <FeatureCard icon="megaphone" title="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
-                        <FeatureCard icon="book" title="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
+                        <FeatureCard icon="megaphone" title="Notice Board" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
+                        <FeatureCard icon="book" title="Rules & Regulations" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                         <FeatureCard icon="calendar" title="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
                     </View>
                 </View>
@@ -209,17 +213,6 @@ export default function SecurityDashboard() {
 }
 
 // Sub-components
-function WorkspaceBubble({ label, isActive, onPress, image }: any) {
-    return (
-        <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
-            <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
-                <Image source={{ uri: image }} style={styles.wsBubbleImg} />
-            </View>
-            <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>{label}</Text>
-        </TouchableOpacity>
-    );
-}
-
 function DashboardIcon({ icon, label, color, bg, onPress }: any) {
     return (
         <TouchableOpacity style={styles.dbIconItem} onPress={onPress}>

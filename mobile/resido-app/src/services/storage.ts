@@ -10,7 +10,13 @@ export const storageApi = {
      * 3. Upload binary to S3
      * 4. Return the final public file URL
      */
-    uploadFile: async (fileUri: string, fileName: string, contentType: string, resourceType: string = 'uploads') => {
+    uploadFile: async (
+        fileUri: string,
+        fileName: string,
+        contentType: string,
+        resourceType: string = 'uploads',
+        tenantId?: string,
+    ) => {
         try {
             let finalUri = fileUri;
 
@@ -39,7 +45,8 @@ export const storageApi = {
             const { data } = await api.post('/storage/presigned-url', {
                 fileName,
                 contentType,
-                resourceType
+                resourceType,
+                ...(tenantId ? { tenantId } : {}),
             });
 
             const { uploadUrl, fileUrl } = data;

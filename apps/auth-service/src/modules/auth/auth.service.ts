@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { OtpService } from '../otp/otp.service';
 import { FollowService } from '../follow/follow.service';
+import { StorageService } from '../storage/storage.service';
 import { Role } from '@resido/user-client';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class AuthService {
         private config: ConfigService,
         private otpService: OtpService,
         private followService: FollowService,
+        private storageService: StorageService,
         @Inject('REDIS_CLIENT') private redis: Redis,
     ) { }
 
@@ -81,29 +83,7 @@ export class AuthService {
             this.memoryOtpStore.delete(phone);
         }
 
-        const memberships = await this.prisma.userRead.workspaceMembership.findMany({
-            where: { userId: user.id, isActive: true },
-        });
-
-        const grouped = memberships.reduce((acc: Record<string, any>, m) => {
-            if (!acc[m.tenantId]) {
-                acc[m.tenantId] = { ...m, roles: [m.role] };
-            } else {
-                acc[m.tenantId].roles.push(m.role);
-            }
-            return acc;
-        }, {});
-
-        const workspaces = await Promise.all(Object.values(grouped).map(async (m: any) => {
-            const client = await this.prisma.masterRead.client.findUnique({
-                where: { id: m.tenantId },
-                select: { dbName: true }
-            });
-            return {
-                ...m,
-                dbName: client?.dbName || 'resido_core'
-            };
-        }));
+        const workspaces = await this.buildWorkspacesForUser(user.id);
 
         const tokens = await this.generateTokens(user.id, user.phone, null, null);
         return { 
@@ -114,7 +94,8 @@ export class AuthService {
                 phone: user.phone, 
                 name: user.name,
                 profileName: user.profileName,
-                phoneVisibility: user.phoneVisibility
+                phoneVisibility: user.phoneVisibility,
+                profilePhoto: this.storageService.resolvePublicMediaUrl(user.profilePhoto),
             } 
         };
     }
@@ -145,12 +126,24 @@ export class AuthService {
     }
 
     async getWorkspaces(userId: string) {
+        return this.buildWorkspacesForUser(userId);
+    }
+
+    private async buildWorkspacesForUser(userId: string) {
         const memberships = await this.prisma.userRead.workspaceMembership.findMany({
             where: { userId, isActive: true },
             orderBy: { createdAt: 'asc' },
         });
 
-        // Group by tenantId — each workspace lists all roles the user holds
+        const tenantIds = [...new Set(memberships.map((m) => m.tenantId))];
+        const clients = tenantIds.length
+            ? await this.prisma.masterRead.client.findMany({
+                  where: { id: { in: tenantIds } },
+                  select: { id: true, name: true, photoUrl: true, dbName: true },
+              })
+            : [];
+        const clientById = new Map(clients.map((c) => [c.id, c]));
+
         const grouped = memberships.reduce((acc: Record<string, any>, m) => {
             if (!acc[m.tenantId]) {
                 acc[m.tenantId] = { ...m, roles: [m.role] };
@@ -160,7 +153,19 @@ export class AuthService {
             return acc;
         }, {});
 
-        return Object.values(grouped);
+        return Object.values(grouped).map((m: any) => {
+            const client = clientById.get(m.tenantId);
+            const rawPhoto = m.photoUrl || client?.photoUrl;
+            return {
+                tenantId: m.tenantId,
+                tenantName: m.tenantName || client?.name,
+                role: m.role,
+                roles: m.roles,
+                memberId: m.memberId,
+                dbName: client?.dbName || 'resido_core',
+                photoUrl: this.storageService.resolvePublicMediaUrl(rawPhoto),
+            };
+        });
     }
 
     async switchWorkspace(userId: string, tenantId: string, role?: string) {
@@ -178,7 +183,7 @@ export class AuthService {
 
         const client = await this.prisma.masterRead.client.findUnique({
             where: { id: tenantId },
-            select: { dbName: true }
+            select: { dbName: true, name: true, photoUrl: true }
         });
 
         const allMemberships = await this.prisma.userRead.workspaceMembership.findMany({
@@ -186,8 +191,25 @@ export class AuthService {
         });
         const roles = allMemberships.map(m => m.role);
 
-        const tokens = await this.generateTokens(userId, null, tenantId, membership.role as string);
-        return { ...tokens, workspace: { ...membership, roles, dbName: client?.dbName || 'resido_core' } };
+        // Keep phone in the token so downstream services can resolve the member by phone too.
+        const user = await this.prisma.userRead.user.findUnique({
+            where: { id: userId },
+            select: { phone: true },
+        });
+
+        const tokens = await this.generateTokens(userId, user?.phone || null, tenantId, membership.role as string);
+        return {
+            ...tokens,
+            workspace: {
+                ...membership,
+                roles,
+                tenantName: membership.tenantName || client?.name,
+                dbName: client?.dbName || 'resido_core',
+                photoUrl: this.storageService.resolvePublicMediaUrl(
+                    membership.photoUrl || client?.photoUrl,
+                ),
+            },
+        };
     }
 
     async refreshToken(refreshToken: string) {
@@ -195,7 +217,16 @@ export class AuthService {
             const payload = this.jwt.verify(refreshToken, {
                 secret: this.config.get('JWT_REFRESH_SECRET'),
             });
-            const tokens = await this.generateTokens(payload.sub, payload.phone, payload.tenantId, payload.role);
+            // Re-fetch phone in case the refresh token was minted before we started embedding it.
+            let phone = payload.phone || null;
+            if (!phone && payload.sub) {
+                const u = await this.prisma.userRead.user.findUnique({
+                    where: { id: payload.sub },
+                    select: { phone: true },
+                });
+                phone = u?.phone || null;
+            }
+            const tokens = await this.generateTokens(payload.sub, phone, payload.tenantId, payload.role);
             return tokens;
         } catch {
             throw new UnauthorizedException('Invalid refresh token');

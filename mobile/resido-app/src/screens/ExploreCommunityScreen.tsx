@@ -72,7 +72,7 @@ export default function ExploreCommunityScreen() {
                     <View style={styles.featuresList}>
                         <FeatureItem 
                             icon="megaphone" 
-                            title="Notices" 
+                            title="Notice Board" 
                             desc="Important updates and announcements from management and committees." 
                             color="#1d4ed8"
                         />

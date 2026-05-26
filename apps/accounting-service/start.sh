@@ -2,9 +2,8 @@
 set -e
 
 # Sync prisma schema on startup
-# npx prisma db push --accept-data-loss
+echo "🔄 Syncing Prisma schema with database..."
+npx prisma db push --accept-data-loss --skip-generate
 
-
-# Start the application
 echo "🚀 Starting application..."
 node dist/main

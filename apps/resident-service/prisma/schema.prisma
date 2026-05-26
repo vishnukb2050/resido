@@ -899,7 +899,9 @@ model Rule {
   title       String
   description String   @db.Text
   category    String?  // e.g. "Parking", "Pets", "Common Area"
-  audience    String[] @default([])
+  photoUrl    String?  // Optional illustrative photo (R2 key or full URL)
+  audience    String[] @default([])  // ["MEMBERS"|"RESIDENTS"|"STAFF"]
+  createdBy   String?  // member id of the admin who created it
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1006,6 +1008,44 @@ model CommunityTransaction {
   @@map("community_transactions")
 }
 
+// ─── Attendance ───────────────────────────────────────────────
+model AttendanceConfig {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  latitude      Float
+  longitude     Float
+  radiusMeters  Int      @default(500)
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("attendance_configs")
+}
+
+model AttendanceRecord {
+  id            String   @id @default(cuid())
+  tenantId      String
+  memberId      String
+  markedAt      DateTime @default(now())
+  date          String   // YYYY-MM-DD (tenant-local for fast filtering / uniqueness)
+  latitude      Float
+  longitude     Float
+  distanceMeters Float
+  status        AttendanceStatus @default(PRESENT)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@unique([tenantId, memberId, date])
+  @@index([tenantId, date])
+  @@index([tenantId, memberId])
+  @@map("attendance_records")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  OUT_OF_AREA
+}
+
 model MaintenanceConfig {
   id              String          @id @default(cuid())
   tenantId        String          @unique
@@ -1101,6 +1141,7 @@ model Reminder {
   tenantId       String
   title          String
   message        String
+  imageUrl       String?   // Optional illustrative image (R2 URL)
   category       String    // e.g. MAINTENANCE, DUTY_ROSTER, EVENT, GENERAL
   targetType     String    // e.g. ALL, SPECIFIC_UNITS, STAFF_ROLE, SPECIFIC_MEMBERS
   targetRoles    String[]  // Targeted staff roles (e.g., ["SECURITY_STAFF", "MAINTENANCE_STAFF"])

@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { authApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
 
 export default function CleaningDashboard() {
@@ -83,7 +84,7 @@ export default function CleaningDashboard() {
                             label="My Space" 
                             isActive={!activeWorkspace} 
                             onPress={() => setActiveWorkspace(null as any, '')} 
-                            image={user?.profilePhoto || "https://i.pravatar.cc/100?u=resido"}
+                            imageUri={user?.profilePhoto}
                         />
                         {workspaces?.map((ws: any) => (
                             <WorkspaceBubble 
@@ -91,7 +92,8 @@ export default function CleaningDashboard() {
                                 label={ws.tenantName} 
                                 isActive={activeWorkspace?.tenantId === ws.tenantId} 
                                 onPress={() => handleSwitch(ws)} 
-                                image={ws.photoUrl || "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
+                                imageUri={ws.photoUrl}
+                                fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
                             />
                         ))}
                     </ScrollView>
@@ -130,6 +132,8 @@ export default function CleaningDashboard() {
                     <DashboardIcon icon="camera" label="Photos" color="#fff" bg="rgba(16, 185, 129, 0.2)" />
                     <DashboardIcon icon="warning" label="Report" color="#fff" bg="rgba(245, 158, 11, 0.2)" />
                     <DashboardIcon icon="help-buoy" label="Support" color="#fff" bg="rgba(59, 130, 246, 0.2)" />
+                    <DashboardIcon icon="finger-print" label="Attendance" color="#fff" bg="rgba(168, 85, 247, 0.2)" onPress={() => router.push('/staff-attendance')} />
+                    <DashboardIcon icon="notifications" label="Reminders" color="#fff" bg="rgba(99, 102, 241, 0.2)" onPress={() => router.push('/my-reminders')} />
                 </View>
 
                 {/* Restricted Access Banner */}
@@ -160,28 +164,14 @@ export default function CleaningDashboard() {
                         <FeatureCard icon="document-text" title="Manuals" color="#fff" bg="#2d3748" />
                         <FeatureCard icon="chatbubble-ellipses" title="Staff Chat" color="#fff" bg="#1a365d" />
                         <FeatureCard icon="settings" title="Profile" color="#fff" bg="#2d3748" />
-                        <FeatureCard icon="megaphone" title="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
-                        <FeatureCard icon="book" title="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
+                        <FeatureCard icon="megaphone" title="Notice Board" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
+                        <FeatureCard icon="book" title="Rules & Regulations" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                         <FeatureCard icon="calendar" title="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
                     </View>
                 </View>
 
             </ScrollView>
         </SafeAreaView>
-    );
-}
-
-function WorkspaceBubble({ label, isActive, onPress, image }: any) {
-    return (
-        <TouchableOpacity 
-            style={[styles.wsBubble, isActive && styles.wsBubbleActive]} 
-            onPress={onPress}
-        >
-            <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
-                <Image source={{ uri: image }} style={styles.wsBubbleImg} />
-            </View>
-            <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>{label}</Text>
-        </TouchableOpacity>
     );
 }
 

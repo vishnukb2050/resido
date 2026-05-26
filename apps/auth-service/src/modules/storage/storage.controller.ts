@@ -13,9 +13,10 @@ export class StorageController {
         @Body('fileName') fileName: string,
         @Body('contentType') contentType: string,
         @Body('resourceType') resourceType: string,
+        @Body('tenantId') tenantId?: string,
     ) {
-        const userId = req.user.sub;
-        const tenantId = req.user.dbName || 'global';
-        return this.storageService.getPresignedUrl(fileName, contentType, tenantId, userId, resourceType);
+        const userId = req.user.userId;
+        const resolvedTenantId = tenantId || req.user.clientId || 'global';
+        return this.storageService.getPresignedUrl(fileName, contentType, resolvedTenantId, userId, resourceType);
     }
 }

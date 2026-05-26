@@ -69,6 +69,12 @@ export class ProxyController {
                 if (payload.tenantId) {
                     headers['x-tenant-id'] = payload.tenantId;
                 }
+                if (payload.phone) {
+                    headers['x-user-phone'] = payload.phone;
+                }
+                if (payload.role) {
+                    headers['x-user-role'] = payload.role;
+                }
             } catch (err) {
                 // Invalid token, but maybe it's a public route?
                 // Downstream services will handle auth if needed.

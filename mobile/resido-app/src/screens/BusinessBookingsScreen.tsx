@@ -6,7 +6,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { businessApi } from '../services/api';
+import * as Location from 'expo-location';
+import { authApi, businessApi, unpackBusinessProfileList } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 
 const { width } = Dimensions.get('window');
@@ -21,6 +22,10 @@ export default function BusinessBookingsScreen() {
     const [savedProfiles, setSavedProfiles] = useState<any[]>([]);
     const [allProfiles, setAllProfiles] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [searchLocation, setSearchLocation] = useState('');
+    const [selectedLocation, setSelectedLocation] = useState<{ pincode?: string; district?: string; state?: string } | null>(null);
+    const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; radius: number } | null>(null);
     
     // Loader and refreshers
     const [loading, setLoading] = useState(true);
@@ -29,6 +34,17 @@ export default function BusinessBookingsScreen() {
     useEffect(() => {
         loadTabData();
     }, [activeTab]);
+
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedQuery(searchQuery), 350);
+        return () => clearTimeout(t);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        if (activeTab === 'SEARCH') {
+            fetchSearchProfiles();
+        }
+    }, [debouncedQuery, selectedLocation, userLocation, activeTab]);
 
     const loadTabData = async () => {
         setLoading(true);
@@ -96,11 +112,80 @@ export default function BusinessBookingsScreen() {
 
     const fetchSearchProfiles = async () => {
         try {
-            const { data } = await businessApi.getProfiles();
-            setAllProfiles(data || []);
+            const params: any = { limit: 50 };
+            if (debouncedQuery.trim()) params.query = debouncedQuery.trim();
+            if (userLocation) {
+                params.lat = userLocation.latitude;
+                params.lng = userLocation.longitude;
+                params.radius = userLocation.radius;
+            }
+            if (selectedLocation) {
+                if (selectedLocation.pincode) params.pincode = selectedLocation.pincode;
+                if (selectedLocation.district) params.district = selectedLocation.district;
+                if (selectedLocation.state) params.state = selectedLocation.state;
+            }
+            const { data } = await businessApi.getProfiles(params);
+            setAllProfiles(unpackBusinessProfileList(data).items);
         } catch (error) {
             console.error('Failed to fetch search profiles:', error);
             setAllProfiles([]);
+        }
+    };
+
+    const handleLocationSearch = async (text: string) => {
+        setSearchLocation(text);
+        if (text.length > 2) {
+            try {
+                const { data } = await authApi.searchLocations(text);
+                const loc = data?.find((l: any) => l.pincode && l.latitude && l.longitude);
+                if (loc) {
+                    setSelectedLocation({ pincode: loc.pincode, district: loc.district, state: loc.state });
+                    setUserLocation({
+                        latitude: Number(loc.latitude),
+                        longitude: Number(loc.longitude),
+                        radius: 10,
+                    });
+                }
+            } catch (e) {
+                console.error('Location search failed', e);
+            }
+        }
+    };
+
+    const handleNearMe = async () => {
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission denied', 'Enable location to search nearby businesses.');
+                return;
+            }
+            const loc = await Location.getCurrentPositionAsync({});
+            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+            setUserLocation({ ...coords, radius: 10 });
+
+            try {
+                const { data } = await authApi.reverseGeocode(coords.latitude, coords.longitude);
+                if (data && (data.pincode || data.district || data.state)) {
+                    setSelectedLocation({
+                        pincode: data.pincode || '',
+                        district: data.district || '',
+                        state: data.state || '',
+                    });
+                    setSearchLocation(
+                        data.placeName
+                            ? `Near Me — ${data.placeName}${data.district ? `, ${data.district}` : ''}`
+                            : 'Near Me'
+                    );
+                } else {
+                    setSelectedLocation(null);
+                    setSearchLocation('Near Me');
+                }
+            } catch {
+                setSelectedLocation(null);
+                setSearchLocation('Near Me');
+            }
+        } catch (e) {
+            console.error('GPS error', e);
         }
     };
 
@@ -136,17 +221,6 @@ export default function BusinessBookingsScreen() {
             ]
         );
     };
-
-    // Filters all profiles for search tab in real-time
-    const filteredProfiles = allProfiles.filter(p => {
-        const query = searchQuery.toLowerCase().trim();
-        if (!query) return true;
-        return (
-            (p.businessName && p.businessName.toLowerCase().includes(query)) ||
-            (p.category && p.category.toLowerCase().includes(query)) ||
-            (p.about && p.about.toLowerCase().includes(query))
-        );
-    });
 
     const renderBookingItem = ({ item }: { item: any }) => {
         const isCancelled = item.status === 'CANCELLED';
@@ -225,6 +299,11 @@ export default function BusinessBookingsScreen() {
                     {item.isVerified && <Ionicons name="checkmark-circle" size={14} color="#10b981" />}
                 </View>
                 <Text style={styles.cardCategory}>{item.category}</Text>
+                {item.distanceKm != null ? (
+                    <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                        {Number(item.distanceKm).toFixed(1)} km away
+                    </Text>
+                ) : null}
                 
                 {item.slots && item.slots.length > 0 ? (
                     <View style={styles.bookNowBadge}>
@@ -348,9 +427,22 @@ export default function BusinessBookingsScreen() {
                                     </TouchableOpacity>
                                 ) : null}
                             </View>
+                            <View style={[styles.searchSection, { marginTop: 0, marginBottom: 8 }]}>
+                                <Ionicons name="location" size={18} color="#94a3b8" />
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Pincode or area..."
+                                    placeholderTextColor="#64748b"
+                                    value={searchLocation}
+                                    onChangeText={handleLocationSearch}
+                                />
+                                <TouchableOpacity onPress={handleNearMe} style={{ paddingHorizontal: 8 }}>
+                                    <Text style={{ color: '#8b5cf6', fontWeight: '800', fontSize: 12 }}>Near Me</Text>
+                                </TouchableOpacity>
+                            </View>
 
                             <FlatList
-                                data={filteredProfiles}
+                                data={allProfiles}
                                 keyExtractor={item => item.id}
                                 renderItem={renderProfileItem}
                                 contentContainerStyle={styles.listContent}

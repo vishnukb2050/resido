@@ -10,7 +10,7 @@ import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-
 import * as Location from 'expo-location';
 import BottomNav from '../components/BottomNav';
 import OSMMap from '../components/OSMMap';
-import { authApi, businessApi } from '../services/api';
+import { authApi, businessApi, unpackBusinessProfileList } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -69,9 +69,44 @@ export default function ServiceSearchScreen() {
         longitudeDelta: 0.05,
     });
 
+    const [debouncedQuery, setDebouncedQuery] = React.useState(searchQuery);
+    const [suggestItems, setSuggestItems] = React.useState<any[]>([]);
+
+    React.useEffect(() => {
+        const t = setTimeout(() => setDebouncedQuery(searchQuery), 350);
+        return () => clearTimeout(t);
+    }, [searchQuery]);
+
     React.useEffect(() => {
         fetchProfiles();
-    }, [activeCat, selectedLocation, userLocation]);
+    }, [activeCat, selectedLocation, userLocation, selectedPin, searchRadius, debouncedQuery]);
+
+    React.useEffect(() => {
+        const loadSuggest = async () => {
+            const q = searchQuery.trim();
+            if (q.length < 2) {
+                setSuggestItems([]);
+                return;
+            }
+            try {
+                const { data } = await businessApi.suggestProfiles(q, 10);
+                const items: any[] = [];
+                (data?.categories || []).forEach((name: string) => {
+                    items.push({ type: 'category', name, id: name });
+                });
+                (data?.profiles || []).forEach((p: any) => {
+                    items.push({ type: 'profile', name: p.name, profileId: p.id });
+                });
+                (data?.services || []).forEach((s: any) => {
+                    items.push({ type: 'service', name: s.name });
+                });
+                setSuggestItems(items.slice(0, 10));
+            } catch {
+                setSuggestItems(getTopSuggestions());
+            }
+        };
+        loadSuggest();
+    }, [searchQuery, profiles]);
 
     const getTopSuggestions = () => {
         if (!searchQuery || searchQuery.trim().length === 0) return [];
@@ -319,22 +354,47 @@ export default function ServiceSearchScreen() {
             });
         }
         
-        setUserLocation(null); 
         setShowGlobalDropdown(false);
-        
-        // Always switch to MAP view immediately
-        setViewMode('MAP');
+        // Keep LIST view for broad state/district picks so results are visible;
+        // only switch to MAP for a specific place (pincode) where fine-tuning helps.
+        if (!loc.isState && !loc.isDistrict) {
+            setViewMode('MAP');
+        } else {
+            setViewMode('LIST');
+        }
 
         if (loc.latitude && loc.longitude) {
+            const coords = { latitude: Number(loc.latitude), longitude: Number(loc.longitude) };
             const latDelta = (searchRadius * 2.5) / 111;
             setMapRegion({
-                latitude: Number(loc.latitude),
-                longitude: Number(loc.longitude),
+                ...coords,
                 latitudeDelta: latDelta,
-                longitudeDelta: latDelta
+                longitudeDelta: latDelta,
             });
-            setSelectedPin({ latitude: Number(loc.latitude), longitude: Number(loc.longitude) });
+            setSelectedPin(coords);
+            setUserLocation({ ...coords, radius: searchRadius });
+        } else {
+            setSelectedPin(null);
+            setUserLocation(null);
         }
+    };
+
+    const resolveAdminContext = async (coords: { latitude: number; longitude: number }) => {
+        try {
+            const { data } = await authApi.reverseGeocode(coords.latitude, coords.longitude);
+            if (data && (data.pincode || data.district || data.state)) {
+                setSelectedLocation({
+                    pincode: data.pincode || '',
+                    district: data.district || '',
+                    state: data.state || '',
+                });
+                return data;
+            }
+        } catch (e) {
+            console.warn('Reverse geocode failed:', e);
+        }
+        setSelectedLocation(null);
+        return null;
     };
 
     const handleUseCurrentLocation = async () => {
@@ -353,15 +413,19 @@ export default function ServiceSearchScreen() {
             };
 
             setSelectedPin(coords);
-            setSearchRadius(5); 
+            setUserLocation({ ...coords, radius: searchRadius });
+            setSearchRadius(5);
             setMapRegion({
                 ...coords,
                 latitudeDelta: 0.05,
                 longitudeDelta: 0.05,
             });
 
-            // Assuming a helper or similar logic
-            setSelectedLocationName('Near Me (GPS)');
+            const admin = await resolveAdminContext(coords);
+            const label = admin?.placeName
+                ? `Near Me — ${admin.placeName}${admin.district ? `, ${admin.district}` : ''}`
+                : 'Near Me (GPS)';
+            setSelectedLocationName(label);
         } catch (error) {
             console.error('Error getting current location:', error);
         } finally {
@@ -369,15 +433,14 @@ export default function ServiceSearchScreen() {
         }
     };
 
-    const handleMarkerDragEnd = (coord: { latitude: number, longitude: number }) => {
+    const handleMarkerDragEnd = async (coord: { latitude: number, longitude: number }) => {
         setSelectedPin(coord);
-        setUserLocation({
-            ...coord,
-            radius: searchRadius
-        });
-        // Sync with the top display badge
-        setSelectedLocationName(`Custom: ${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)}`);
-        setSelectedLocation(null); // Clear pincode search as we are now using GPS coords
+        setUserLocation({ ...coord, radius: searchRadius });
+        const admin = await resolveAdminContext(coord);
+        const label = admin?.placeName
+            ? `${admin.placeName}${admin.district ? `, ${admin.district}` : ''}`
+            : `Custom: ${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)}`;
+        setSelectedLocationName(label);
     };
 
     const handleRadiusChange = (radius: number) => {
@@ -405,9 +468,10 @@ export default function ServiceSearchScreen() {
                 if (cat) params.category = cat.name;
             }
             
-            if (searchQuery) {
-                params.query = searchQuery;
+            if (debouncedQuery.trim()) {
+                params.query = debouncedQuery.trim();
             }
+            params.limit = 50;
             
             // 1. Coordinates (Pin takes priority over GPS)
             if (selectedPin) {
@@ -428,7 +492,7 @@ export default function ServiceSearchScreen() {
             }
 
             const { data } = await businessApi.getProfiles(params);
-            setProfiles(data);
+            setProfiles(unpackBusinessProfileList(data).items);
         } catch (error) {
             console.error('Failed to fetch profiles', error);
         } finally {
@@ -485,7 +549,7 @@ export default function ServiceSearchScreen() {
                     {showTopDropdown && searchQuery.trim().length > 0 && (
                         <View style={[styles.dropdownContainer, { position: 'absolute', top: 60, left: 20, right: 20, zIndex: 9999, elevation: 11 }]}>
                             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 250 }}>
-                                {getTopSuggestions().map((item, idx) => (
+                                {(suggestItems.length > 0 ? suggestItems : getTopSuggestions()).map((item, idx) => (
                                     <TouchableOpacity 
                                         key={idx} 
                                         style={styles.dropdownItem}
@@ -519,7 +583,7 @@ export default function ServiceSearchScreen() {
                                         </View>
                                     </TouchableOpacity>
                                 ))}
-                                {getTopSuggestions().length === 0 && (
+                                {suggestItems.length === 0 && getTopSuggestions().length === 0 && (
                                     <View style={{ padding: 15, alignItems: 'center' }}>
                                         <Text style={{ color: '#94a3b8', fontSize: 12, fontStyle: 'italic' }}>No matches found</Text>
                                     </View>
@@ -720,7 +784,11 @@ export default function ServiceSearchScreen() {
                                         <Text style={styles.proCat}>{pro.category} • {pro.experience || 'Experienced'}</Text>
                                         <View style={styles.proLocRow}>
                                             <Ionicons name="location-outline" size={14} color="#64748b" />
-                                            <Text style={styles.proLocText}>{pro.location || 'Within Community'}</Text>
+                                            <Text style={styles.proLocText}>
+                                                {pro.distanceKm != null
+                                                    ? `${Number(pro.distanceKm).toFixed(1)} km away`
+                                                    : (pro.area || pro.location || 'Service area')}
+                                            </Text>
                                         </View>
                                         {pro.slots && pro.slots.length > 0 ? (
                                             <View style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>

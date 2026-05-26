@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Image, ScrollView, RefreshControl } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { communityApi } from '../services/api';
@@ -8,23 +8,35 @@ import { communityApi } from '../services/api';
 export default function ComplaintsListScreen() {
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
-    const [complaints, setComplaints] = useState([]);
+    const [complaints, setComplaints] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [expandedComplaintId, setExpandedComplaintId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchComplaints();
-    }, []);
-
-    const fetchComplaints = async () => {
+    const fetchComplaints = useCallback(async (silent = false) => {
         try {
-            const { data } = await communityApi.getComplaints(activeWorkspace?.memberId || user?.id || '');
-            setComplaints(data);
+            if (!silent) setLoading(true);
+            const { data } = await communityApi.getComplaints(
+                activeWorkspace?.memberId || user?.id || '',
+            );
+            setComplaints(Array.isArray(data) ? data : []);
         } catch (e) {
             console.error('Fetch complaints failed', e);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    }, [activeWorkspace?.memberId, user?.id]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchComplaints();
+        }, [fetchComplaints]),
+    );
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchComplaints(true);
     };
 
     const getStatusColor = (status: string) => {
@@ -63,6 +75,7 @@ export default function ComplaintsListScreen() {
                     data={complaints}
                     keyExtractor={(item: any) => item.id}
                     contentContainerStyle={styles.listContent}
+                    refreshControl={<RefreshControl tintColor="#1d4ed8" refreshing={refreshing} onRefresh={onRefresh} />}
                     renderItem={({ item }) => {
                         const isExpanded = expandedComplaintId === item.id;
                         return (
@@ -81,6 +94,16 @@ export default function ComplaintsListScreen() {
                                 </View>
                                 
                                 <Text style={styles.description}>{item.description}</Text>
+
+                                {item.assignedTo ? (
+                                    <View style={styles.assignedRow}>
+                                        <Ionicons name="construct-outline" size={13} color="#10b981" />
+                                        <Text style={styles.assignedText}>
+                                            Assigned to {item.assignedTo.name}
+                                            {item.assignedTo.role ? ` (${(item.assignedTo.role + '').replace('_STAFF', '')})` : ''}
+                                        </Text>
+                                    </View>
+                                ) : null}
 
                                 {isExpanded && (
                                     <View style={styles.expandedSection}>
@@ -208,5 +231,8 @@ const styles = StyleSheet.create({
     timelineImage: { width: 60, height: 60, borderRadius: 8, marginRight: 8 },
     
     statusBadgeSmall: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginBottom: 4 },
-    statusTextSmall: { fontSize: 9, fontWeight: '800' }
+    statusTextSmall: { fontSize: 9, fontWeight: '800' },
+
+    assignedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12 },
+    assignedText: { fontSize: 12, color: '#10b981', fontWeight: '700' },
 });

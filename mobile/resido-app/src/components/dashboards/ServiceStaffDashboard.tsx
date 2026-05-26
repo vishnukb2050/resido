@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { authApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
 
 export default function ServiceStaffDashboard() {
@@ -80,7 +81,7 @@ export default function ServiceStaffDashboard() {
                             label="My Space"
                             isActive={!activeWorkspace}
                             onPress={() => setActiveWorkspace(null as any, '')}
-                            image={user?.profilePhoto || 'https://i.pravatar.cc/100?u=resido'}
+                            imageUri={user?.profilePhoto}
                         />
                         {workspaces?.map((ws: any) => (
                             <WorkspaceBubble
@@ -88,7 +89,8 @@ export default function ServiceStaffDashboard() {
                                 label={ws.tenantName}
                                 isActive={activeWorkspace?.tenantId === ws.tenantId}
                                 onPress={() => handleSwitch(ws)}
-                                image={ws.photoUrl || 'https://cdn-icons-png.flaticon.com/512/9374/9374944.png'}
+                                imageUri={ws.photoUrl}
+                                fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
                             />
                         ))}
                     </ScrollView>
@@ -119,6 +121,8 @@ export default function ServiceStaffDashboard() {
                     <DashboardIcon icon="construct" label="Requests & Complaints" color="#fff" bg="#ea580c" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="clipboard" label="Task Log" color="#fff" bg="#2563eb" />
                     <DashboardIcon icon="call" label="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
+                    <DashboardIcon icon="finger-print" label="Attendance" color="#fff" bg="#a855f7" onPress={() => router.push('/staff-attendance')} />
+                    <DashboardIcon icon="notifications" label="Reminders" color="#fff" bg="#6366f1" onPress={() => router.push('/my-reminders')} />
                 </View>
 
                 {/* Stats Row */}
@@ -147,25 +151,13 @@ export default function ServiceStaffDashboard() {
                         <FeatureCard icon="clipboard" title="Task Log" color="#fff" bg="#2563eb" />
                         <FeatureCard icon="call" title="Contact Admin" color="#fff" bg="#059669" onPress={() => router.push('/staff-contacts')} />
                         <FeatureCard icon="calendar" title="Events" color="#fff" bg="#1d4ed8" onPress={() => router.push('/events')} />
-                        <FeatureCard icon="megaphone" title="Notices" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
-                        <FeatureCard icon="book" title="Rules" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
+                        <FeatureCard icon="megaphone" title="Notice Board" color="#fff" bg="#f59e0b" onPress={() => router.push('/notices')} />
+                        <FeatureCard icon="book" title="Rules & Regulations" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                     </View>
                 </View>
 
             </ScrollView>
         </SafeAreaView>
-    );
-}
-
-// Sub-components
-function WorkspaceBubble({ label, isActive, onPress, image }: any) {
-    return (
-        <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
-            <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
-                <Image source={{ uri: image }} style={styles.wsBubbleImg} />
-            </View>
-            <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>{label}</Text>
-        </TouchableOpacity>
     );
 }
 

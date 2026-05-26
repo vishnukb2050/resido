@@ -19,6 +19,14 @@ export class BusinessController {
         return this.businessService.getCategories();
     }
 
+    @Get('suggest')
+    suggest(
+        @Query('q') q?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.businessService.suggest(q || '', limit ? parseInt(limit, 10) : 10);
+    }
+
     @Get('profiles')
     listProfiles(
         @Query('tenantId') tenantId?: string,
@@ -29,7 +37,9 @@ export class BusinessController {
         @Query('lat') lat?: string,
         @Query('lng') lng?: string,
         @Query('radius') radius?: string,
-        @Query('query') query?: string
+        @Query('query') query?: string,
+        @Query('limit') limit?: string,
+        @Query('offset') offset?: string
     ) {
         return this.businessService.listProfiles({ 
             tenantId, 
@@ -39,8 +49,10 @@ export class BusinessController {
             state, 
             lat: lat ? parseFloat(lat) : undefined,
             lng: lng ? parseFloat(lng) : undefined,
-            radius: radius ? parseInt(radius) : undefined,
-            query
+            radius: radius ? parseInt(radius, 10) : undefined,
+            query,
+            limit: limit ? parseInt(limit, 10) : undefined,
+            offset: offset ? parseInt(offset, 10) : undefined,
         });
     }
 

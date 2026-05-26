@@ -78,6 +78,7 @@ export const authApi = {
     getPresignedUrl: (fileName: string, contentType: string, resourceType?: string) => 
         api.get('/profile/storage/presigned-url', { params: { fileName, contentType, resourceType } }),
     searchLocations: (query: string) => api.get('/profile/locations/search', { params: { query } }),
+    reverseGeocode: (lat: number, lng: number) => api.get('/profile/locations/reverse-geocode', { params: { lat, lng } }),
     searchServiceProfiles: (params: { category?: string, pincode?: string, district?: string, state?: string, lat?: number, lng?: number, radius?: number }) => 
         api.get('/profile/search', { params }),
 };
@@ -104,9 +105,22 @@ export const communityApi = {
     deleteEvent: (id: string) => api.delete(`/community/events/${id}`),
     getRules: (memberId?: string) => api.get(`/community/rules${memberId ? `?memberId=${memberId}` : ''}`),
     createRule: (data: any) => api.post('/community/rules', data),
+    updateRule: (id: string, data: any) => api.patch(`/community/rules/${id}`, data),
+    deleteRule: (id: string) => api.delete(`/community/rules/${id}`),
     getMembers: () => api.get('/community/members'),
     getGallery: () => api.get('/community/gallery'),
     getSummaryStats: () => api.get('/community/stats/summary'),
+
+    // Attendance
+    getAttendanceConfig: () => api.get('/community/attendance/config'),
+    setAttendanceConfig: (data: { latitude: number; longitude: number; radiusMeters?: number; address?: string }) =>
+        api.put('/community/attendance/config', data),
+    markAttendance: (data: { latitude: number; longitude: number; notes?: string }) =>
+        api.post('/community/attendance/mark', data),
+    listAttendance: (params?: { from?: string; to?: string; date?: string; memberId?: string }) =>
+        api.get('/community/attendance/records', { params }),
+    listOwnAttendance: (params?: { from?: string; to?: string; date?: string }) =>
+        api.get('/community/attendance/me', { params }),
     
     // Blocks & Units
     getBlocks: () => api.get('/community/blocks'),
@@ -157,9 +171,23 @@ export const amenitiesApi = {
 };
 
 // Business APIs
+/** Normalize list response from GET /business/profiles (array legacy or paginated object). */
+export function unpackBusinessProfileList(data: any): { items: any[]; total: number; hasMore: boolean } {
+    if (data && Array.isArray(data.items)) {
+        return {
+            items: data.items,
+            total: typeof data.total === 'number' ? data.total : data.items.length,
+            hasMore: !!data.hasMore,
+        };
+    }
+    const items = Array.isArray(data) ? data : [];
+    return { items, total: items.length, hasMore: false };
+}
+
 export const businessApi = {
     createProfile: (data: any) => api.post('/business/profiles', data),
     getProfiles: (params?: any) => api.get('/business/profiles', { params }),
+    suggestProfiles: (q: string, limit = 10) => api.get('/business/suggest', { params: { q, limit } }),
     getMyProfiles: () => api.get('/business/profiles/my'),
     getProfile: (id: string) => api.get(`/business/profiles/${id}`),
     updateProfile: (id: string, data: any) => api.patch(`/business/profiles/${id}`, data),
@@ -275,7 +303,9 @@ export const communityAssetsApi = {
 
 export const communityRemindersApi = {
     getReminders: () => api.get('/community/reminders'),
+    getMyReminders: () => api.get('/community/reminders/mine'),
     createReminder: (data: any) => api.post('/community/reminders', data),
+    updateReminder: (id: string, data: any) => api.patch(`/community/reminders/${id}`, data),
     triggerReminder: (id: string) => api.post(`/community/reminders/${id}/trigger`),
     deleteReminder: (id: string) => api.delete(`/community/reminders/${id}`),
 };

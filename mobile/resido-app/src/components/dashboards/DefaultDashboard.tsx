@@ -5,7 +5,9 @@ import { useAuthStore } from '../../store/authStore';
 import { threadApi, authApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
+import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
+import { resolveMediaUrl, withCacheBust } from '../../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
 
@@ -18,8 +20,8 @@ const styles = StyleSheet.create({
     // Premium Header
     psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
-    psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-    psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },
+    psLogoBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' },
+    psWorkspaceImg: { width: '100%', height: '100%' },
     psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
     psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
     
@@ -35,9 +37,6 @@ const styles = StyleSheet.create({
     psWorkspaceScroll: { paddingHorizontal: 20, gap: 15 },
     wsBubble: { alignItems: 'center', width: 85, opacity: 0.5 },
     wsBubbleActive: { opacity: 1 },
-    wsBubbleImgBox: { width: 45, height: 45, borderRadius: 22.5, padding: 2, backgroundColor: '#1e293b', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#8b5cf6', borderWidth: 3 },
-    wsBubbleImg: { width: '100%', height: '100%', borderRadius: 999 },
     wsBubbleLabel: { color: '#94a3b8', fontSize: 10, fontWeight: '700', marginTop: 8 },
     wsBubbleLabelActive: { color: '#8b5cf6', fontSize: 12, fontWeight: '900' },
 
@@ -378,8 +377,14 @@ export default function DefaultDashboard() {
                                 }]}>
                                     {activeWorkspace && (activeWorkspace as any).photoUrl ? (
                                         <Image 
-                                            source={{ uri: (activeWorkspace as any).photoUrl + `?t=${imageTimestamp}` }} 
-                                            style={styles.psWorkspaceImg} 
+                                            source={{
+                                                uri: withCacheBust(
+                                                    resolveMediaUrl((activeWorkspace as any).photoUrl) || '',
+                                                    imageTimestamp,
+                                                ),
+                                            }} 
+                                            style={styles.psWorkspaceImg}
+                                            resizeMode="cover"
                                         />
                                     ) : activeWorkspace ? (
                                         <Image source={require('../../../assets/greenwoods_logo.jpg')} style={styles.psWorkspaceImg} />
@@ -412,7 +417,8 @@ export default function DefaultDashboard() {
                                     label="My Space" 
                                     isActive={!activeWorkspace} 
                                     onPress={() => handleSelectWorkspace(null, 0)} 
-                                    image={user?.profilePhoto ? `${user.profilePhoto}?t=${imageTimestamp}` : "https://i.pravatar.cc/100?u=resido"}
+                                    imageUri={user?.profilePhoto}
+                                    cacheBust={imageTimestamp}
                                 />
                                 {workspaces.map((ws: any, idx: number) => (
                                     <WorkspaceBubble 
@@ -420,7 +426,9 @@ export default function DefaultDashboard() {
                                         label={ws.tenantName} 
                                         isActive={activeWorkspace?.tenantId === ws.tenantId} 
                                         onPress={() => handleSelectWorkspace(ws, idx + 1)} 
-                                        image={ws.photoUrl ? `${ws.photoUrl}?t=${imageTimestamp}` : "https://cdn-icons-png.flaticon.com/512/9374/9374944.png"}
+                                        imageUri={ws.photoUrl}
+                                        fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
+                                        cacheBust={imageTimestamp}
                                     />
                                 ))}
                             </ScrollView>
@@ -627,8 +635,8 @@ export default function DefaultDashboard() {
                                         <DashboardIcon icon="id-card" label="Staff" color="#fff" bg="#3b82f6" onPress={() => router.push('/staff')} />
                                         <DashboardIcon icon="chatbubbles" label="Requests & Complaints" color="#fff" bg="#f43f5e" onPress={() => router.push('/complaints')} />
                                         <DashboardIcon icon="qr-code" label="Gate Pass" color="#fff" bg="#f59e0b" onPress={() => router.push('/gatepass')} />
-                                        <DashboardIcon icon="document-text" label="Rules" color="#fff" bg="#64748b" onPress={() => router.push('/rules')} />
-                                        <DashboardIcon icon="megaphone" label="Notices" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notices')} />
+                                        <DashboardIcon icon="document-text" label="Rules & Regulations" color="#fff" bg="#64748b" onPress={() => router.push('/rules')} />
+                                        <DashboardIcon icon="megaphone" label="Notice Board" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notices')} />
                                         <DashboardIcon icon="tennisball" label="Amenities" color="#fff" bg="#0ea5e9" onPress={() => router.push('/amenities')} />
                                     </View>
                                 </View>
@@ -639,18 +647,6 @@ export default function DefaultDashboard() {
             </ScrollView>
             <BottomNav activeTab="Home" />
         </SafeAreaView>
-    );
-}
-
-// Custom Sub-components for Premium UI
-function WorkspaceBubble({ label, isActive, onPress, image }: any) {
-    return (
-        <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
-            <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
-                <Image source={{ uri: image }} style={styles.wsBubbleImg} />
-            </View>
-            <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>{label}</Text>
-        </TouchableOpacity>
     );
 }
 

@@ -57,17 +57,30 @@ export class StorageService {
         };
     }
 
-    private generatePublicUrl(key: string): string {
-        const endpoint = this.configService.get('AWS_S3_ENDPOINT');
-        const publicUrlBase = this.configService.get('CLOUDFLARE_R2_PUBLIC_URL');
-        
-        if (publicUrlBase) {
-            return `${publicUrlBase.replace(/\/$/, '')}/${key}`;
-        } else if (endpoint && endpoint.includes('cloudflarestorage.com')) {
-            return `${endpoint}/${this.bucketName}/${key}`;
-        } else {
-            const region = this.configService.get('AWS_REGION', 'ap-south-1');
-            return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
-        }
+  /** Turn stored R2 key or relative path into a browser-loadable URL. */
+  resolvePublicMediaUrl(value?: string | null): string | null {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) {
+      return trimmed;
     }
+    const key = trimmed.startsWith('resido/') ? trimmed : `resido/${trimmed.replace(/^\//, '')}`;
+    return this.generatePublicUrl(key);
+  }
+
+  private generatePublicUrl(key: string): string {
+    const endpoint = this.configService.get('AWS_S3_ENDPOINT');
+    const publicUrlBase = this.configService.get('CLOUDFLARE_R2_PUBLIC_URL');
+
+    if (publicUrlBase) {
+      return `${publicUrlBase.replace(/\/$/, '')}/${key}`;
+    } else if (endpoint && endpoint.includes('cloudflarestorage.com')) {
+      return `${endpoint}/${this.bucketName}/${key}`;
+    } else {
+      const region = this.configService.get('AWS_REGION', 'ap-south-1');
+      return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+    }
+  }
 }

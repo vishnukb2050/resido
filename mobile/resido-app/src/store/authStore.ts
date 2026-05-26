@@ -98,15 +98,21 @@ export const useAuthStore = create<AuthState>()(
                         token: ws === null ? state.personalToken || state.token : token,
                         workspaces: ws
                             ? state.workspaces.map((w) =>
-                                  w.tenantId === ws.tenantId ? { ...w, role: ws.role, memberId: ws.memberId } : w
+                                  w.tenantId === ws.tenantId
+                                      ? {
+                                            ...w,
+                                            ...ws,
+                                            roles: ws.roles || w.roles || [ws.role],
+                                        }
+                                      : w
                                )
                             : state.workspaces,
                     };
                 }),
 
             setWorkspaces: (workspaces) =>
-                set((state) => ({
-                    workspaces: workspaces.map((ws: any) => {
+                set((state) => {
+                    const normalized = workspaces.map((ws: any) => {
                         const existingActive = state.activeWorkspace;
                         if (existingActive && existingActive.tenantId === ws.tenantId) {
                             return {
@@ -120,8 +126,22 @@ export const useAuthStore = create<AuthState>()(
                             ...ws,
                             roles: ws.roles || [ws.role],
                         };
-                    }),
-                })),
+                    });
+
+                    let activeWorkspace = state.activeWorkspace;
+                    if (activeWorkspace) {
+                        const fresh = normalized.find((w) => w.tenantId === activeWorkspace!.tenantId);
+                        if (fresh) {
+                            activeWorkspace = {
+                                ...fresh,
+                                role: activeWorkspace.role,
+                                memberId: activeWorkspace.memberId,
+                            };
+                        }
+                    }
+
+                    return { workspaces: normalized, activeWorkspace };
+                }),
 
             // Switch role within the current active workspace (already switched community)
             switchRole: (role, token) =>
