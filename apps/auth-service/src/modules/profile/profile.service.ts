@@ -131,6 +131,17 @@ export class ProfileService implements OnModuleInit {
         }
     }
 
+    async getProfile(userId: string) {
+        const user = await this.prisma.userRead.user.findUnique({
+            where: { id: userId },
+            include: { workspaceMemberships: true }
+        });
+        if (!user) {
+            throw new NotFoundException('User profile not found');
+        }
+        return user;
+    }
+
     async updateProfile(userId: string, data: any, file?: any) {
         let profilePhotoUrl = data.profilePhoto;
 

@@ -32,7 +32,7 @@ export default function VisitorEntryScreen() {
         try {
             let photoUrl = '';
             if (photo) {
-                photoUrl = await storageApi.uploadFile(photo, `visitor_${Date.now()}.jpg`, 'image/jpeg');
+                photoUrl = (await storageApi.uploadFile(photo, `visitor_${Date.now()}.jpg`, 'image/jpeg')) as string;
             }
 
             await communityApi.createGatepass({

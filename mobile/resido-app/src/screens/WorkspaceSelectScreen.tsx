@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { useAuthStore } from '../../store/authStore';
-import { authApi } from '../../services/api';
+import { useAuthStore } from '../store/authStore';
+import { authApi } from '../services/api';
 
 const ROLE_ICONS: Record<string, string> = {
     APARTMENT_ADMIN: '🏢',

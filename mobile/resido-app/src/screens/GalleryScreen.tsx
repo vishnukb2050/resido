@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
     modalLabel: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 20 },
     input: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 18, fontSize: 16, color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 25 },
     modalBtns: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 15 },
+    cancelBtn: { paddingHorizontal: 20, paddingVertical: 12 },
     cancelBtnText: { color: '#64748b', fontWeight: '800', fontSize: 15 },
     confirmBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 14 },
     confirmBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },

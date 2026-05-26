@@ -29,8 +29,11 @@ echo "Assembling Release APK..."
 ./gradlew assembleRelease
 
 echo "Copying APKs to Windows Downloads..."
-cp android/app/build/outputs/apk/release/app-arm64-v8a-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v16_arm64.apk" || true
-cp android/app/build/outputs/apk/release/app-armeabi-v7a-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v16_arm.apk" || true
+cp android/app/build/outputs/apk/release/app-arm64-v8a-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v122_arm64.apk" || true
+cp android/app/build/outputs/apk/release/app-armeabi-v7a-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v122_arm.apk" || true
+cp android/app/build/outputs/apk/release/app-universal-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v122.apk" || true
+cp android/app/build/outputs/apk/release/app-release.apk "/mnt/c/Users/VISHNU/Downloads/resido_v122.apk" || true
 
 echo "DONE! APKs copied to Windows Downloads folder."
+
 

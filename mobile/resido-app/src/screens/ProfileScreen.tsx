@@ -40,7 +40,7 @@ export default function ProfileScreen() {
                 <View style={styles.identityCard}>
                     <View style={styles.avatarContainer}>
                         <Image 
-                            source={{ uri: (user?.profilePhoto || `https://i.pravatar.cc/150?u=${user?.id}`) + `?t=${imageTimestamp}` }} 
+                            source={{ uri: user?.profilePhoto ? `${user.profilePhoto}?t=${imageTimestamp}` : `https://i.pravatar.cc/150?u=${user?.id}` }} 
                             style={styles.mainAvatar} 
                         />
                         <View style={styles.verifiedBadge}>

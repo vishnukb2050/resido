@@ -8,6 +8,12 @@ export class ProfileController {
     constructor(private readonly profileService: ProfileService) {}
 
     @UseGuards(JwtAuthGuard)
+    @Get('user')
+    async getProfile(@Req() req: any) {
+        return this.profileService.getProfile(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Put('user')
     @UseInterceptors(FileInterceptor('file'))
     async updateProfile(

@@ -54,47 +54,35 @@ export default function EditProfileScreen() {
         try {
             const hasNewImage = formData.profilePhoto && (formData.profilePhoto.startsWith('file://') || formData.profilePhoto.startsWith('content://') || !formData.profilePhoto.startsWith('http'));
             
-            let dataToSubmit: any;
+            let uploadedPhotoUrl = formData.profilePhoto;
             
             if (hasNewImage) {
-                const formDataToSubmit = new FormData();
-                formDataToSubmit.append('name', formData.name);
-                formDataToSubmit.append('profileName', formData.username); 
-                formDataToSubmit.append('email', formData.email);
-                formDataToSubmit.append('phone', formData.phone);
-                formDataToSubmit.append('description', formData.bio);
-                formDataToSubmit.append('instagram', formData.instagram);
-                formDataToSubmit.append('linkedin', formData.linkedin);
-                formDataToSubmit.append('website', formData.website);
-                formDataToSubmit.append('location', formData.location);
-
                 const uriParts = formData.profilePhoto.split('.');
-                const fileType = uriParts[uriParts.length - 1];
+                const fileExt = uriParts[uriParts.length - 1].toLowerCase();
+                const fileType = ['jpg', 'jpeg', 'png'].includes(fileExt) ? fileExt : 'jpeg';
                 
-                formDataToSubmit.append('file', {
-                    uri: formData.profilePhoto,
-                    name: `profile.${fileType}`,
-                    type: `image/${fileType}`,
-                } as any);
-                
-                dataToSubmit = formDataToSubmit;
-            } else {
-                dataToSubmit = {
-                    name: formData.name,
-                    profileName: formData.username,
-                    email: formData.email,
-                    phone: formData.phone,
-                    description: formData.bio,
-                    instagram: formData.instagram,
-                    linkedin: formData.linkedin,
-                    website: formData.website,
-                    location: formData.location,
-                    profilePhoto: formData.profilePhoto
-                };
+                uploadedPhotoUrl = await storageApi.uploadFile(
+                    formData.profilePhoto,
+                    `profile_${Date.now()}.${fileType}`,
+                    `image/${fileType}`,
+                    'profiles'
+                ) as string;
             }
 
-            const config = hasNewImage ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
-            const { data: updatedUser } = await authApi.updateProfile(dataToSubmit, config);
+            const dataToSubmit = {
+                name: formData.name,
+                profileName: formData.username,
+                email: formData.email,
+                phone: formData.phone,
+                description: formData.bio,
+                instagram: formData.instagram,
+                linkedin: formData.linkedin,
+                website: formData.website,
+                location: formData.location,
+                profilePhoto: uploadedPhotoUrl
+            };
+
+            const { data: updatedUser } = await authApi.updateProfile(dataToSubmit);
 
             // Re-fetch full profile to get the final S3 URL
             try {

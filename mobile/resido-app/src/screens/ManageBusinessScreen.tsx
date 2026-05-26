@@ -147,7 +147,7 @@ export default function ManageBusinessScreen() {
                                     </TouchableOpacity>
                                     <TouchableOpacity 
                                         style={styles.quickActionBtn}
-                                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, initialStep: 4 } })}
+                                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, manageSlots: 'true' } })}
                                     >
                                         <Ionicons name="calendar-outline" size={16} color="#10b981" />
                                         <Text style={styles.quickActionText}>Slots</Text>

@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     wsBubbleActive: { opacity: 1 },
     wsBubbleImgBox: { width: 45, height: 45, borderRadius: 22.5, padding: 2, backgroundColor: '#1e293b', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#8b5cf6', borderWidth: 3 },
-    wsBubbleImg: { width: '100%', height: '100%', borderRadius: 37.5 },
+    wsBubbleImg: { width: '100%', height: '100%', borderRadius: 999 },
     wsBubbleLabel: { color: '#94a3b8', fontSize: 10, fontWeight: '700', marginTop: 8 },
     wsBubbleLabelActive: { color: '#8b5cf6', fontSize: 12, fontWeight: '900' },
 

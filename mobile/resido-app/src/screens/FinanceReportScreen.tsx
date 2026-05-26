@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     dot: { width: 8, height: 8, borderRadius: 4, marginBottom: 6 },
     summarySubLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase' },
     summarySubValue: { fontSize: 16, fontWeight: '800', color: '#fff', marginTop: 4 },
-    divider: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)', mx: 10 },
+    divider: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 10 },
 
     section: { paddingHorizontal: 20, marginTop: 32 },
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 16 },

@@ -39,8 +39,9 @@ const INDIAN_STATES = [
 
 export default function CreateBusinessProfileScreen() {
     const router = useRouter();
-    const { id, initialStep } = useLocalSearchParams(); // If editing
-    const [step, setStep] = useState(initialStep ? parseInt(initialStep as string) : 1);
+    const { id, initialStep, manageSlots } = useLocalSearchParams(); // If editing
+    const isManageSlotsOnly = manageSlots === 'true';
+    const [step, setStep] = useState(isManageSlotsOnly ? 4 : (initialStep ? parseInt(initialStep as string) : 1));
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(!!id);
     const [nameChecking, setNameChecking] = useState(false);
@@ -272,12 +273,16 @@ export default function CreateBusinessProfileScreen() {
             }
             
             setCustomCategory(parsedCustomCategory);
-            setFormData({
+            setFormData(prev => ({
+                ...prev,
                 ...profile,
                 category: finalCategory,
                 enableBooking: hasSlots,
-                bookingSlots: profile.slots || []
-            });
+                bookingSlots: profile.slots || [],
+                showCategoryModal: false,
+                showExpModal: false,
+                showTypeModal: false
+            }));
 
             if (profile.latitude && profile.longitude) {
                 const latDelta = (profile.serviceRadiusKm * 2.5) / 111;
@@ -746,9 +751,11 @@ export default function CreateBusinessProfileScreen() {
         }
     };
 
-    const renderStepper = () => (
-        <View style={styles.stepperContainer}>
-            {[1, 2, 3, 4, 5].map((i) => (
+    const renderStepper = () => {
+        if (isManageSlotsOnly) return null;
+        return (
+            <View style={styles.stepperContainer}>
+                {[1, 2, 3, 4, 5].map((i) => (
                 <React.Fragment key={i}>
                     <View style={styles.stepWrapper}>
                         <View style={[
@@ -769,7 +776,8 @@ export default function CreateBusinessProfileScreen() {
                 </React.Fragment>
             ))}
         </View>
-    );
+        );
+    };
 
     const renderStep1 = () => (
         <View style={styles.stepContent}>
@@ -1490,7 +1498,7 @@ export default function CreateBusinessProfileScreen() {
                                                             onPress: () => {
                                                                 setFormData({
                                                                     ...formData,
-                                                                    bookingSlots: formData.bookingSlots.filter((s: any) => s.id !== slot.id)
+                                                                    bookingSlots: formData.bookingSlots.filter((s: any) => String(s.id) !== String(slot.id))
                                                                 });
                                                             }
                                                         }
@@ -1802,7 +1810,7 @@ export default function CreateBusinessProfileScreen() {
                     allowRecurringBookings: currentSlot.allowRecurringBookings
                 };
 
-                const idx = formData.bookingSlots.findIndex((s: any) => s.id === currentSlot.id);
+                const idx = formData.bookingSlots.findIndex((s: any) => String(s.id) === String(currentSlot.id));
                 let updatedSlots = [...formData.bookingSlots];
                 if (idx !== -1) {
                     updatedSlots[idx] = savedSlot;
@@ -1825,20 +1833,24 @@ export default function CreateBusinessProfileScreen() {
 
         return (
             <Modal visible={showSlotModal} transparent animationType="slide">
-                <View style={pickerStyles.modalOverlay}>
-                    <View style={[pickerStyles.modalContent, { height: '90%', backgroundColor: '#111827', borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}>
-                        
-                        {/* Modal Header */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                            <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff' }}>
-                                {formData.bookingSlots.some((s: any) => s.id === currentSlot.id) ? 'Edit Service Slot' : 'New Service Slot & Schedule'}
-                            </Text>
-                            <TouchableOpacity onPress={() => setShowSlotModal(false)}>
-                                <Ionicons name="close" size={24} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
-                        
-                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    <View style={pickerStyles.modalOverlay}>
+                        <View style={[pickerStyles.modalContent, { height: '90%', backgroundColor: '#111827', borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}>
+                            
+                            {/* Modal Header */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff' }}>
+                                    {formData.bookingSlots.some((s: any) => String(s.id) === String(currentSlot.id)) ? 'Edit Service Slot' : 'New Service Slot & Schedule'}
+                                </Text>
+                                <TouchableOpacity onPress={() => setShowSlotModal(false)}>
+                                    <Ionicons name="close" size={24} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
                             
                             {/* Dash Cover Photo Picker (Matches Amenity Cover Upload Layout) */}
                             <TouchableOpacity 
@@ -2143,6 +2155,7 @@ export default function CreateBusinessProfileScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
+                </KeyboardAvoidingView>
             </Modal>
         );
     };
@@ -2756,12 +2769,12 @@ export default function CreateBusinessProfileScreen() {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" />
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => step === 1 ? router.back() : prevStep()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => (isManageSlotsOnly || step === 1) ? router.back() : prevStep()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <View>
-                    <Text style={styles.headerTitle}>{id ? 'Edit' : 'Create'} Business Profile</Text>
-                    <Text style={styles.headerSub}>Fill in your details to get discovered by your community</Text>
+                    <Text style={styles.headerTitle}>{isManageSlotsOnly ? 'Manage Booking Slots' : (id ? 'Edit' : 'Create') + ' Business Profile'}</Text>
+                    <Text style={styles.headerSub}>{isManageSlotsOnly ? 'Update your service availability and configure slots' : 'Fill in your details to get discovered by your community'}</Text>
                 </View>
             </View>
 
@@ -2777,25 +2790,67 @@ export default function CreateBusinessProfileScreen() {
 
             <View style={styles.footer}>
                 <View style={styles.footerInner}>
-                    {step > 1 && (
-                        <TouchableOpacity style={styles.backBtnFooter} onPress={prevStep}>
-                            <Text style={styles.backBtnText}>Back</Text>
+                    {isManageSlotsOnly ? (
+                        <TouchableOpacity 
+                            style={[styles.continueBtn, { flex: 1, backgroundColor: '#10b981', shadowColor: '#10b981' }]} 
+                            onPress={async () => {
+                                setLoading(true);
+                                try {
+                                    const slotPayload = formData.enableBooking ? formData.bookingSlots.map((s: any) => ({
+                                        name: s.name,
+                                        description: s.description || null,
+                                        maxPersons: s.maxPersons || 1,
+                                        timeSlots: s.timeSlots || [],
+                                        scheduleType: s.scheduleType || 'WEEKLY',
+                                        scheduleConfig: typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig),
+                                        allowRecurringBookings: s.allowRecurringBookings || false
+                                    })) : [];
+                                    await businessApi.updateProfile(id as string, {
+                                        enableBooking: formData.enableBooking,
+                                        slots: slotPayload
+                                    });
+                                    Alert.alert('✅ Saved!', 'Booking slots updated successfully.', [
+                                        { text: 'OK', onPress: () => router.back() }
+                                    ]);
+                                } catch (err: any) {
+                                    const msg = err.response?.data?.message || 'Failed to save slots.';
+                                    Alert.alert('Error', msg);
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading}
+                        >
+                            {loading ? <ActivityIndicator color="#fff" /> : (
+                                <>
+                                    <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                    <Text style={styles.continueBtnText}>Save & Update Booking Slots</Text>
+                                </>
+                            )}
                         </TouchableOpacity>
+                    ) : (
+                        <>
+                            {step > 1 && (
+                                <TouchableOpacity style={styles.backBtnFooter} onPress={prevStep}>
+                                    <Text style={styles.backBtnText}>Back</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity 
+                                style={[styles.continueBtn, step === 1 && { flex: 1 }]} 
+                                onPress={step === 5 ? handlePublish : nextStep}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.continueBtnText}>
+                                        {step === 5 ? 'Publish My Business Profile' : 'Save & Continue'}
+                                    </Text>
+                                )}
+                                {step === 5 && !loading && <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 8 }} />}
+                            </TouchableOpacity>
+                        </>
                     )}
-                    <TouchableOpacity 
-                        style={[styles.continueBtn, step === 1 && { flex: 1 }]} 
-                        onPress={step === 5 ? handlePublish : nextStep}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.continueBtnText}>
-                                {step === 5 ? 'Publish My Business Profile' : 'Save & Continue'}
-                            </Text>
-                        )}
-                        {step === 5 && !loading && <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 8 }} />}
-                    </TouchableOpacity>
                 </View>
                 <View style={styles.safetyInfo}>
                     <Ionicons name="shield-checkmark-outline" size={16} color="#64748b" />

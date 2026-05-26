@@ -281,6 +281,20 @@ export default function BusinessDetailScreen() {
                         <Feather name="edit-3" size={14} color="#60a5fa" />
                         <Text style={{ color: '#60a5fa', fontSize: 12, fontWeight: '800' }}>Edit Profile</Text>
                     </TouchableOpacity>
+                    {profile.slots !== undefined && (
+                        <TouchableOpacity
+                            style={{
+                                flexDirection: 'row', alignItems: 'center', gap: 6,
+                                backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                                paddingHorizontal: 14, paddingVertical: 8,
+                                borderRadius: 20, borderWidth: 1, borderColor: '#8b5cf6'
+                            }}
+                            onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, manageSlots: 'true' } })}
+                        >
+                            <Ionicons name="time" size={14} color="#a78bfa" />
+                            <Text style={{ color: '#a78bfa', fontSize: 12, fontWeight: '800' }}>Manage Booking Slots</Text>
+                        </TouchableOpacity>
+                    )}
                     {profile.slots && profile.slots.length > 0 && (
                         <TouchableOpacity
                             style={{
