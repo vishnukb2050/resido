@@ -75,7 +75,7 @@ export default function SelectContactsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -102,7 +102,7 @@ export default function SelectContactsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 20 }} />
+                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
                 ) : filteredContacts.length === 0 ? (
                     <Text style={styles.emptyText}>No contacts found</Text>
                 ) : (
@@ -155,29 +155,29 @@ const ContactItem = ({ contact, isSelected, onPress }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
     
     searchSection: { padding: 20, paddingTop: 0 },
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, paddingHorizontal: 16, height: 50 },
-    searchInput: { flex: 1, marginLeft: 10, color: '#fff', fontSize: 15 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50 },
+    searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
     contactItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 16 },
     avatar: { width: 44, height: 44, borderRadius: 22 },
-    contactName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    profileName: { fontSize: 13, color: '#64748b', marginTop: 2 },
-    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    checkboxActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
+    contactName: { fontSize: 16, fontWeight: '700', color: '#2D2445' },
+    profileName: { fontSize: 13, color: '#7A6B9C', marginTop: 2 },
+    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#C4B5DC', alignItems: 'center', justifyContent: 'center' },
+    checkboxActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
 
-    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
-    bottomSummary: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
+    emptyText: { textAlign: 'center', color: '#9A8EBA', marginTop: 40, fontSize: 15, fontWeight: '600' },
+    bottomSummary: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
     summaryTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-    selectedCount: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    selectedCount: { color: '#2D2445', fontSize: 15, fontWeight: '800' },
     summaryContent: { flexDirection: 'row', alignItems: 'center' },
     selectedAvatars: { flex: 1 },
-    miniAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, borderWidth: 2, borderColor: '#1d4ed8' },
-    shareButton: { backgroundColor: '#1d4ed8', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
-    shareButtonText: { color: '#fff', fontWeight: '900', fontSize: 15 }
+    miniAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, borderWidth: 2, borderColor: '#8b5cf6' },
+    shareButton: { backgroundColor: '#8b5cf6', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
+    shareButtonText: { color: '#ffffff', fontWeight: '900', fontSize: 15 }
 });

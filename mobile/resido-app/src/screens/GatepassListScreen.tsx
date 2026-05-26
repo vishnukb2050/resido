@@ -64,7 +64,7 @@ export default function GatepassListScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={gatepasses}
@@ -100,7 +100,7 @@ export default function GatepassListScreen() {
                                     >
                                         <Ionicons name="share-social-outline" size={18} color="#10b981" />
                                     </TouchableOpacity>
-                                    <Ionicons name="qr-code" size={20} color="#1d4ed8" />
+                                    <Ionicons name="qr-code" size={20} color="#8b5cf6" />
                                 </View>
                             </View>
                         </TouchableOpacity>
@@ -135,25 +135,25 @@ function DetailItem({ icon, text }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20, paddingBottom: 100 },
-    card: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    card: { backgroundColor: '#ffffff', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    visitorName: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    visitorName: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 10, fontWeight: '900' },
     cardDetails: { gap: 8, marginBottom: 15 },
     detailItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    detailText: { fontSize: 13, color: '#94a3b8', fontWeight: '500' },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
-    purposeText: { fontSize: 12, color: '#1d4ed8', fontWeight: '700', textTransform: 'uppercase' },
+    detailText: { fontSize: 13, color: '#9A8EBA', fontWeight: '500' },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 15, borderTopWidth: 1, borderTopColor: '#EFE9F8' },
+    purposeText: { fontSize: 12, color: '#8b5cf6', fontWeight: '700', textTransform: 'uppercase' },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
-    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
-    emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10, lineHeight: 22 },
-    createBtn: { backgroundColor: '#1d4ed8', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
-    createBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 }
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginTop: 20 },
+    emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginTop: 10, lineHeight: 22 },
+    createBtn: { backgroundColor: '#8b5cf6', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
+    createBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 15 }
 });

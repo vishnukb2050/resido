@@ -13,7 +13,7 @@ import { storageApi } from '../services/storage';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const AUDIENCE_OPTIONS = [
-    { key: 'MEMBERS',   label: 'Members',   icon: 'people-circle-outline',    color: '#3b82f6' },
+    { key: 'MEMBERS',   label: 'Members',   icon: 'people-circle-outline',    color: '#a78bfa' },
     { key: 'RESIDENTS', label: 'Residents', icon: 'home-outline',             color: '#10b981' },
     { key: 'STAFF',     label: 'Staff',     icon: 'shield-checkmark-outline', color: '#f59e0b' },
 ];
@@ -246,7 +246,7 @@ export default function RulesScreen() {
                                                 onPress={() => openEdit(item)}
                                                 hitSlop={8}
                                             >
-                                                <Ionicons name="create-outline" size={16} color="#3b82f6" />
+                                                <Ionicons name="create-outline" size={16} color="#a78bfa" />
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={styles.cardActionBtn}
@@ -382,7 +382,7 @@ export default function RulesScreen() {
                                     <View style={[styles.audienceIconBox, { backgroundColor: `${opt.color}20` }]}>
                                         <Ionicons name={opt.icon as any} size={20} color={opt.color} />
                                     </View>
-                                    <Text style={[styles.audienceLabel, audience[opt.key] && { color: '#fff' }]}>
+                                    <Text style={[styles.audienceLabel, audience[opt.key] && { color: '#2D2445' }]}>
                                         {opt.label}
                                     </Text>
                                     <View
@@ -425,51 +425,51 @@ export default function RulesScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#f59e0b', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20 },
-    ruleCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
-    ruleImage: { width: '100%', height: 160, borderRadius: 16, marginBottom: 14, backgroundColor: 'rgba(255,255,255,0.04)' },
+    ruleCard: { backgroundColor: '#ffffff', borderRadius: 24, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: '#D4C9E8', overflow: 'hidden' },
+    ruleImage: { width: '100%', height: 160, borderRadius: 16, marginBottom: 14, backgroundColor: '#ffffff' },
     ruleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     categoryBadge: { backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
     categoryText: { color: '#f59e0b', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-    ruleTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 8 },
-    ruleDesc: { fontSize: 14, color: '#94a3b8', lineHeight: 22 },
+    ruleTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445', marginBottom: 8 },
+    ruleDesc: { fontSize: 14, color: '#9A8EBA', lineHeight: 22 },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
-    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
-    emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginTop: 20 },
+    emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginTop: 10 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 },
-    modalContent: { backgroundColor: '#1e293b', borderRadius: 28, padding: 24 },
-    modalTitle: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 20, textAlign: 'center' },
-    input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600', marginBottom: 15 },
+    modalContent: { backgroundColor: '#ffffff', borderRadius: 28, padding: 24 },
+    modalTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445', marginBottom: 20, textAlign: 'center' },
+    input: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#C4B5DC', color: '#2D2445', padding: 18, fontSize: 16, fontWeight: '600', marginBottom: 15 },
     textArea: { height: 100, textAlignVertical: 'top' },
     modalActions: { flexDirection: 'row', gap: 15, marginTop: 15 },
     cancelBtn: { flex: 1, padding: 18, alignItems: 'center' },
-    cancelText: { color: '#64748b', fontWeight: '700' },
+    cancelText: { color: '#7A6B9C', fontWeight: '700' },
     submitBtn: { flex: 2, backgroundColor: '#f59e0b', borderRadius: 16, padding: 18, alignItems: 'center' },
-    submitText: { color: '#fff', fontWeight: '900' },
+    submitText: { color: '#ffffff', fontWeight: '900' },
 
-    fieldLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 16 },
-    fieldHint: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 10 },
+    fieldLabel: { fontSize: 12, color: '#9A8EBA', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 16 },
+    fieldHint: { fontSize: 11, color: '#7A6B9C', fontWeight: '600', marginBottom: 10 },
 
     photoBtn: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(245, 158, 11, 0.08)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.25)' },
     photoBtnText: { color: '#f59e0b', fontWeight: '800', fontSize: 13 },
-    previewWrap: { borderRadius: 14, overflow: 'hidden', position: 'relative', backgroundColor: 'rgba(255,255,255,0.04)' },
+    previewWrap: { borderRadius: 14, overflow: 'hidden', position: 'relative', backgroundColor: '#ffffff' },
     preview: { width: '100%', height: 160 },
     previewActions: { position: 'absolute', bottom: 8, right: 8, flexDirection: 'row', gap: 6 },
     previewActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-    previewActionText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+    previewActionText: { color: '#2D2445', fontSize: 10, fontWeight: '800' },
 
     cardActions: { flexDirection: 'row', gap: 8 },
-    cardActionBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    cardActionBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
 
-    audienceRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    audienceRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
     audienceIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    audienceLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#94a3b8' },
-    checkBox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+    audienceLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#9A8EBA' },
+    checkBox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: '#C4B5DC', alignItems: 'center', justifyContent: 'center' },
 
     audienceTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
     audienceTag: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },

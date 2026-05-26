@@ -11,10 +11,10 @@ const { width } = Dimensions.get('window');
 
 const TRANSACTIONS = [
     { id: '1', title: 'Salary', category: 'Income', amount: 45000, date: 'May 12, 2025', type: 'INCOME', icon: 'wallet', color: '#10b981' },
-    { id: '2', title: 'Freelance Project', category: 'Income', amount: 3750, date: 'May 11, 2025', type: 'INCOME', icon: 'laptop-code', color: '#1d4ed8' },
+    { id: '2', title: 'Freelance Project', category: 'Income', amount: 3750, date: 'May 11, 2025', type: 'INCOME', icon: 'laptop-code', color: '#8b5cf6' },
     { id: '3', title: 'Electricity Bill', category: 'Utilities', amount: 1250, date: 'May 10, 2025', type: 'EXPENSE', icon: 'bolt', color: '#ef4444' },
     { id: '4', title: 'Groceries', category: 'Shopping', amount: 2350, date: 'May 9, 2025', type: 'EXPENSE', icon: 'shopping-basket', color: '#f59e0b' },
-    { id: '5', title: 'Mobile Recharge', category: 'Utilities', amount: 299, date: 'May 8, 2025', type: 'EXPENSE', icon: 'mobile-alt', color: '#3b82f6' },
+    { id: '5', title: 'Mobile Recharge', category: 'Utilities', amount: 299, date: 'May 8, 2025', type: 'EXPENSE', icon: 'mobile-alt', color: '#a78bfa' },
     { id: '6', title: 'Internet Bill', category: 'Utilities', amount: 799, date: 'May 7, 2025', type: 'EXPENSE', icon: 'wifi', color: '#ec4899' },
     { id: '7', title: 'Restaurant', category: 'Food & Dining', amount: 650, date: 'May 6, 2025', type: 'EXPENSE', icon: 'utensils', color: '#f43f5e' },
 ];
@@ -25,7 +25,7 @@ export default function TransactionsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -102,34 +102,34 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    header: { padding: 20, paddingTop: 20, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    header: { padding: 20, paddingTop: 20, backgroundColor: '#F8F5FF' },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, paddingHorizontal: 16, height: 50, marginBottom: 20 },
-    searchInput: { flex: 1, marginLeft: 10, color: '#fff', fontSize: 15 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50, marginBottom: 20 },
+    searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
-    tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4 },
+    tabContainer: { flexDirection: 'row', backgroundColor: '#F4EEFC', borderRadius: 14, padding: 4 },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activeTab: { backgroundColor: '#1d4ed8' },
-    tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
-    activeTabText: { color: '#fff' },
+    activeTab: { backgroundColor: '#8b5cf6' },
+    tabText: { fontSize: 14, fontWeight: '700', color: '#9A8EBA' },
+    activeTabText: { color: '#ffffff' },
 
     monthHeader: { padding: 20, marginTop: 10 },
-    monthTitle: { fontSize: 14, fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase', marginBottom: 16 },
-    monthStats: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    monthTitle: { fontSize: 14, fontWeight: '800', color: '#8b5cf6', textTransform: 'uppercase', marginBottom: 16 },
+    monthStats: { flexDirection: 'row', backgroundColor: '#ffffff', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8' },
     monthStat: { flex: 1 },
-    monthStatLabel: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+    monthStatLabel: { fontSize: 12, color: '#7A6B9C', fontWeight: '600' },
     monthStatValue: { fontSize: 16, fontWeight: '900', marginTop: 4 },
 
     listContainer: { paddingHorizontal: 20, marginTop: 10 },
-    txCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    txCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
     txIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     txInfo: { flex: 1, marginLeft: 16 },
-    txTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    txDate: { fontSize: 12, color: '#64748b', marginTop: 4 },
+    txTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    txDate: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
     txAmount: { fontSize: 16, fontWeight: '900' },
 });

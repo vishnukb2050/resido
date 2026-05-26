@@ -135,7 +135,7 @@ export default function MemberDashboard() {
                     <DashboardIcon icon="construct" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
                     <DashboardIcon icon="book" label="Rules & Regulations" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
-                    <DashboardIcon icon="cash" label="Payments" color="#fff" bg="#ec4899" onPress={() => router.push('/resident-payments')} />
+                    <DashboardIcon icon="cash" label="Community Payments" color="#fff" bg="#ec4899" onPress={() => router.push('/resident-payments')} />
                 </View>
 
                 {/* Community Highlights */}
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     annSub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
     rulesGrid: { backgroundColor: 'rgba(37, 99, 235, 0.05)', borderRadius: 22, padding: 20, gap: 12, borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.1)' },
     ruleItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    ruleText: { color: '#cbd5e1', fontSize: 13, fontWeight: '600' },
+    ruleText: { color: '#64748b', fontSize: 13, fontWeight: '600' },
 
     // Role Switcher
     roleSwitcherRow: { marginBottom: 20 },

@@ -624,6 +624,7 @@ export default function DefaultDashboard() {
                                 <View style={styles.gridContainer}>
                                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#ec4899" onPress={() => router.push('/events')} />
                                     <DashboardIcon icon="megaphone" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="cash" label="Community Payments" color="#fff" bg="#0ea5e9" onPress={() => router.push('/resident-payments')} />
                                 </View>
 
                                 {/* Featured Sections */}

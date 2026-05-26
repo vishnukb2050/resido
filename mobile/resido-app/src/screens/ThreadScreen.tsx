@@ -7,6 +7,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../store/authStore';
 import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -276,22 +277,30 @@ export default function ThreadScreen() {
                             // Could add indicator logic here
                         }}
                     >
-                        {item.mediaUrls.map((url: string, idx: number) => (
-                            <View key={idx} style={styles.carouselItem}>
-                                {url.toLowerCase().endsWith('.mp4') || url.includes('video') ? (
-                                    <Video
-                                        source={url ? ({ uri: url, overrideFileExtension: 'mp4' } as any) : undefined}
-                                        style={styles.carouselMedia}
-                                        resizeMode={ResizeMode.COVER}
-                                        shouldPlay={false}
-                                        isMuted
-                                        useNativeControls={false}
-                                    />
-                                ) : (
-                                    <Image source={{ uri: url }} style={styles.carouselMedia} />
-                                )}
-                            </View>
-                        ))}
+                        {item.mediaUrls.map((url: string, idx: number) => {
+                            const resolved = resolveMediaUrl(url) || url;
+                            const isVideo =
+                                item.mediaType === 'VIDEO' ||
+                                /\.(mp4|mov|m4v|webm)(\?|$)/i.test(resolved) ||
+                                resolved.includes('/videos/') ||
+                                resolved.includes('video');
+                            return (
+                                <View key={idx} style={styles.carouselItem}>
+                                    {isVideo ? (
+                                        <Video
+                                            source={{ uri: resolved, overrideFileExtension: 'mp4' } as any}
+                                            style={styles.carouselMedia}
+                                            resizeMode={ResizeMode.COVER}
+                                            shouldPlay={false}
+                                            isMuted
+                                            useNativeControls={false}
+                                        />
+                                    ) : (
+                                        <Image source={{ uri: resolved }} style={styles.carouselMedia} />
+                                    )}
+                                </View>
+                            );
+                        })}
                     </ScrollView>
                     {item.mediaUrls.length > 1 && (
                         <View style={styles.mediaCounter}>

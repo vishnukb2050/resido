@@ -1,18 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
 export class CommunityFinanceService {
     constructor(private prisma: PrismaService) {}
 
+    // ─── Member resolver ───────────────────────────────────────
+    // Looks up a tenant Member by any of: resident-service Member.id,
+    // auth-service User.id (stored in Member.userId), or phone.
+    // Auto-links userId once a phone match succeeds.
+    private async resolveMember(input: {
+        candidateId?: string | null;
+        authUserId?: string | null;
+        phone?: string | null;
+    }) {
+        const { candidateId, authUserId, phone } = input;
+        const ors: any[] = [];
+        if (candidateId) ors.push({ id: candidateId }, { userId: candidateId });
+        if (authUserId && authUserId !== candidateId) ors.push({ id: authUserId }, { userId: authUserId });
+        if (phone) ors.push({ phone });
+        if (!ors.length) return null;
+
+        const member = await this.prisma.reader.member.findFirst({ where: { OR: ors } });
+        if (!member) return null;
+        if (authUserId && !member.userId) {
+            try {
+                await this.prisma.client.member.update({ where: { id: member.id }, data: { userId: authUserId } });
+            } catch {}
+        }
+        return member;
+    }
+
+    private async requireAdmin(input: { authUserId?: string | null; phone?: string | null; role?: string | null }) {
+        if (input.role === 'APARTMENT_ADMIN') return true;
+        const m = await this.resolveMember({ authUserId: input.authUserId, phone: input.phone });
+        if (m?.role === 'APARTMENT_ADMIN') return true;
+        throw new ForbiddenException('Only community admins can perform this action.');
+    }
+
+    // ─── Maintenance Config ────────────────────────────────────
     async getMaintenanceConfig(tenantId: string) {
-        let config = await this.prisma.client.maintenanceConfig.findUnique({
-            where: { tenantId }
-        });
+        let config = await this.prisma.client.maintenanceConfig.findUnique({ where: { tenantId } });
         if (!config) {
-            config = await this.prisma.client.maintenanceConfig.create({
-                data: { tenantId }
-            });
+            config = await this.prisma.client.maintenanceConfig.create({ data: { tenantId } });
         }
         return config;
     }
@@ -42,6 +72,7 @@ export class CommunityFinanceService {
         });
     }
 
+    // ─── Ledger Transactions ───────────────────────────────────
     async addTransaction(tenantId: string, addedById: string, data: any) {
         return this.prisma.client.communityTransaction.create({
             data: {
@@ -53,7 +84,7 @@ export class CommunityFinanceService {
                 description: data.description,
                 paymentMethod: data.paymentMethod || 'CASH',
                 billUrl: data.billUrl,
-                addedById
+                addedById,
             }
         });
     }
@@ -70,23 +101,21 @@ export class CommunityFinanceService {
                 where,
                 orderBy: { date: 'desc' },
                 skip,
-                take: Number(limit)
+                take: Number(limit),
             }),
-            this.prisma.client.communityTransaction.count({ where })
+            this.prisma.client.communityTransaction.count({ where }),
         ]);
 
         return { items, total, page: Number(page), limit: Number(limit) };
     }
 
+    // ─── Maintenance Bills ─────────────────────────────────────
     async generateBills(tenantId: string, body: { month: number; year: number }) {
         const { month, year } = body;
         const config = await this.getMaintenanceConfig(tenantId);
-        
-        const units = await this.prisma.client.unit.findMany({
-            where: { tenantId }
-        });
+        const units = await this.prisma.client.unit.findMany({ where: { tenantId } });
 
-        const billsData = [];
+        const billsData: any[] = [];
         const dueDate = new Date(year, month - 1, config.dueDateDay);
 
         for (const unit of units) {
@@ -96,7 +125,6 @@ export class CommunityFinanceService {
             } else if (config.calculationType === 'AREA_BASED') {
                 baseAmount = config.ratePerSqFt * (unit.superBuiltUpArea || 0);
             }
-
             billsData.push({
                 tenantId,
                 unitId: unit.id,
@@ -107,185 +135,202 @@ export class CommunityFinanceService {
                 penaltyAmount: 0,
                 totalAmount: baseAmount,
                 status: 'UNPAID' as const,
-                dueDate
+                dueDate,
             });
         }
 
-        await this.prisma.client.maintenanceBill.createMany({
-            data: billsData,
-            skipDuplicates: true
-        });
-
+        await this.prisma.client.maintenanceBill.createMany({ data: billsData, skipDuplicates: true });
         return { message: `Bills generated successfully for ${units.length} units.` };
     }
 
     async getMaintenanceStatus(tenantId: string, month: number, year: number) {
         const bills = await this.prisma.client.maintenanceBill.findMany({
-            where: {
-                tenantId,
-                month: Number(month),
-                year: Number(year)
-            },
+            where: { tenantId, month: Number(month), year: Number(year) },
             include: {
                 unit: {
                     include: {
                         block: true,
-                        families: {
-                            include: {
-                                members: true
-                            }
-                        }
-                    }
-                }
-            }
+                        families: { include: { members: true } },
+                    },
+                },
+            },
         });
 
-        const paid = [];
-        const pending = [];
-        const due = [];
+        const paid: any[] = [];
+        const pending: any[] = [];
+        const due: any[] = [];
 
         for (const bill of bills) {
-            const residentName = bill.unit.families[0]?.members[0]?.name || 'N/A';
-            const residentPhone = bill.unit.families[0]?.members[0]?.phone || 'N/A';
-            const residentEmail = bill.unit.families[0]?.members[0]?.email || 'N/A';
-            const memberId = bill.unit.families[0]?.members[0]?.id || null;
-            
+            // Flatten ALL members across ALL families that occupy this unit.
+            // Maintenance is unit-wise — every resident in the unit shares this bill.
+            const allMembers = bill.unit.families.flatMap(f => f.members || []);
+            const primary = allMembers[0];
+            const residentName = primary?.name || 'N/A';
+            const residentPhone = primary?.phone || 'N/A';
+            const residentEmail = primary?.email || 'N/A';
+            const memberId = primary?.id || null;
+
             const mappedBill = {
                 id: bill.id,
                 unitId: bill.unitId,
-                unitNumber: `${bill.unit.block?.name || ''}-${bill.unit.number}`,
+                unitNumber: `${bill.unit.block?.name || ''}${bill.unit.block?.name ? '-' : ''}${bill.unit.number}`,
                 blockName: bill.unit.block?.name || 'N/A',
+                month: bill.month,
+                year: bill.year,
                 totalAmount: bill.totalAmount,
+                amountPaid: bill.amountPaid,
                 dueDate: bill.dueDate,
                 paymentDate: bill.paymentDate,
                 paymentMethod: bill.paymentMethod,
                 receiptUrl: bill.receiptUrl,
                 description: bill.description,
+                adminNote: bill.adminNote,
                 rejectionReason: bill.rejectionReason,
                 residentName,
                 residentPhone,
                 residentEmail,
                 memberId,
-                status: bill.status
+                unitResidents: allMembers.map(m => ({ id: m.id, name: m.name, phone: m.phone, role: m.role })),
+                status: bill.status,
             };
 
-            if (bill.status === 'PAID') {
-                paid.push(mappedBill);
-            } else if (bill.status === 'PENDING_VERIFICATION') {
-                pending.push(mappedBill);
-            } else {
-                due.push(mappedBill);
-            }
+            if (bill.status === 'PAID') paid.push(mappedBill);
+            else if (bill.status === 'PENDING_VERIFICATION') pending.push(mappedBill);
+            else due.push(mappedBill);
         }
 
         return { paid, pending, due };
     }
 
-    async getResidentBills(tenantId: string, memberId: string) {
-        const member = await this.prisma.client.member.findUnique({
-            where: { id: memberId },
-            include: {
-                family: {
-                    include: {
-                        unit: true
-                    }
-                }
-            }
+    // Unit-wise resolution: any member belonging to a unit (via Family) sees the SAME
+    // set of maintenance bills as every other member of that unit. Payments are unit-scoped,
+    // not user-scoped. We also fall back to a unit that was directly bound to the member
+    // (community admin can pre-assign a unit).
+    private async resolveUnitForCaller(args: { authUserId?: string; phone?: string }) {
+        const member = await this.resolveMember({ authUserId: args.authUserId, phone: args.phone });
+        if (!member) return null;
+
+        const memberRow = await this.prisma.reader.member.findUnique({
+            where: { id: member.id },
+            include: { family: { include: { unit: { include: { block: true } } } } },
         });
 
-        const unitId = member?.family?.unitId;
-        if (!unitId) return [];
+        const unit = memberRow?.family?.unit;
+        if (!unit) return { member, unit: null, unitId: null, unitLabel: null };
 
-        return this.prisma.client.maintenanceBill.findMany({
-            where: { tenantId, unitId },
-            orderBy: { dueDate: 'desc' }
-        });
+        const unitLabel = `${unit.block?.name || ''}${unit.block?.name ? '-' : ''}${unit.number}`;
+        return { member, unit, unitId: unit.id, unitLabel };
     }
 
-    async submitPaymentProof(billId: string, body: any) {
-        const { receiptUrl, paymentMethod, description } = body;
+    async getResidentBills(args: { tenantId: string; authUserId?: string; authUserPhone?: string }) {
+        const { tenantId, authUserId, authUserPhone } = args;
+        const ctx = await this.resolveUnitForCaller({ authUserId, phone: authUserPhone });
+        if (!ctx || !ctx.unitId) {
+            return { unit: null, unitLabel: null, bills: [] };
+        }
+
+        const bills = await this.prisma.reader.maintenanceBill.findMany({
+            where: { tenantId, unitId: ctx.unitId },
+            orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        });
+
+        return {
+            unit: ctx.unit,
+            unitLabel: ctx.unitLabel,
+            unitId: ctx.unitId,
+            bills,
+        };
+    }
+
+    async submitPaymentProof(
+        billId: string,
+        body: { receiptUrl?: string; paymentMethod?: string; description?: string; amountPaid?: number },
+    ) {
         return this.prisma.client.maintenanceBill.update({
             where: { id: billId },
             data: {
                 status: 'PENDING_VERIFICATION',
-                receiptUrl,
-                paymentMethod,
-                description,
-                rejectionReason: null
-            }
+                receiptUrl: body.receiptUrl,
+                paymentMethod: body.paymentMethod,
+                description: body.description,
+                amountPaid: typeof body.amountPaid === 'number' ? body.amountPaid : undefined,
+                rejectionReason: null,
+                adminNote: null,
+            },
         });
     }
 
-    async verifyPayment(billId: string, tenantId: string, addedById: string, body: { action: 'APPROVE' | 'REJECT'; rejectionReason?: string }) {
-        const { action, rejectionReason } = body;
+    async verifyPayment(
+        billId: string,
+        tenantId: string,
+        args: { authUserId?: string; authUserPhone?: string; role?: string },
+        body: { action: 'APPROVE' | 'REJECT'; rejectionReason?: string; adminNote?: string },
+    ) {
+        await this.requireAdmin({ authUserId: args.authUserId, phone: args.authUserPhone, role: args.role });
+        const adminMember = await this.resolveMember({ authUserId: args.authUserId, phone: args.authUserPhone });
+        const addedById = adminMember?.id || args.authUserId || 'system';
 
         const bill = await this.prisma.client.maintenanceBill.findUnique({
             where: { id: billId },
-            include: {
-                unit: true
-            }
+            include: { unit: true },
         });
+        if (!bill) throw new NotFoundException('Bill not found');
 
-        if (!bill) {
-            throw new Error('Bill not found');
-        }
-
-        if (action === 'APPROVE') {
+        if (body.action === 'APPROVE') {
             const updated = await this.prisma.client.maintenanceBill.update({
                 where: { id: billId },
                 data: {
                     status: 'PAID',
-                    paymentDate: new Date()
-                }
+                    paymentDate: new Date(),
+                    adminNote: body.adminNote || null,
+                    rejectionReason: null,
+                },
             });
 
+            const txAmount = bill.amountPaid ?? bill.totalAmount;
             await this.prisma.client.communityTransaction.create({
                 data: {
                     tenantId,
-                    amount: bill.totalAmount,
+                    amount: txAmount,
                     type: 'INCOME',
                     category: 'Maintenance',
                     date: new Date(),
-                    description: `Maintenance fee paid by unit ${bill.unit.number} for ${bill.month}/${bill.year}`,
+                    description: `Maintenance fee paid by unit ${bill.unit.number} for ${bill.month}/${bill.year}${body.adminNote ? ` — ${body.adminNote}` : ''}`,
                     paymentMethod: bill.paymentMethod || 'UPI',
                     billUrl: bill.receiptUrl,
                     addedById,
-                    maintenanceBillId: billId
-                }
-             });
+                    maintenanceBillId: billId,
+                },
+            });
 
-             return updated;
-        } else {
-             return this.prisma.client.maintenanceBill.update({
-                 where: { id: billId },
-                 data: {
-                     status: 'UNPAID',
-                     rejectionReason
-                 }
-             });
+            return updated;
         }
+
+        return this.prisma.client.maintenanceBill.update({
+            where: { id: billId },
+            data: {
+                status: 'UNPAID',
+                rejectionReason: body.rejectionReason || null,
+                adminNote: body.adminNote || body.rejectionReason || null,
+            },
+        });
     }
 
     async getReports(tenantId: string, query: { period: 'day' | 'week' | 'month'; year: number }) {
         const period = query.period || 'month';
         const year = Number(query.year || new Date().getFullYear());
-        
+
         const transactions = await this.prisma.client.communityTransaction.findMany({
             where: {
                 tenantId,
-                date: {
-                    gte: new Date(year, 0, 1),
-                    lte: new Date(year, 11, 31, 23, 59, 59)
-                }
-            }
+                date: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) },
+            },
         });
 
-        const breakdown: { [key: string]: { income: number; expense: number } } = {};
-
+        const breakdown: Record<string, { income: number; expense: number }> = {};
         for (const t of transactions) {
             const date = new Date(t.date);
             let key = '';
-
             if (period === 'day') {
                 key = date.toISOString().split('T')[0];
             } else if (period === 'week') {
@@ -294,50 +339,274 @@ export class CommunityFinanceService {
                 const weekNum = Math.ceil((date.getDay() + 1 + numberOfDays) / 7);
                 key = `W${weekNum} (${date.getFullYear()})`;
             } else {
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                 key = `${months[date.getMonth()]} ${date.getFullYear()}`;
             }
-
-            if (!breakdown[key]) {
-                breakdown[key] = { income: 0, expense: 0 };
-            }
-
-            if (t.type === 'INCOME') {
-                breakdown[key].income += t.amount;
-            } else {
-                breakdown[key].expense += t.amount;
-            }
+            if (!breakdown[key]) breakdown[key] = { income: 0, expense: 0 };
+            if (t.type === 'INCOME') breakdown[key].income += t.amount;
+            else breakdown[key].expense += t.amount;
         }
 
         const chartData = Object.keys(breakdown).map(key => ({
-            label: key,
-            income: breakdown[key].income,
-            expense: breakdown[key].expense
+            label: key, income: breakdown[key].income, expense: breakdown[key].expense,
+        }));
+        const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((a, c) => a + c.amount, 0);
+        const totalExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((a, c) => a + c.amount, 0);
+        const categoryBreakdown: Record<string, number> = {};
+        for (const t of transactions) {
+            if (t.type === 'EXPENSE') categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + t.amount;
+        }
+        const categories = Object.keys(categoryBreakdown).map(name => ({ name, amount: categoryBreakdown[name] }));
+
+        return { period, year, totalIncome, totalExpense, savings: totalIncome - totalExpense, chartData, categories };
+    }
+
+    // ─── Payment Splits ────────────────────────────────────────
+    // Admin creates a split → server resolves target units → one share row per unit.
+    // Splits are intentionally NOT logged into CommunityTransaction so the
+    // monthly maintenance "Collected" totals stay clean.
+    async createSplit(
+        tenantId: string,
+        args: { authUserId?: string; authUserPhone?: string; role?: string },
+        body: {
+            purpose: string;
+            description?: string;
+            totalAmount: number;
+            splitMode?: 'EQUAL' | 'CUSTOM';
+            targetType: 'ALL' | 'BLOCKS' | 'UNITS';
+            targetBlocks?: string[];
+            targetUnits?: string[];
+            customShares?: Record<string, number>; // unitId → amount (CUSTOM mode)
+            dueDate?: string | null;
+        },
+    ) {
+        await this.requireAdmin({ authUserId: args.authUserId, phone: args.authUserPhone, role: args.role });
+        const admin = await this.resolveMember({ authUserId: args.authUserId, phone: args.authUserPhone });
+
+        if (!body.purpose || !body.purpose.trim()) throw new BadRequestException('Purpose is required.');
+        if (!body.totalAmount || body.totalAmount <= 0) throw new BadRequestException('Total amount must be positive.');
+
+        // Resolve target units
+        let units: { id: string }[] = [];
+        if (body.targetType === 'ALL') {
+            units = await this.prisma.reader.unit.findMany({ where: { tenantId }, select: { id: true } });
+        } else if (body.targetType === 'BLOCKS') {
+            if (!body.targetBlocks?.length) throw new BadRequestException('Select at least one block.');
+            units = await this.prisma.reader.unit.findMany({
+                where: { tenantId, blockId: { in: body.targetBlocks } },
+                select: { id: true },
+            });
+        } else if (body.targetType === 'UNITS') {
+            if (!body.targetUnits?.length) throw new BadRequestException('Select at least one unit.');
+            units = await this.prisma.reader.unit.findMany({
+                where: { tenantId, id: { in: body.targetUnits } },
+                select: { id: true },
+            });
+        } else {
+            throw new BadRequestException('Invalid targetType.');
+        }
+
+        if (!units.length) throw new BadRequestException('No matching units for this split.');
+
+        const splitMode = body.splitMode || 'EQUAL';
+        const equalShare = body.totalAmount / units.length;
+        const shareData = units.map(u => ({
+            tenantId,
+            unitId: u.id,
+            amount:
+                splitMode === 'CUSTOM' && body.customShares && body.customShares[u.id] != null
+                    ? Number(body.customShares[u.id])
+                    : Number(equalShare.toFixed(2)),
         }));
 
-        const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((acc, c) => acc + c.amount, 0);
-        const totalExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((acc, c) => acc + c.amount, 0);
-
-        const categoryBreakdown: { [category: string]: number } = {};
-        for (const t of transactions) {
-            if (t.type === 'EXPENSE') {
-                categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + t.amount;
+        // Sanity check: in CUSTOM mode the sum must match totalAmount within ₹1
+        if (splitMode === 'CUSTOM') {
+            const sum = shareData.reduce((s, x) => s + x.amount, 0);
+            if (Math.abs(sum - body.totalAmount) > 1) {
+                throw new BadRequestException(
+                    `Custom shares (₹${sum.toFixed(2)}) don't match the total amount (₹${body.totalAmount}).`,
+                );
             }
         }
 
-        const categories = Object.keys(categoryBreakdown).map(name => ({
-            name,
-            amount: categoryBreakdown[name]
+        return this.prisma.client.paymentSplit.create({
+            data: {
+                tenantId,
+                purpose: body.purpose.trim(),
+                description: body.description,
+                totalAmount: body.totalAmount,
+                splitMode,
+                targetType: body.targetType,
+                targetBlocks: body.targetBlocks || [],
+                targetUnits: body.targetUnits || [],
+                dueDate: body.dueDate ? new Date(body.dueDate) : null,
+                createdById: admin?.id || null,
+                shares: { create: shareData },
+            },
+            include: { shares: true },
+        });
+    }
+
+    async listSplits(tenantId: string) {
+        const splits = await this.prisma.reader.paymentSplit.findMany({
+            where: { tenantId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                shares: {
+                    include: {
+                        unit: { include: { block: true, families: { include: { members: true } } } },
+                    },
+                },
+            },
+        });
+
+        return splits.map(s => {
+            const sharesMapped = s.shares.map(sh => {
+                const allMembers = sh.unit.families.flatMap(f => f.members || []);
+                const primary = allMembers[0];
+                return {
+                    id: sh.id,
+                    unitId: sh.unitId,
+                    unitNumber: `${sh.unit.block?.name || ''}${sh.unit.block?.name ? '-' : ''}${sh.unit.number}`,
+                    blockName: sh.unit.block?.name || 'N/A',
+                    amount: sh.amount,
+                    amountPaid: sh.amountPaid,
+                    status: sh.status,
+                    paymentDate: sh.paymentDate,
+                    paymentMethod: sh.paymentMethod,
+                    receiptUrl: sh.receiptUrl,
+                    description: sh.description,
+                    adminNote: sh.adminNote,
+                    rejectionReason: sh.rejectionReason,
+                    residentName: primary?.name || 'N/A',
+                    residentPhone: primary?.phone || 'N/A',
+                    unitResidents: allMembers.map(m => ({ id: m.id, name: m.name, phone: m.phone, role: m.role })),
+                };
+            });
+
+            const paidCount = sharesMapped.filter(x => x.status === 'PAID').length;
+            const pendingCount = sharesMapped.filter(x => x.status === 'PENDING_VERIFICATION').length;
+            const collected = sharesMapped
+                .filter(x => x.status === 'PAID')
+                .reduce((a, c) => a + (c.amountPaid ?? c.amount), 0);
+
+            return {
+                id: s.id,
+                purpose: s.purpose,
+                description: s.description,
+                totalAmount: s.totalAmount,
+                splitMode: s.splitMode,
+                targetType: s.targetType,
+                targetBlocks: s.targetBlocks,
+                targetUnits: s.targetUnits,
+                dueDate: s.dueDate,
+                status: s.status,
+                createdAt: s.createdAt,
+                totalShares: sharesMapped.length,
+                paidCount,
+                pendingCount,
+                collected,
+                shares: sharesMapped,
+            };
+        });
+    }
+
+    async deleteSplit(
+        tenantId: string,
+        id: string,
+        args: { authUserId?: string; authUserPhone?: string; role?: string },
+    ) {
+        await this.requireAdmin({ authUserId: args.authUserId, phone: args.authUserPhone, role: args.role });
+        const existing = await this.prisma.reader.paymentSplit.findFirst({ where: { id, tenantId } });
+        if (!existing) throw new NotFoundException('Split not found.');
+        await this.prisma.client.paymentSplit.delete({ where: { id } });
+        return { success: true };
+    }
+
+    async getMySplitShares(args: { tenantId: string; authUserId?: string; authUserPhone?: string }) {
+        const { tenantId, authUserId, authUserPhone } = args;
+        const ctx = await this.resolveUnitForCaller({ authUserId, phone: authUserPhone });
+        if (!ctx || !ctx.unitId) {
+            return { unit: null, unitLabel: null, shares: [] };
+        }
+
+        const shares = await this.prisma.reader.paymentSplitShare.findMany({
+            where: { tenantId, unitId: ctx.unitId },
+            orderBy: { createdAt: 'desc' },
+            include: { split: true },
+        });
+
+        const mapped = shares.map(sh => ({
+            id: sh.id,
+            splitId: sh.splitId,
+            purpose: sh.split.purpose,
+            splitDescription: sh.split.description,
+            dueDate: sh.split.dueDate,
+            splitTotalAmount: sh.split.totalAmount,
+            unitId: sh.unitId,
+            unitNumber: ctx.unitLabel,
+            amount: sh.amount,
+            amountPaid: sh.amountPaid,
+            status: sh.status,
+            paymentDate: sh.paymentDate,
+            paymentMethod: sh.paymentMethod,
+            receiptUrl: sh.receiptUrl,
+            description: sh.description,
+            adminNote: sh.adminNote,
+            rejectionReason: sh.rejectionReason,
         }));
 
-        return {
-            period,
-            year,
-            totalIncome,
-            totalExpense,
-            savings: totalIncome - totalExpense,
-            chartData,
-            categories
-        };
+        return { unit: ctx.unit, unitLabel: ctx.unitLabel, unitId: ctx.unitId, shares: mapped };
+    }
+
+    async submitSplitProof(
+        shareId: string,
+        body: { receiptUrl?: string; paymentMethod?: string; description?: string; amountPaid?: number },
+    ) {
+        return this.prisma.client.paymentSplitShare.update({
+            where: { id: shareId },
+            data: {
+                status: 'PENDING_VERIFICATION',
+                receiptUrl: body.receiptUrl,
+                paymentMethod: body.paymentMethod,
+                description: body.description,
+                amountPaid: typeof body.amountPaid === 'number' ? body.amountPaid : undefined,
+                rejectionReason: null,
+                adminNote: null,
+            },
+        });
+    }
+
+    async verifySplitShare(
+        shareId: string,
+        tenantId: string,
+        args: { authUserId?: string; authUserPhone?: string; role?: string },
+        body: { action: 'APPROVE' | 'REJECT'; rejectionReason?: string; adminNote?: string },
+    ) {
+        await this.requireAdmin({ authUserId: args.authUserId, phone: args.authUserPhone, role: args.role });
+
+        const share = await this.prisma.client.paymentSplitShare.findUnique({ where: { id: shareId } });
+        if (!share) throw new NotFoundException('Split share not found.');
+
+        if (body.action === 'APPROVE') {
+            return this.prisma.client.paymentSplitShare.update({
+                where: { id: shareId },
+                data: {
+                    status: 'PAID',
+                    paymentDate: new Date(),
+                    adminNote: body.adminNote || null,
+                    rejectionReason: null,
+                },
+            });
+        }
+
+        return this.prisma.client.paymentSplitShare.update({
+            where: { id: shareId },
+            data: {
+                status: 'UNPAID',
+                rejectionReason: body.rejectionReason || null,
+                adminNote: body.adminNote || body.rejectionReason || null,
+            },
+        });
     }
 }

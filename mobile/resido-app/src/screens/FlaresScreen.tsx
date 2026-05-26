@@ -5,6 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { threadApi, authApi } from '../services/api';
 import BottomNav from '../components/BottomNav';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 2;
@@ -101,8 +102,8 @@ export default function FlaresScreen() {
                     authorId: authorId,
                     name: flare.authorName || 'Resident',
                     time: 'Just now',
-                    image: flare.mediaUrls?.[0],
-                    avatar: flare.authorAvatar || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg`,
+                    image: resolveMediaUrl(flare.mediaUrls?.[0]),
+                    avatar: resolveMediaUrl(flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg`,
                     count: 1,
                     allIds: [flare.id]
                 };
@@ -120,7 +121,7 @@ export default function FlaresScreen() {
         title: f.title,
         likes: f.likesCount || 0,
         liked: f.liked || false,
-        image: f.mediaUrls?.[0] || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800'
+        image: resolveMediaUrl(f.mediaUrls?.[0]) || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800',
     }));
 
     const renderRecentItem = ({ item }: any) => {

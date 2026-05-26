@@ -58,7 +58,7 @@ export default function BusinessScannerScreen() {
     if (!permission.granted) {
         return (
             <SafeAreaView style={styles.errorContainer}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="dark-content" />
                 <View style={styles.errorContent}>
                     <View style={styles.errorIconBox}>
                         <Ionicons name="camera" size={60} color="#a084ca" />
@@ -80,7 +80,7 @@ export default function BusinessScannerScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             <CameraView
                 style={StyleSheet.absoluteFillObject}
@@ -128,25 +128,25 @@ export default function BusinessScannerScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0b0f19' },
     
     // Permission state styling (Matching our MySpace black/violet/lavender aesthetic)
-    errorContainer: { flex: 1, backgroundColor: '#000000' },
+    errorContainer: { flex: 1, backgroundColor: '#F8F5FF' },
     errorContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 30 },
     errorIconBox: { width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(160, 132, 202, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 24, borderWidth: 1, borderColor: 'rgba(160, 132, 202, 0.2)' },
-    errorTitle: { fontSize: 24, fontWeight: '900', color: '#ffffff', marginBottom: 12, textAlign: 'center' },
-    errorText: { fontSize: 16, color: '#94a3b8', textAlign: 'center', lineHeight: 24, marginBottom: 32 },
+    errorTitle: { fontSize: 24, fontWeight: '900', color: '#2D2445', marginBottom: 12, textAlign: 'center' },
+    errorText: { fontSize: 16, color: '#9A8EBA', textAlign: 'center', lineHeight: 24, marginBottom: 32 },
     grantBtn: { width: '100%', height: 56, borderRadius: 16, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', shadowColor: '#8b5cf6', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    grantBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
+    grantBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     backLink: { marginTop: 20 },
     backLinkText: { color: '#a084ca', fontSize: 15, fontWeight: '700' },
 
     // Mask layout
     overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
     overlayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
-    closeBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    overlayTitle: { fontSize: 18, fontWeight: '900', color: '#ffffff' },
+    closeBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C4B5DC' },
+    overlayTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
 
     unfocusedContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)' },
     middleContainer: { flexDirection: 'row', height: 260 },
@@ -161,5 +161,5 @@ const styles = StyleSheet.create({
     scanLine: { position: 'absolute', width: '100%', height: 3, backgroundColor: '#c084fc', opacity: 0.8, shadowColor: '#c084fc', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 10, elevation: 4 },
     
     hintBox: { justifyContent: 'flex-start', alignItems: 'center', paddingHorizontal: 40, paddingTop: 30 },
-    hintText: { color: '#e2e8f0', fontSize: 14, fontWeight: '600', textAlign: 'center', lineHeight: 22, opacity: 0.9 }
+    hintText: { color: '#9A8EBA', fontSize: 14, fontWeight: '600', textAlign: 'center', lineHeight: 22, opacity: 0.9 }
 });

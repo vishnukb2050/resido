@@ -11,11 +11,11 @@ const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
     { name: 'Groceries', percent: 40, amount: 12980, color: '#10b981' },
-    { name: 'Utilities', percent: 20, amount: 6490, color: '#1d4ed8' },
+    { name: 'Utilities', percent: 20, amount: 6490, color: '#8b5cf6' },
     { name: 'Shopping', percent: 15, amount: 4870, color: '#ec4899' },
-    { name: 'Transport', percent: 10, amount: 3250, color: '#3b82f6' },
+    { name: 'Transport', percent: 10, amount: 3250, color: '#a78bfa' },
     { name: 'Food & Dining', percent: 8, amount: 2600, color: '#f43f5e' },
-    { name: 'Others', percent: 7, amount: 2260, color: '#3b82f6' },
+    { name: 'Others', percent: 7, amount: 2260, color: '#a78bfa' },
 ];
 
 export default function ReportsScreen() {
@@ -25,7 +25,7 @@ export default function ReportsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -74,7 +74,7 @@ export default function ReportsScreen() {
                     <View style={styles.summaryStats}>
                         <SummaryStat label="Income" value="₹ 48,750" color="#10b981" />
                         <SummaryStat label="Expense" value="₹ 32,450" color="#ef4444" />
-                        <SummaryStat label="Savings" value="₹ 16,300" color="#1d4ed8" />
+                        <SummaryStat label="Savings" value="₹ 16,300" color="#8b5cf6" />
                     </View>
                 </View>
 
@@ -159,60 +159,60 @@ const SummaryStat = ({ label, value, color }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    header: { padding: 20, paddingTop: 20, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    header: { padding: 20, paddingTop: 20, backgroundColor: '#F8F5FF' },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
     
-    tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, marginBottom: 20 },
+    tabContainer: { flexDirection: 'row', backgroundColor: '#F4EEFC', borderRadius: 14, padding: 4, marginBottom: 20 },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activeTab: { backgroundColor: '#1d4ed8' },
-    tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
-    activeTabText: { color: '#fff' },
+    activeTab: { backgroundColor: '#8b5cf6' },
+    tabText: { fontSize: 14, fontWeight: '700', color: '#9A8EBA' },
+    activeTabText: { color: '#ffffff' },
 
     periodScroll: { flexDirection: 'row', gap: 10 },
     periodTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, marginRight: 10 },
-    activePeriodTab: { backgroundColor: '#1d4ed8' },
-    periodTabText: { fontSize: 13, color: '#94a3b8', fontWeight: '700' },
-    activePeriodTabText: { color: '#fff' },
+    activePeriodTab: { backgroundColor: '#8b5cf6' },
+    periodTabText: { fontSize: 13, color: '#9A8EBA', fontWeight: '700' },
+    activePeriodTabText: { color: '#ffffff' },
 
     summaryContainer: { paddingHorizontal: 20, marginTop: 10 },
     summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    summaryTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    summaryDate: { fontSize: 12, color: '#64748b' },
-    summaryStats: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    summaryTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    summaryDate: { fontSize: 12, color: '#7A6B9C' },
+    summaryStats: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#ffffff', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8' },
     summaryStat: { flex: 1 },
-    summaryStatLabel: { fontSize: 11, color: '#64748b', fontWeight: '600' },
+    summaryStatLabel: { fontSize: 11, color: '#7A6B9C', fontWeight: '600' },
     summaryStatValue: { fontSize: 16, fontWeight: '900', marginTop: 4 },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 20 },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 20 },
     
-    donutContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    donutPlaceholder: { width: 120, height: 120, borderRadius: 60, borderWidth: 15, borderColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
-    donutAmount: { fontSize: 16, fontWeight: '900', color: '#fff' },
-    donutLabel: { fontSize: 10, color: '#64748b', marginTop: 2 },
+    donutContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8' },
+    donutPlaceholder: { width: 120, height: 120, borderRadius: 60, borderWidth: 15, borderColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
+    donutAmount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
+    donutLabel: { fontSize: 10, color: '#7A6B9C', marginTop: 2 },
     legendGrid: { flex: 1, marginLeft: 20, gap: 12 },
     legendItem: { flexDirection: 'row', alignItems: 'center' },
     legendDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-    legendText: { fontSize: 11, color: '#94a3b8', flex: 1 },
-    legendPercent: { fontSize: 11, color: '#fff', fontWeight: '700' },
+    legendText: { fontSize: 11, color: '#9A8EBA', flex: 1 },
+    legendPercent: { fontSize: 11, color: '#2D2445', fontWeight: '700' },
 
-    catItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    catItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
     catIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     catIconInner: { width: 10, height: 10, borderRadius: 5 },
     catInfo: { flex: 1, marginLeft: 16 },
-    catName: { fontSize: 15, fontWeight: '700', color: '#fff' },
-    catPercent: { fontSize: 12, color: '#64748b', marginTop: 4 },
-    catAmount: { fontSize: 15, fontWeight: '900', color: '#fff' },
+    catName: { fontSize: 15, fontWeight: '700', color: '#2D2445' },
+    catPercent: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
+    catAmount: { fontSize: 15, fontWeight: '900', color: '#2D2445' },
 
-    barChartPlaceholder: { backgroundColor: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    barChartPlaceholder: { backgroundColor: '#ffffff', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8' },
     barLegend: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, marginBottom: 20 },
     barLegendItem: { flexDirection: 'row', alignItems: 'center' },
     chartBars: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 120 },
     barGroup: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
     bar: { width: 16, borderRadius: 4 },
     chartXAxis: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 12 },
-    xAxisText: { fontSize: 11, color: '#64748b' },
+    xAxisText: { fontSize: 11, color: '#7A6B9C' },
 });

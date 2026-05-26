@@ -23,7 +23,7 @@ export default function ShareNoteScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -107,29 +107,29 @@ const AccessItem = ({ name, role, image, isOwner, isGroup }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginLeft: 16 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginLeft: 16 },
     
     scrollContent: { padding: 20 },
-    noteCard: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 20, borderRadius: 24, marginBottom: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    noteTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    noteCard: { backgroundColor: '#F4EEFC', padding: 20, borderRadius: 24, marginBottom: 32, borderWidth: 1, borderColor: '#C4B5DC' },
+    noteTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     folderRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
-    folderName: { fontSize: 13, color: '#94a3b8', fontWeight: '700' },
-    noteSnippet: { fontSize: 14, color: '#64748b', marginTop: 12, lineHeight: 20 },
+    folderName: { fontSize: 13, color: '#9A8EBA', fontWeight: '700' },
+    noteSnippet: { fontSize: 14, color: '#7A6B9C', marginTop: 12, lineHeight: 20 },
 
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 20 },
-    shareOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    shareIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 20 },
+    shareOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
+    shareIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
     shareContent: { flex: 1, marginLeft: 16 },
-    shareTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    shareSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
+    shareTitle: { fontSize: 16, fontWeight: '700', color: '#2D2445' },
+    shareSub: { fontSize: 12, color: '#7A6B9C', marginTop: 2 },
 
     accessItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     avatar: { width: 48, height: 48, borderRadius: 24 },
-    groupIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    groupIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#EFE9F8', alignItems: 'center', justifyContent: 'center' },
     accessContent: { flex: 1, marginLeft: 16 },
-    accessName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    accessRole: { fontSize: 12, color: '#64748b', marginTop: 2 }
+    accessName: { fontSize: 16, fontWeight: '700', color: '#2D2445' },
+    accessRole: { fontSize: 12, color: '#7A6B9C', marginTop: 2 }
 });

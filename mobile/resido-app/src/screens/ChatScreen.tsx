@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
-import { authApi, chatApi, API_URL } from '../services/api';
+import { authApi, chatApi, API_URL, SOCKET_URL } from '../services/api';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -34,6 +34,8 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     const [showPollBuilder, setShowPollBuilder] = useState(false);
     const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [conversation, setConversation] = useState<any>(null);
+    const [otherUser, setOtherUser] = useState<any>(null);
     
     const socketRef = useRef<Socket | null>(null);
     const flatRef = useRef<FlatList>(null);
@@ -42,6 +44,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
 
     useEffect(() => {
         loadMessages();
+        loadConversationMeta();
         connectSocket();
         return () => { 
             if (socketRef.current) {
@@ -49,6 +52,28 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
             }
         };
     }, [conversationId]);
+
+    const loadConversationMeta = async () => {
+        try {
+            const { data: list } = await chatApi.getConversations();
+            const conv = (list || []).find((c: any) => c.id === conversationId);
+            if (!conv) return;
+            setConversation(conv);
+            if (conv.type === 'DIRECT') {
+                const otherMemberId = conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId;
+                if (otherMemberId) {
+                    try {
+                        const { data: u } = await authApi.getUser(otherMemberId);
+                        setOtherUser(u);
+                    } catch {
+                        // ignore — header just falls back to a generic label.
+                    }
+                }
+            }
+        } catch (e) {
+            // non-fatal
+        }
+    };
 
     const loadMessages = async () => {
         if (!conversationId) return;
@@ -66,7 +91,11 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     const connectSocket = () => {
         if (!conversationId || !activeWorkspace) return;
 
-        const socket = io(`${API_URL}/chat`, {
+        const socket = io(`${SOCKET_URL}/chat`, {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
             auth: {
                 tenantId: activeWorkspace.tenantId,
                 dbName: activeWorkspace.dbName,
@@ -74,20 +103,58 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
             }
         });
 
-        socket.on('connect', () => {
-            console.log('Connected to chat socket');
+        const joinRoom = () => {
             socket.emit('join_conversation', { conversationId });
+        };
+
+        socket.on('connect', () => {
+            console.log('[chat] socket connected', socket.id);
+            joinRoom();
+        });
+
+        socket.on('reconnect', () => {
+            console.log('[chat] socket reconnected');
+            joinRoom();
+        });
+
+        socket.on('connect_error', (err) => {
+            console.warn('[chat] socket connect_error:', err?.message);
         });
 
         socket.on('new_message', (message: Message) => {
-            setMessages(prev => {
-                if (prev.find(m => m.id === message.id)) return prev;
-                return [...prev, message];
-            });
+            setMessages(prev => mergeIncomingMessage(prev, message));
             setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
         });
 
         socketRef.current = socket;
+    };
+
+    /**
+     * Merges a server-side message into the local list.
+     *
+     * Send flow on this client is HTTP-first with optimistic append, so the
+     * sender's own messages can arrive via three channels for the same record:
+     *   (a) the local optimistic placeholder (already in state),
+     *   (b) the HTTP response upgrading the placeholder to the real row,
+     *   (c) the socket broadcast echoing the same real row.
+     * We always dedupe by real id, then by a short content+sender fingerprint
+     * for the small window where (c) wins the race against (b).
+     */
+    const mergeIncomingMessage = (prev: Message[], incoming: Message): Message[] => {
+        if (prev.some(m => m.id === incoming.id)) return prev;
+        const incomingTime = new Date(incoming.createdAt).getTime();
+        const fingerprintMatch = prev.findIndex(m =>
+            (m as any).pending &&
+            m.senderId === incoming.senderId &&
+            (m.content || '') === (incoming.content || '') &&
+            Math.abs(new Date(m.createdAt).getTime() - incomingTime) < 30_000,
+        );
+        if (fingerprintMatch >= 0) {
+            const next = [...prev];
+            next[fingerprintMatch] = incoming;
+            return next;
+        }
+        return [...prev, incoming];
     };
 
     const handlePickMedia = async (type: 'image' | 'video' | 'file') => {
@@ -129,14 +196,11 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                 headers: { 'Content-Type': contentType }
             });
 
-            if (socketRef.current) {
-                socketRef.current.emit('send_message', {
-                    conversationId,
-                    type: type.toUpperCase(),
-                    mediaUrl: fileUrl,
-                    content: `Sent a ${type}`
-                });
-            }
+            await sendMessageWithBody({
+                type: type.toUpperCase() as Message['type'],
+                mediaUrl: fileUrl,
+                content: `Sent a ${type}`,
+            });
         } catch (error) {
             console.error('Media upload failed:', error);
             Alert.alert('Error', 'Failed to upload media. Please try again.');
@@ -145,30 +209,60 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         }
     };
 
-    const sendMessage = async () => {
-        if (!input.trim() || !socketRef.current) return;
-        
-        const messageData = {
-            conversationId,
-            content: input.trim(),
-            type: 'TEXT'
+    /**
+     * Send a message reliably:
+     *   1. Append an optimistic placeholder so the sender sees it instantly.
+     *   2. POST to the HTTP endpoint — this persists even if the socket is broken.
+     *   3. The backend broadcasts via the socket gateway so other clients update live.
+     *   4. The persisted message returned from HTTP replaces the placeholder.
+     */
+    const sendMessageWithBody = async (body: {
+        type: Message['type'];
+        content?: string;
+        mediaUrl?: string;
+        poll?: any;
+    }) => {
+        const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const optimistic: Message = {
+            id: tempId,
+            senderId: user?.id || 'me',
+            senderName: user?.name,
+            content: body.content || '',
+            type: body.type,
+            createdAt: new Date().toISOString(),
+            mediaUrl: body.mediaUrl,
+            poll: body.poll,
         };
+        (optimistic as any).pending = true;
+        (optimistic as any).clientNonce = tempId;
+        setMessages(prev => [...prev, optimistic]);
+        setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
 
-        socketRef.current.emit('send_message', messageData);
+        try {
+            const { data: persisted } = await chatApi.sendMessage(conversationId, {
+                content: body.content,
+                type: body.type,
+                mediaUrl: body.mediaUrl,
+                poll: body.poll,
+            });
+            setMessages(prev => prev.map(m => (m.id === tempId ? { ...persisted } : m)));
+        } catch (err: any) {
+            console.error('Send failed:', err?.response?.status, err?.response?.data || err?.message);
+            setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, content: (m.content || '') + ' ⚠️', failed: true } as any : m)));
+            Alert.alert('Message failed', 'Could not send. Check your connection and try again.');
+        }
+    };
+
+    const sendMessage = async () => {
+        const text = input.trim();
+        if (!text) return;
         setInput('');
+        await sendMessageWithBody({ type: 'TEXT', content: text });
     };
 
     const handlePublishPoll = (pollData: any) => {
-        if (!socketRef.current) return;
-        
-        const messageData = {
-            conversationId,
-            type: 'POLL',
-            poll: pollData
-        };
-
-        socketRef.current.emit('send_message', messageData);
         setShowPollBuilder(false);
+        sendMessageWithBody({ type: 'POLL', poll: pollData });
     };
 
     const handleVote = async (pollId: string, optionId: string) => {
@@ -250,11 +344,23 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     <View style={styles.headerAvatar}>
-                        <Ionicons name="business" size={20} color="#1d4ed8" />
+                        <Ionicons
+                            name={conversation?.type === 'GROUP' ? 'people' : otherUser ? 'person' : 'chatbubbles'}
+                            size={20}
+                            color="#1d4ed8"
+                        />
                     </View>
-                    <View style={{ marginLeft: 10 }}>
-                        <Text style={styles.headerTitle}>Greenwood Residency</Text>
-                        <Text style={styles.headerSub}>Community</Text>
+                    <View style={{ marginLeft: 10, flex: 1 }}>
+                        <Text style={styles.headerTitle} numberOfLines={1}>
+                            {conversation?.type === 'GROUP'
+                                ? conversation?.name || 'Group'
+                                : otherUser?.name || otherUser?.phone || 'Chat'}
+                        </Text>
+                        <Text style={styles.headerSub}>
+                            {conversation?.type === 'GROUP'
+                                ? `${conversation?.members?.length || 0} members`
+                                : 'Direct message'}
+                        </Text>
                     </View>
                 </View>
                 <TouchableOpacity><Ionicons name="ellipsis-vertical" size={24} color="#1e293b" /></TouchableOpacity>

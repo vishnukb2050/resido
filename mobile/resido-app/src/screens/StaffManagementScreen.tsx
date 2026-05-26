@@ -29,7 +29,7 @@ const CATEGORIES = [
         label: 'Cleaning',
         role: 'CLEANING_STAFF',
         icon: 'sparkles' as const,
-        color: '#3b82f6',
+        color: '#a78bfa',
         bg: 'rgba(59, 130, 246, 0.12)',
         border: 'rgba(59, 130, 246, 0.25)',
     },
@@ -61,7 +61,7 @@ const CATEGORIES = [
         label: 'Other Staff',
         role: 'STAFF',
         icon: 'briefcase' as const,
-        color: '#64748b',
+        color: '#7A6B9C',
         bg: 'rgba(100, 116, 139, 0.12)',
         border: 'rgba(100, 116, 139, 0.25)',
     },
@@ -104,7 +104,7 @@ export default function StaffManagementScreen() {
     if (!selectedCategory) {
         return (
             <SafeAreaView style={styles.container}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar barStyle="dark-content" />
 
                 {/* Header */}
                 <View style={styles.header}>
@@ -122,7 +122,7 @@ export default function StaffManagementScreen() {
 
                 {loading ? (
                     <View style={styles.loadingBox}>
-                        <ActivityIndicator size="large" color="#1d4ed8" />
+                        <ActivityIndicator size="large" color="#8b5cf6" />
                         <Text style={styles.loadingText}>Loading staff...</Text>
                     </View>
                 ) : (
@@ -147,7 +147,7 @@ export default function StaffManagementScreen() {
                                     <View style={[styles.folderIconBox, { backgroundColor: item.bg }]}>
                                         <Ionicons name={item.icon} size={32} color={item.color} />
                                     </View>
-                                    <Text style={[styles.folderLabel, { color: '#fff' }]} numberOfLines={1}>
+                                    <Text style={[styles.folderLabel, { color: '#2D2445' }]} numberOfLines={1}>
                                         {item.label}
                                     </Text>
                                     <View style={styles.folderCountRow}>
@@ -171,7 +171,7 @@ export default function StaffManagementScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
 
             {/* Header */}
             <View style={styles.header}>
@@ -297,7 +297,7 @@ export default function StaffManagementScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
 
     // ─── Header ──────────────────────────────────────────────────────────────
     header: {
@@ -316,8 +316,8 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
     },
     headerCenter: { flex: 1, alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
-    headerSub: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
+    headerSub: { fontSize: 12, color: '#7A6B9C', marginTop: 2, fontWeight: '600' },
     addBtn: {
         width: 44, height: 44, borderRadius: 22,
         alignItems: 'center', justifyContent: 'center',
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
 
     // ─── Loading ─────────────────────────────────────────────────────────────
     loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-    loadingText: { color: '#64748b', fontSize: 14, fontWeight: '600' },
+    loadingText: { color: '#7A6B9C', fontSize: 14, fontWeight: '600' },
 
     // ─── Category Folder Grid ─────────────────────────────────────────────────
     gridContent: { padding: 20, gap: 14 },
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     folderLabel: { fontSize: 13, fontWeight: '800', textAlign: 'center' },
     folderCountRow: { flexDirection: 'row', alignItems: 'baseline' },
     folderCount: { fontSize: 26, fontWeight: '900' },
-    folderCountUnit: { fontSize: 12, color: '#64748b', fontWeight: '700' },
+    folderCountUnit: { fontSize: 12, color: '#7A6B9C', fontWeight: '700' },
     folderArrow: {
         position: 'absolute', right: 14, top: 14,
         opacity: 0.7,
@@ -361,11 +361,11 @@ const styles = StyleSheet.create({
     staffCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.04)',
+        backgroundColor: '#ffffff',
         borderRadius: 20,
         padding: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.07)',
+        borderColor: '#D4C9E8',
     },
     avatarBox: {
         width: 52, height: 52, borderRadius: 16,
@@ -375,10 +375,10 @@ const styles = StyleSheet.create({
     avatarImg: { width: '100%', height: '100%' },
     avatarInitial: { fontSize: 22, fontWeight: '900' },
     staffInfo: { flex: 1, marginLeft: 14 },
-    staffName: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    staffDesignation: { fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
+    staffName: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    staffDesignation: { fontSize: 12, color: '#9A8EBA', marginTop: 2, fontWeight: '600' },
     phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-    staffPhone: { fontSize: 12, color: '#64748b' },
+    staffPhone: { fontSize: 12, color: '#7A6B9C' },
     statusBadge: {
         flexDirection: 'row', alignItems: 'center', gap: 5,
         paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12,
@@ -396,9 +396,9 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 6,
     },
-    emptyTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
+    emptyTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445' },
     emptyText: {
-        fontSize: 14, color: '#64748b', textAlign: 'center',
+        fontSize: 14, color: '#7A6B9C', textAlign: 'center',
         lineHeight: 21, fontWeight: '500',
     },
     emptyAddBtn: {
@@ -407,5 +407,5 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
     },
-    emptyAddText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    emptyAddText: { color: '#2D2445', fontSize: 15, fontWeight: '800' },
 });

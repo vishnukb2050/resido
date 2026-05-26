@@ -8,6 +8,7 @@ import { io } from 'socket.io-client';
 import { threadApi, API_URL } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import CommentSheet from '../components/CommentSheet';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const { width, height } = Dimensions.get('window');
 const SCREEN_HEIGHT = height;
@@ -322,7 +323,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                 <Video
                     ref={video}
                     style={styles.video}
-                    source={flare.mediaUrls?.[0] ? ({ uri: flare.mediaUrls[0], overrideFileExtension: 'mp4' } as any) : undefined}
+                    source={flare.mediaUrls?.[0] ? ({ uri: resolveMediaUrl(flare.mediaUrls[0]) || flare.mediaUrls[0], overrideFileExtension: 'mp4' } as any) : undefined}
                     useNativeControls={false}
                     resizeMode={ResizeMode.COVER}
                     isLooping
@@ -361,7 +362,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                     })}
                 >
                     <Image 
-                        source={{ uri: flare.authorAvatar || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg` }} 
+                        source={{ uri: resolveMediaUrl(flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg` }} 
                         style={styles.authorAvatar} 
                     />
                     <TouchableOpacity style={styles.plusBtn}>

@@ -134,18 +134,18 @@ export default function AddAdminStaffScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     scrollContent: { padding: 24 },
     warningBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(236, 72, 153, 0.1)', padding: 20, borderRadius: 24, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(236, 72, 153, 0.2)', gap: 15 },
     warningText: { flex: 1, fontSize: 13, color: '#ec4899', fontWeight: '700', lineHeight: 18 },
     form: { gap: 20 },
     inputGroup: { gap: 10 },
-    label: { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
-    input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },
+    label: { fontSize: 12, color: '#9A8EBA', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+    input: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#C4B5DC', color: '#2D2445', padding: 18, fontSize: 16, fontWeight: '600' },
     textArea: { height: 100, textAlignVertical: 'top' },
     submitBtn: { backgroundColor: '#ec4899', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 20 },
-    submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
+    submitText: { color: '#ffffff', fontWeight: '900', fontSize: 16 }
 });

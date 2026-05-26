@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
     View, Text, StyleSheet, TouchableOpacity, TextInput, 
     ScrollView, Switch, Image, Alert, ActivityIndicator,
@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Video, Audio, ResizeMode } from 'expo-av';
 import { useRouter } from 'expo-router';
-import { threadApi } from '../services/api';
+import { threadApi, businessApi } from '../services/api';
 import { uploadToR2 } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 import CircularProgress from '../components/CircularProgress';
@@ -41,11 +41,28 @@ export default function CreateFlareScreen() {
     const [selectedMusic, setSelectedMusic] = useState(TRENDING_MUSIC[0]);
     const [commentsEnabled, setCommentsEnabled] = useState(true);
     const [taggedUsers, setTaggedUsers] = useState<string[]>([]);
+    const [myBusinesses, setMyBusinesses] = useState<any[]>([]);
+    const [pinToBusiness, setPinToBusiness] = useState(false);
+    const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+    const [showBusinessPicker, setShowBusinessPicker] = useState(false);
     
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
     const videoRef = useRef<Video>(null);
     const soundRef = useRef<Audio.Sound | null>(null);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await businessApi.getMyProfiles();
+                const list = Array.isArray(data) ? data : (data?.profiles || []);
+                setMyBusinesses(list);
+                if (list.length === 1) setSelectedBusinessId(list[0].id);
+            } catch (e) {
+                // Silently ignore — toggle simply stays hidden.
+            }
+        })();
+    }, []);
 
     const pickVideo = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -144,7 +161,11 @@ export default function CreateFlareScreen() {
             // 3. Extract hashtags
             const hashtagArray = hashtags.split(' ').filter(h => h.startsWith('#')).map(h => h.slice(1));
 
-            // 4. Create Flare in DB
+            const pinnedBusinessId =
+                pinToBusiness && (selectedBusinessId || (myBusinesses.length === 1 ? myBusinesses[0].id : null))
+                    ? selectedBusinessId || myBusinesses[0]?.id
+                    : null;
+
             await threadApi.createFlare({
                 tenantId: activeWorkspace?.tenantId || 'global',
                 title: title.trim() || "New Flare",
@@ -161,7 +182,8 @@ export default function CreateFlareScreen() {
                 commentsEnabled,
                 visibility: selectedVisibilities[0] || 'PUBLIC',
                 tags: taggedUsers,
-                location: activeWorkspace?.tenantName || 'Community'
+                location: activeWorkspace?.tenantName || 'Community',
+                businessProfileId: pinnedBusinessId,
             });
 
             setUploadProgress(1);
@@ -368,6 +390,45 @@ export default function CreateFlareScreen() {
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
                     </TouchableOpacity>
+
+                    {myBusinesses.length > 0 && (
+                        <>
+                            <View style={styles.divider} />
+                            <View style={styles.settingRow}>
+                                <View style={styles.settingInfo}>
+                                    <Text style={styles.settingTitle}>Add to my business profile</Text>
+                                    <Text style={styles.settingDesc}>
+                                        {pinToBusiness && selectedBusinessId
+                                            ? myBusinesses.find(b => b.id === selectedBusinessId)?.businessName || 'Selected'
+                                            : 'Showcase this on your business page'}
+                                    </Text>
+                                </View>
+                                <Switch
+                                    value={pinToBusiness}
+                                    onValueChange={(v) => {
+                                        setPinToBusiness(v);
+                                        if (v && !selectedBusinessId) {
+                                            if (myBusinesses.length === 1) setSelectedBusinessId(myBusinesses[0].id);
+                                            else setShowBusinessPicker(true);
+                                        }
+                                    }}
+                                    trackColor={{ false: '#f1f5f9', true: '#1d4ed8' }}
+                                    thumbColor="#fff"
+                                />
+                            </View>
+                            {pinToBusiness && myBusinesses.length > 1 && (
+                                <TouchableOpacity
+                                    style={[styles.settingRow, { paddingTop: 0 }]}
+                                    onPress={() => setShowBusinessPicker(true)}
+                                >
+                                    <View style={styles.settingInfo}>
+                                        <Text style={[styles.settingDesc, { color: '#1d4ed8', fontWeight: '700' }]}>Change business profile</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color="#1d4ed8" />
+                                </TouchableOpacity>
+                            )}
+                        </>
+                    )}
                 </View>
             </ScrollView>
 
@@ -390,6 +451,44 @@ export default function CreateFlareScreen() {
                     <View style={styles.previewInfo}>
                         <Text style={styles.previewTitle}>Preview Mode</Text>
                         <Text style={styles.previewSub}>Video with {selectedAudio ? "Custom Audio" : "Original Sound"}</Text>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Business Picker Modal */}
+            <Modal visible={showBusinessPicker} animationType="slide" transparent>
+                <View style={styles.pickerBackdrop}>
+                    <View style={styles.pickerSheet}>
+                        <View style={styles.pickerHandle} />
+                        <Text style={styles.pickerTitle}>Choose business profile</Text>
+                        <Text style={styles.pickerSub}>This flare will appear on the selected business profile.</Text>
+                        <ScrollView style={{ maxHeight: 300 }}>
+                            {myBusinesses.map(b => (
+                                <TouchableOpacity
+                                    key={b.id}
+                                    style={[styles.pickerItem, selectedBusinessId === b.id && styles.pickerItemActive]}
+                                    onPress={() => { setSelectedBusinessId(b.id); setShowBusinessPicker(false); }}
+                                >
+                                    <View style={styles.pickerLogo}>
+                                        {b.logo ? (
+                                            <Image source={{ uri: b.logo }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+                                        ) : (
+                                            <Ionicons name="business" size={20} color="#1d4ed8" />
+                                        )}
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.pickerItemName}>{b.businessName}</Text>
+                                        <Text style={styles.pickerItemCat}>{b.category}</Text>
+                                    </View>
+                                    {selectedBusinessId === b.id && (
+                                        <Ionicons name="checkmark-circle" size={22} color="#1d4ed8" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity style={styles.pickerClose} onPress={() => setShowBusinessPicker(false)}>
+                            <Text style={styles.pickerCloseText}>Done</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -556,6 +655,19 @@ const styles = StyleSheet.create({
     previewInfo: { position: 'absolute', bottom: 40, left: 20 },
     previewTitle: { color: '#fff', fontSize: 24, fontWeight: '900' },
     previewSub: { color: 'rgba(255,255,255,0.7)', fontSize: 16, marginTop: 5 },
+
+    pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
+    pickerHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#e2e8f0', alignSelf: 'center', marginBottom: 14 },
+    pickerTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+    pickerSub: { fontSize: 13, color: '#64748b', marginBottom: 16, fontWeight: '600' },
+    pickerItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, marginBottom: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
+    pickerItemActive: { backgroundColor: '#eff6ff', borderColor: '#1d4ed8' },
+    pickerLogo: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+    pickerItemName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
+    pickerItemCat: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
+    pickerClose: { marginTop: 12, backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+    pickerCloseText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
     uploadModalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
     uploadCard: { width: width * 0.85, backgroundColor: '#fff', borderRadius: 32, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },

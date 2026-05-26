@@ -42,7 +42,7 @@ export default function NotesScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -81,7 +81,7 @@ export default function NotesScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {loading ? (
-                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 20 }} />
+                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
                 ) : (
                     <>
                         {/* My Folders Section */}
@@ -89,8 +89,8 @@ export default function NotesScreen() {
                             <View style={styles.sectionHeader}>
                                 <Text style={styles.sectionTitle}>My Folders</Text>
                                 <TouchableOpacity style={styles.sortBtn} onPress={() => router.push({ pathname: '/create-folder', params: { type: 'NOTE' } })}>
-                                    <Ionicons name="add-circle" size={20} color="#1d4ed8" />
-                                    <Text style={[styles.sortText, { color: '#1d4ed8' }]}>New Folder</Text>
+                                    <Ionicons name="add-circle" size={20} color="#8b5cf6" />
+                                    <Text style={[styles.sortText, { color: '#8b5cf6' }]}>New Folder</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -169,37 +169,37 @@ export default function NotesScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    header: { padding: 20, paddingTop: 60, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    header: { padding: 20, paddingTop: 60, backgroundColor: '#F8F5FF' },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25 },
     headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
-    logoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
-    headerSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+    logoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C4B5DC' },
+    headerTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445' },
+    headerSub: { fontSize: 12, color: '#9A8EBA', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     
-    tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4 },
+    tabContainer: { flexDirection: 'row', backgroundColor: '#F4EEFC', borderRadius: 14, padding: 4 },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activeTab: { backgroundColor: '#1d4ed8' },
-    tabText: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
-    activeTabText: { color: '#fff' },
+    activeTab: { backgroundColor: '#8b5cf6' },
+    tabText: { fontSize: 14, fontWeight: '700', color: '#9A8EBA' },
+    activeTabText: { color: '#ffffff' },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#1d4ed8' },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#8b5cf6' },
     sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    sortText: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+    sortText: { fontSize: 13, color: '#7A6B9C', fontWeight: '600' },
 
-    folderCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    folderCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     folderIconBox: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     folderInfo: { flex: 1, marginLeft: 16 },
-    folderName: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    folderSub: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
-    sharedBy: { fontSize: 11, color: '#1d4ed8', marginTop: 2, fontWeight: '700' },
+    folderName: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    folderSub: { fontSize: 12, color: '#9A8EBA', marginTop: 4 },
+    sharedBy: { fontSize: 11, color: '#8b5cf6', marginTop: 2, fontWeight: '700' },
     folderRight: { alignItems: 'flex-end', gap: 8 },
-    folderDate: { fontSize: 11, color: '#64748b' },
+    folderDate: { fontSize: 11, color: '#7A6B9C' },
 
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    emptyText: { textAlign: 'center', color: '#9A8EBA', marginTop: 40, fontSize: 15, fontWeight: '600' },
 });

@@ -5,6 +5,8 @@ import { threadApi, API_URL } from '../services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import PollBuilderModal from '../components/PollBuilderModal';
+import { Video, ResizeMode } from 'expo-av';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import { io } from 'socket.io-client';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -190,9 +192,24 @@ export default function ThreadDetailScreen() {
                             <Text style={styles.title}>{thread.title}</Text>
                             <Text style={styles.content}>{thread.content}</Text>
 
-                            {thread.mediaUrls && thread.mediaUrls.map((url: string, i: number) => (
-                                <Image key={i} source={{ uri: url }} style={styles.media} resizeMode="cover" />
-                            ))}
+                            {thread.mediaUrls && thread.mediaUrls.map((url: string, i: number) => {
+                                const resolved = resolveMediaUrl(url) || url;
+                                const isVideo =
+                                    thread.mediaType === 'VIDEO' ||
+                                    /\.(mp4|mov|m4v|webm)(\?|$)/i.test(resolved) ||
+                                    resolved.includes('/videos/');
+                                return isVideo ? (
+                                    <Video
+                                        key={i}
+                                        source={{ uri: resolved, overrideFileExtension: 'mp4' } as any}
+                                        style={styles.media}
+                                        resizeMode={ResizeMode.COVER}
+                                        useNativeControls
+                                    />
+                                ) : (
+                                    <Image key={i} source={{ uri: resolved }} style={styles.media} resizeMode="cover" />
+                                );
+                            })}
 
                             {thread.poll && (
                                 <View style={styles.pollContainer}>

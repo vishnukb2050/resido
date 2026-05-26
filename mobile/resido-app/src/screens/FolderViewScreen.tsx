@@ -110,7 +110,7 @@ export default function FolderViewScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -146,7 +146,7 @@ export default function FolderViewScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
                 ) : files.length === 0 ? (
                     <Text style={styles.emptyText}>No documents here yet. Upload one!</Text>
                 ) : (
@@ -185,7 +185,7 @@ export default function FolderViewScreen() {
             <Modal transparent visible={uploading}>
                 <View style={styles.overlay}>
                     <View style={styles.progressBox}>
-                        <ActivityIndicator size="large" color="#1d4ed8" />
+                        <ActivityIndicator size="large" color="#8b5cf6" />
                         <Text style={styles.progressText}>Uploading... {Math.round(uploadProgress * 100)}%</Text>
                         <View style={styles.progressBarBg}>
                             <View style={[styles.progressBar, { width: `${uploadProgress * 100}%` }]} />
@@ -200,34 +200,34 @@ export default function FolderViewScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    header: { padding: 20, paddingTop: 60, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    header: { padding: 20, paddingTop: 60, backgroundColor: '#F8F5FF' },
     headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    headerSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    headerSub: { fontSize: 13, color: '#9A8EBA', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     
     searchSection: { marginTop: 8 },
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    searchInput: { flex: 1, marginLeft: 10, color: '#fff', fontSize: 15 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#C4B5DC' },
+    searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
     listContainer: { paddingHorizontal: 20, marginTop: 12 },
-    docCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    docCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     typeIconBox: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    typeText: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    typeText: { color: '#2D2445', fontSize: 11, fontWeight: '900' },
     docInfo: { flex: 1, marginLeft: 16 },
-    docName: { fontSize: 15, fontWeight: '800', color: '#fff' },
-    docSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
+    docName: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    docSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
 
-    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
+    emptyText: { textAlign: 'center', color: '#9A8EBA', marginTop: 40, fontSize: 15, fontWeight: '600' },
     fabContainer: { position: 'absolute', bottom: 0, right: 20 },
-    fabMini: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+    fabMini: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
 
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
-    progressBox: { backgroundColor: '#1e293b', padding: 30, borderRadius: 24, alignItems: 'center', width: width * 0.8 },
-    progressText: { color: '#fff', fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 15 },
-    progressBarBg: { width: '100%', height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
-    progressBar: { height: '100%', backgroundColor: '#1d4ed8' }
+    progressBox: { backgroundColor: '#ffffff', padding: 30, borderRadius: 24, alignItems: 'center', width: width * 0.8 },
+    progressText: { color: '#2D2445', fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 15 },
+    progressBarBg: { width: '100%', height: 6, backgroundColor: '#EFE9F8', borderRadius: 3, overflow: 'hidden' },
+    progressBar: { height: '100%', backgroundColor: '#8b5cf6' }
 });

@@ -105,7 +105,7 @@ export default function CreateCommunityScreen() {
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.heroSection}>
                         <View style={styles.heroIconBox}>
-                            <Ionicons name="business" size={40} color="#1d4ed8" />
+                            <Ionicons name="business" size={40} color="#8b5cf6" />
                         </View>
                         <Text style={styles.title}>Launch Community</Text>
                         <Text style={styles.subtitle}>Initialize your smart apartment ecosystem with administrative and resident access.</Text>
@@ -114,7 +114,7 @@ export default function CreateCommunityScreen() {
                     <View style={styles.form}>
                         {/* Basic Info */}
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="information-circle-outline" size={18} color="#1d4ed8" />
+                            <Ionicons name="information-circle-outline" size={18} color="#8b5cf6" />
                             <Text style={styles.sectionHeaderText}>Basic Information</Text>
                         </View>
 
@@ -197,25 +197,25 @@ export default function CreateCommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 60 },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     scrollContent: { padding: 24, paddingBottom: 60 },
     heroSection: { alignItems: 'center', marginBottom: 32 },
     heroIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-    title: { fontSize: 26, fontWeight: '900', color: '#fff', textAlign: 'center' },
-    subtitle: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 10, lineHeight: 22, paddingHorizontal: 20 },
+    title: { fontSize: 26, fontWeight: '900', color: '#2D2445', textAlign: 'center' },
+    subtitle: { fontSize: 14, color: '#9A8EBA', textAlign: 'center', marginTop: 10, lineHeight: 22, paddingHorizontal: 20 },
     form: { gap: 24 },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: -10 },
-    sectionHeaderText: { fontSize: 14, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
+    sectionHeaderText: { fontSize: 14, fontWeight: '800', color: '#2D2445', textTransform: 'uppercase', letterSpacing: 1 },
     inputGroup: { gap: 10 },
     photoPicker: {
         height: 160,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: '#ffffff',
         borderStyle: 'dashed',
         borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: '#C4B5DC',
         borderRadius: 16,
         overflow: 'hidden',
         alignItems: 'center',
@@ -223,23 +223,23 @@ const styles = StyleSheet.create({
     },
     photoPreview: { width: '100%', height: '100%' },
     photoPlaceholder: { alignItems: 'center' },
-    photoPlaceholderText: { fontSize: 14, color: '#64748b', marginTop: 8, fontWeight: '600' },
-    label: { fontSize: 12, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    photoPlaceholderText: { fontSize: 14, color: '#7A6B9C', marginTop: 8, fontWeight: '600' },
+    label: { fontSize: 12, color: '#7A6B9C', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
     input: {
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: '#ffffff',
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        color: '#fff',
+        borderColor: '#C4B5DC',
+        color: '#2D2445',
         padding: 16,
         fontSize: 16,
         fontWeight: '600'
     },
     textAreaContainer: { borderRadius: 16, overflow: 'hidden' },
     textArea: { height: 100, textAlignVertical: 'top' },
-    hint: { fontSize: 11, color: '#475569', fontWeight: '500', marginTop: -4 },
+    hint: { fontSize: 11, color: '#5B4B8A', fontWeight: '500', marginTop: -4 },
     submitBtn: {
-        backgroundColor: '#1d4ed8',
+        backgroundColor: '#8b5cf6',
         borderRadius: 20,
         padding: 20,
         alignItems: 'center',
@@ -250,5 +250,5 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
         elevation: 8
     },
-    submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
+    submitText: { color: '#ffffff', fontWeight: '900', fontSize: 16 }
 });

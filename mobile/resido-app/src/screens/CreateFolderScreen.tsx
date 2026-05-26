@@ -50,7 +50,7 @@ export default function CreateFolderScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -115,28 +115,28 @@ export default function CreateFolderScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { padding: 20, paddingTop: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
     
     scrollContent: { padding: 20, paddingTop: 10 },
     iconSection: { alignItems: 'center', marginTop: 20, marginBottom: 40 },
     largeFolderIcon: { width: 160, height: 160, borderRadius: 80, alignItems: 'center', justifyContent: 'center', position: 'relative' },
 
     inputGroup: { marginBottom: 24 },
-    inputLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', marginBottom: 12 },
-    input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 18, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    charCount: { alignSelf: 'flex-end', fontSize: 11, color: '#64748b', marginTop: 8 },
+    inputLabel: { fontSize: 13, fontWeight: '700', color: '#9A8EBA', marginBottom: 12 },
+    input: { backgroundColor: '#F4EEFC', borderRadius: 16, padding: 18, color: '#2D2445', fontSize: 15, borderWidth: 1, borderColor: '#C4B5DC' },
+    charCount: { alignSelf: 'flex-end', fontSize: 11, color: '#7A6B9C', marginTop: 8 },
 
-    sectionTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 16 },
+    sectionTitle: { fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 16 },
     colorRow: { flexDirection: 'row', gap: 12, marginBottom: 32 },
     colorCircle: { width: 32, height: 32, borderRadius: 16 },
     activeColor: { borderWidth: 3, borderColor: '#fff' },
 
-    permissionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    lockIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    permTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    permSub: { fontSize: 12, color: '#64748b', marginTop: 2 }
+    permissionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#D4C9E8' },
+    lockIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    permTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    permSub: { fontSize: 12, color: '#7A6B9C', marginTop: 2 }
 });

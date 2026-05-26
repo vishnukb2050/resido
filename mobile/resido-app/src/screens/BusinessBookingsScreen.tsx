@@ -300,7 +300,7 @@ export default function BusinessBookingsScreen() {
                 </View>
                 <Text style={styles.cardCategory}>{item.category}</Text>
                 {item.distanceKm != null ? (
-                    <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    <Text style={{ fontSize: 11, color: '#9A8EBA', marginTop: 2 }}>
                         {Number(item.distanceKm).toFixed(1)} km away
                     </Text>
                 ) : null}
@@ -317,7 +317,7 @@ export default function BusinessBookingsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header Navbar */}
             <View style={styles.header}>
@@ -466,64 +466,64 @@ export default function BusinessBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
     // Navbar
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
     scannerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(139, 92, 246, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(139, 92, 246, 0.3)' },
 
     // Glass tabs
-    tabsStrip: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', margin: 16, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    tabsStrip: { flexDirection: 'row', backgroundColor: '#ffffff', margin: 16, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: '#D4C9E8' },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10 },
     tabActive: { backgroundColor: '#8b5cf6' },
-    tabText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    tabTextActive: { color: '#fff' },
+    tabText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
+    tabTextActive: { color: '#2D2445' },
 
     listContent: { padding: 16, paddingBottom: 40 },
 
     // Booking Cards
-    bookingCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    bookingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.03)', paddingBottom: 12, marginBottom: 12 },
+    bookingCard: { backgroundColor: '#ffffff', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#D4C9E8' },
+    bookingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#EFE9F8', paddingBottom: 12, marginBottom: 12 },
     businessBadge: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
-    businessName: { fontSize: 15, fontWeight: '800', color: '#ffffff' },
+    businessName: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
     statusText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
 
     bookingDetails: { marginBottom: 16 },
-    slotName: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 12 },
+    slotName: { fontSize: 18, fontWeight: '900', color: '#2D2445', marginBottom: 12 },
     metaRow: { flexDirection: 'row', gap: 24, marginBottom: 12 },
     metaCol: { flex: 1 },
-    metaLabel: { fontSize: 10, color: '#64748b', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
-    metaVal: { fontSize: 13, color: '#cbd5e1', fontWeight: '700' },
+    metaLabel: { fontSize: 10, color: '#7A6B9C', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
+    metaVal: { fontSize: 13, color: '#7A6B9C', fontWeight: '700' },
     notesBox: { marginTop: 12, backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.02)' },
     notesLabel: { fontSize: 10, color: '#a084ca', fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
-    notesText: { fontSize: 12, color: '#94a3b8', lineHeight: 16 },
+    notesText: { fontSize: 12, color: '#9A8EBA', lineHeight: 16 },
 
-    cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.03)', paddingTop: 12, marginTop: 4 },
+    cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: '#EFE9F8', paddingTop: 12, marginTop: 4 },
     cancelBtnText: { color: '#ef4444', fontSize: 13, fontWeight: '800' },
 
     // Profile Cards
-    profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    logoContainer: { width: 52, height: 52, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
+    profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
+    logoContainer: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#F4EEFC', overflow: 'hidden' },
     logo: { width: '100%', height: '100%' },
     logoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     textDetails: { flex: 1, marginLeft: 16, marginRight: 8 },
-    cardName: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    cardCategory: { fontSize: 13, color: '#94a3b8', marginTop: 2, marginBottom: 6 },
+    cardName: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    cardCategory: { fontSize: 13, color: '#9A8EBA', marginTop: 2, marginBottom: 6 },
     bookNowBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
     bookNowText: { color: '#10b981', fontSize: 10, fontWeight: '900' },
 
     // Empty States
     emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30, marginTop: 40 },
-    emptyTitle: { fontSize: 20, fontWeight: '900', color: '#fff', marginBottom: 8, marginTop: 16 },
-    emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', lineHeight: 22, marginBottom: 30 },
+    emptyTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445', marginBottom: 8, marginTop: 16 },
+    emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', lineHeight: 22, marginBottom: 30 },
     exploreBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    exploreBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    exploreBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 14 },
 
     // Search bar
-    searchSection: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderLeftWidth: 1, borderRightWidth: 1, borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginHorizontal: 16, marginTop: 8, marginBottom: 8, borderRadius: 14, paddingHorizontal: 16, height: 50 },
-    searchInput: { flex: 1, marginLeft: 12, color: '#fff', fontSize: 14, fontWeight: '600' }
+    searchSection: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderLeftWidth: 1, borderRightWidth: 1, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#D4C9E8', marginHorizontal: 16, marginTop: 8, marginBottom: 8, borderRadius: 14, paddingHorizontal: 16, height: 50 },
+    searchInput: { flex: 1, marginLeft: 12, color: '#2D2445', fontSize: 14, fontWeight: '600' }
 });

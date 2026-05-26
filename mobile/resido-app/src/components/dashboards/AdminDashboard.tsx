@@ -186,7 +186,7 @@ export default function AdminDashboard() {
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Community Finance</Text>
                     <View style={styles.featureGrid}>
-                        <FeatureCard icon="cash" title="Maintenance" color="#fff" bg="#0ea5e9" onPress={() => router.push('/admin-maintenance')} />
+                        <FeatureCard icon="cash" title="Community Payments" color="#fff" bg="#0ea5e9" onPress={() => router.push('/admin-maintenance')} />
                         <FeatureCard icon="trending-up" title="Comm. Income" color="#fff" bg="#10b981" onPress={() => router.push('/admin-finance')} />
                         <FeatureCard icon="trending-down" title="Comm. Expense" color="#fff" bg="#f43f5e" onPress={() => router.push('/admin-finance')} />
                         <FeatureCard icon="pie-chart" title="Finance Report" color="#fff" bg="#3b82f6" onPress={() => router.push('/admin-finance')} />

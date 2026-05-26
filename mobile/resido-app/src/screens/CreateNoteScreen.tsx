@@ -50,7 +50,7 @@ export default function CreateNoteScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -111,21 +111,21 @@ export default function CreateNoteScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { padding: 20, paddingTop: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     
     scrollContent: { padding: 20, paddingTop: 10 },
-    titleInput: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 20, marginTop: 10, lineHeight: 32 },
+    titleInput: { fontSize: 24, fontWeight: '900', color: '#2D2445', marginBottom: 20, marginTop: 10, lineHeight: 32 },
     
-    folderSelector: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    folderSelector: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#F4EEFC', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, marginBottom: 30, borderWidth: 1, borderColor: '#C4B5DC' },
     folderIconBox: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-    folderName: { fontSize: 14, fontWeight: '700', color: '#fff', marginRight: 8 },
+    folderName: { fontSize: 14, fontWeight: '700', color: '#2D2445', marginRight: 8 },
 
-    bodyInput: { fontSize: 16, color: '#94a3b8', lineHeight: 26, minHeight: 400, textAlignVertical: 'top' },
+    bodyInput: { fontSize: 16, color: '#9A8EBA', lineHeight: 26, minHeight: 400, textAlignVertical: 'top' },
 
-    toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 16, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', backgroundColor: '#000000' },
+    toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 16, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: '#EFE9F8', backgroundColor: '#F8F5FF' },
     toolBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }
 });

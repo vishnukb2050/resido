@@ -43,7 +43,7 @@ export default function StaffContactsScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={staff}
@@ -82,20 +82,20 @@ export default function StaffContactsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20 },
-    staffCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 18, borderRadius: 24, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    staffCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 18, borderRadius: 24, marginBottom: 15, borderWidth: 1, borderColor: '#D4C9E8' },
     staffImg: { width: 64, height: 64, borderRadius: 22 },
     staffInfo: { flex: 1, marginLeft: 15 },
-    staffName: { fontSize: 17, fontWeight: '800', color: '#fff' },
-    staffRole: { fontSize: 11, color: '#1d4ed8', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
-    staffDesc: { fontSize: 12, color: '#64748b', marginTop: 4, fontWeight: '600' },
+    staffName: { fontSize: 17, fontWeight: '800', color: '#2D2445' },
+    staffRole: { fontSize: 11, color: '#8b5cf6', fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
+    staffDesc: { fontSize: 12, color: '#7A6B9C', marginTop: 4, fontWeight: '600' },
     callBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
     disabledBtn: { backgroundColor: '#334155' },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
-    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
-    emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginTop: 20 },
+    emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginTop: 10 },
 });

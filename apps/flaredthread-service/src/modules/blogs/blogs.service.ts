@@ -15,13 +15,50 @@ export class BlogsService {
         private flareGateway: FlareGateway
     ) {}
 
-    async listBlogs(type?: 'THREAD' | 'FLARE', userId?: string, feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC', followingIds: string[] = [], tenantId?: string, category?: string) {
+    /**
+     * Resolves a stored media value to a fully-qualified, browser-loadable URL.
+     * Accepts:
+     *   - Fully-qualified https URLs (returned unchanged)
+     *   - Local file/content URIs (returned unchanged — helpful for previews)
+     *   - Bare R2 keys ("tenants/...", "flares/...", "resido/...") → prefixed with the
+     *     configured public R2 base so old rows without absolute URLs still load.
+     */
+    private resolveMediaValue(value?: string | null): string | null {
+        if (!value) return null;
+        const trimmed = String(value).trim();
+        if (!trimmed) return null;
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) return trimmed;
+        return this.storage.buildPublicUrl(trimmed);
+    }
+
+    private decorateMedia<T extends { mediaUrls?: string[] | null; audioUrl?: string | null }>(blog: T): T {
+        const resolvedMedia = (blog.mediaUrls || []).map(u => this.resolveMediaValue(u)).filter(Boolean) as string[];
+        const resolvedAudio = blog.audioUrl ? this.resolveMediaValue(blog.audioUrl) : null;
+        return { ...blog, mediaUrls: resolvedMedia, audioUrl: resolvedAudio } as T;
+    }
+
+    async listBlogs(
+        type?: 'THREAD' | 'FLARE',
+        userId?: string,
+        feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC',
+        followingIds: string[] = [],
+        tenantId?: string,
+        category?: string,
+        businessProfileId?: string,
+    ) {
         const where: any = {
             isActive: true,
         };
 
         if (type) where.type = type;
         if (category) where.category = category;
+        if (businessProfileId) {
+            // Cross-tenant: a business profile page must show all its pinned posts
+            // regardless of which workspace the author was in.
+            where.businessProfileId = businessProfileId;
+            where.__ignoreTenant = true;
+        }
 
         if (feedType === 'MY') {
             where.authorId = userId;
@@ -66,7 +103,7 @@ export class BlogsService {
             }
         });
 
-        if (!userId) return blogs;
+        if (!userId) return blogs.map(b => this.decorateMedia(b));
 
         // Fetch user's interactions (likes) for these blogs
         const blogIds = blogs.map(b => b.id);
@@ -83,7 +120,7 @@ export class BlogsService {
         const savedBlogIds = new Set(interactions.filter((i: any) => i.type === 'SAVE').map((i: any) => i.blogId));
         const resharedBlogIds = new Set(interactions.filter((i: any) => i.type === 'RESHARE').map((i: any) => i.blogId));
 
-        return blogs.map(blog => ({
+        return blogs.map(blog => this.decorateMedia({
             ...blog,
             liked: likedBlogIds.has(blog.id),
             saved: savedBlogIds.has(blog.id),
@@ -128,6 +165,8 @@ export class BlogsService {
             hashtags: data.hashtags || [],
             visibility: data.visibility || 'PUBLIC',
             targetCommunities: data.targetCommunities || [],
+            audioUrl: data.audioUrl || null,
+            businessProfileId: data.businessProfileId || null,
             commentsEnabled: data.commentsEnabled !== undefined ? data.commentsEnabled : true
         };
 
@@ -174,8 +213,8 @@ export class BlogsService {
     }
 
     async getBlog(id: string) {
-        return this.prisma.reader.blog.findUnique({ 
-            where: { id },
+        const blog = await (this.prisma.reader as any).blog.findFirst({
+            where: { id, __ignoreTenant: true },
             include: {
                 poll: {
                     include: {
@@ -190,6 +229,8 @@ export class BlogsService {
                 }
             }
         });
+        if (!blog) return null;
+        return this.decorateMedia(blog);
     }
 
     async votePoll(pollId: string, optionId: string, userId: string, tenantId: string) {

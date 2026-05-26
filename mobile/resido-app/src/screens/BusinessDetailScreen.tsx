@@ -6,9 +6,11 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { businessApi } from '../services/api';
+import { businessApi, threadApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import * as SecureStore from 'expo-secure-store';
+import { Video, ResizeMode } from 'expo-av';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
 const SECURE_STORE_KEY = 'resido_saved_businesses';
@@ -26,6 +28,8 @@ export default function BusinessDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [slots, setSlots] = useState<any[]>([]);
     const [slotsLoading, setSlotsLoading] = useState(false);
+    const [businessPosts, setBusinessPosts] = useState<any[]>([]);
+    const [postsLoading, setPostsLoading] = useState(false);
     
     // Save state
     const [isSaved, setIsSaved] = useState(false);
@@ -67,6 +71,7 @@ export default function BusinessDetailScreen() {
             fetchProfileDetail();
             checkSavedStatus();
             generateDatesList();
+            fetchBusinessPosts();
         }
     }, [id]);
 
@@ -118,6 +123,19 @@ export default function BusinessDetailScreen() {
         }
         setDatesList(dates);
         setSelectedDate(dates[0].fullDate); // Default to today
+    };
+
+    const fetchBusinessPosts = async () => {
+        try {
+            setPostsLoading(true);
+            const { data } = await threadApi.getBusinessPosts(id as string);
+            setBusinessPosts(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Failed to load business posts:', error);
+            setBusinessPosts([]);
+        } finally {
+            setPostsLoading(false);
+        }
     };
 
     const fetchDateSlots = async () => {
@@ -236,7 +254,7 @@ export default function BusinessDetailScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header Navbar */}
             <View style={styles.navBar}>
@@ -261,24 +279,24 @@ export default function BusinessDetailScreen() {
                     gap: 10,
                     paddingHorizontal: 16,
                     paddingVertical: 10,
-                    backgroundColor: '#0f172a',
+                    backgroundColor: '#ffffff',
                     borderBottomWidth: 1,
-                    borderBottomColor: 'rgba(255,255,255,0.07)'
+                    borderBottomColor: '#EFE9F8'
                 }}>
                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
-                        <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>Owner View</Text>
+                        <Text style={{ color: '#9A8EBA', fontSize: 11, fontWeight: '700' }}>Owner View</Text>
                     </View>
                     <TouchableOpacity
                         style={{
                             flexDirection: 'row', alignItems: 'center', gap: 6,
                             backgroundColor: 'rgba(29, 78, 216, 0.15)',
                             paddingHorizontal: 14, paddingVertical: 8,
-                            borderRadius: 20, borderWidth: 1, borderColor: '#1d4ed8'
+                            borderRadius: 20, borderWidth: 1, borderColor: '#8b5cf6'
                         }}
                         onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id } })}
                     >
-                        <Feather name="edit-3" size={14} color="#60a5fa" />
+                        <Feather name="edit-3" size={14} color="#a78bfa" />
                         <Text style={{ color: '#60a5fa', fontSize: 12, fontWeight: '800' }}>Edit Profile</Text>
                     </TouchableOpacity>
                     {profile.slots !== undefined && (
@@ -316,7 +334,7 @@ export default function BusinessDetailScreen() {
                 {/* Hero / Cover */}
                 <View style={styles.heroSection}>
                     {profile.logo ? (
-                        <Image source={{ uri: profile.logo }} style={styles.coverImage} />
+                        <Image source={{ uri: resolveMediaUrl(profile.logo) || profile.logo }} style={styles.coverImage} />
                     ) : (
                         <View style={styles.placeholderCover}>
                             <Ionicons name="business" size={60} color="#a084ca" />
@@ -415,6 +433,90 @@ export default function BusinessDetailScreen() {
                         </ScrollView>
                     </View>
                 ) : null}
+
+                {/* Business posts (flares + threads pinned to this profile) */}
+                {(postsLoading || businessPosts.length > 0) && (
+                    <View style={styles.section}>
+                        <View style={styles.bookingHeaderRow}>
+                            <Text style={styles.sectionHeaderTitle}>Recent Posts</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Ionicons name="albums-outline" size={16} color="#a084ca" />
+                                <Text style={{ color: '#a084ca', fontSize: 12, fontWeight: '800' }}>{businessPosts.length}</Text>
+                            </View>
+                        </View>
+                        {postsLoading ? (
+                            <View style={styles.slotLoaderBox}>
+                                <ActivityIndicator size="small" color="#a084ca" />
+                                <Text style={styles.slotLoaderText}>Loading posts...</Text>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.galleryScroll}
+                            >
+                                {businessPosts.map((post: any) => {
+                                    const firstMedia = resolveMediaUrl(post.mediaUrls?.[0]);
+                                    const isFlare = post.type === 'FLARE';
+                                    const isVideo =
+                                        post.mediaType === 'VIDEO' ||
+                                        (firstMedia && (/\.(mp4|mov|m4v|webm)(\?|$)/i.test(firstMedia) || firstMedia.includes('/videos/')));
+                                    return (
+                                        <TouchableOpacity
+                                            key={post.id}
+                                            style={styles.galleryCard}
+                                            activeOpacity={0.85}
+                                            onPress={() => {
+                                                if (isFlare) {
+                                                    router.push({ pathname: '/flare-player', params: { initialId: post.id, feedType: 'PUBLIC' } });
+                                                } else {
+                                                    router.push(`/thread/${post.id}` as any);
+                                                }
+                                            }}
+                                        >
+                                            <View style={styles.galleryMediaBox}>
+                                                {firstMedia ? (
+                                                    isVideo ? (
+                                                        <Video
+                                                            source={{ uri: firstMedia, overrideFileExtension: 'mp4' } as any}
+                                                            style={styles.galleryMedia}
+                                                            resizeMode={ResizeMode.COVER}
+                                                            isMuted
+                                                            shouldPlay={false}
+                                                            useNativeControls={false}
+                                                        />
+                                                    ) : (
+                                                        <Image source={{ uri: firstMedia }} style={styles.galleryMedia} />
+                                                    )
+                                                ) : (
+                                                    <View style={styles.imagePlaceholder}>
+                                                        <Ionicons name={isFlare ? 'play-circle' : 'chatbubble-ellipses-outline'} size={36} color="#475569" />
+                                                    </View>
+                                                )}
+                                                <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: isFlare ? '#ef4444' : '#1d4ed8', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                                                    <Text style={{ color: '#2D2445', fontSize: 10, fontWeight: '900' }}>
+                                                        {isFlare ? 'FLARE' : 'THREAD'}
+                                                    </Text>
+                                                </View>
+                                                {isVideo && (
+                                                    <View style={{ position: 'absolute', bottom: 8, right: 8 }}>
+                                                        <Ionicons name="play-circle" size={28} color="#fff" />
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <View style={styles.galleryMeta}>
+                                                <Text style={styles.galleryItemTitle} numberOfLines={1}>{post.title || post.content || 'Post'}</Text>
+                                                {post.content && post.title ? (
+                                                    <Text style={styles.galleryItemDesc} numberOfLines={2}>{post.content}</Text>
+                                                ) : null}
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+                        )}
+                    </View>
+                )}
 
                 {/* Slots Strip Calendar & Booking */}
                 <View 
@@ -549,7 +651,7 @@ export default function BusinessDetailScreen() {
                                 </Text>
 
                                 {selectedSlot && parseSlotDescription(selectedSlot.description).rules ? (
-                                    <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' }}>
+                                    <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#EFE9F8' }}>
                                         <Text style={[styles.summaryLabel, { color: '#fbbf24' }]}>Important Rules</Text>
                                         <Text style={{ fontSize: 12, color: '#fbbf24', fontWeight: '600' }}>
                                             {parseSlotDescription(selectedSlot.description).rules}
@@ -658,20 +760,20 @@ export default function BusinessDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    loadingContainer: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
-    loadingText: { color: '#94a3b8', fontSize: 15, marginTop: 12, fontWeight: '600' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    loadingContainer: { flex: 1, backgroundColor: '#F8F5FF', justifyContent: 'center', alignItems: 'center' },
+    loadingText: { color: '#9A8EBA', fontSize: 15, marginTop: 12, fontWeight: '600' },
     
-    errorContainer: { flex: 1, backgroundColor: '#000000' },
+    errorContainer: { flex: 1, backgroundColor: '#F8F5FF' },
     errorContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-    errorTitle: { color: '#ffffff', fontSize: 18, fontWeight: '800', marginTop: 16, marginBottom: 24 },
-    backBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    backBtnText: { color: '#fff', fontWeight: '800' },
+    errorTitle: { color: '#2D2445', fontSize: 18, fontWeight: '800', marginTop: 16, marginBottom: 24 },
+    backBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+    backBtnText: { color: '#ffffff', fontWeight: '800' },
 
     // Navbar
-    navBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    navBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    navTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center', marginHorizontal: 12 },
+    navBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    navBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    navTitle: { flex: 1, color: '#2D2445', fontSize: 18, fontWeight: '800', textAlign: 'center', marginHorizontal: 12 },
 
     scrollContent: { paddingBottom: 40 },
 
@@ -682,14 +784,14 @@ const styles = StyleSheet.create({
     placeholderCoverText: { color: '#a084ca', fontSize: 18, fontWeight: '900', marginTop: 8 },
     heroOverlay: { position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', gap: 10 },
     categoryBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#8b5cf6' },
-    categoryBadgeText: { color: '#fff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+    categoryBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
     verifiedBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#10b981', flexDirection: 'row', alignItems: 'center', gap: 4 },
-    verifiedText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+    verifiedText: { color: '#ffffff', fontSize: 12, fontWeight: '900' },
 
     // Info section
-    infoSection: { padding: 20, backgroundColor: 'rgba(255,255,255,0.02)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    businessTitle: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 12 },
-    aboutText: { fontSize: 15, color: '#cbd5e1', lineHeight: 22, marginBottom: 20 },
+    infoSection: { padding: 20, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    businessTitle: { fontSize: 26, fontWeight: '900', color: '#2D2445', marginBottom: 12 },
+    aboutText: { fontSize: 15, color: '#7A6B9C', lineHeight: 22, marginBottom: 20 },
     topBookBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -712,80 +814,80 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     specsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    specCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    specVal: { fontSize: 13, color: '#94a3b8', fontWeight: '700' },
+    specCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#D4C9E8' },
+    specVal: { fontSize: 13, color: '#9A8EBA', fontWeight: '700' },
 
     // Dynamic step 2 Showcase Gallery
-    section: { paddingVertical: 24, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    sectionHeaderTitle: { fontSize: 18, fontWeight: '900', color: '#ffffff', marginBottom: 16 },
+    section: { paddingVertical: 24, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    sectionHeaderTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445', marginBottom: 16 },
     galleryScroll: { gap: 16 },
-    galleryCard: { width: 200, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    galleryMediaBox: { width: '100%', height: 120, backgroundColor: '#111827' },
+    galleryCard: { width: 200, backgroundColor: '#ffffff', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#D4C9E8' },
+    galleryMediaBox: { width: '100%', height: 120, backgroundColor: '#ffffff' },
     galleryMedia: { width: '100%', height: '100%', resizeMode: 'cover' },
     videoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     videoText: { color: '#a084ca', fontSize: 11, marginTop: 4, fontWeight: '800' },
     imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     galleryMeta: { padding: 12 },
-    galleryItemTitle: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
-    galleryItemDesc: { color: '#94a3b8', fontSize: 11, marginTop: 4, lineHeight: 15 },
+    galleryItemTitle: { color: '#2D2445', fontSize: 14, fontWeight: '800' },
+    galleryItemDesc: { color: '#9A8EBA', fontSize: 11, marginTop: 4, lineHeight: 15 },
 
     // Strip Calendar Layout
     bookingHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
     dateStripScroll: { gap: 10, paddingBottom: 10 },
-    dateCard: { width: 62, height: 95, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    dateCard: { width: 62, height: 95, borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
     dateCardActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
-    dateWkday: { fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase' },
-    dateWkdayActive: { color: '#fff' },
-    dateNum: { fontSize: 20, fontWeight: '900', color: '#fff', marginVertical: 4 },
-    dateNumActive: { color: '#fff' },
-    dateMonth: { fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase' },
-    dateMonthActive: { color: '#fff' },
+    dateWkday: { fontSize: 10, fontWeight: '800', color: '#9A8EBA', textTransform: 'uppercase' },
+    dateWkdayActive: { color: '#2D2445' },
+    dateNum: { fontSize: 20, fontWeight: '900', color: '#2D2445', marginVertical: 4 },
+    dateNumActive: { color: '#2D2445' },
+    dateMonth: { fontSize: 10, fontWeight: '800', color: '#9A8EBA', textTransform: 'uppercase' },
+    dateMonthActive: { color: '#2D2445' },
 
     slotSubTitle: { color: '#a084ca', fontSize: 14, fontWeight: '800', marginTop: 16, marginBottom: 16 },
     slotLoaderBox: { padding: 30, alignItems: 'center', justifyContent: 'center' },
-    slotLoaderText: { color: '#64748b', fontSize: 12, marginTop: 8 },
-    emptySlotsBox: { padding: 30, backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    emptySlotsText: { color: '#64748b', fontSize: 13, fontWeight: '600' },
+    slotLoaderText: { color: '#7A6B9C', fontSize: 12, marginTop: 8 },
+    emptySlotsBox: { padding: 30, backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', justifyContent: 'center' },
+    emptySlotsText: { color: '#7A6B9C', fontSize: 13, fontWeight: '600' },
 
     slotsContainer: { gap: 12 },
-    slotItemRow: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16 },
+    slotItemRow: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', borderRadius: 16, padding: 16 },
     slotInfoCol: { marginBottom: 12 },
-    slotItemName: { fontSize: 15, fontWeight: '800', color: '#fff' },
-    slotItemDesc: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+    slotItemName: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    slotItemDesc: { fontSize: 12, color: '#9A8EBA', marginTop: 2 },
     intervalsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    intervalBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-    intervalText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+    intervalBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+    intervalText: { color: '#2D2445', fontSize: 12, fontWeight: '800' },
     noIntervals: { color: '#ef4444', fontSize: 12, fontWeight: '700' },
 
     // Modal 1 booking form styles
     modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalCard: { backgroundColor: '#111827', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%', padding: 20 },
-    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    modalHeaderTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    modalCard: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%', padding: 20 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    modalHeaderTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     modalFormContent: { paddingTop: 20, paddingBottom: 40 },
 
-    summaryBox: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    summaryLabel: { fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
-    summaryVal: { fontSize: 15, color: '#fff', fontWeight: '800', marginBottom: 12 },
+    summaryBox: { backgroundColor: '#ffffff', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#D4C9E8' },
+    summaryLabel: { fontSize: 11, color: '#9A8EBA', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
+    summaryVal: { fontSize: 15, color: '#2D2445', fontWeight: '800', marginBottom: 12 },
 
-    formLabel: { fontSize: 14, fontWeight: '800', color: '#e2e8f0', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-    formInput: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 14, color: '#fff', fontSize: 15, fontWeight: '600', marginBottom: 20 },
+    formLabel: { fontSize: 14, fontWeight: '800', color: '#9A8EBA', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+    formInput: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', borderRadius: 12, padding: 14, color: '#2D2445', fontSize: 15, fontWeight: '600', marginBottom: 20 },
     formInputArea: { height: 80, textAlignVertical: 'top' },
 
     guestModifierRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
-    guestBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    guestCountVal: { fontSize: 18, fontWeight: '900', color: '#fff', minWidth: 20, textAlign: 'center' },
-    maxGuestText: { color: '#64748b', fontSize: 12, fontWeight: '700', marginLeft: 10 },
+    guestBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#EFE9F8', alignItems: 'center', justifyContent: 'center' },
+    guestCountVal: { fontSize: 18, fontWeight: '900', color: '#2D2445', minWidth: 20, textAlign: 'center' },
+    maxGuestText: { color: '#7A6B9C', fontSize: 12, fontWeight: '700', marginLeft: 10 },
 
     bookingConfirmBtn: { backgroundColor: '#8b5cf6', paddingVertical: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-    bookingConfirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    bookingConfirmBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
 
     // Modal 2 success screen styles
     successBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' },
-    successCard: { width: '85%', padding: 30, backgroundColor: '#111827', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
+    successCard: { width: '85%', padding: 30, backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center' },
     successCheckCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(16, 185, 129, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#10b981', marginBottom: 24 },
-    successTitle: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 12 },
-    successSub: { fontSize: 15, color: '#94a3b8', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
+    successTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445', marginBottom: 12 },
+    successSub: { fontSize: 15, color: '#9A8EBA', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
     successDoneBtn: { width: '100%', backgroundColor: '#10b981', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-    successDoneBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' }
+    successDoneBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '800' }
 });

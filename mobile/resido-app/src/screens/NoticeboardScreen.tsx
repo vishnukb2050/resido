@@ -34,7 +34,7 @@ function NoticeImage({ uri, style }: { uri: string; style?: any }) {
                     width: '100%',
                     aspectRatio: aspect,
                     borderRadius: 16,
-                    backgroundColor: 'rgba(255,255,255,0.04)',
+                    backgroundColor: '#ffffff',
                 },
                 style,
             ]}
@@ -169,7 +169,7 @@ export default function NoticeboardScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={notices}
@@ -248,7 +248,7 @@ export default function NoticeboardScreen() {
                             </View>
                         ) : (
                             <TouchableOpacity style={styles.modalPhotoPicker} onPress={handlePickPhoto} disabled={posting}>
-                                <Ionicons name="image-outline" size={22} color="#1d4ed8" />
+                                <Ionicons name="image-outline" size={22} color="#8b5cf6" />
                                 <Text style={styles.modalPhotoPickerText}>Attach Photo</Text>
                             </TouchableOpacity>
                         )}
@@ -273,41 +273,41 @@ export default function NoticeboardScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20 },
-    noticeCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, marginBottom: 16, overflow: 'hidden', flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    cardAccent: { width: 6, backgroundColor: '#1d4ed8' },
+    noticeCard: { backgroundColor: '#ffffff', borderRadius: 24, marginBottom: 16, overflow: 'hidden', flexDirection: 'row', borderWidth: 1, borderColor: '#D4C9E8' },
+    cardAccent: { width: 6, backgroundColor: '#8b5cf6' },
     cardContent: { flex: 1, padding: 20 },
-    noticeTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 8 },
-    noticeBody: { fontSize: 14, color: '#94a3b8', lineHeight: 22, marginBottom: 15 },
-    noticeImage: { width: '100%', borderRadius: 16, marginVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 12 },
-    dateText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+    noticeTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445', marginBottom: 8 },
+    noticeBody: { fontSize: 14, color: '#9A8EBA', lineHeight: 22, marginBottom: 15 },
+    noticeImage: { width: '100%', borderRadius: 16, marginVertical: 12, borderWidth: 1, borderColor: '#D4C9E8' },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#EFE9F8', paddingTop: 12 },
+    dateText: { fontSize: 12, color: '#7A6B9C', fontWeight: '600' },
     footerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)' },
-    shareText: { color: '#94a3b8', fontSize: 11, fontWeight: '700' },
+    shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#ffffff' },
+    shareText: { color: '#9A8EBA', fontSize: 11, fontWeight: '700' },
     tag: { backgroundColor: 'rgba(37, 99, 235, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    tagText: { color: '#1d4ed8', fontSize: 10, fontWeight: '900' },
+    tagText: { color: '#8b5cf6', fontSize: 10, fontWeight: '900' },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
-    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
-    emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginTop: 20 },
+    emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginTop: 10 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 },
-    modalContent: { backgroundColor: '#1e293b', borderRadius: 28, padding: 24 },
-    modalTitle: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 20, textAlign: 'center' },
-    input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600', marginBottom: 15 },
+    modalContent: { backgroundColor: '#ffffff', borderRadius: 28, padding: 24 },
+    modalTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445', marginBottom: 20, textAlign: 'center' },
+    input: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#C4B5DC', color: '#2D2445', padding: 18, fontSize: 16, fontWeight: '600', marginBottom: 15 },
     textArea: { height: 120, textAlignVertical: 'top', marginBottom: 15 },
     modalPhotoPicker: { height: 50, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1.5, borderColor: 'rgba(29, 78, 216, 0.4)', backgroundColor: 'rgba(255, 255, 255, 0.01)', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 20 },
-    modalPhotoPickerText: { color: '#94a3b8', fontSize: 14, fontWeight: '700' },
-    modalPhotoContainer: { borderRadius: 16, overflow: 'hidden', position: 'relative', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 20, maxHeight: 280 },
+    modalPhotoPickerText: { color: '#9A8EBA', fontSize: 14, fontWeight: '700' },
+    modalPhotoContainer: { borderRadius: 16, overflow: 'hidden', position: 'relative', borderWidth: 1, borderColor: '#C4B5DC', marginBottom: 20, maxHeight: 280 },
     modalPhotoPreview: { width: '100%' },
     modalRemovePhotoBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(239, 68, 68, 0.85)', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     modalActions: { flexDirection: 'row', gap: 15 },
     cancelBtn: { flex: 1, padding: 18, alignItems: 'center' },
-    cancelText: { color: '#64748b', fontWeight: '700' },
-    submitBtn: { flex: 2, backgroundColor: '#1d4ed8', borderRadius: 16, padding: 18, alignItems: 'center' },
-    submitText: { color: '#fff', fontWeight: '900' }
+    cancelText: { color: '#7A6B9C', fontWeight: '700' },
+    submitBtn: { flex: 2, backgroundColor: '#8b5cf6', borderRadius: 16, padding: 18, alignItems: 'center' },
+    submitText: { color: '#ffffff', fontWeight: '900' }
 });

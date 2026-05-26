@@ -839,7 +839,7 @@ export default function CreateBusinessProfileScreen() {
                         <Image source={{ uri: formData.logo }} style={styles.logoImage} />
                     ) : (
                         <>
-                            <Ionicons name="camera" size={24} color="#1d4ed8" />
+                            <Ionicons name="camera" size={24} color="#8b5cf6" />
                             <Text style={styles.logoText}>Add Logo</Text>
                             <Text style={styles.logoSubtext}>JPG, PNG up to 5MB</Text>
                         </>
@@ -859,7 +859,7 @@ export default function CreateBusinessProfileScreen() {
                             }}
                             onBlur={() => validateBusinessName(formData.businessName)}
                         />
-                        {nameChecking && <Text style={{ fontSize: 11, color: '#3b82f6', marginTop: 4 }}>Checking availability...</Text>}
+                        {nameChecking && <Text style={{ fontSize: 11, color: '#a78bfa', marginTop: 4 }}>Checking availability...</Text>}
                         {nameError ? <Text style={{ fontSize: 11, color: '#ef4444', marginTop: 4, fontWeight: '600' }}>{nameError}</Text> : null}
                     </View>
                     <View style={styles.inputGroup}>
@@ -868,7 +868,7 @@ export default function CreateBusinessProfileScreen() {
                             style={styles.pickerContainer}
                             onPress={() => setFormData({...formData, showCategoryModal: true})}
                         >
-                            <Text style={[styles.pickerValue, !formData.category && { color: '#94a3b8' }]}>
+                            <Text style={[styles.pickerValue, !formData.category && { color: '#9A8EBA' }]}>
                                 Select categories...
                             </Text>
                             <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
@@ -888,7 +888,7 @@ export default function CreateBusinessProfileScreen() {
                                                 setFormData({ ...formData, category: updated });
                                             }}
                                         >
-                                            <Ionicons name="close-circle" size={16} color="#60a5fa" />
+                                            <Ionicons name="close-circle" size={16} color="#a78bfa" />
                                         </TouchableOpacity>
                                     </View>
                                 ))}
@@ -944,7 +944,7 @@ export default function CreateBusinessProfileScreen() {
                         style={styles.pickerContainer}
                         onPress={() => setFormData({...formData, showExpModal: true})}
                     >
-                        <Text style={[styles.pickerValue, !formData.experience && { color: '#94a3b8' }]}>
+                        <Text style={[styles.pickerValue, !formData.experience && { color: '#9A8EBA' }]}>
                             {formData.experience || 'Select experience'}
                         </Text>
                         <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
@@ -956,7 +956,7 @@ export default function CreateBusinessProfileScreen() {
                         style={styles.pickerContainer}
                         onPress={() => setFormData({...formData, showTypeModal: true})}
                     >
-                        <Text style={[styles.pickerValue, !formData.businessType && { color: '#94a3b8' }]}>
+                        <Text style={[styles.pickerValue, !formData.businessType && { color: '#9A8EBA' }]}>
                             {formData.businessType || 'Select type'}
                         </Text>
                         <Ionicons name="chevron-down" size={18} color="#94a3b8" style={styles.pickerIcon} />
@@ -1045,23 +1045,23 @@ export default function CreateBusinessProfileScreen() {
                 </Text>
 
                 {formData.services.length === 0 ? (
-                    <View style={{ padding: 40, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                    <View style={{ padding: 40, backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
                         <Ionicons name="images-outline" size={48} color="#64748b" style={{ marginBottom: 12 }} />
-                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>Your Gallery is Empty</Text>
-                        <Text style={{ color: '#64748b', fontSize: 13, textAlign: 'center', marginTop: 4, paddingHorizontal: 20, lineHeight: 18 }}>
+                        <Text style={{ color: '#2D2445', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>Your Gallery is Empty</Text>
+                        <Text style={{ color: '#7A6B9C', fontSize: 13, textAlign: 'center', marginTop: 4, paddingHorizontal: 20, lineHeight: 18 }}>
                             Add images, videos, or highlight text sections to build a stunning profile.
                         </Text>
                     </View>
                 ) : (
                     <View style={{ gap: 16, marginBottom: 20 }}>
                         {formData.services.map((item: any, i: number) => (
-                            <View key={item.id || i.toString()} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                            <View key={item.id || i.toString()} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#D4C9E8', overflow: 'hidden' }}>
                                 {item.pricingType === 'IMAGE' && item.responseTime ? (
                                     <Image source={{ uri: item.responseTime }} style={{ width: '100%', height: 180, resizeMode: 'cover' }} />
                                 ) : item.pricingType === 'VIDEO' && item.responseTime ? (
-                                    <View style={{ width: '100%', height: 180, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Ionicons name="play-circle" size={48} color="#3b82f6" />
-                                        <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 8 }}>Video Showcase Attached</Text>
+                                    <View style={{ width: '100%', height: 180, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Ionicons name="play-circle" size={48} color="#a78bfa" />
+                                        <Text style={{ color: '#9A8EBA', fontSize: 12, marginTop: 8 }}>Video Showcase Attached</Text>
                                     </View>
                                 ) : null}
 
@@ -1075,12 +1075,12 @@ export default function CreateBusinessProfileScreen() {
                                                     </Text>
                                                 </View>
                                             </View>
-                                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff' }}>{item.name}</Text>
+                                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445' }}>{item.name}</Text>
                                         </View>
                                         
                                         <View style={{ flexDirection: 'row', gap: 8 }}>
                                             <TouchableOpacity 
-                                                style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' }}
+                                                style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' }}
                                                 onPress={() => {
                                                     setCurrentService(item);
                                                     setShowServiceModal(true);
@@ -1103,7 +1103,7 @@ export default function CreateBusinessProfileScreen() {
                                     </View>
                                     
                                     {item.description ? (
-                                        <Text style={{ fontSize: 14, color: '#94a3b8', marginTop: 8, lineHeight: 20 }}>
+                                        <Text style={{ fontSize: 14, color: '#9A8EBA', marginTop: 8, lineHeight: 20 }}>
                                             {item.description}
                                         </Text>
                                     ) : null}
@@ -1128,7 +1128,7 @@ export default function CreateBusinessProfileScreen() {
                         setShowServiceModal(true);
                     }}
                 >
-                    <Ionicons name="add-circle-outline" size={20} color="#1d4ed8" />
+                    <Ionicons name="add-circle-outline" size={20} color="#8b5cf6" />
                     <Text style={styles.addAnotherText}>Add Showcase/Gallery Item</Text>
                 </TouchableOpacity>
             </View>
@@ -1152,7 +1152,7 @@ export default function CreateBusinessProfileScreen() {
                             value={mapSearchQuery}
                             onChangeText={handleMapPlaceSearch}
                         />
-                        {isMapSearching && <ActivityIndicator size="small" color="#1d4ed8" style={{ marginRight: 8 }} />}
+                        {isMapSearching && <ActivityIndicator size="small" color="#8b5cf6" style={{ marginRight: 8 }} />}
                     </View>
                     <TouchableOpacity style={styles.locationBtn} onPress={getCurrentLocation}>
                         <Ionicons name="navigate" size={18} color="#fff" />
@@ -1228,7 +1228,7 @@ export default function CreateBusinessProfileScreen() {
             {/* GPS RADIUS MODE INFO */}
             {reachMode === 'RADIUS' && (
                 <View style={styles.infoBox}>
-                    <Ionicons name="location-outline" size={20} color="#1d4ed8" />
+                    <Ionicons name="location-outline" size={20} color="#8b5cf6" />
                     <Text style={styles.infoText}>Service coverage will be determined solely by your base location coordinates and selected radius ({formData.serviceRadiusKm} km).</Text>
                 </View>
             )}
@@ -1247,7 +1247,7 @@ export default function CreateBusinessProfileScreen() {
                             onChangeText={handlePincodeSearch}
                             keyboardType="numeric"
                         />
-                        {isPincodeSearching && <ActivityIndicator size="small" color="#1d4ed8" style={{ marginRight: 8 }} />}
+                        {isPincodeSearching && <ActivityIndicator size="small" color="#8b5cf6" style={{ marginRight: 8 }} />}
                     </View>
                     
                     {showPincodeDropdown && pincodeSearchResults.length > 0 && (
@@ -1308,7 +1308,7 @@ export default function CreateBusinessProfileScreen() {
 
                             {stateReachType === 'STATE' ? (
                                 <View style={styles.infoBox}>
-                                    <Ionicons name="map-outline" size={20} color="#1d4ed8" />
+                                    <Ionicons name="map-outline" size={20} color="#8b5cf6" />
                                     <Text style={styles.infoText}>Your profile will be shown to users in the entire state of {selectedState}.</Text>
                                 </View>
                             ) : (
@@ -1323,7 +1323,7 @@ export default function CreateBusinessProfileScreen() {
                                             value={districtSearchQuery}
                                             onChangeText={handleDistrictSearch}
                                         />
-                                        {isDistrictSearching && <ActivityIndicator size="small" color="#1d4ed8" style={{ marginRight: 8 }} />}
+                                        {isDistrictSearching && <ActivityIndicator size="small" color="#8b5cf6" style={{ marginRight: 8 }} />}
                                     </View>
 
                                     {showDistrictDropdown && districtSearchResults.length > 0 && (
@@ -1364,18 +1364,18 @@ export default function CreateBusinessProfileScreen() {
             {/* ENTIRE INDIA MODE */}
             {reachMode === 'PAN_INDIA' && (
                 <View style={styles.infoBox}>
-                    <Ionicons name="flag-outline" size={20} color="#1d4ed8" />
+                    <Ionicons name="flag-outline" size={20} color="#8b5cf6" />
                     <Text style={styles.infoText}>Your profile will be visible to users across all of India.</Text>
                 </View>
             )}
 
             <View style={[styles.infoBox, { marginTop: 16, borderColor: 'rgba(29, 78, 216, 0.3)' }]}>
-                <Ionicons name="eye-outline" size={20} color="#60a5fa" />
+                <Ionicons name="eye-outline" size={20} color="#a78bfa" />
                 <Text style={[styles.infoText, { color: '#93c5fd' }]}>{getReachPreviewText()}</Text>
             </View>
 
             <View style={styles.tipBox}>
-                <Ionicons name="information-circle-outline" size={20} color="#1d4ed8" />
+                <Ionicons name="information-circle-outline" size={20} color="#8b5cf6" />
                 <Text style={styles.tipText}>Tip: Precise service areas help you get more relevant leads from your neighborhood.</Text>
             </View>
         </View>
@@ -1392,7 +1392,7 @@ export default function CreateBusinessProfileScreen() {
                 <View style={[styles.summaryCard, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18 }]}>
                     <View style={{ flex: 1, marginRight: 16 }}>
                         <Text style={[styles.label, { marginBottom: 4 }]}>Enable Slot Booking</Text>
-                        <Text style={{ fontSize: 13, color: '#94a3b8' }}>
+                        <Text style={{ fontSize: 13, color: '#9A8EBA' }}>
                             {formData.enableBooking ? 'Customers can book scheduled appointments' : 'No online bookings allowed'}
                         </Text>
                     </View>
@@ -1409,10 +1409,10 @@ export default function CreateBusinessProfileScreen() {
                         <Text style={[styles.label, { marginBottom: 12 }]}>Configure Booking Slots</Text>
                         
                         {formData.bookingSlots.length === 0 ? (
-                            <View style={{ padding: 24, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                            <View style={{ padding: 24, backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
                                 <Ionicons name="calendar-outline" size={36} color="#64748b" style={{ marginBottom: 12 }} />
-                                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', textAlign: 'center' }}>No Booking Slots Created</Text>
-                                <Text style={{ color: '#64748b', fontSize: 12, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 }}>
+                                <Text style={{ color: '#2D2445', fontSize: 15, fontWeight: '700', textAlign: 'center' }}>No Booking Slots Created</Text>
+                                <Text style={{ color: '#7A6B9C', fontSize: 12, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 }}>
                                     Add your first slot (e.g., "General Consulting" or "Morning Visit") to define when you're available.
                                 </Text>
                             </View>
@@ -1467,17 +1467,17 @@ export default function CreateBusinessProfileScreen() {
                                             <Text style={styles.serviceName}>{slot.name}</Text>
                                             {parsed.text ? <Text style={styles.serviceDesc}>{parsed.text}</Text> : null}
                                             {parsed.rules ? <Text style={{ fontSize: 12, color: '#fbbf24', marginTop: 2 }}>Rules: {parsed.rules}</Text> : null}
-                                            <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                                                Availability: <Text style={{ color: '#fff', fontWeight: '600' }}>{daysText}</Text>
+                                            <Text style={{ fontSize: 12, color: '#9A8EBA', marginTop: 4 }}>
+                                                Availability: <Text style={{ color: '#2D2445', fontWeight: '600' }}>{daysText}</Text>
                                             </Text>
-                                            <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-                                                Capacity: <Text style={{ color: '#fff', fontWeight: '600' }}>{slot.maxPersons} person(s)</Text>
+                                            <Text style={{ fontSize: 12, color: '#9A8EBA', marginTop: 2 }}>
+                                                Capacity: <Text style={{ color: '#2D2445', fontWeight: '600' }}>{slot.maxPersons} person(s)</Text>
                                                 {slot.allowRecurringBookings ? ' • Recurring allowed' : ''}
                                             </Text>
                                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                                                 {slot.timeSlots && slot.timeSlots.map((ts: string, idx: number) => (
-                                                    <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                                                        <Text style={{ fontSize: 11, color: '#fff', fontWeight: '500' }}>{ts}</Text>
+                                                    <View key={idx} style={{ backgroundColor: '#EFE9F8', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                                                        <Text style={{ fontSize: 11, color: '#2D2445', fontWeight: '500' }}>{ts}</Text>
                                                     </View>
                                                 ))}
                                             </View>
@@ -1537,7 +1537,7 @@ export default function CreateBusinessProfileScreen() {
                                                 setShowSlotModal(true);
                                             }}
                                         >
-                                            <Feather name="edit-2" size={16} color="#3b82f6" />
+                                            <Feather name="edit-2" size={16} color="#a78bfa" />
                                         </TouchableOpacity>
                                         <TouchableOpacity 
                                             style={styles.iconBtn} 
@@ -1605,7 +1605,7 @@ export default function CreateBusinessProfileScreen() {
                                 setShowSlotModal(true);
                             }}
                         >
-                            <Ionicons name="add-circle-outline" size={20} color="#1d4ed8" />
+                            <Ionicons name="add-circle-outline" size={20} color="#8b5cf6" />
                             <Text style={styles.addAnotherText}>Add Booking Slot</Text>
                         </TouchableOpacity>
                     </View>
@@ -1855,11 +1855,11 @@ export default function CreateBusinessProfileScreen() {
                     style={{ flex: 1 }}
                 >
                     <View style={pickerStyles.modalOverlay}>
-                        <View style={[pickerStyles.modalContent, { height: '90%', backgroundColor: '#111827', borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}>
+                        <View style={[pickerStyles.modalContent, { height: '90%', backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}>
                             
                             {/* Modal Header */}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff' }}>
+                                <Text style={{ fontSize: 20, fontWeight: '800', color: '#2D2445' }}>
                                     {formData.bookingSlots.some((s: any) => String(s.id) === String(currentSlot.id)) ? 'Edit Service Slot' : 'New Service Slot & Schedule'}
                                 </Text>
                                 <TouchableOpacity onPress={() => setShowSlotModal(false)}>
@@ -1873,10 +1873,10 @@ export default function CreateBusinessProfileScreen() {
                             <TouchableOpacity 
                                 style={{ 
                                     height: 160, 
-                                    backgroundColor: 'rgba(255,255,255,0.02)', 
+                                    backgroundColor: '#ffffff', 
                                     borderStyle: 'dashed', 
                                     borderWidth: 2, 
-                                    borderColor: 'rgba(255,255,255,0.15)', 
+                                    borderColor: '#C4B5DC', 
                                     borderRadius: 20, 
                                     marginBottom: 20, 
                                     overflow: 'hidden', 
@@ -1899,7 +1899,7 @@ export default function CreateBusinessProfileScreen() {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Business Service / Slot Name *</Text>
                                 <TextInput 
-                                    style={[styles.input, { color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                    style={[styles.input, { color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                     placeholder="e.g. Special Consultation, Premium Treatment" 
                                     placeholderTextColor="#64748b"
                                     value={currentSlot.name}
@@ -1911,7 +1911,7 @@ export default function CreateBusinessProfileScreen() {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Description</Text>
                                 <TextInput 
-                                    style={[styles.input, styles.textArea, { color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                    style={[styles.input, styles.textArea, { color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                     placeholder="Provide details about what this service / slot includes..." 
                                     placeholderTextColor="#64748b"
                                     multiline
@@ -1924,7 +1924,7 @@ export default function CreateBusinessProfileScreen() {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Rules & Regulations</Text>
                                 <TextInput 
-                                    style={[styles.input, styles.textArea, { color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                    style={[styles.input, styles.textArea, { color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                     placeholder="Rules & parameters (e.g. Please arrive 5 minutes early, carry booking receipt)..." 
                                     placeholderTextColor="#64748b"
                                     multiline
@@ -1937,7 +1937,7 @@ export default function CreateBusinessProfileScreen() {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Max Persons per Slot *</Text>
                                 <TextInput 
-                                    style={[styles.input, { color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                    style={[styles.input, { color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                     placeholder="e.g. 10" 
                                     placeholderTextColor="#64748b"
                                     keyboardType="numeric"
@@ -1949,54 +1949,54 @@ export default function CreateBusinessProfileScreen() {
                                 />
                             </View>
 
-                            <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 20 }} />
+                            <View style={{ height: 1, backgroundColor: '#EFE9F8', marginVertical: 20 }} />
 
                             {/* Advanced Scheduling Builder Selector Tabs */}
-                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 15 }}>📅 Advanced Availability Schedule</Text>
+                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 15 }}>📅 Advanced Availability Schedule</Text>
 
-                            <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 20 }}>
+                            <View style={{ flexDirection: 'row', backgroundColor: '#F4EEFC', borderRadius: 12, padding: 4, marginBottom: 20 }}>
                                 <TouchableOpacity 
                                     style={[{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 }, currentSlot.scheduleType === 'WEEKLY' && { backgroundColor: '#8b5cf6' }]} 
                                     onPress={() => setCurrentSlot({ ...currentSlot, scheduleType: 'WEEKLY' })}
                                 >
-                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#94a3b8' }, currentSlot.scheduleType === 'WEEKLY' && { color: '#fff' }]}>Weekly Days</Text>
+                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#9A8EBA' }, currentSlot.scheduleType === 'WEEKLY' && { color: '#2D2445' }]}>Weekly Days</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     style={[{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 }, currentSlot.scheduleType === 'MONTHLY' && { backgroundColor: '#8b5cf6' }]} 
                                     onPress={() => setCurrentSlot({ ...currentSlot, scheduleType: 'MONTHLY' })}
                                 >
-                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#94a3b8' }, currentSlot.scheduleType === 'MONTHLY' && { color: '#fff' }]}>Monthly Pattern</Text>
+                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#9A8EBA' }, currentSlot.scheduleType === 'MONTHLY' && { color: '#2D2445' }]}>Monthly Pattern</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     style={[{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 }, currentSlot.scheduleType === 'CUSTOM' && { backgroundColor: '#8b5cf6' }]} 
                                     onPress={() => setCurrentSlot({ ...currentSlot, scheduleType: 'CUSTOM' })}
                                 >
-                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#94a3b8' }, currentSlot.scheduleType === 'CUSTOM' && { color: '#fff' }]}>Custom Calendar</Text>
+                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#9A8EBA' }, currentSlot.scheduleType === 'CUSTOM' && { color: '#2D2445' }]}>Custom Calendar</Text>
                                 </TouchableOpacity>
                             </View>
 
                             {/* 1. WEEKLY FORM */}
                             {currentSlot.scheduleType === 'WEEKLY' && (
-                                <View style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-                                    <Text style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12, fontWeight: '500' }}>Select a day below to configure its valid time slots:</Text>
+                                <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#D4C9E8' }}>
+                                    <Text style={{ fontSize: 13, color: '#9A8EBA', marginBottom: 12, fontWeight: '500' }}>Select a day below to configure its valid time slots:</Text>
                                     
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', marginBottom: 15, paddingBottom: 5 }}>
                                         {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                                             <TouchableOpacity 
                                                 key={day} 
-                                                style={[{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', marginRight: 8 }, selectedWeeklyDay === day && { backgroundColor: '#8b5cf6' }]}
+                                                style={[{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F4EEFC', marginRight: 8 }, selectedWeeklyDay === day && { backgroundColor: '#8b5cf6' }]}
                                                 onPress={() => setSelectedWeeklyDay(day)}
                                             >
-                                                <Text style={[{ fontSize: 13, fontWeight: '700', color: '#94a3b8' }, selectedWeeklyDay === day && { color: '#fff' }]}>{day}</Text>
+                                                <Text style={[{ fontSize: 13, fontWeight: '700', color: '#9A8EBA' }, selectedWeeklyDay === day && { color: '#2D2445' }]}>{day}</Text>
                                             </TouchableOpacity>
                                         ))}
                                     </ScrollView>
 
-                                    <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 10 }}>Slots for {selectedWeeklyDay}</Text>
+                                    <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#D4C9E8' }}>
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 10 }}>Slots for {selectedWeeklyDay}</Text>
                                         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
                                             <TextInput 
-                                                style={[styles.input, { flex: 1, color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                                style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                                 placeholder="e.g. 09:00 AM - 10:00 AM" 
                                                 placeholderTextColor="#64748b"
                                                 value={weeklyNewSlot}
@@ -2017,7 +2017,7 @@ export default function CreateBusinessProfileScreen() {
                                                 </View>
                                             ))}
                                             {(weeklyConfig[selectedWeeklyDay] || []).length === 0 && (
-                                                <Text style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', paddingVertical: 10 }}>No slots configured for this day.</Text>
+                                                <Text style={{ fontSize: 13, color: '#7A6B9C', fontStyle: 'italic', paddingVertical: 10 }}>No slots configured for this day.</Text>
                                             )}
                                         </View>
                                     </View>
@@ -2026,12 +2026,12 @@ export default function CreateBusinessProfileScreen() {
 
                             {/* 2. MONTHLY FORM */}
                             {currentSlot.scheduleType === 'MONTHLY' && (
-                                <View style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-                                    <Text style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12, fontWeight: '500' }}>Set which days of the month this service can be reserved:</Text>
+                                <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#D4C9E8' }}>
+                                    <Text style={{ fontSize: 13, color: '#9A8EBA', marginBottom: 12, fontWeight: '500' }}>Set which days of the month this service can be reserved:</Text>
                                     
                                     <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
                                         <TextInput 
-                                            style={[styles.input, { flex: 1, color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                            style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                             placeholder="Enter day of month (1-31)" 
                                             placeholderTextColor="#64748b"
                                             keyboardType="numeric"
@@ -2054,11 +2054,11 @@ export default function CreateBusinessProfileScreen() {
                                         ))}
                                     </View>
 
-                                    <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 10 }}>Available Monthly Time Slots</Text>
+                                    <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#D4C9E8' }}>
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 10 }}>Available Monthly Time Slots</Text>
                                         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
                                             <TextInput 
-                                                style={[styles.input, { flex: 1, color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                                style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                                 placeholder="e.g. 09:00 AM - 12:00 PM" 
                                                 placeholderTextColor="#64748b"
                                                 value={monthlyNewSlot}
@@ -2085,12 +2085,12 @@ export default function CreateBusinessProfileScreen() {
 
                             {/* 3. CUSTOM CALENDAR FORM */}
                             {currentSlot.scheduleType === 'CUSTOM' && (
-                                <View style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-                                    <Text style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12, fontWeight: '500' }}>Configure specific isolated calendar dates and their exact slots:</Text>
+                                <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#D4C9E8' }}>
+                                    <Text style={{ fontSize: 13, color: '#9A8EBA', marginBottom: 12, fontWeight: '500' }}>Configure specific isolated calendar dates and their exact slots:</Text>
 
                                     <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
                                         <TextInput 
-                                            style={[styles.input, { flex: 1, color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                            style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                             placeholder="Enter Date (YYYY-MM-DD)" 
                                             placeholderTextColor="#64748b"
                                             value={customDateInput}
@@ -2105,10 +2105,10 @@ export default function CreateBusinessProfileScreen() {
                                         {Object.keys(customDatesSlots).map(dateStr => (
                                             <View key={dateStr} style={{ marginRight: 10, flexDirection: 'row', alignItems: 'center' }}>
                                                 <TouchableOpacity 
-                                                    style={[{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', marginRight: 8 }, selectedCustomDate === dateStr && { backgroundColor: '#8b5cf6' }]}
+                                                    style={[{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F4EEFC', marginRight: 8 }, selectedCustomDate === dateStr && { backgroundColor: '#8b5cf6' }]}
                                                     onPress={() => setSelectedCustomDate(dateStr)}
                                                 >
-                                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#94a3b8' }, selectedCustomDate === dateStr && { color: '#fff' }]}>{dateStr}</Text>
+                                                    <Text style={[{ fontSize: 13, fontWeight: '700', color: '#9A8EBA' }, selectedCustomDate === dateStr && { color: '#2D2445' }]}>{dateStr}</Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity style={{ marginLeft: -15, zIndex: 10 }} onPress={() => handleRemoveCustomDate(dateStr)}>
                                                     <Ionicons name="close-circle" size={18} color="#ef4444" />
@@ -2118,11 +2118,11 @@ export default function CreateBusinessProfileScreen() {
                                     </ScrollView>
 
                                     {selectedCustomDate ? (
-                                        <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-                                            <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 10 }}>Slots for {selectedCustomDate}</Text>
+                                        <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#D4C9E8' }}>
+                                            <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 10 }}>Slots for {selectedCustomDate}</Text>
                                             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
                                                 <TextInput 
-                                                    style={[styles.input, { flex: 1, color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]} 
+                                                    style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
                                                     placeholder="e.g. 02:00 PM - 03:00 PM" 
                                                     placeholderTextColor="#64748b"
                                                     value={customNewSlot}
@@ -2145,16 +2145,16 @@ export default function CreateBusinessProfileScreen() {
                                             </View>
                                         </View>
                                     ) : (
-                                        <Text style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', paddingVertical: 10 }}>Add a custom date to build its time slots list.</Text>
+                                        <Text style={{ fontSize: 13, color: '#7A6B9C', fontStyle: 'italic', paddingVertical: 10 }}>Add a custom date to build its time slots list.</Text>
                                     )}
                                 </View>
                             )}
 
                             {/* Recurring Booking Option Switch */}
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 25, backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 25, backgroundColor: '#ffffff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8' }}>
                                 <View style={{ flex: 1, marginRight: 15 }}>
-                                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 4 }}>Allow Recurring Bookings</Text>
-                                    <Text style={{ fontSize: 12, color: '#64748b', lineHeight: 16 }}>Allows residents to schedule recurring reservations weekly or monthly if a slot fills up or is completed.</Text>
+                                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 4 }}>Allow Recurring Bookings</Text>
+                                    <Text style={{ fontSize: 12, color: '#7A6B9C', lineHeight: 16 }}>Allows residents to schedule recurring reservations weekly or monthly if a slot fills up or is completed.</Text>
                                 </View>
                                 <Switch 
                                     value={currentSlot.allowRecurringBookings}
@@ -2194,7 +2194,7 @@ export default function CreateBusinessProfileScreen() {
                 <View style={styles.reviewHeader}>
                     <Text style={styles.sectionTitle}>Review Your Business Profile</Text>
                     <TouchableOpacity style={styles.editAllBtn} onPress={() => setStep(1)}>
-                        <Feather name="edit-2" size={16} color="#1d4ed8" />
+                        <Feather name="edit-2" size={16} color="#8b5cf6" />
                         <Text style={styles.editAllText}>Edit All</Text>
                     </TouchableOpacity>
                 </View>
@@ -2203,7 +2203,7 @@ export default function CreateBusinessProfileScreen() {
                 {/* Summary Cards */}
                 <View style={styles.summaryCard}>
                     <View style={styles.summaryHeader}>
-                        <View style={styles.summaryIconBox}><Ionicons name="business" size={20} color="#1d4ed8" /></View>
+                        <View style={styles.summaryIconBox}><Ionicons name="business" size={20} color="#8b5cf6" /></View>
                         <Text style={styles.summaryTitle}>Business Information</Text>
                         <TouchableOpacity onPress={() => setStep(1)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                     </View>
@@ -2231,7 +2231,7 @@ export default function CreateBusinessProfileScreen() {
 
                 <View style={styles.summaryCard}>
                     <View style={styles.summaryHeader}>
-                        <View style={styles.summaryIconBox}><FontAwesome5 name="tools" size={16} color="#1d4ed8" /></View>
+                        <View style={styles.summaryIconBox}><FontAwesome5 name="tools" size={16} color="#8b5cf6" /></View>
                         <Text style={styles.summaryTitle}>Services ({formData.services.length})</Text>
                         <TouchableOpacity onPress={() => setStep(2)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                     </View>
@@ -2240,11 +2240,11 @@ export default function CreateBusinessProfileScreen() {
                     ) : (
                         formData.services.map((s, idx) => (
                             <View key={idx} style={styles.sumServiceItem}>
-                                <Ionicons name="checkmark-circle" size={18} color="#1d4ed8" />
+                                <Ionicons name="checkmark-circle" size={18} color="#8b5cf6" />
                                 <View style={{ marginLeft: 8, flex: 1 }}>
                                     <Text style={styles.sumServiceText}>{s.name}</Text>
                                     {s.description ? <Text style={styles.sumServiceSub}>{s.description}</Text> : null}
-                                    <Text style={[styles.sumServiceSub, { color: '#3b82f6', fontWeight: '600' }]}>
+                                    <Text style={[styles.sumServiceSub, { color: '#a78bfa', fontWeight: '600' }]}>
                                         {s.pricingType === 'CONTACT' ? 'Contact for Price' : s.pricingType === 'STARTING' ? `Starting from ₹${s.price}` : `Fixed Price: ₹${s.price}`}
                                         {s.isEmergency ? ' • Emergency Service' : ''}
                                     </Text>
@@ -2257,7 +2257,7 @@ export default function CreateBusinessProfileScreen() {
                 {/* Service Coverage Card */}
                 <View style={styles.summaryCard}>
                     <View style={styles.summaryHeader}>
-                        <View style={styles.summaryIconBox}><Ionicons name="map" size={18} color="#1d4ed8" /></View>
+                        <View style={styles.summaryIconBox}><Ionicons name="map" size={18} color="#8b5cf6" /></View>
                         <Text style={styles.summaryTitle}>Service Coverage</Text>
                         <TouchableOpacity onPress={() => setStep(3)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                     </View>
@@ -2319,7 +2319,7 @@ export default function CreateBusinessProfileScreen() {
                 {/* Booking Settings Card */}
                 <View style={styles.summaryCard}>
                     <View style={styles.summaryHeader}>
-                        <View style={styles.summaryIconBox}><Ionicons name="calendar" size={18} color="#1d4ed8" /></View>
+                        <View style={styles.summaryIconBox}><Ionicons name="calendar" size={18} color="#8b5cf6" /></View>
                         <Text style={styles.summaryTitle}>Booking Settings</Text>
                         <TouchableOpacity onPress={() => setStep(4)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                     </View>
@@ -2367,7 +2367,7 @@ export default function CreateBusinessProfileScreen() {
                                 const parsed = parseSlotDescription(slot.description);
 
                                 return (
-                                    <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                                    <View key={idx} style={{ backgroundColor: '#ffffff', padding: 12, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#D4C9E8' }}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                                             {parsed.photoUrl ? (
                                                 <Image source={{ uri: parsed.photoUrl }} style={{ width: 40, height: 40, borderRadius: 8, marginRight: 10, resizeMode: 'cover' }} />
@@ -2378,11 +2378,11 @@ export default function CreateBusinessProfileScreen() {
                                             )}
                                             <View style={{ flex: 1 }}>
                                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{slot.name}</Text>
+                                                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#2D2445' }}>{slot.name}</Text>
                                                     <Text style={{ fontSize: 11, color: '#a78bfa', fontWeight: '600' }}>Cap: {slot.maxPersons}</Text>
                                                 </View>
                                                 {parsed.text ? (
-                                                    <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }} numberOfLines={1}>{parsed.text}</Text>
+                                                    <Text style={{ fontSize: 11, color: '#9A8EBA', marginTop: 2 }} numberOfLines={1}>{parsed.text}</Text>
                                                 ) : null}
                                             </View>
                                         </View>
@@ -2391,9 +2391,9 @@ export default function CreateBusinessProfileScreen() {
                                             <Text style={{ fontSize: 11, color: '#fbbf24', marginBottom: 6 }}>Rules: {parsed.rules}</Text>
                                         ) : null}
                                         
-                                        <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 6, marginTop: 4 }}>
-                                            <Text style={{ fontSize: 11, color: '#64748b' }}>
-                                                Availability: <Text style={{ color: '#fff', fontWeight: '600' }}>{daysText || 'None'}</Text>
+                                        <View style={{ borderTopWidth: 1, borderTopColor: '#EFE9F8', paddingTop: 6, marginTop: 4 }}>
+                                            <Text style={{ fontSize: 11, color: '#7A6B9C' }}>
+                                                Availability: <Text style={{ color: '#2D2445', fontWeight: '600' }}>{daysText || 'None'}</Text>
                                             </Text>
                                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                                                 {slot.timeSlots && slot.timeSlots.map((ts: string, sIdx: number) => (
@@ -2411,7 +2411,7 @@ export default function CreateBusinessProfileScreen() {
                 </View>
 
                 <View style={styles.publishBox}>
-                    <View style={styles.publishIconBox}><Ionicons name="send" size={24} color="#1d4ed8" /></View>
+                    <View style={styles.publishIconBox}><Ionicons name="send" size={24} color="#8b5cf6" /></View>
                     <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={styles.publishTitle}>Ready to publish?</Text>
                         <Text style={styles.publishSub}>Once published, your business profile will be visible to the community and customers can contact you.</Text>
@@ -2519,13 +2519,13 @@ export default function CreateBusinessProfileScreen() {
                             <Text style={pickerStyles.modalTitle}>Select Categories</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                                 <TouchableOpacity 
-                                    style={{ backgroundColor: '#1d4ed8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
+                                    style={{ backgroundColor: '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
                                     onPress={() => {
                                         setCategorySearch('');
                                         setFormData({...formData, showCategoryModal: false});
                                     }}
                                 >
-                                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Done</Text>
+                                    <Text style={{ color: '#2D2445', fontSize: 13, fontWeight: '700' }}>Done</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => {
                                     setCategorySearch('');
@@ -2537,10 +2537,10 @@ export default function CreateBusinessProfileScreen() {
                         </View>
                         
                         {/* Search input */}
-                        <View style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, paddingHorizontal: 12, height: 48 }}>
+                        <View style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 12, paddingHorizontal: 12, height: 48 }}>
                             <Ionicons name="search" size={20} color="#94a3b8" />
                             <TextInput
-                                style={{ flex: 1, color: '#fff', marginLeft: 8, fontSize: 15 }}
+                                style={{ flex: 1, color: '#2D2445', marginLeft: 8, fontSize: 15 }}
                                 placeholder="Search or filter categories..."
                                 placeholderTextColor="#94a3b8"
                                 value={categorySearch}
@@ -2572,7 +2572,7 @@ export default function CreateBusinessProfileScreen() {
                                     >
                                         <Text style={[
                                             pickerStyles.optionText, 
-                                            isSelected && { color: '#3b82f6', fontWeight: '800' }
+                                            isSelected && { color: '#a78bfa', fontWeight: '800' }
                                         ]}>
                                             {opt}
                                         </Text>
@@ -2773,12 +2773,12 @@ export default function CreateBusinessProfileScreen() {
                                 >
                                     <Text style={[
                                         pickerStyles.optionText, 
-                                        selectedState === state && { color: '#3b82f6', fontWeight: '800' }
+                                        selectedState === state && { color: '#a78bfa', fontWeight: '800' }
                                     ]}>
                                         {state}
                                     </Text>
                                     {selectedState === state && (
-                                        <Ionicons name="checkmark" size={18} color="#3b82f6" />
+                                        <Ionicons name="checkmark" size={18} color="#a78bfa" />
                                     )}
                                 </TouchableOpacity>
                             ))}
@@ -2791,7 +2791,7 @@ export default function CreateBusinessProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => (isManageSlotsOnly || step === 1) ? router.back() : prevStep()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -2955,7 +2955,7 @@ export default function CreateBusinessProfileScreen() {
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.label}>Upload {currentService.pricingType === 'IMAGE' ? 'Photo' : 'Video'} *</Text>
                                     <TouchableOpacity 
-                                        style={{ width: '100%', height: 160, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderStyle: 'dashed', borderWidth: 2, borderColor: currentService.responseTime ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+                                        style={{ width: '100%', height: 160, borderRadius: 16, backgroundColor: '#ffffff', borderStyle: 'dashed', borderWidth: 2, borderColor: currentService.responseTime ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
                                         onPress={async () => {
                                             const mediaTypes = currentService.pricingType === 'IMAGE'
                                                 ? ImagePicker.MediaTypeOptions.Images
@@ -2980,16 +2980,16 @@ export default function CreateBusinessProfileScreen() {
                                                 <View style={{ alignItems: 'center' }}>
                                                     <Ionicons name="play-circle" size={40} color="#10b981" />
                                                     <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '600', marginTop: 8 }}>Video Selected</Text>
-                                                    <Text style={{ color: '#64748b', fontSize: 10, marginTop: 2 }}>Tap to change video</Text>
+                                                    <Text style={{ color: '#7A6B9C', fontSize: 10, marginTop: 2 }}>Tap to change video</Text>
                                                 </View>
                                             )
                                         ) : (
                                             <>
                                                 <Ionicons name="cloud-upload-outline" size={32} color="#64748b" />
-                                                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '600', marginTop: 8 }}>
+                                                <Text style={{ color: '#9A8EBA', fontSize: 14, fontWeight: '600', marginTop: 8 }}>
                                                     Select {currentService.pricingType === 'IMAGE' ? 'Photo' : 'Video'}
                                                 </Text>
-                                                <Text style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+                                                <Text style={{ color: '#7A6B9C', fontSize: 11, marginTop: 2 }}>
                                                     Max file size 10MB
                                                 </Text>
                                             </>
@@ -3069,9 +3069,9 @@ const renderGenericPicker = (visible: boolean, title: string, options: string[],
 
 const pickerStyles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '60%' },
+    modalContent: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '60%' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    modalTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
     dropdownContainer: {
         position: 'absolute',
         top: 60,
@@ -3101,87 +3101,87 @@ const pickerStyles = StyleSheet.create({
         color: '#1E293B',
         flex: 1,
     },
-    optionItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    optionText: { fontSize: 16, color: '#fff' }
+    optionItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    optionText: { fontSize: 16, color: '#2D2445' }
 });
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' }, // Dark theme base
+    container: { flex: 1, backgroundColor: '#F8F5FF' }, // Dark theme base
     header: { padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    headerSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EFE9F8', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    headerSub: { fontSize: 13, color: '#9A8EBA', marginTop: 2 },
 
     stepperContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, paddingHorizontal: 40 },
     stepWrapper: { alignItems: 'center', width: 60 },
     stepCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
-    stepCircleActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
-    stepCircleInactive: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' },
-    stepNumber: { fontSize: 14, fontWeight: '800', color: '#94a3b8' },
-    stepNumberActive: { color: '#fff' },
-    stepLabel: { fontSize: 10, color: '#64748b', marginTop: 8, fontWeight: '700', textAlign: 'center' },
-    stepLabelActive: { color: '#1d4ed8' },
-    stepLine: { height: 2, flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: -10, marginTop: -20 },
-    stepLineActive: { backgroundColor: '#1d4ed8' },
+    stepCircleActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+    stepCircleInactive: { backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' },
+    stepNumber: { fontSize: 14, fontWeight: '800', color: '#9A8EBA' },
+    stepNumberActive: { color: '#2D2445' },
+    stepLabel: { fontSize: 10, color: '#7A6B9C', marginTop: 8, fontWeight: '700', textAlign: 'center' },
+    stepLabelActive: { color: '#8b5cf6' },
+    stepLine: { height: 2, flex: 1, backgroundColor: '#EFE9F8', marginHorizontal: -10, marginTop: -20 },
+    stepLineActive: { backgroundColor: '#8b5cf6' },
 
-    stepContent: { padding: 20, backgroundColor: '#000000' },
-    sectionTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 16 },
-    subText: { fontSize: 14, color: '#94a3b8', marginBottom: 20, lineHeight: 20 },
+    stepContent: { padding: 20, backgroundColor: '#F8F5FF' },
+    sectionTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445', marginBottom: 16 },
+    subText: { fontSize: 14, color: '#9A8EBA', marginBottom: 20, lineHeight: 20 },
 
     row: { flexDirection: 'row', gap: 16, marginBottom: 20 },
-    logoBox: { width: 100, height: 100, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed' },
+    logoBox: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#C4B5DC', alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed' },
     logoImage: { width: '100%', height: '100%', borderRadius: 12 },
-    logoText: { fontSize: 12, fontWeight: '700', color: '#fff', marginTop: 8 },
-    logoSubtext: { fontSize: 8, color: '#64748b', marginTop: 2 },
+    logoText: { fontSize: 12, fontWeight: '700', color: '#2D2445', marginTop: 8 },
+    logoSubtext: { fontSize: 8, color: '#7A6B9C', marginTop: 2 },
 
     inputGroup: { marginBottom: 20 },
-    label: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 8 },
-    input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 14, fontSize: 15, color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    inputPlaceholder: { color: '#94a3b8', fontSize: 15 },
+    label: { fontSize: 14, fontWeight: '700', color: '#2D2445', marginBottom: 8 },
+    input: { backgroundColor: '#F4EEFC', borderRadius: 12, padding: 14, fontSize: 15, color: '#2D2445', borderWidth: 1, borderColor: '#C4B5DC' },
+    inputPlaceholder: { color: '#9A8EBA', fontSize: 15 },
     textArea: { height: 100, textAlignVertical: 'top' },
-    charCount: { fontSize: 11, color: '#64748b', textAlign: 'right', marginTop: 4 },
+    charCount: { fontSize: 11, color: '#7A6B9C', textAlign: 'right', marginTop: 4 },
 
-    pickerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    pickerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F4EEFC', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#C4B5DC' },
     pickerIcon: { position: 'absolute', right: 14 },
 
-    contactItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    contactInput: { flex: 1, marginLeft: 12, color: '#fff', fontSize: 15 },
-    valueText: { fontSize: 14, color: '#94a3b8', marginTop: 2 },
+    contactItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#C4B5DC' },
+    contactInput: { flex: 1, marginLeft: 12, color: '#2D2445', fontSize: 15 },
+    valueText: { fontSize: 14, color: '#9A8EBA', marginTop: 2 },
 
-    socialItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    socialItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#C4B5DC' },
 
-    searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 14, height: 48, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    searchInput: { flex: 1, marginLeft: 10, color: '#fff' },
-    browseAll: { fontSize: 13, color: '#1d4ed8', fontWeight: '700' },
+    searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', paddingHorizontal: 14, height: 48, borderRadius: 12, borderWidth: 1, borderColor: '#C4B5DC' },
+    searchInput: { flex: 1, marginLeft: 10, color: '#2D2445' },
+    browseAll: { fontSize: 13, color: '#8b5cf6', fontWeight: '700' },
 
     serviceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 },
-    serviceTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    serviceTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
     reorderBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    reorderText: { fontSize: 13, color: '#64748b' },
+    reorderText: { fontSize: 13, color: '#7A6B9C' },
 
-    serviceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    serviceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', padding: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#C4B5DC' },
     dragHandle: { paddingRight: 8 },
     serviceIconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    serviceName: { fontSize: 15, fontWeight: '700', color: '#fff' },
-    serviceDesc: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
+    serviceName: { fontSize: 15, fontWeight: '700', color: '#2D2445' },
+    serviceDesc: { fontSize: 13, color: '#9A8EBA', marginTop: 2 },
     iconBtn: { padding: 8 },
 
-    addAnotherBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, backgroundColor: 'rgba(37, 99, 235, 0.05)', borderStyle: 'dashed', borderWidth: 1, borderColor: '#1d4ed8', marginTop: 8 },
-    addAnotherText: { fontSize: 15, fontWeight: '700', color: '#1d4ed8', marginLeft: 8 },
+    addAnotherBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, backgroundColor: 'rgba(37, 99, 235, 0.05)', borderStyle: 'dashed', borderWidth: 1, borderColor: '#8b5cf6', marginTop: 8 },
+    addAnotherText: { fontSize: 15, fontWeight: '700', color: '#8b5cf6', marginLeft: 8 },
 
-    detailsSection: { marginTop: 32, padding: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    detailsSection: { marginTop: 32, padding: 16, backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     radioGroup: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
     radioItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     radioCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#475569', alignItems: 'center', justifyContent: 'center' },
-    radioCircleActive: { borderColor: '#1d4ed8' },
-    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#1d4ed8' },
-    radioLabel: { fontSize: 13, color: '#fff', fontWeight: '500' },
+    radioCircleActive: { borderColor: '#8b5cf6' },
+    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#8b5cf6' },
+    radioLabel: { fontSize: 13, color: '#2D2445', fontWeight: '500' },
 
-    emergencyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+    emergencyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#EFE9F8' },
 
     searchRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-    locationBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1d4ed8', paddingHorizontal: 12, borderRadius: 12, height: 48 },
-    locationBtnText: { color: '#fff', fontSize: 13, fontWeight: '700', marginLeft: 6 },
+    locationBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#8b5cf6', paddingHorizontal: 12, borderRadius: 12, height: 48 },
+    locationBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700', marginLeft: 6 },
 
     mapContainer: { height: 200, borderRadius: 16, overflow: 'hidden', marginBottom: 20 },
     mapImage: { width: '100%', height: '100%' },
@@ -3190,119 +3190,119 @@ const styles = StyleSheet.create({
     mapControls: { position: 'absolute', right: 12, top: 12, backgroundColor: '#fff', borderRadius: 8, padding: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 },
     mapControlBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     zoomBtn: { padding: 8, alignItems: 'center' },
-    zoomLine: { height: 1, backgroundColor: '#f1f5f9' },
+    zoomLine: { height: 1, backgroundColor: '#EFE9F8' },
 
-    selectedLocCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 24 },
+    selectedLocCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#C4B5DC', marginBottom: 24 },
     locIconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    locTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
-    locSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
-    editText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700', marginRight: 4 },
+    locTitle: { fontSize: 15, fontWeight: '700', color: '#2D2445' },
+    locSub: { fontSize: 13, color: '#9A8EBA', marginTop: 2 },
+    editText: { color: '#8b5cf6', fontSize: 13, fontWeight: '700', marginRight: 4 },
 
-    serviceAreaCard: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    serviceAreaTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
-    serviceAreaSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+    serviceAreaCard: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F4EEFC', borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#C4B5DC' },
+    serviceAreaTitle: { fontSize: 15, fontWeight: '700', color: '#2D2445' },
+    serviceAreaSub: { fontSize: 12, color: '#9A8EBA', marginTop: 2 },
 
     tipBox: { flexDirection: 'row', backgroundColor: 'rgba(37, 99, 235, 0.05)', padding: 16, borderRadius: 12, marginTop: 12, gap: 12 },
-    tipText: { flex: 1, fontSize: 13, color: '#1d4ed8', lineHeight: 18 },
+    tipText: { flex: 1, fontSize: 13, color: '#8b5cf6', lineHeight: 18 },
 
     reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     editAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    editAllText: { color: '#1d4ed8', fontSize: 14, fontWeight: '700' },
+    editAllText: { color: '#8b5cf6', fontSize: 14, fontWeight: '700' },
 
-    summaryCard: { padding: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 20 },
+    summaryCard: { padding: 16, backgroundColor: '#F4EEFC', borderRadius: 16, borderWidth: 1, borderColor: '#C4B5DC', marginBottom: 20 },
     summaryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
     summaryIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    summaryTitle: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '800', color: '#fff' },
+    summaryTitle: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '800', color: '#2D2445' },
     summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    sumLabel: { fontSize: 14, color: '#94a3b8' },
-    sumValue: { fontSize: 14, color: '#fff', fontWeight: '600' },
+    sumLabel: { fontSize: 14, color: '#9A8EBA' },
+    sumValue: { fontSize: 14, color: '#2D2445', fontWeight: '600' },
     sumServiceItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    sumServiceText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-    sumServiceSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+    sumServiceText: { fontSize: 14, fontWeight: '700', color: '#2D2445' },
+    sumServiceSub: { fontSize: 12, color: '#9A8EBA', marginTop: 2 },
 
-    publishBox: { padding: 20, backgroundColor: 'rgba(37, 99, 235, 0.05)', borderRadius: 16, borderWidth: 1, borderColor: '#1d4ed8', flexDirection: 'row', alignItems: 'center' },
+    publishBox: { padding: 20, backgroundColor: 'rgba(37, 99, 235, 0.05)', borderRadius: 16, borderWidth: 1, borderColor: '#8b5cf6', flexDirection: 'row', alignItems: 'center' },
     publishIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    publishTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    publishSub: { fontSize: 13, color: '#94a3b8', marginTop: 4, lineHeight: 18 },
+    publishTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    publishSub: { fontSize: 13, color: '#9A8EBA', marginTop: 4, lineHeight: 18 },
 
-    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#000000', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#F8F5FF', borderTopWidth: 1, borderTopColor: '#D4C9E8' },
     footerInner: { flexDirection: 'row', gap: 12 },
-    backBtnFooter: { flex: 0.4, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    continueBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: '#1d4ed8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-    continueBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    backBtnFooter: { flex: 0.4, height: 56, borderRadius: 16, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C4B5DC' },
+    backBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+    continueBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: '#8b5cf6', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+    continueBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     saveSlotBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 18, marginTop: 10 },
-    saveSlotBtnText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
+    saveSlotBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
     safetyInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
-    safetyText: { fontSize: 11, color: '#64748b' },
+    safetyText: { fontSize: 11, color: '#7A6B9C' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '85%', padding: 24 },
+    modalContent: { backgroundColor: '#ffffff', borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '85%', padding: 24 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
 
-    dropdownItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    dropdownText: { color: '#fff', fontSize: 14 },
+    dropdownItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    dropdownText: { color: '#2D2445', fontSize: 14 },
 
-    reachTabs: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4 },
+    reachTabs: { flexDirection: 'row', backgroundColor: '#F4EEFC', borderRadius: 12, padding: 4 },
     reachTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-    reachTabActive: { backgroundColor: '#1d4ed8' },
-    reachTabText: { fontSize: 11, fontWeight: '700', color: '#94a3b8' },
-    reachTabTextActive: { color: '#fff' },
+    reachTabActive: { backgroundColor: '#8b5cf6' },
+    reachTabText: { fontSize: 11, fontWeight: '700', color: '#9A8EBA' },
+    reachTabTextActive: { color: '#2D2445' },
 
     chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-    chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1d4ed8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
-    chipText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+    chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
+    chipText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
 
-    mapViewContainer: { height: 400, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 20, position: 'relative', zIndex: 1 },
+    mapViewContainer: { height: 400, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#EFE9F8', marginBottom: 20, position: 'relative', zIndex: 1 },
     map: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
     mapOverlayHeader: { position: 'absolute', top: 15, left: 15, right: 15, zIndex: 9999 },
     mapSearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 48, borderRadius: 12, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 10000 },
-    mapSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
+    mapSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#2D2445' },
     mapGpsBtn: { position: 'absolute', right: 15, bottom: 20, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
     dropdown: { position: 'absolute', top: 55, left: 0, right: 0, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, maxHeight: 200, zIndex: 10001 },
     infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(37, 99, 235, 0.05)', padding: 16, borderRadius: 12, marginTop: 16, gap: 12 },
-    infoText: { flex: 1, fontSize: 13, color: '#1d4ed8' },
-    pickerValue: { fontSize: 15, color: '#fff', fontWeight: '500' },
-    radiusValueText: { fontSize: 16, fontWeight: '800', color: '#1d4ed8' },
+    infoText: { flex: 1, fontSize: 13, color: '#8b5cf6' },
+    pickerValue: { fontSize: 15, color: '#2D2445', fontWeight: '500' },
+    radiusValueText: { fontSize: 16, fontWeight: '800', color: '#8b5cf6' },
     sliderContainer: { flexDirection: 'row', gap: 10, marginTop: 12 },
-    radiusChip: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    radiusChipActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
-    radiusChipText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    radiusChipTextActive: { color: '#fff' },
+    radiusChip: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#C4B5DC' },
+    radiusChipActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+    radiusChipText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
+    radiusChipTextActive: { color: '#2D2445' },
     reachGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
-    reachGridItem: { width: '48%', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, alignItems: 'center', gap: 8 },
-    reachGridItemActive: { backgroundColor: 'rgba(29, 78, 216, 0.15)', borderColor: '#1d4ed8' },
-    reachGridText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    reachGridTextActive: { color: '#fff' },
-    stateSelectBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, paddingHorizontal: 16, height: 48, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    stateSelectBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+    reachGridItem: { width: '48%', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', borderRadius: 12, padding: 16, alignItems: 'center', gap: 8 },
+    reachGridItemActive: { backgroundColor: 'rgba(29, 78, 216, 0.15)', borderColor: '#8b5cf6' },
+    reachGridText: { fontSize: 13, fontWeight: '700', color: '#7A6B9C' },
+    reachGridTextActive: { color: '#2D2445' },
+    stateSelectBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 12, paddingHorizontal: 16, height: 48, borderWidth: 1, borderColor: '#C4B5DC' },
+    stateSelectBtnText: { color: '#2D2445', fontSize: 15, fontWeight: '600' },
 });
 
 const workingHoursStyles = StyleSheet.create({
     daysSection: { marginBottom: 20 },
-    sectionHeader: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 12 },
-    tabBar: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 16 },
+    sectionHeader: { fontSize: 16, fontWeight: '700', color: '#2D2445', marginBottom: 12 },
+    tabBar: { flexDirection: 'row', backgroundColor: '#F4EEFC', borderRadius: 12, padding: 4, marginBottom: 16 },
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-    tabActive: { backgroundColor: '#1d4ed8' },
-    tabText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    tabTextActive: { color: '#fff' },
+    tabActive: { backgroundColor: '#8b5cf6' },
+    tabText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
+    tabTextActive: { color: '#2D2445' },
     presetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    presetItem: { flex: 1, minWidth: '45%', paddingVertical: 14, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12 },
-    presetItemActive: { backgroundColor: 'rgba(29, 78, 216, 0.1)', borderColor: '#1d4ed8' },
-    presetText: { fontSize: 14, color: '#94a3b8', fontWeight: '600' },
-    presetTextActive: { color: '#3b82f6', fontWeight: '800' },
+    presetItem: { flex: 1, minWidth: '45%', paddingVertical: 14, alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', borderRadius: 12 },
+    presetItemActive: { backgroundColor: 'rgba(29, 78, 216, 0.1)', borderColor: '#8b5cf6' },
+    presetText: { fontSize: 14, color: '#9A8EBA', fontWeight: '600' },
+    presetTextActive: { color: '#a78bfa', fontWeight: '800' },
     customDaysContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-    dayCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    dayCircleActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
-    dayCircleText: { fontSize: 12, fontWeight: '700', color: '#94a3b8' },
-    dayCircleTextActive: { color: '#fff' },
-    timeSelectSection: { marginBottom: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 16 },
-    timeHeader: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 12 },
+    dayCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', justifyContent: 'center' },
+    dayCircleActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+    dayCircleText: { fontSize: 12, fontWeight: '700', color: '#9A8EBA' },
+    dayCircleTextActive: { color: '#2D2445' },
+    timeSelectSection: { marginBottom: 20, borderTopWidth: 1, borderTopColor: '#EFE9F8', paddingTop: 16 },
+    timeHeader: { fontSize: 15, fontWeight: '700', color: '#2D2445', marginBottom: 12 },
     row: { flexDirection: 'row', gap: 8 },
     scrollContainer: { gap: 8, paddingRight: 16 },
-    timeButton: { width: 48, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    timeButtonActive: { backgroundColor: 'rgba(29, 78, 216, 0.1)', borderColor: '#1d4ed8' },
-    timeButtonText: { fontSize: 14, fontWeight: '600', color: '#94a3b8' },
-    timeButtonTextActive: { color: '#3b82f6', fontWeight: '800' }
+    timeButton: { width: 48, height: 40, borderRadius: 10, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', justifyContent: 'center' },
+    timeButtonActive: { backgroundColor: 'rgba(29, 78, 216, 0.1)', borderColor: '#8b5cf6' },
+    timeButtonText: { fontSize: 14, fontWeight: '600', color: '#9A8EBA' },
+    timeButtonTextActive: { color: '#a78bfa', fontWeight: '800' }
 });

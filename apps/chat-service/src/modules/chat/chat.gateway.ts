@@ -75,11 +75,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         });
 
         // Broadcast to all members in conversation
-        this.server
-            .to(`conversation:${data.conversationId}`)
-            .emit('new_message', message);
+        this.broadcastMessage(data.conversationId, message);
 
         return { event: 'message_sent', data: message };
+    }
+
+    /** Emit a freshly-persisted message to everyone joined to the conversation room. */
+    broadcastMessage(conversationId: string, message: any) {
+        if (!this.server) return;
+        this.server.to(`conversation:${conversationId}`).emit('new_message', message);
     }
 
     @SubscribeMessage('typing')

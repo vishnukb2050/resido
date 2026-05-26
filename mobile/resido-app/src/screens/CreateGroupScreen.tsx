@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Contacts from 'expo-contacts';
 import { authApi, communityApi, chatApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
@@ -25,6 +26,7 @@ export default function CreateGroupScreen() {
     // Lists
     const [communityMembers, setCommunityMembers] = useState<any[]>([]);
     const [following, setFollowing] = useState<any[]>([]);
+    const [contacts, setContacts] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -36,13 +38,30 @@ export default function CreateGroupScreen() {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            // Fetch Community Members
             const commRes = await communityApi.getMembers();
             setCommunityMembers(commRes.data || []);
 
-            // Fetch Following
             const followRes = await authApi.getFollowing();
             setFollowing(followRes.data || []);
+
+            // Pull Resido users from device contacts (silently skip if permission denied).
+            try {
+                const { status } = await Contacts.requestPermissionsAsync();
+                if (status === 'granted') {
+                    const { data: deviceContacts } = await Contacts.getContactsAsync({
+                        fields: [Contacts.Fields.PhoneNumbers],
+                    });
+                    const phones = deviceContacts
+                        .flatMap((c) => c.phoneNumbers?.map((p) => p.number?.replace(/\D/g, '')) || [])
+                        .filter(Boolean) as string[];
+                    if (phones.length > 0) {
+                        const res = await authApi.syncContacts(phones);
+                        setContacts(res.data || []);
+                    }
+                }
+            } catch (e) {
+                console.warn('[group] contact sync skipped', (e as any)?.message);
+            }
         } catch (error) {
             console.error('Failed to fetch initial data:', error);
         } finally {
@@ -88,17 +107,15 @@ export default function CreateGroupScreen() {
 
         setLoading(true);
         try {
-            const memberIds = [user?.id, ...selectedMembers.map(m => m.id)];
-            const groupId = `manual-${groupName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
-            
-            const { data } = await chatApi.createConversation(memberIds as any);
-            // If the API doesn't support name/groupId yet, we might need a separate call or wait for backend update
-            // For now, let's assume it works since we checked chat.controller.ts
-            
+            const memberIds = selectedMembers.map(m => m.id).filter(Boolean);
+            // Backend resolves the caller automatically; we send only the *other*
+            // members. `createGroup` always produces a GROUP-type conversation.
+            const { data } = await chatApi.createGroup(groupName.trim(), memberIds);
+
             Alert.alert('Success', 'Group created successfully!');
             router.replace(`/chat/${data.id}`);
-        } catch (error) {
-            console.error('Failed to create group:', error);
+        } catch (error: any) {
+            console.error('Failed to create group:', error?.response?.data || error?.message);
             Alert.alert('Error', 'Failed to create group');
         } finally {
             setLoading(false);
@@ -106,11 +123,11 @@ export default function CreateGroupScreen() {
     };
 
     const renderMemberList = () => {
-        let list = [];
+        let list: any[] = [];
         if (activeTab === 'Community') list = communityMembers;
         else if (activeTab === 'Following') list = following;
+        else if (activeTab === 'Contacts') list = contacts;
         else if (activeTab === 'Search') list = searchResults;
-        else list = []; 
 
         if (loading && list.length === 0) {
             return <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />;
@@ -199,17 +216,17 @@ export default function CreateGroupScreen() {
                 )}
             </View>
 
-            <View style={styles.tabsRow}>
-                {['Community', 'Following', 'Search'].map((tab) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
+                {(['Community', 'Following', 'Contacts', 'Search'] as MemberSource[]).map((tab) => (
                     <TouchableOpacity 
                         key={tab} 
                         style={[styles.tab, activeTab === tab && styles.tabActive]}
-                        onPress={() => setActiveTab(tab as MemberSource)}
+                        onPress={() => setActiveTab(tab)}
                     >
                         <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
                     </TouchableOpacity>
                 ))}
-            </View>
+            </ScrollView>
 
             {activeTab === 'Search' && (
                 <View style={styles.searchSection}>

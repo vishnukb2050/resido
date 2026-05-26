@@ -38,7 +38,7 @@ export default function NoteFolderViewScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -74,7 +74,7 @@ export default function NoteFolderViewScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
                 ) : pages.length === 0 ? (
                     <Text style={styles.emptyText}>No notes here yet. Create one!</Text>
                 ) : (
@@ -86,15 +86,15 @@ export default function NoteFolderViewScreen() {
                                 onPress={() => router.push({ pathname: '/create-note', params: { id: note.id, folderId: id, title: note.title, body: note.content } })}
                             >
                                 <View style={styles.cardHeader}>
-                                    <Text style={[styles.noteTitle, note.color === '#1d4ed8' && { color: '#fff' }]}>{note.title}</Text>
+                                    <Text style={[styles.noteTitle, note.color === '#1d4ed8' && { color: '#2D2445' }]}>{note.title}</Text>
                                 </View>
                                 <Text 
-                                    style={[styles.noteBody, note.color === '#1d4ed8' && { color: 'rgba(255,255,255,0.8)' }]} 
+                                    style={[styles.noteBody, note.color === '#1d4ed8' && { color: '#5B4B8A' }]} 
                                     numberOfLines={5}
                                 >
                                     {note.content}
                                 </Text>
-                                <Text style={[styles.noteDate, note.color === '#1d4ed8' && { color: 'rgba(255,255,255,0.6)' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
+                                <Text style={[styles.noteDate, note.color === '#1d4ed8' && { color: '#7A6B9C' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -112,26 +112,26 @@ export default function NoteFolderViewScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    header: { padding: 20, paddingTop: 20, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    header: { padding: 20, paddingTop: 20, backgroundColor: '#F8F5FF' },
     headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    headerSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    headerSub: { fontSize: 13, color: '#9A8EBA', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     
     searchSection: { marginTop: 8 },
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    searchInput: { flex: 1, marginLeft: 10, color: '#fff', fontSize: 15 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#C4B5DC' },
+    searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', padding: 15, gap: 15 },
     noteCard: { width: columnWidth, padding: 16, borderRadius: 20, minHeight: 180, justifyContent: 'space-between' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-    noteTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b', flex: 1, marginRight: 8 },
-    noteBody: { fontSize: 13, color: '#475569', lineHeight: 18 },
-    noteDate: { fontSize: 11, color: '#64748b', marginTop: 12, fontWeight: '600' },
+    noteTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445', flex: 1, marginRight: 8 },
+    noteBody: { fontSize: 13, color: '#5B4B8A', lineHeight: 18 },
+    noteDate: { fontSize: 11, color: '#7A6B9C', marginTop: 12, fontWeight: '600' },
 
-    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
-    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    emptyText: { textAlign: 'center', color: '#9A8EBA', marginTop: 40, fontSize: 15, fontWeight: '600' },
+    fab: { position: 'absolute', bottom: 100, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
 });

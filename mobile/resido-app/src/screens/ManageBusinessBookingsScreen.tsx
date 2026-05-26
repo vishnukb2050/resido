@@ -112,7 +112,7 @@ export default function ManageBusinessBookingsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -255,9 +255,9 @@ export default function ManageBusinessBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    loadingContainer: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
-    loadingText: { color: '#94a3b8', fontSize: 15, marginTop: 12, fontWeight: '600' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    loadingContainer: { flex: 1, backgroundColor: '#F8F5FF', justifyContent: 'center', alignItems: 'center' },
+    loadingText: { color: '#9A8EBA', fontSize: 15, marginTop: 12, fontWeight: '600' },
     
     header: { 
         flexDirection: 'row', 
@@ -267,28 +267,28 @@ const styles = StyleSheet.create({
         paddingTop: 15, 
         paddingBottom: 15,
         borderBottomWidth: 1, 
-        borderBottomColor: 'rgba(255,255,255,0.05)' 
+        borderBottomColor: '#EFE9F8' 
     },
     backBtn: { 
         width: 40, 
         height: 40, 
         borderRadius: 20, 
-        backgroundColor: 'rgba(255,255,255,0.05)', 
+        backgroundColor: '#F4EEFC', 
         alignItems: 'center', 
         justifyContent: 'center' 
     },
     headerTitleBox: { flex: 1, alignItems: 'center', marginHorizontal: 12 },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
-    headerSubtitle: { fontSize: 13, color: '#94a3b8', marginTop: 2, fontWeight: '700' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
+    headerSubtitle: { fontSize: 13, color: '#9A8EBA', marginTop: 2, fontWeight: '700' },
 
     tabContainer: { 
         flexDirection: 'row', 
-        backgroundColor: 'rgba(255,255,255,0.02)', 
+        backgroundColor: '#ffffff', 
         margin: 16, 
         borderRadius: 14, 
         padding: 4, 
         borderWidth: 1, 
-        borderColor: 'rgba(255,255,255,0.05)' 
+        borderColor: '#D4C9E8' 
     },
     tab: { 
         flex: 1, 
@@ -299,8 +299,8 @@ const styles = StyleSheet.create({
         borderRadius: 10 
     },
     activeTab: { backgroundColor: '#8b5cf6' },
-    tabText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    activeTabText: { color: '#fff' },
+    tabText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
+    activeTabText: { color: '#ffffff' },
 
     scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
 
@@ -309,54 +309,54 @@ const styles = StyleSheet.create({
         width: 100, 
         height: 100, 
         borderRadius: 50, 
-        backgroundColor: 'rgba(255,255,255,0.02)', 
+        backgroundColor: '#ffffff', 
         alignItems: 'center', 
         justifyContent: 'center', 
         marginBottom: 20 
     },
-    emptyTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 8 },
-    emptySubtitle: { fontSize: 14, color: '#64748b', textAlign: 'center', lineHeight: 22 },
+    emptyTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445', marginBottom: 8 },
+    emptySubtitle: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', lineHeight: 22 },
 
     bookingCard: { 
-        backgroundColor: 'rgba(255,255,255,0.03)', 
+        backgroundColor: '#ffffff', 
         borderRadius: 20, 
         padding: 16, 
         marginBottom: 16, 
         borderWidth: 1, 
-        borderColor: 'rgba(255,255,255,0.05)' 
+        borderColor: '#D4C9E8' 
     },
     cardHeader: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
         borderBottomWidth: 1, 
-        borderBottomColor: 'rgba(255,255,255,0.03)', 
+        borderBottomColor: '#EFE9F8', 
         paddingBottom: 12, 
         marginBottom: 12 
     },
     slotBadge: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
-    slotNameText: { fontSize: 15, fontWeight: '800', color: '#ffffff' },
+    slotNameText: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     guestBadge: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        backgroundColor: 'rgba(255,255,255,0.03)', 
+        backgroundColor: '#ffffff', 
         paddingHorizontal: 8, 
         paddingVertical: 4, 
         borderRadius: 8 
     },
-    guestText: { fontSize: 12, color: '#cbd5e1', fontWeight: '800' },
+    guestText: { fontSize: 12, color: '#7A6B9C', fontWeight: '800' },
 
     customerBox: { marginBottom: 16 },
-    customerLabel: { fontSize: 10, color: '#64748b', fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
-    customerName: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 4 },
+    customerLabel: { fontSize: 10, color: '#7A6B9C', fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
+    customerName: { fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 4 },
     phoneLink: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
     phoneLinkText: { fontSize: 13, color: '#c084fc', fontWeight: '700', textDecorationLine: 'underline' },
     noPhoneText: { fontSize: 12, color: '#ef4444', fontWeight: '600' },
 
     dateTimeGrid: { flexDirection: 'row', gap: 16, marginBottom: 16 },
     dateTimeCol: { flex: 1 },
-    gridLabel: { fontSize: 10, color: '#64748b', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
-    gridValue: { fontSize: 13, color: '#cbd5e1', fontWeight: '700' },
+    gridLabel: { fontSize: 10, color: '#7A6B9C', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
+    gridValue: { fontSize: 13, color: '#7A6B9C', fontWeight: '700' },
 
     notesBox: { 
         backgroundColor: 'rgba(255,255,255,0.01)', 
@@ -367,11 +367,11 @@ const styles = StyleSheet.create({
         marginBottom: 16
     },
     notesLabel: { fontSize: 10, color: '#c084fc', fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
-    notesText: { fontSize: 12, color: '#94a3b8', lineHeight: 16 },
+    notesText: { fontSize: 12, color: '#9A8EBA', lineHeight: 16 },
 
     cardActions: { 
         borderTopWidth: 1, 
-        borderTopColor: 'rgba(255,255,255,0.03)', 
+        borderTopColor: '#EFE9F8', 
         paddingTop: 12, 
         marginTop: 4,
         alignItems: 'center'

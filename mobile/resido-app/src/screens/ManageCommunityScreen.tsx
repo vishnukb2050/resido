@@ -267,7 +267,7 @@ export default function ManageCommunityScreen() {
     // ── Render List of Communities (Dashboard) ─────────────────────────
     if (!editingWorkspace) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: '#000000' }]}>
+            <SafeAreaView style={[styles.container, { backgroundColor: '#F8F5FF' }]}>
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -597,7 +597,7 @@ export default function ManageCommunityScreen() {
                                         ]}
                                         onPress={() => setStaffRole(r)}
                                     >
-                                        <Text style={[styles.roleOptionText, staffRole === r && { color: '#fff' }]}>
+                                        <Text style={[styles.roleOptionText, staffRole === r && { color: '#2D2445' }]}>
                                             {r.replace('_', ' ')}
                                         </Text>
                                     </TouchableOpacity>
@@ -628,40 +628,40 @@ const styles = StyleSheet.create({
     header: { 
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
         paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
-        borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)'
+        borderBottomWidth: 1, borderBottomColor: '#EFE9F8'
     },
     backBtn: { 
         width: 44, height: 44, borderRadius: 22, 
-        backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' 
+        backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' 
     },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
     scrollContent: { padding: 24, paddingBottom: 60 },
-    sectionLabel: { fontSize: 13, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
+    sectionLabel: { fontSize: 13, fontWeight: '800', color: '#7A6B9C', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
     photoPicker: {
         height: 165, borderRadius: 16, overflow: 'hidden', borderWidth: 2, 
-        borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', 
+        borderColor: '#D4C9E8', borderStyle: 'dashed', 
         backgroundColor: 'rgba(255,255,255,0.01)', alignItems: 'center', justifyContent: 'center',
         marginBottom: 20
     },
     photoPreview: { width: '100%', height: '100%' },
     photoPlaceholder: { alignItems: 'center' },
-    photoPlaceholderText: { fontSize: 13, color: '#64748b', marginTop: 8, fontWeight: '600' },
-    card: { padding: 20, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 32 },
-    cardLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-    input: { borderRadius: 12, padding: 16, fontSize: 16, color: '#fff', fontWeight: '600', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16 },
+    photoPlaceholderText: { fontSize: 13, color: '#7A6B9C', marginTop: 8, fontWeight: '600' },
+    card: { padding: 20, borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', marginBottom: 32 },
+    cardLabel: { fontSize: 11, color: '#7A6B9C', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+    input: { borderRadius: 12, padding: 16, fontSize: 16, color: '#2D2445', fontWeight: '600', borderWidth: 1, borderColor: '#D4C9E8', marginBottom: 16 },
     saveBtn: { borderRadius: 12, padding: 18, alignItems: 'center', justifyContent: 'center' },
-    saveBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+    saveBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 16 },
     staffHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
     addStaffBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
     addStaffBtnText: { fontSize: 12, fontWeight: '700' },
     emptyContainer: { alignItems: 'center', padding: 40, gap: 12 },
-    emptyText: { color: '#64748b', fontWeight: '600' },
+    emptyText: { color: '#7A6B9C', fontWeight: '600' },
     staffListContainer: { gap: 12 },
-    staffCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    staffCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     staffAvatar: { width: 48, height: 48, borderRadius: 24 },
     staffInfo: { flex: 1, marginLeft: 16, gap: 4 },
-    staffName: { fontSize: 15, fontWeight: '700', color: '#fff' },
-    staffPhone: { fontSize: 13, color: '#64748b', fontWeight: '500' },
+    staffName: { fontSize: 15, fontWeight: '700', color: '#2D2445' },
+    staffPhone: { fontSize: 13, color: '#7A6B9C', fontWeight: '500' },
     roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
     roleBadgeText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
     removeBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(239, 68, 68, 0.05)', alignItems: 'center', justifyContent: 'center' },
@@ -670,14 +670,14 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
     modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 16 },
     modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    modalTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    modalLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 8 },
-    modalInput: { borderRadius: 12, padding: 16, fontSize: 15, color: '#fff', fontWeight: '600', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)' },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    modalLabel: { fontSize: 12, color: '#9A8EBA', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 8 },
+    modalInput: { borderRadius: 12, padding: 16, fontSize: 15, color: '#2D2445', fontWeight: '600', borderWidth: 1, borderColor: '#D4C9E8', backgroundColor: '#ffffff' },
     roleSelectionContainer: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-    roleOption: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.02)' },
-    roleOptionText: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
+    roleOption: { borderWidth: 1, borderColor: '#C4B5DC', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ffffff' },
+    roleOptionText: { fontSize: 13, color: '#9A8EBA', fontWeight: '600' },
     modalSubmitBtn: { borderRadius: 12, padding: 18, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-    modalSubmitBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+    modalSubmitBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 16 },
 
     // Dashboard-Specific Styles
     createTriggerCard: {
@@ -697,32 +697,32 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center'
     },
-    createTriggerTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
-    createTriggerSub: { fontSize: 11, color: '#94a3b8', fontWeight: '600', marginTop: 3, lineHeight: 16 },
+    createTriggerTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
+    createTriggerSub: { fontSize: 11, color: '#9A8EBA', fontWeight: '600', marginTop: 3, lineHeight: 16 },
     emptyCatalogContainer: {
         alignItems: 'center',
         paddingVertical: 50,
         gap: 16
     },
-    emptyCatalogText: { fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center' },
+    emptyCatalogText: { fontSize: 14, color: '#7A6B9C', fontWeight: '600', textAlign: 'center' },
     launchBtnInline: {
         paddingHorizontal: 22,
         paddingVertical: 13,
         borderRadius: 12,
         marginTop: 8
     },
-    launchBtnInlineText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+    launchBtnInlineText: { color: '#2D2445', fontWeight: '800', fontSize: 13 },
     communityListItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: '#ffffff',
         borderRadius: 18,
         padding: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)'
+        borderColor: '#D4C9E8'
     },
     communityListImg: { width: 50, height: 50, borderRadius: 12 },
-    communityListName: { fontSize: 15, fontWeight: '800', color: '#fff' },
+    communityListName: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     roleLabelTag: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -746,11 +746,11 @@ const styles = StyleSheet.create({
     manageLabelText: { fontSize: 11, color: '#a78bfa', fontWeight: '800' },
 
     // Modal Fullscreen Styling
-    modalFullscreen: { flex: 1, backgroundColor: '#000000' },
+    modalFullscreen: { flex: 1, backgroundColor: '#F8F5FF' },
     heroSection: { alignItems: 'center', marginBottom: 28, marginTop: 10 },
     heroIconBox: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(139, 92, 246, 0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-    heroTitle: { fontSize: 24, fontWeight: '900', color: '#fff', textAlign: 'center' },
-    heroSub: { fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 8, lineHeight: 20, paddingHorizontal: 24, fontWeight: '600' },
+    heroTitle: { fontSize: 24, fontWeight: '900', color: '#2D2445', textAlign: 'center' },
+    heroSub: { fontSize: 13, color: '#7A6B9C', textAlign: 'center', marginTop: 8, lineHeight: 20, paddingHorizontal: 24, fontWeight: '600' },
     modalSectionLabel: { fontSize: 12, fontWeight: '900', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 8 },
     inputGroup: { gap: 8 },
     submitCreateBtn: {
@@ -762,5 +762,5 @@ const styles = StyleSheet.create({
         padding: 18,
         marginTop: 20
     },
-    submitCreateText: { color: '#fff', fontWeight: '900', fontSize: 15 }
+    submitCreateText: { color: '#2D2445', fontWeight: '900', fontSize: 15 }
 });

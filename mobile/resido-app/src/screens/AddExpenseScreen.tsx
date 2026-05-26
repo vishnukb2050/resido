@@ -88,7 +88,7 @@ export default function AddExpenseScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -166,7 +166,7 @@ export default function AddExpenseScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Date</Text>
                         <View style={styles.inputWrapper}>
-                            <Ionicons name="calendar-outline" size={20} color="#1d4ed8" style={styles.inputIcon} />
+                            <Ionicons name="calendar-outline" size={20} color="#8b5cf6" style={styles.inputIcon} />
                             <TextInput 
                                 style={styles.input}
                                 value={date}
@@ -196,7 +196,7 @@ export default function AddExpenseScreen() {
                         <TouchableOpacity style={styles.uploadArea} onPress={pickDocument}>
                             {billFile ? (
                                 <View style={styles.fileInfo}>
-                                    <Ionicons name="document-text" size={24} color="#1d4ed8" />
+                                    <Ionicons name="document-text" size={24} color="#8b5cf6" />
                                     <Text style={styles.fileName} numberOfLines={1}>{billFile.name}</Text>
                                     <TouchableOpacity onPress={() => setBillFile(null)}>
                                         <Ionicons name="close-circle" size={20} color="#ef4444" />
@@ -204,7 +204,7 @@ export default function AddExpenseScreen() {
                                 </View>
                             ) : (
                                 <>
-                                    <Ionicons name="cloud-upload-outline" size={32} color="#1d4ed8" />
+                                    <Ionicons name="cloud-upload-outline" size={32} color="#8b5cf6" />
                                     <Text style={styles.uploadText}>Tap to upload bill or receipt</Text>
                                 </>
                             )}
@@ -235,29 +235,29 @@ export default function AddExpenseScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 10 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
     
-    formCard: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 24, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    formCard: { backgroundColor: '#ffffff', padding: 24, borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8' },
     inputGroup: { marginBottom: 24 },
-    label: { fontSize: 14, fontWeight: '700', color: '#94a3b8', marginBottom: 12, marginLeft: 4 },
-    inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 16 },
+    label: { fontSize: 14, fontWeight: '700', color: '#9A8EBA', marginBottom: 12, marginLeft: 4 },
+    inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8', paddingHorizontal: 16 },
     inputIcon: { marginRight: 12 },
-    input: { flex: 1, height: 56, fontSize: 16, color: '#fff', fontWeight: '600' },
+    input: { flex: 1, height: 56, fontSize: 16, color: '#2D2445', fontWeight: '600' },
     
     categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    activeChip: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
-    chipText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    activeChipText: { color: '#fff' },
+    chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#D4C9E8' },
+    activeChip: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+    chipText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
+    activeChipText: { color: '#ffffff' },
     
-    uploadArea: { height: 100, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#1d4ed8', backgroundColor: 'rgba(37, 99, 235, 0.05)', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    uploadText: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
+    uploadArea: { height: 100, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#8b5cf6', backgroundColor: 'rgba(37, 99, 235, 0.05)', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    uploadText: { fontSize: 13, color: '#9A8EBA', fontWeight: '600' },
     fileInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
-    fileName: { flex: 1, fontSize: 14, color: '#fff', fontWeight: '600' },
+    fileName: { flex: 1, fontSize: 14, color: '#2D2445', fontWeight: '600' },
 
     saveBtn: { backgroundColor: '#ef4444', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 40, gap: 10, shadowColor: '#ef4444', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    saveBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    saveBtnText: { fontSize: 16, fontWeight: '800', color: '#ffffff' },
 });

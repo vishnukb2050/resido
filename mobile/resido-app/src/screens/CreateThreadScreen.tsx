@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image, FlatList, Modal, SafeAreaView, Dimensions } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { threadApi, authApi } from '../services/api';
+import { threadApi, authApi, businessApi } from '../services/api';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
@@ -39,8 +39,25 @@ export default function CreateThreadScreen() {
     const [pollQuestion, setPollQuestion] = useState('');
     const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
     const [pollDuration, setPollDuration] = useState(7);
+    const [myBusinesses, setMyBusinesses] = useState<any[]>([]);
+    const [pinToBusiness, setPinToBusiness] = useState(false);
+    const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+    const [showBusinessPicker, setShowBusinessPicker] = useState(false);
 
     const router = useRouter();
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data } = await businessApi.getMyProfiles();
+                const list = Array.isArray(data) ? data : (data?.profiles || []);
+                setMyBusinesses(list);
+                if (list.length === 1) setSelectedBusinessId(list[0].id);
+            } catch (e) {
+                // ignore
+            }
+        })();
+    }, []);
 
     const pickMedia = async (type: 'image' | 'video') => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -84,6 +101,11 @@ export default function CreateThreadScreen() {
                 uploadedUrls.push(fileUrl);
             }
 
+            const pinnedBusinessId =
+                pinToBusiness && (selectedBusinessId || (myBusinesses.length === 1 ? myBusinesses[0].id : null))
+                    ? selectedBusinessId || myBusinesses[0]?.id
+                    : null;
+
             const payload = {
                 title: title || 'New Post',
                 content,
@@ -93,6 +115,7 @@ export default function CreateThreadScreen() {
                 visibility: selectedVisibilities[0], // Using primary for backend simple enum
                 visibilities: selectedVisibilities, // Extra info
                 authorAvatar: user?.profilePhoto,
+                businessProfileId: pinnedBusinessId,
                 poll: showPollBuilder && pollQuestion && pollOptions.filter(o => o).length >= 2 ? {
                     question: pollQuestion,
                     options: pollOptions.filter(o => o),
@@ -329,7 +352,79 @@ export default function CreateThreadScreen() {
                         <Text style={styles.toolbarLabel}>Location</Text>
                     </TouchableOpacity>
                 </View>
+
+                {myBusinesses.length > 0 && (
+                    <View style={styles.bizPinCard}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.bizPinTitle}>Add to my business profile</Text>
+                            <Text style={styles.bizPinDesc}>
+                                {pinToBusiness && selectedBusinessId
+                                    ? `Will appear on ${myBusinesses.find(b => b.id === selectedBusinessId)?.businessName || 'your business'}`
+                                    : 'Showcase this post on your business page'}
+                            </Text>
+                            {pinToBusiness && myBusinesses.length > 1 && (
+                                <TouchableOpacity onPress={() => setShowBusinessPicker(true)} style={{ marginTop: 6 }}>
+                                    <Text style={{ color: '#1d4ed8', fontSize: 12, fontWeight: '800' }}>Change business profile</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.bizPinToggle, pinToBusiness && styles.bizPinToggleOn]}
+                            onPress={() => {
+                                const next = !pinToBusiness;
+                                setPinToBusiness(next);
+                                if (next && !selectedBusinessId) {
+                                    if (myBusinesses.length === 1) setSelectedBusinessId(myBusinesses[0].id);
+                                    else setShowBusinessPicker(true);
+                                }
+                            }}
+                        >
+                            <Ionicons
+                                name={pinToBusiness ? 'checkmark-circle' : 'ellipse-outline'}
+                                size={26}
+                                color={pinToBusiness ? '#1d4ed8' : '#cbd5e1'}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                )}
             </ScrollView>
+
+            <Modal visible={showBusinessPicker} animationType="slide" transparent>
+                <View style={styles.pickerBackdrop}>
+                    <View style={styles.pickerSheet}>
+                        <View style={styles.pickerHandle} />
+                        <Text style={styles.pickerTitle}>Choose business profile</Text>
+                        <Text style={styles.pickerSub}>This thread will appear on the selected business profile.</Text>
+                        <ScrollView style={{ maxHeight: 300 }}>
+                            {myBusinesses.map(b => (
+                                <TouchableOpacity
+                                    key={b.id}
+                                    style={[styles.pickerItem, selectedBusinessId === b.id && styles.pickerItemActive]}
+                                    onPress={() => { setSelectedBusinessId(b.id); setShowBusinessPicker(false); }}
+                                >
+                                    <View style={styles.pickerLogo}>
+                                        {b.logo ? (
+                                            <Image source={{ uri: b.logo }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+                                        ) : (
+                                            <Ionicons name="business" size={20} color="#1d4ed8" />
+                                        )}
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.pickerItemName}>{b.businessName}</Text>
+                                        <Text style={styles.pickerItemCat}>{b.category}</Text>
+                                    </View>
+                                    {selectedBusinessId === b.id && (
+                                        <Ionicons name="checkmark-circle" size={22} color="#1d4ed8" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity style={styles.pickerClose} onPress={() => setShowBusinessPicker(false)}>
+                            <Text style={styles.pickerCloseText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
 
         </SafeAreaView>
     );
@@ -428,4 +523,23 @@ const styles = StyleSheet.create({
     durationPillActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     durationPillText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     durationPillTextActive: { color: '#fff' },
+
+    bizPinCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 20, marginTop: 8, marginBottom: 24, padding: 14, backgroundColor: '#eff6ff', borderRadius: 16, borderWidth: 1, borderColor: '#bfdbfe' },
+    bizPinTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+    bizPinDesc: { fontSize: 12, color: '#475569', marginTop: 2, fontWeight: '600' },
+    bizPinToggle: { padding: 4 },
+    bizPinToggleOn: {},
+
+    pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
+    pickerHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#e2e8f0', alignSelf: 'center', marginBottom: 14 },
+    pickerTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+    pickerSub: { fontSize: 13, color: '#64748b', marginBottom: 16, fontWeight: '600' },
+    pickerItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, marginBottom: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
+    pickerItemActive: { backgroundColor: '#eff6ff', borderColor: '#1d4ed8' },
+    pickerLogo: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+    pickerItemName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
+    pickerItemCat: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
+    pickerClose: { marginTop: 12, backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+    pickerCloseText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

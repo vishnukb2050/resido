@@ -74,7 +74,7 @@ export default function SelectGroupsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -100,7 +100,7 @@ export default function SelectGroupsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                 {loading ? (
-                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 20 }} />
+                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
                 ) : filteredGroups.length === 0 ? (
                     <Text style={styles.emptyText}>No groups found</Text>
                 ) : (
@@ -110,7 +110,7 @@ export default function SelectGroupsScreen() {
                             style={styles.groupItem}
                             onPress={() => toggleSelect(group.id)}
                         >
-                            <View style={[styles.groupIconBox, { backgroundColor: '#1d4ed8' }]}>
+                            <View style={[styles.groupIconBox, { backgroundColor: '#8b5cf6' }]}>
                                 <Ionicons name="people" size={22} color="#fff" />
                             </View>
                             <View style={styles.groupInfo}>
@@ -140,25 +140,25 @@ export default function SelectGroupsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginLeft: 16 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginLeft: 16 },
     
     searchSection: { padding: 20, paddingTop: 0 },
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, paddingHorizontal: 16, height: 50 },
-    searchInput: { flex: 1, marginLeft: 10, color: '#fff', fontSize: 15 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50 },
+    searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
     groupItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 },
     groupIconBox: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     groupInfo: { flex: 1, marginLeft: 16 },
-    groupName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-    groupSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
-    checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    checkboxActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
+    groupName: { fontSize: 16, fontWeight: '700', color: '#2D2445' },
+    groupSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
+    checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#C4B5DC', alignItems: 'center', justifyContent: 'center' },
+    checkboxActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
 
-    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
-    footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, paddingBottom: 30, backgroundColor: '#000000' },
-    shareButton: { backgroundColor: '#1d4ed8', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    shareButtonText: { color: '#fff', fontWeight: '900', fontSize: 16 }
+    emptyText: { textAlign: 'center', color: '#9A8EBA', marginTop: 40, fontSize: 15, fontWeight: '600' },
+    footer: { position: 'absolute', bottom: 0, width: '100%', padding: 20, paddingBottom: 30, backgroundColor: '#F8F5FF' },
+    shareButton: { backgroundColor: '#8b5cf6', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    shareButtonText: { color: '#2D2445', fontWeight: '900', fontSize: 16 }
 });

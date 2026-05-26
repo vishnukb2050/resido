@@ -93,7 +93,7 @@ export default function AddStaffScreen() {
                         <Text style={styles.label}>Category</Text>
                         <TouchableOpacity style={styles.selector} onPress={() => setShowCategories(!showCategories)}>
                             <Text style={styles.selectorText}>{formData.category}</Text>
-                            <Ionicons name="chevron-down" size={20} color="#1d4ed8" />
+                            <Ionicons name="chevron-down" size={20} color="#8b5cf6" />
                         </TouchableOpacity>
                         
                         {showCategories && (
@@ -171,22 +171,22 @@ export default function AddStaffScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     scrollContent: { padding: 24 },
     form: { gap: 20 },
     inputGroup: { gap: 10 },
-    label: { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
-    selector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    selectorText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-    dropdown: { backgroundColor: '#1e293b', borderRadius: 16, marginTop: 8, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    label: { fontSize: 12, color: '#9A8EBA', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+    selector: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#C4B5DC', padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    selectorText: { color: '#2D2445', fontSize: 16, fontWeight: '600' },
+    dropdown: { backgroundColor: '#ffffff', borderRadius: 16, marginTop: 8, padding: 10, borderWidth: 1, borderColor: '#C4B5DC' },
     dropdownItem: { padding: 15, borderRadius: 10 },
-    dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-    selectedItemText: { color: '#1d4ed8' },
-    input: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 18, fontSize: 16, fontWeight: '600' },
+    dropdownItemText: { color: '#9A8EBA', fontSize: 15, fontWeight: '600' },
+    selectedItemText: { color: '#8b5cf6' },
+    input: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#C4B5DC', color: '#2D2445', padding: 18, fontSize: 16, fontWeight: '600' },
     textArea: { height: 100, textAlignVertical: 'top' },
-    submitBtn: { backgroundColor: '#1d4ed8', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 20 },
-    submitText: { color: '#fff', fontWeight: '900', fontSize: 16 }
+    submitBtn: { backgroundColor: '#8b5cf6', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 20 },
+    submitText: { color: '#ffffff', fontWeight: '900', fontSize: 16 }
 });

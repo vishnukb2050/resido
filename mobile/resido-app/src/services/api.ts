@@ -4,6 +4,17 @@ import * as SecureStore from 'expo-secure-store';
 
 export const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
 
+/**
+ * The Socket.IO host. In production, nginx only proxies `/socket.io/` to the
+ * chat-service from the root domain (NOT the `/api/` path), so we must connect
+ * to the root host. Falls back to deriving from `API_URL` by stripping a
+ * trailing `/api` so local development with `http://10.0.2.2:3000` keeps working.
+ */
+export const SOCKET_URL: string =
+    (Constants.expoConfig?.extra as any)?.socketUrl ||
+    API_URL.replace(/\/api\/?$/, '') ||
+    API_URL;
+
 export const api = axios.create({ baseURL: API_URL });
 
 // Inject auth token and tenantId from secure store on every request
@@ -218,14 +229,16 @@ export const accountingApi = {
 
 // Thread & Flare APIs
 export const threadApi = {
-    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string }) => {
+    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string; businessProfileId?: string }) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/threads', { params: p });
     },
-    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string }) => {
+    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string; businessProfileId?: string }) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/flares', { params: p });
     },
+    getBusinessPosts: (businessProfileId: string) =>
+        api.get('/blogs', { params: { businessProfileId } }),
     getThread: (id: string) => api.get(`/blogs/${id}`),
     createThread: (data: any) => api.post('/threads', data),
     createFlare: (data: any) => api.post('/flares', data),
@@ -243,8 +256,16 @@ export const threadApi = {
 export const chatApi = {
     getConversations: () => api.get('/chat/conversations'),
     getMessages: (conversationId: string) => api.get(`/chat/conversations/${conversationId}/messages`),
-    sendMessage: (conversationId: string, data: { content: string }) => api.post(`/chat/conversations/${conversationId}/messages`, data),
-    createConversation: (memberIds: string[]) => api.post('/chat/conversations', { memberIds }),
+    sendMessage: (
+        conversationId: string,
+        data: { content?: string; type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'FILE' | 'AUDIO' | 'POLL'; mediaUrl?: string; poll?: any },
+    ) => api.post(`/chat/conversations/${conversationId}/messages`, data),
+    createConversation: (memberIds: string[], extra?: { name?: string; type?: 'DIRECT' | 'GROUP'; groupId?: string }) =>
+        api.post('/chat/conversations', { memberIds, ...(extra || {}) }),
+    startDirect: (otherUserId: string) =>
+        api.post('/chat/conversations', { memberIds: [otherUserId], type: 'DIRECT' }),
+    createGroup: (name: string, memberIds: string[]) =>
+        api.post('/chat/conversations', { memberIds, name, type: 'GROUP' }),
     votePoll: (pollId: string, optionId: string) => api.post(`/chat/polls/${pollId}/vote`, { optionId }),
 };
 
@@ -286,11 +307,32 @@ export const communityFinanceApi = {
     generateBills: (month: number, year: number) => api.post('/community/finance/maintenance/generate', { month, year }),
     getStatus: (month: number, year: number) => api.get('/community/finance/maintenance/status', { params: { month, year } }),
     getResidentBills: () => api.get('/community/finance/maintenance/my-bills'),
-    submitProof: (billId: string, data: { receiptUrl: string, paymentMethod: string, description?: string }) => 
+    submitProof: (billId: string, data: { receiptUrl: string; paymentMethod: string; description?: string; amountPaid?: number }) =>
         api.post(`/community/finance/maintenance/submit-proof/${billId}`, data),
-    verifyPayment: (billId: string, action: 'APPROVE' | 'REJECT', rejectionReason?: string) => 
-        api.post(`/community/finance/maintenance/verify/${billId}`, { action, rejectionReason }),
+    verifyPayment: (billId: string, action: 'APPROVE' | 'REJECT', rejectionReason?: string, adminNote?: string) =>
+        api.post(`/community/finance/maintenance/verify/${billId}`, { action, rejectionReason, adminNote }),
     getReports: (params: { period: 'day' | 'week' | 'month', year: number }) => api.get('/community/finance/reports', { params }),
+};
+
+export const communitySplitsApi = {
+    create: (data: {
+        purpose: string;
+        description?: string;
+        totalAmount: number;
+        splitMode?: 'EQUAL' | 'CUSTOM';
+        targetType: 'ALL' | 'BLOCKS' | 'UNITS';
+        targetBlocks?: string[];
+        targetUnits?: string[];
+        customShares?: Record<string, number>;
+        dueDate?: string | null;
+    }) => api.post('/community/finance/splits', data),
+    list: () => api.get('/community/finance/splits'),
+    remove: (id: string) => api.delete(`/community/finance/splits/${id}`),
+    mine: () => api.get('/community/finance/splits/mine'),
+    submitProof: (shareId: string, data: { receiptUrl: string; paymentMethod: string; description?: string; amountPaid?: number }) =>
+        api.post(`/community/finance/splits/submit-proof/${shareId}`, data),
+    verify: (shareId: string, action: 'APPROVE' | 'REJECT', rejectionReason?: string, adminNote?: string) =>
+        api.post(`/community/finance/splits/verify/${shareId}`, { action, rejectionReason, adminNote }),
 };
 
 export const communityAssetsApi = {

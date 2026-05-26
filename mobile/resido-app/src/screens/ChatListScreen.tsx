@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import * as Contacts from 'expo-contacts';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, ScrollView, Image, StatusBar, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { chatApi, authApi, API_URL } from '../services/api';
+import { chatApi, authApi, SOCKET_URL } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,7 +35,9 @@ export default function ChatListScreen() {
     const connectSocket = () => {
         if (!activeWorkspace) return;
 
-        const socket = io(`${API_URL}/chat`, {
+        const socket = io(`${SOCKET_URL}/chat`, {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
             auth: {
                 tenantId: activeWorkspace.tenantId,
                 dbName: activeWorkspace.dbName,
@@ -43,19 +45,23 @@ export default function ChatListScreen() {
             }
         });
 
+        socket.on('connect_error', (err) => {
+            console.warn('[chat-list] socket connect_error:', err?.message);
+        });
+
         socket.on('new_message', (message: any) => {
             setConversations(prev => {
                 const existing = prev.find(c => c.id === message.conversationId);
                 if (existing) {
-                    // Update conversation and move to top
-                    const updated = { 
-                        ...existing, 
-                        messages: [message, ...(existing.messages || [])] 
+                    const updated = {
+                        ...existing,
+                        messages: [message, ...(existing.messages || [])],
                     };
                     return [updated, ...prev.filter(c => c.id !== message.conversationId)];
                 }
-                // If it's a completely new conversation we don't have yet
-                return prev; 
+                // New conversation arrived while we were on this screen; refresh.
+                fetchConversations();
+                return prev;
             });
         });
 
@@ -123,7 +129,15 @@ export default function ChatListScreen() {
         if (search.length >= 3) return false; // Hide main list while searching users
 
         if (activeFilter === 'All') return true;
-        if (activeFilter === 'Community') return conv.type === 'GROUP' && conv.groupId?.startsWith('comm-');
+        // Community conversations are GROUP rows created automatically with a "comm-"
+        // groupId, OR any group whose name starts with "Community" as a friendly fallback.
+        if (activeFilter === 'Community') {
+            return (
+                conv.type === 'GROUP' &&
+                (conv.groupId?.startsWith('comm-') ||
+                    (conv.name || '').toLowerCase().includes('community'))
+            );
+        }
         if (activeFilter === 'Contacts') return conv.type === 'DIRECT';
         if (activeFilter === 'Groups') return conv.type === 'GROUP';
         return true;

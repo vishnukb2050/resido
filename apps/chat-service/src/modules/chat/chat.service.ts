@@ -19,22 +19,36 @@ export class ChatService {
     constructor(private tenantPrisma: TenantPrismaService) {}
 
     async getOrCreateDirectConversation(dbName: string, memberIds: string[]) {
-        const [a, b] = memberIds.sort();
+        // Normalize / de-dup. A DIRECT chat must have exactly two distinct members.
+        const ids = Array.from(new Set(memberIds.filter(Boolean)));
+        if (ids.length < 2) {
+            throw new Error('Direct conversation requires two distinct members');
+        }
+        const [a, b] = ids.slice(0, 2).sort();
         const prisma = this.tenantPrisma.getWriteClient(dbName);
-        
-        const existing = await prisma.conversation.findFirst({
+
+        // Find an existing DIRECT conversation that contains BOTH members and is between
+        // exactly two participants. The previous `every: in [a,b]` query was satisfied by
+        // conversations that only contained ONE of the two — which caused duplicates and
+        // sometimes returned the wrong conversation. Use an explicit AND of two `some`
+        // predicates plus a member-count check.
+        const candidates = await prisma.conversation.findMany({
             where: {
                 type: 'DIRECT',
-                members: { every: { memberId: { in: [a, b] } } },
+                AND: [
+                    { members: { some: { memberId: a } } },
+                    { members: { some: { memberId: b } } },
+                ],
             },
             include: { members: true },
         });
+        const existing = candidates.find((c: any) => (c.members?.length || 0) === 2);
         if (existing) return existing;
 
         return prisma.conversation.create({
             data: {
                 type: 'DIRECT',
-                members: { create: memberIds.map((id) => ({ memberId: id })) },
+                members: { create: [a, b].map((id) => ({ memberId: id })) },
             },
             include: { members: true },
         });
@@ -42,16 +56,43 @@ export class ChatService {
 
     async getOrCreateGroupConversation(dbName: string, groupId: string, memberIds: string[], name: string) {
         const prisma = this.tenantPrisma.getWriteClient(dbName);
-        const existing = await prisma.conversation.findFirst({ where: { groupId } });
+        const existing = await prisma.conversation.findFirst({ where: { groupId }, include: { members: true } });
         if (existing) return existing;
 
+        const ids = Array.from(new Set(memberIds.filter(Boolean)));
         return prisma.conversation.create({
             data: {
                 type: 'GROUP',
                 name,
                 groupId,
-                members: { create: memberIds.map((id) => ({ memberId: id })) },
+                members: { create: ids.map((id) => ({ memberId: id })) },
             },
+            include: { members: true },
+        });
+    }
+
+    /**
+     * Create an ad-hoc group from a free-form name + member ids. Used by mobile
+     * "New Group" flow where there is no pre-existing entity id. Returns an
+     * existing conversation when a previous one was created for the same name +
+     * member set (helps idempotent retries from a flaky network).
+     */
+    async createAdhocGroup(dbName: string, name: string, memberIds: string[]) {
+        const prisma = this.tenantPrisma.getWriteClient(dbName);
+        const ids = Array.from(new Set(memberIds.filter(Boolean)));
+        if (ids.length < 2) {
+            throw new Error('Group needs at least two members');
+        }
+        const safeName = (name || 'Group').trim() || 'Group';
+        const groupId = `adhoc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        return prisma.conversation.create({
+            data: {
+                type: 'GROUP',
+                name: safeName,
+                groupId,
+                members: { create: ids.map((id) => ({ memberId: id })) },
+            },
+            include: { members: true },
         });
     }
 

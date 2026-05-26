@@ -69,7 +69,7 @@ export default function ComplaintsListScreen() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={complaints}
@@ -187,35 +187,35 @@ export default function ComplaintsListScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 20, paddingBottom: 100 },
-    card: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    card: { backgroundColor: '#ffffff', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     categoryBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-    categoryText: { fontSize: 11, fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase' },
+    categoryText: { fontSize: 11, fontWeight: '800', color: '#8b5cf6', textTransform: 'uppercase' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 10, fontWeight: '900' },
-    description: { fontSize: 15, color: '#e2e8f0', fontWeight: '500', lineHeight: 22, marginBottom: 15 },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+    description: { fontSize: 15, color: '#9A8EBA', fontWeight: '500', lineHeight: 22, marginBottom: 15 },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 15, borderTopWidth: 1, borderTopColor: '#EFE9F8' },
     footerItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     footerText: { fontSize: 12, fontWeight: '800' },
-    dateText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+    dateText: { fontSize: 12, color: '#7A6B9C', fontWeight: '600' },
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
-    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
-    emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10, lineHeight: 22 },
-    createBtn: { backgroundColor: '#1d4ed8', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
-    createBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginTop: 20 },
+    emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginTop: 10, lineHeight: 22 },
+    createBtn: { backgroundColor: '#8b5cf6', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
+    createBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 15 },
 
     // Expanded Section & Timeline Styling
-    expandedSection: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+    expandedSection: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#EFE9F8' },
     sectionGroup: { marginBottom: 15 },
-    sectionTitle: { fontSize: 11, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
+    sectionTitle: { fontSize: 11, fontWeight: '800', color: '#9A8EBA', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
     complaintImage: { width: 100, height: 100, borderRadius: 12, marginRight: 8 },
-    noProgressText: { fontSize: 13, color: '#64748b', fontStyle: 'italic', marginBottom: 10, marginLeft: 4 },
+    noProgressText: { fontSize: 13, color: '#7A6B9C', fontStyle: 'italic', marginBottom: 10, marginLeft: 4 },
     
     timelineContainer: { paddingLeft: 10, marginVertical: 10 },
     timelineItem: { flexDirection: 'row', gap: 12, marginBottom: 16 },
@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
     timelineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366f1', marginTop: 6 },
     timelineLine: { width: 2, flex: 1, backgroundColor: 'rgba(37, 99, 235, 0.15)', marginTop: 4, marginBottom: -10 },
     
-    timelineContent: { flex: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
+    timelineContent: { flex: 1, backgroundColor: '#ffffff', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
     timelineHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    timelineUpdater: { fontSize: 13, fontWeight: '700', color: '#fff' },
-    timelineDate: { fontSize: 11, color: '#64748b', fontWeight: '500' },
-    timelineMessage: { fontSize: 13, color: '#cbd5e1', lineHeight: 18, marginTop: 4 },
+    timelineUpdater: { fontSize: 13, fontWeight: '700', color: '#2D2445' },
+    timelineDate: { fontSize: 11, color: '#7A6B9C', fontWeight: '500' },
+    timelineMessage: { fontSize: 13, color: '#7A6B9C', lineHeight: 18, marginTop: 4 },
     timelineImage: { width: 60, height: 60, borderRadius: 8, marginRight: 8 },
     
     statusBadgeSmall: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginBottom: 4 },

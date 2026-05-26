@@ -75,4 +75,23 @@ export class StorageService {
             throw new InternalServerErrorException('Could not generate upload URL');
         }
     }
+
+    /**
+     * Build a public URL for a stored R2/S3 key. Falls back to the bucket-relative
+     * AWS URL if no public R2 base is configured. Strips any accidental leading slash.
+     */
+    buildPublicUrl(key: string): string {
+        const trimmed = key.replace(/^\/+/, '');
+        const endpoint = this.config.get<string>('AWS_S3_ENDPOINT');
+        const publicUrlBase = this.config.get<string>('CLOUDFLARE_R2_PUBLIC_URL');
+
+        if (publicUrlBase) {
+            return `${publicUrlBase.replace(/\/$/, '')}/${trimmed}`;
+        }
+        if (endpoint && endpoint.includes('cloudflarestorage.com')) {
+            return `${endpoint.replace(/\/$/, '')}/${this.bucket}/${trimmed}`;
+        }
+        const region = this.config.get<string>('AWS_REGION') || 'ap-south-1';
+        return `https://${this.bucket}.s3.${region}.amazonaws.com/${trimmed}`;
+    }
 }

@@ -23,12 +23,12 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
 
 
     const themeStyles = {
-        background: '#000000', // Pure black always
-        border: 'rgba(255,255,255,0.06)',
-        activeIcon: '#8b5cf6', // Violet
-        inactiveIcon: 'rgba(255,255,255,0.35)',
-        activeLabel: '#8b5cf6', // Violet
-        inactiveLabel: 'rgba(255,255,255,0.35)'
+        background: '#F8F5FF',     // Lavender off-white
+        border: '#D4C9E8',         // Soft violet divider
+        activeIcon: '#8b5cf6',     // Primary violet
+        inactiveIcon: '#9A8EBA',   // Faint violet
+        activeLabel: '#8b5cf6',
+        inactiveLabel: '#9A8EBA',
     };
 
 
@@ -65,13 +65,13 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
             <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile')}>
                 <View style={[
                     styles.navProfileContainer, 
-                    { borderColor: 'rgba(255,255,255,0.2)' },
+                    { borderColor: '#C4B5DC' },
                     activeTab === 'Account' && { borderColor: themeStyles.activeIcon, borderWidth: 2 }
                 ]}>
                     {user?.profilePhoto ? (
                         <Image source={{ uri: `${user.profilePhoto}?t=${imageKey}` }} style={styles.navAvatar} />
                     ) : (
-                        <View style={[styles.navAvatarPlaceholder, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+                        <View style={[styles.navAvatarPlaceholder, { backgroundColor: '#EFE9F8' }]}>
                             <Ionicons 
                                 name="person" 
                                 size={16} 
@@ -112,13 +112,13 @@ const styles = StyleSheet.create({
         left: 0, 
         right: 0, 
         height: 85, 
-        backgroundColor: '#000000', // Pure Black
+        backgroundColor: '#F8F5FF',
         flexDirection: 'row', 
         justifyContent: 'space-around', 
         alignItems: 'center', 
         paddingBottom: 25, 
         borderTopWidth: 1, 
-        borderTopColor: 'rgba(255,255,255,0.06)', 
+        borderTopColor: '#D4C9E8', 
         borderTopLeftRadius: 25, 
         borderTopRightRadius: 25, 
         shadowColor: '#000', 
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     },
     navItem: { alignItems: 'center', justifyContent: 'center', width: 60 },
     navLabel: { fontSize: 10, marginTop: 4, fontWeight: '700' },
-    navProfileContainer: { width: 28, height: 28, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0' },
+    navProfileContainer: { width: 28, height: 28, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#D4C9E8' },
     navAvatar: { width: '100%', height: '100%' },
-    navAvatarPlaceholder: { width: '100%', height: '100%', backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+    navAvatarPlaceholder: { width: '100%', height: '100%', backgroundColor: '#EFE9F8', alignItems: 'center', justifyContent: 'center' },
 });

@@ -88,15 +88,15 @@ export default function VisitorEntryScreen() {
 
 const s = StyleSheet.create;
 const styles = s({
-    container: { flex: 1, backgroundColor: '#000000', padding: 20 },
-    title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40 },
-    sub: { color: '#64748b', fontSize: 13, marginBottom: 24, marginTop: 4 },
+    container: { flex: 1, backgroundColor: '#F8F5FF', padding: 20 },
+    title: { fontSize: 24, fontWeight: '800', color: '#5B4B8A', marginTop: 40 },
+    sub: { color: '#7A6B9C', fontSize: 13, marginBottom: 24, marginTop: 4 },
     group: { marginBottom: 16 },
-    label: { color: '#94a3b8', fontSize: 12, fontWeight: '600', textTransform: 'capitalize', marginBottom: 6 },
-    input: { backgroundColor: '#1e1e2e', borderRadius: 10, padding: 14, color: '#e2e8f0', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    photoBtn: { backgroundColor: '#1e1e2e', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', height: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-    photoBtnText: { color: '#64748b', fontWeight: '600' },
+    label: { color: '#9A8EBA', fontSize: 12, fontWeight: '600', textTransform: 'capitalize', marginBottom: 6 },
+    input: { backgroundColor: '#ffffff', borderRadius: 10, padding: 14, color: '#5B4B8A', fontSize: 15, borderWidth: 1, borderColor: '#D4C9E8' },
+    photoBtn: { backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#D4C9E8', borderStyle: 'dashed', height: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    photoBtnText: { color: '#7A6B9C', fontWeight: '600' },
     photoPreview: { width: '100%', height: '100%', borderRadius: 12 },
-    submitBtn: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, alignItems: 'center' },
-    submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    submitBtn: { backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, alignItems: 'center' },
+    submitText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
 });

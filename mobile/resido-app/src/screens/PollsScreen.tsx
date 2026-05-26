@@ -26,7 +26,7 @@ export default function PollsScreen() {
         } finally { setVoting(null); }
     };
 
-    if (isLoading) return <ActivityIndicator style={{ flex: 1 }} color="#1d4ed8" />;
+    if (isLoading) return <ActivityIndicator style={{ flex: 1 }} color="#8b5cf6" />;
 
     return (
         <View style={styles.container}>
@@ -69,14 +69,14 @@ export default function PollsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000', padding: 20 },
-    title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40, marginBottom: 20 },
-    card: { backgroundColor: '#1e1e2e', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    question: { fontSize: 16, fontWeight: '700', color: '#e2e8f0', marginBottom: 16 },
-    option: { position: 'relative', backgroundColor: '#27273a', borderRadius: 10, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+    container: { flex: 1, backgroundColor: '#F8F5FF', padding: 20 },
+    title: { fontSize: 24, fontWeight: '800', color: '#9A8EBA', marginTop: 40, marginBottom: 20 },
+    card: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#D4C9E8' },
+    question: { fontSize: 16, fontWeight: '700', color: '#9A8EBA', marginBottom: 16 },
+    option: { position: 'relative', backgroundColor: '#F4EEFC', borderRadius: 10, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
     progress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(37,99,235,0.2)', borderRadius: 10 },
-    optionText: { flex: 1, color: '#e2e8f0', fontSize: 14, fontWeight: '500' },
-    pct: { color: '#1d4ed8', fontWeight: '700', fontSize: 13 },
-    total: { color: '#64748b', fontSize: 12, marginTop: 8 },
-    empty: { textAlign: 'center', color: '#475569', marginTop: 48 },
+    optionText: { flex: 1, color: '#9A8EBA', fontSize: 14, fontWeight: '500' },
+    pct: { color: '#8b5cf6', fontWeight: '700', fontSize: 13 },
+    total: { color: '#7A6B9C', fontSize: 12, marginTop: 8 },
+    empty: { textAlign: 'center', color: '#5B4B8A', marginTop: 48 },
 });

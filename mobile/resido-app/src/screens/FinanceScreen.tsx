@@ -40,7 +40,7 @@ export default function FinanceScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -80,7 +80,7 @@ export default function FinanceScreen() {
 
                 <View style={[styles.statCard, { marginTop: 12, width: '100%', flexDirection: 'row', alignItems: 'center' }]}>
                     <View style={styles.savingsIcon}>
-                        <FontAwesome5 name="piggy-bank" size={20} color="#1d4ed8" />
+                        <FontAwesome5 name="piggy-bank" size={20} color="#8b5cf6" />
                     </View>
                     <View style={{ marginLeft: 16 }}>
                         <Text style={styles.statLabel}>Net Savings</Text>
@@ -91,7 +91,7 @@ export default function FinanceScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {loading ? (
-                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
                 ) : (
                     <>
                         {/* Shortcuts */}
@@ -100,7 +100,7 @@ export default function FinanceScreen() {
                             <View style={styles.shortcutGrid}>
                                 <ShortcutItem icon="plus" label="Add Income" color="#10b981" onPress={() => router.push('/add-income')} />
                                 <ShortcutItem icon="minus" label="Add Expense" color="#ef4444" onPress={() => router.push('/add-expense')} />
-                                <ShortcutItem icon="file-upload" label="Bills" color="#1d4ed8" onPress={() => router.push('/documents')} />
+                                <ShortcutItem icon="file-upload" label="Bills" color="#8b5cf6" onPress={() => router.push('/documents')} />
                                 <ShortcutItem icon="chart-bar" label="View Report" color="#94a3b8" onPress={() => router.push('/finance-report')} />
                             </View>
                         </View>
@@ -116,7 +116,7 @@ export default function FinanceScreen() {
                             ) : (
                                 transactions.map((tx: any) => (
                                     <View key={tx.id} style={styles.txCard}>
-                                        <View style={[styles.txIconBox, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                                        <View style={[styles.txIconBox, { backgroundColor: '#F4EEFC' }]}>
                                             <FontAwesome5 
                                                 name={tx.source ? 'wallet' : 'shopping-basket'} 
                                                 size={18} 
@@ -156,46 +156,46 @@ const ShortcutItem = ({ icon, label, color, onPress }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    header: { padding: 20, paddingTop: 30, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    header: { padding: 20, paddingTop: 30, backgroundColor: '#F8F5FF' },
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25 },
     headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
-    logoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
-    headerSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+    logoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C4B5DC' },
+    headerTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445' },
+    headerSub: { fontSize: 12, color: '#9A8EBA', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    profileImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#1d4ed8' },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    profileImg: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#8b5cf6' },
     
     overviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 16 },
-    overviewTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    monthSelector: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-    monthText: { fontSize: 12, color: '#94a3b8', fontWeight: '700' },
+    overviewTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    monthSelector: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F4EEFC', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+    monthText: { fontSize: 12, color: '#9A8EBA', fontWeight: '700' },
 
     statsRow: { flexDirection: 'row', gap: 12 },
-    statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    statLabel: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
-    statValue: { fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 6 },
-    statTrend: { fontSize: 11, color: '#64748b', marginTop: 6 },
+    statCard: { flex: 1, backgroundColor: '#ffffff', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8' },
+    statLabel: { fontSize: 13, color: '#9A8EBA', fontWeight: '600' },
+    statValue: { fontSize: 20, fontWeight: '900', color: '#2D2445', marginTop: 6 },
+    statTrend: { fontSize: 11, color: '#7A6B9C', marginTop: 6 },
     savingsIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    viewAll: { fontSize: 13, color: '#1d4ed8', fontWeight: '700' },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    viewAll: { fontSize: 13, color: '#8b5cf6', fontWeight: '700' },
 
     shortcutGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
     shortcutItem: { alignItems: 'center', flex: 1 },
-    shortcutIcon: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
-    shortcutLabel: { fontSize: 11, color: '#94a3b8', marginTop: 10, fontWeight: '700' },
+    shortcutIcon: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+    shortcutLabel: { fontSize: 11, color: '#9A8EBA', marginTop: 10, fontWeight: '700' },
 
-    txCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    txCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     txIconBox: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     txInfo: { flex: 1, marginLeft: 16 },
-    txTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
-    txCategory: { fontSize: 12, color: '#64748b', marginTop: 4 },
+    txTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    txCategory: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
     txRight: { alignItems: 'flex-end' },
     txAmount: { fontSize: 15, fontWeight: '900' },
-    txDate: { fontSize: 11, color: '#64748b', marginTop: 4 },
-    emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15, fontWeight: '600' },
+    txDate: { fontSize: 11, color: '#7A6B9C', marginTop: 4 },
+    emptyText: { textAlign: 'center', color: '#9A8EBA', marginTop: 40, fontSize: 15, fontWeight: '600' },
 });

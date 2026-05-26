@@ -206,7 +206,7 @@ export default function VisitorRegisterScreen() {
                         <Ionicons name="calendar-outline" size={16} color="#94a3b8" />
                         <Text style={styles.filterText}>{startDate.toLocaleDateString()}</Text>
                     </TouchableOpacity>
-                    <Text style={{ color: '#64748b' }}>to</Text>
+                    <Text style={{ color: '#7A6B9C' }}>to</Text>
                     <TouchableOpacity style={styles.filterBtn} onPress={() => setShowEndDatePicker(true)}>
                         <Ionicons name="calendar-outline" size={16} color="#94a3b8" />
                         <Text style={styles.filterText}>{endDate.toLocaleDateString()}</Text>
@@ -260,7 +260,7 @@ export default function VisitorRegisterScreen() {
             )}
 
             {loading ? (
-                <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={entries}
@@ -387,50 +387,50 @@ export default function VisitorRegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     pdfBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
     addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
     
     filterBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 10, zIndex: 10 },
     dateFilters: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    filterText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-    dropdown: { position: 'absolute', top: 150, right: 20, left: 20, backgroundColor: '#1e293b', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', zIndex: 100 },
+    filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F4EEFC', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#C4B5DC' },
+    filterText: { color: '#2D2445', fontSize: 13, fontWeight: '600' },
+    dropdown: { position: 'absolute', top: 150, right: 20, left: 20, backgroundColor: '#ffffff', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: '#C4B5DC', zIndex: 100 },
     dropdownItem: { padding: 15, borderRadius: 10 },
-    dropdownItemText: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
+    dropdownItemText: { color: '#9A8EBA', fontSize: 15, fontWeight: '600' },
     selectedItemText: { color: '#10b981' },
 
     listContent: { padding: 20 },
-    entryCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, marginBottom: 15, padding: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    entryCardExpanded: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' },
+    entryCard: { backgroundColor: '#ffffff', borderRadius: 24, marginBottom: 15, padding: 18, borderWidth: 1, borderColor: '#D4C9E8' },
+    entryCardExpanded: { backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' },
     entryMain: { flexDirection: 'row', alignItems: 'center' },
     iconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
     entryInfo: { flex: 1, marginLeft: 15 },
-    visitorName: { fontSize: 16, fontWeight: '800', color: '#fff' },
-    entrySub: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
-    entryPurpose: { fontSize: 13, color: '#94a3b8', marginTop: 4 },
+    visitorName: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    entrySub: { fontSize: 12, color: '#7A6B9C', marginTop: 2, fontWeight: '600' },
+    entryPurpose: { fontSize: 13, color: '#9A8EBA', marginTop: 4 },
     timeBox: { alignItems: 'flex-end' },
-    timeText: { fontSize: 14, fontWeight: '900', color: '#fff' },
+    timeText: { fontSize: 14, fontWeight: '900', color: '#2D2445' },
     statusText: { fontSize: 9, fontWeight: '900', color: '#10b981', letterSpacing: 1 },
     statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-    entryExtra: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 10 },
-    extraText: { fontSize: 12, color: '#64748b', fontWeight: '700' },
+    entryExtra: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, borderTopWidth: 1, borderTopColor: '#EFE9F8', paddingTop: 10 },
+    extraText: { fontSize: 12, color: '#7A6B9C', fontWeight: '700' },
     
     expandedDetails: { marginTop: 15 },
-    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginBottom: 12 },
+    divider: { height: 1, backgroundColor: '#EFE9F8', marginBottom: 12 },
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
     detailRowCol: { flexDirection: 'column', paddingVertical: 6 },
-    detailLabel: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+    detailLabel: { fontSize: 12, color: '#7A6B9C', fontWeight: '600' },
     detailValue: { fontSize: 13, color: '#f8fafc', fontWeight: '700' },
-    detailDesc: { fontSize: 13, color: '#cbd5e1', marginTop: 4, lineHeight: 18 },
+    detailDesc: { fontSize: 13, color: '#7A6B9C', marginTop: 4, lineHeight: 18 },
     
     emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
-    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 20 },
-    emptySub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 10 },
+    emptyTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginTop: 20 },
+    emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginTop: 10 },
     
     markOutBtn: {
         flexDirection: 'row',
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     markOutBtnText: {
-        color: '#fff',
+        color: '#2D2445',
         fontSize: 14,
         fontWeight: '700',
     },

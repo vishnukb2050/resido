@@ -287,10 +287,10 @@ export default function AdminComplaintsScreen() {
                     ListEmptyComponent={
                         <View style={{ alignItems: 'center', marginTop: 80, paddingHorizontal: 30 }}>
                             <Ionicons name="construct-outline" size={56} color="rgba(255,255,255,0.08)" />
-                            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800', marginTop: 16 }}>
+                            <Text style={{ color: '#2D2445', fontSize: 16, fontWeight: '800', marginTop: 16 }}>
                                 {isStaff ? 'No tasks assigned to you yet' : 'No requests yet'}
                             </Text>
-                            <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: 'center' }}>
+                            <Text style={{ color: '#7A6B9C', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: 'center' }}>
                                 {isStaff
                                     ? 'Once an admin assigns a request to you, it will appear here.'
                                     : 'Tap + to raise a request on behalf of a resident.'}
@@ -450,7 +450,7 @@ export default function AdminComplaintsScreen() {
                                     )}
                                     {(isAdmin || isStaff) && (
                                         <TouchableOpacity 
-                                            style={[styles.actionBtn, { backgroundColor: 'rgba(255,255,255,0.05)' }]}
+                                            style={[styles.actionBtn, { backgroundColor: '#F4EEFC' }]}
                                             onPress={(e) => { 
                                                 e.stopPropagation();
                                                 setSelectedComplaint(item); 
@@ -601,7 +601,7 @@ export default function AdminComplaintsScreen() {
                                         style={styles.modalSelector} 
                                         onPress={() => setShowStaffDropdown(!showStaffDropdown)}
                                     >
-                                        <Text style={[styles.modalSelectorText, { color: '#64748b' }]}>Choose Staff Member...</Text>
+                                        <Text style={[styles.modalSelectorText, { color: '#7A6B9C' }]}>Choose Staff Member...</Text>
                                         <Ionicons name="person" size={18} color="#94a3b8" />
                                     </TouchableOpacity>
                                 )}
@@ -776,95 +776,95 @@ const getStatusColor = (status: string) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     
     // Header Styling
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20 },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     addHeaderBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
 
     listContent: { padding: 20, paddingBottom: 100 },
-    card: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    card: { backgroundColor: '#ffffff', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     categoryText: { fontSize: 11, fontWeight: '800', color: '#6366f1', textTransform: 'uppercase' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 10, fontWeight: '900' },
-    description: { fontSize: 15, color: '#e2e8f0', fontWeight: '500', lineHeight: 22, marginBottom: 15 },
+    description: { fontSize: 15, color: '#9A8EBA', fontWeight: '500', lineHeight: 22, marginBottom: 15 },
     
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-    metaText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
+    metaText: { fontSize: 12, color: '#9A8EBA', fontWeight: '600' },
     assignedBox: { backgroundColor: 'rgba(16,185,129,0.06)', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.1)' },
 
-    actionRow: { flexDirection: 'row', gap: 10, paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', marginTop: 8 },
+    actionRow: { flexDirection: 'row', gap: 10, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#EFE9F8', marginTop: 8 },
     actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#6366f1', paddingVertical: 12, borderRadius: 12 },
-    actionBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+    actionBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
     
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
     
     // Large Modal Styling
-    modalContentLarge: { backgroundColor: '#1e293b', borderRadius: 32, padding: 24, maxHeight: '85%' },
-    modalLargeTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 20, textAlign: 'center' },
+    modalContentLarge: { backgroundColor: '#ffffff', borderRadius: 32, padding: 24, maxHeight: '85%' },
+    modalLargeTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445', marginBottom: 20, textAlign: 'center' },
     
     formGroup: { marginBottom: 20 },
-    modalLabel: { fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
+    modalLabel: { fontSize: 11, color: '#9A8EBA', fontWeight: '800', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
     
-    searchBar: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', color: '#fff', padding: 14, fontSize: 14, fontWeight: '600' },
-    searchDropdown: { backgroundColor: '#000000', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6 },
+    searchBar: { backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 14, fontSize: 14, fontWeight: '600' },
+    searchDropdown: { backgroundColor: '#F8F5FF', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', marginTop: 6, padding: 6 },
     dropdownOption: { padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
-    dropdownOptionName: { fontSize: 14, color: '#fff', fontWeight: '700' },
-    dropdownOptionPhone: { fontSize: 11, color: '#64748b', marginTop: 2 },
+    dropdownOptionName: { fontSize: 14, color: '#2D2445', fontWeight: '700' },
+    dropdownOptionPhone: { fontSize: 11, color: '#7A6B9C', marginTop: 2 },
     
     selectedResidentItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(37,99,235,0.08)', borderWidth: 1, borderColor: 'rgba(37,99,235,0.15)', padding: 14, borderRadius: 14 },
-    residentItemName: { fontSize: 14, color: '#fff', fontWeight: '800' },
-    residentItemPhone: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+    residentItemName: { fontSize: 14, color: '#2D2445', fontWeight: '800' },
+    residentItemPhone: { fontSize: 11, color: '#9A8EBA', marginTop: 2 },
 
-    modalSelector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    modalSelectorText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-    modalSelectorDropdown: { backgroundColor: '#000000', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6, maxHeight: 150 },
+    modalSelector: { backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    modalSelectorText: { color: '#2D2445', fontSize: 14, fontWeight: '700' },
+    modalSelectorDropdown: { backgroundColor: '#F8F5FF', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', marginTop: 6, padding: 6, maxHeight: 150 },
     modalSelectorItem: { padding: 12 },
-    modalSelectorItemText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+    modalSelectorItemText: { color: '#2D2445', fontSize: 14, fontWeight: '600' },
 
     prioritySelectorRow: { flexDirection: 'row', gap: 8 },
-    prioritySelectorBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)' },
+    prioritySelectorBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', backgroundColor: '#ffffff' },
     prioritySelectorBtnActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
-    prioritySelectorText: { color: '#94a3b8', fontSize: 11, fontWeight: '800' },
-    prioritySelectorTextActive: { color: '#fff' },
+    prioritySelectorText: { color: '#9A8EBA', fontSize: 11, fontWeight: '800' },
+    prioritySelectorTextActive: { color: '#2D2445' },
 
-    modalTextArea: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', color: '#fff', padding: 14, fontSize: 14, fontWeight: '600', height: 80, textAlignVertical: 'top' },
+    modalTextArea: { backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 14, fontSize: 14, fontWeight: '600', height: 80, textAlignVertical: 'top' },
 
     selectedStaffItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.15)', padding: 14, borderRadius: 14 },
-    staffItemName: { fontSize: 14, color: '#fff', fontWeight: '800' },
+    staffItemName: { fontSize: 14, color: '#2D2445', fontWeight: '800' },
     staffItemRoleBadge: { fontSize: 10, color: '#10b981', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
 
-    staffDropdownContainer: { backgroundColor: '#000000', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginTop: 6, padding: 6, maxHeight: 150 },
+    staffDropdownContainer: { backgroundColor: '#F8F5FF', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', marginTop: 6, padding: 6, maxHeight: 150 },
     staffDropdownOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
-    staffOptionName: { fontSize: 14, color: '#fff', fontWeight: '700' },
-    staffOptionRole: { fontSize: 10, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginTop: 2 },
+    staffOptionName: { fontSize: 14, color: '#2D2445', fontWeight: '700' },
+    staffOptionRole: { fontSize: 10, color: '#7A6B9C', fontWeight: '700', textTransform: 'uppercase', marginTop: 2 },
 
     modalActionsRow: { flexDirection: 'row', gap: 12, marginTop: 10 },
-    modalCancelBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-    modalCancelText: { color: '#94a3b8', fontSize: 14, fontWeight: '800' },
+    modalCancelBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: '#F4EEFC', alignItems: 'center' },
+    modalCancelText: { color: '#9A8EBA', fontSize: 14, fontWeight: '800' },
     modalSubmitBtn: { flex: 2, paddingVertical: 16, borderRadius: 16, backgroundColor: '#6366f1', alignItems: 'center' },
-    modalSubmitText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+    modalSubmitText: { color: '#ffffff', fontSize: 14, fontWeight: '900' },
 
     // Standard Modals Styling
-    modalContent: { backgroundColor: '#1e293b', borderRadius: 28, padding: 24 },
-    modalTitle: { fontSize: 20, fontWeight: '900', color: '#fff', marginBottom: 20, textAlign: 'center' },
-    staffItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, marginBottom: 10 },
-    staffName: { fontSize: 15, fontWeight: '800', color: '#fff' },
-    staffRole: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase' },
-    statusItem: { padding: 18, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, marginBottom: 10, alignItems: 'center' },
-    statusItemText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    modalContent: { backgroundColor: '#ffffff', borderRadius: 28, padding: 24 },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445', marginBottom: 20, textAlign: 'center' },
+    staffItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#ffffff', borderRadius: 16, marginBottom: 10 },
+    staffName: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    staffRole: { fontSize: 11, color: '#7A6B9C', fontWeight: '700', textTransform: 'uppercase' },
+    statusItem: { padding: 18, backgroundColor: '#ffffff', borderRadius: 16, marginBottom: 10, alignItems: 'center' },
+    statusItemText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
     closeBtn: { marginTop: 10, padding: 15, alignItems: 'center' },
-    closeBtnText: { color: '#94a3b8', fontWeight: '700' },
+    closeBtnText: { color: '#9A8EBA', fontWeight: '700' },
 
     // Expanded Section & Timeline Styling
-    expandedSection: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+    expandedSection: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#EFE9F8' },
     sectionGroup: { marginBottom: 15 },
-    sectionTitle: { fontSize: 11, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
+    sectionTitle: { fontSize: 11, fontWeight: '800', color: '#9A8EBA', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
     complaintImage: { width: 100, height: 100, borderRadius: 12, marginRight: 8 },
-    noProgressText: { fontSize: 13, color: '#64748b', fontStyle: 'italic', marginBottom: 10, marginLeft: 4 },
+    noProgressText: { fontSize: 13, color: '#7A6B9C', fontStyle: 'italic', marginBottom: 10, marginLeft: 4 },
     
     timelineContainer: { paddingLeft: 10, marginVertical: 10 },
     timelineItem: { flexDirection: 'row', gap: 12, marginBottom: 16 },
@@ -872,11 +872,11 @@ const styles = StyleSheet.create({
     timelineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366f1', marginTop: 6 },
     timelineLine: { width: 2, flex: 1, backgroundColor: 'rgba(37, 99, 235, 0.15)', marginTop: 4, marginBottom: -10 },
     
-    timelineContent: { flex: 1, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
+    timelineContent: { flex: 1, backgroundColor: '#ffffff', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
     timelineHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    timelineUpdater: { fontSize: 13, fontWeight: '700', color: '#fff' },
-    timelineDate: { fontSize: 11, color: '#64748b', fontWeight: '500' },
-    timelineMessage: { fontSize: 13, color: '#cbd5e1', lineHeight: 18, marginTop: 4 },
+    timelineUpdater: { fontSize: 13, fontWeight: '700', color: '#2D2445' },
+    timelineDate: { fontSize: 11, color: '#7A6B9C', fontWeight: '500' },
+    timelineMessage: { fontSize: 13, color: '#7A6B9C', lineHeight: 18, marginTop: 4 },
     timelineImage: { width: 60, height: 60, borderRadius: 8, marginRight: 8 },
     
     statusBadgeSmall: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginBottom: 4 },
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     dropdownTitle: {
         fontSize: 11,
         fontWeight: '800',
-        color: '#94a3b8',
+        color: '#9A8EBA',
         textTransform: 'uppercase',
         marginBottom: 10,
         letterSpacing: 0.5,
@@ -935,11 +935,11 @@ const styles = StyleSheet.create({
     dropdownStaffName: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#fff',
+        color: '#2D2445',
     },
     dropdownStaffRole: {
         fontSize: 10,
-        color: '#94a3b8',
+        color: '#9A8EBA',
         fontWeight: '800',
         textTransform: 'uppercase',
         marginTop: 2,

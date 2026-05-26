@@ -131,7 +131,7 @@ export default function EditProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -277,7 +277,7 @@ export default function EditProfileScreen() {
 
                     <View style={styles.inputGroup}>
                         <View style={styles.inputLabelRow}>
-                            <Ionicons name="globe-outline" size={16} color="#1d4ed8" />
+                            <Ionicons name="globe-outline" size={16} color="#8b5cf6" />
                             <Text style={styles.inputLabel}>Website</Text>
                         </View>
                         <TextInput 
@@ -304,7 +304,7 @@ export default function EditProfileScreen() {
                     <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Profile Preferences</Text>
                     <View style={styles.preferenceCard}>
                         <View style={styles.prefIconBox}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#1d4ed8" />
+                            <Ionicons name="lock-closed-outline" size={20} color="#8b5cf6" />
                         </View>
                         <View style={{ flex: 1, marginLeft: 16 }}>
                             <Text style={styles.prefTitle}>Profile Visibility</Text>
@@ -377,13 +377,13 @@ export default function EditProfileScreen() {
                                 >
                                     <Text style={[
                                         styles.modalOptionText, 
-                                        isSelected && { color: '#1d4ed8', fontWeight: '800' }
+                                        isSelected && { color: '#8b5cf6', fontWeight: '800' }
                                     ]}>
                                         {option}
                                     </Text>
                                     <View style={[
                                         styles.checkbox,
-                                        isSelected && { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' }
+                                        isSelected && { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }
                                     ]}>
                                         {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
                                     </View>
@@ -425,57 +425,57 @@ const SocialItem = ({ icon, label, value, color, isConnected }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 80 },
 
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    headerSub: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    headerSub: { fontSize: 13, color: '#9A8EBA', marginTop: 2 },
     
     scrollContent: { padding: 20, paddingBottom: 120 },
     
     avatarSection: { alignItems: 'center', marginBottom: 32 },
     avatarWrapper: { width: 100, height: 100, marginBottom: 12 },
-    avatar: { width: '100%', height: '100%', borderRadius: 50, borderWidth: 2, borderColor: '#1d4ed8' },
-    cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1e293b' },
-    changePhotoText: { fontSize: 14, fontWeight: '800', color: '#1d4ed8' },
-    uploadHint: { fontSize: 11, color: '#64748b', marginTop: 4 },
+    avatar: { width: '100%', height: '100%', borderRadius: 50, borderWidth: 2, borderColor: '#8b5cf6' },
+    cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#1e293b' },
+    changePhotoText: { fontSize: 14, fontWeight: '800', color: '#8b5cf6' },
+    uploadHint: { fontSize: 11, color: '#7A6B9C', marginTop: 4 },
 
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 16 },
-    subText: { fontSize: 13, color: '#94a3b8', marginBottom: 20 },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 16 },
+    subText: { fontSize: 13, color: '#9A8EBA', marginBottom: 20 },
 
     row: { flexDirection: 'row', gap: 12 },
     inputGroup: { marginBottom: 20 },
     inputLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-    inputLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', flex: 1 },
-    input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 16, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+    inputLabel: { fontSize: 13, fontWeight: '700', color: '#9A8EBA', flex: 1 },
+    input: { backgroundColor: '#F4EEFC', borderRadius: 14, padding: 16, color: '#2D2445', fontSize: 15, borderWidth: 1, borderColor: '#D4C9E8' },
     textArea: { height: 80, textAlignVertical: 'top' },
-    charCount: { fontSize: 11, color: '#64748b' },
+    charCount: { fontSize: 11, color: '#7A6B9C' },
 
-    pickerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    pickerText: { color: '#fff', fontSize: 15 },
+    pickerContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F4EEFC', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#D4C9E8' },
+    pickerText: { color: '#2D2445', fontSize: 15 },
 
-    socialItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    socialItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     socialIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    socialLabel: { fontSize: 14, fontWeight: '700', color: '#fff', marginLeft: 12 },
-    socialValue: { flex: 1, fontSize: 13, color: '#64748b', marginLeft: 12, textAlign: 'right' },
+    socialLabel: { fontSize: 14, fontWeight: '700', color: '#2D2445', marginLeft: 12 },
+    socialValue: { flex: 1, fontSize: 13, color: '#7A6B9C', marginLeft: 12, textAlign: 'right' },
     connectedBadge: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 },
     connectedText: { color: '#10b981', fontSize: 11, fontWeight: '800' },
 
     connectMoreBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(37, 99, 235, 0.03)', borderRadius: 16, padding: 14, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.2)' },
-    plusIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' },
-    connectTitle: { fontSize: 14, fontWeight: '800', color: '#fff' },
-    connectSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
+    plusIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
+    connectTitle: { fontSize: 14, fontWeight: '800', color: '#2D2445' },
+    connectSub: { fontSize: 11, color: '#7A6B9C', marginTop: 2 },
 
-    preferenceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    preferenceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     prefIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    prefTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
-    prefSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
+    prefTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    prefSub: { fontSize: 12, color: '#7A6B9C', marginTop: 2 },
     prefDropdown: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    prefValue: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
+    prefValue: { fontSize: 13, color: '#9A8EBA', fontWeight: '600' },
 
-    saveBtn: { backgroundColor: '#1d4ed8', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 40, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+    saveBtn: { backgroundColor: '#8b5cf6', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 40, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+    saveBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '900' },
     deleteBtn: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 12, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)', flexDirection: 'row' },
     deleteBtnText: { color: '#ef4444', fontSize: 16, fontWeight: '800' },
     
@@ -483,10 +483,10 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#272c35', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    modalTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    modalSub: { fontSize: 14, color: '#94a3b8', marginBottom: 24, lineHeight: 20 },
-    modalOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    modalOptionText: { fontSize: 16, color: '#fff', fontWeight: '600' },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
+    modalSub: { fontSize: 14, color: '#9A8EBA', marginBottom: 24, lineHeight: 20 },
+    modalOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
+    modalOptionText: { fontSize: 16, color: '#2D2445', fontWeight: '600' },
     checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#64748b', alignItems: 'center', justifyContent: 'center' }
 });
 

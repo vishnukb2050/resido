@@ -66,15 +66,15 @@ export default function CleaningLogScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000', padding: 20 },
-    title: { fontSize: 24, fontWeight: '800', color: '#e2e8f0', marginTop: 40 },
-    sub: { color: '#64748b', fontSize: 13, marginBottom: 24 },
-    section: { color: '#94a3b8', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
-    areaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e1e2e', borderRadius: 10, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    areaName: { color: '#e2e8f0', fontSize: 15, fontWeight: '500' },
-    photoBtn: { backgroundColor: '#1e1e2e', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', height: 52, alignItems: 'center', justifyContent: 'center', marginVertical: 16 },
-    photoBtnText: { color: '#64748b', fontWeight: '600' },
+    container: { flex: 1, backgroundColor: '#F8F5FF', padding: 20 },
+    title: { fontSize: 24, fontWeight: '800', color: '#5B4B8A', marginTop: 40 },
+    sub: { color: '#7A6B9C', fontSize: 13, marginBottom: 24 },
+    section: { color: '#9A8EBA', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+    areaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 10, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: '#D4C9E8' },
+    areaName: { color: '#5B4B8A', fontSize: 15, fontWeight: '500' },
+    photoBtn: { backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#D4C9E8', borderStyle: 'dashed', height: 52, alignItems: 'center', justifyContent: 'center', marginVertical: 16 },
+    photoBtnText: { color: '#7A6B9C', fontWeight: '600' },
     thumb: { width: 80, height: 80, borderRadius: 8 },
-    btn: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
-    btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    btn: { backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
+    btnText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
 });

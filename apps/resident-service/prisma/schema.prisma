@@ -50,6 +50,7 @@ model Unit {
 
   superBuiltUpArea Float @default(0) // Size in sq. ft. for area-based billing
   maintenanceBills MaintenanceBill[]
+  paymentSplitShares PaymentSplitShare[]
 
   @@index([tenantId])
   @@map("units")
@@ -1074,13 +1075,15 @@ model MaintenanceBill {
   otherCharges    Float             @default(0)   // Sinking fund, security cess, parking, etc.
   penaltyAmount   Float             @default(0)   // Applied late fee penalty
   totalAmount     Float             // baseAmount + otherCharges + penaltyAmount
+  amountPaid      Float?            // Amount the resident says they paid (may differ from totalAmount)
   status          BillStatus        @default(UNPAID)
   dueDate         DateTime
   paymentDate     DateTime?
   paymentMethod   String?
   receiptUrl      String?           // S3 receipt URL uploaded by resident/admin
-  description     String?           // Note entered by resident/admin during payment proof submission
-  rejectionReason String?           // Saved justification if rejected by admin
+  description     String?           // Note entered by resident during payment proof submission
+  adminNote       String?           // Admin note shared with resident on approve/reject
+  rejectionReason String?           // Legacy: reason if rejected (kept for backwards compatibility)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -1089,6 +1092,55 @@ model MaintenanceBill {
   @@unique([unitId, month, year])
   @@index([tenantId])
   @@map("maintenance_bills")
+}
+
+// ─── Community Payment Splits ──────────────────────────────────
+// Admin-created one-off charges (e.g. roof repair, festival fund) split across blocks/units/residents.
+// Kept separate from MaintenanceBill so split inflows do NOT pollute monthly maintenance reports.
+model PaymentSplit {
+  id            String              @id @default(cuid())
+  tenantId      String
+  purpose       String              // e.g. "Roof repair", "Festival fund"
+  description   String?             // Long-form context
+  totalAmount   Float                // Pool amount (sum of all shares)
+  splitMode     String              @default("EQUAL") // EQUAL | CUSTOM
+  targetType    String              // ALL | BLOCKS | UNITS
+  targetBlocks  String[]            @default([])
+  targetUnits   String[]            @default([])
+  dueDate       DateTime?
+  status        String              @default("ACTIVE") // ACTIVE | CLOSED
+  createdById   String?             // Admin Member id
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  shares        PaymentSplitShare[]
+
+  @@index([tenantId])
+  @@map("payment_splits")
+}
+
+model PaymentSplitShare {
+  id              String       @id @default(cuid())
+  tenantId        String
+  splitId         String
+  split           PaymentSplit @relation(fields: [splitId], references: [id], onDelete: Cascade)
+  unitId          String
+  unit            Unit         @relation(fields: [unitId], references: [id])
+  amount          Float        // Per-unit share
+  amountPaid      Float?       // Amount resident says they paid
+  status          BillStatus   @default(UNPAID)
+  paymentDate     DateTime?
+  paymentMethod   String?
+  receiptUrl      String?
+  description     String?      // Resident note
+  adminNote       String?      // Admin note shared with resident
+  rejectionReason String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([splitId, unitId])
+  @@index([tenantId])
+  @@map("payment_split_shares")
 }
 
 enum BillingCycle {

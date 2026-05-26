@@ -136,17 +136,17 @@ export default function OtpLoginScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', padding: 24 },
-    card: { backgroundColor: '#1e1e2e', borderRadius: 20, padding: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    logo: { fontSize: 36, fontWeight: '800', color: '#1d4ed8', textAlign: 'center', letterSpacing: -1 },
-    tagline: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 32, marginTop: 4 },
-    label: { fontSize: 14, color: '#94a3b8', marginBottom: 12, fontWeight: '600' },
-    phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27273a', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16 },
-    countryCode: { color: '#94a3b8', paddingHorizontal: 14, fontSize: 16, fontWeight: '600', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)' },
-    input: { flex: 1, color: '#ffffff', padding: 14, fontSize: 18 },
+    container: { flex: 1, backgroundColor: '#F8F5FF', justifyContent: 'center', padding: 24 },
+    card: { backgroundColor: '#ffffff', borderRadius: 20, padding: 32, borderWidth: 1, borderColor: '#D4C9E8' },
+    logo: { fontSize: 36, fontWeight: '800', color: '#8b5cf6', textAlign: 'center', letterSpacing: -1 },
+    tagline: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginBottom: 32, marginTop: 4 },
+    label: { fontSize: 14, color: '#9A8EBA', marginBottom: 12, fontWeight: '600' },
+    phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 12, borderWidth: 1, borderColor: '#D4C9E8', marginBottom: 16 },
+    countryCode: { color: '#9A8EBA', paddingHorizontal: 14, fontSize: 16, fontWeight: '600', borderRightWidth: 1, borderRightColor: '#D4C9E8' },
+    input: { flex: 1, color: '#2D2445', padding: 14, fontSize: 18 },
     otpInput: { backgroundColor: '#ffffff', borderRadius: 12, padding: 14, color: '#000000', fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 20, height: 60 },
-    btn: { backgroundColor: '#1d4ed8', borderRadius: 12, padding: 16, alignItems: 'center' },
-    btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    btn: { backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, alignItems: 'center' },
+    btnText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
     backBtn: { marginTop: 16, alignItems: 'center' },
-    backText: { color: '#1d4ed8', fontSize: 14 },
+    backText: { color: '#8b5cf6', fontSize: 14 },
 });

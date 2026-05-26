@@ -67,7 +67,7 @@ export default function WorkspaceSelectScreen() {
             <View style={{ gap: 12 }}>
                 {/* Default Personal Workspace */}
                 <TouchableOpacity 
-                    style={[styles.card, { borderColor: '#1d4ed8', borderWidth: 1, backgroundColor: 'rgba(37,99,235,0.05)' }]} 
+                    style={[styles.card, { borderColor: '#8b5cf6', borderWidth: 1, backgroundColor: 'rgba(37,99,235,0.05)' }]} 
                     onPress={() => {
                         setActiveWorkspace(null as any, token!);
                         router.replace('/(app)/home');
@@ -159,31 +159,31 @@ export default function WorkspaceSelectScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000', padding: 24, paddingTop: 60 },
-    title: { fontSize: 26, fontWeight: '800', color: '#e2e8f0', letterSpacing: -0.5, marginBottom: 6 },
-    subtitle: { fontSize: 14, color: '#64748b', marginBottom: 28 },
+    container: { flex: 1, backgroundColor: '#F8F5FF', padding: 24, paddingTop: 60 },
+    title: { fontSize: 26, fontWeight: '800', color: '#9A8EBA', letterSpacing: -0.5, marginBottom: 6 },
+    subtitle: { fontSize: 14, color: '#7A6B9C', marginBottom: 28 },
     card: {
         flexDirection: 'row', alignItems: 'center', gap: 16,
-        backgroundColor: '#1e1e2e', borderRadius: 16, padding: 20,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: '#ffffff', borderRadius: 16, padding: 20,
+        borderWidth: 1, borderColor: '#D4C9E8',
     },
     icon: { fontSize: 28 },
     avatar: { width: 36, height: 36, borderRadius: 18 },
     info: { flex: 1 },
-    name: { fontSize: 16, fontWeight: '700', color: '#e2e8f0' },
-    role: { fontSize: 12, color: '#1d4ed8', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-    arrow: { fontSize: 18, color: '#64748b' },
+    name: { fontSize: 16, fontWeight: '700', color: '#9A8EBA' },
+    role: { fontSize: 12, color: '#8b5cf6', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    arrow: { fontSize: 18, color: '#7A6B9C' },
     createBtn: {
         backgroundColor: 'rgba(37,99,235,0.1)',
         borderWidth: 1,
-        borderColor: '#1d4ed8',
+        borderColor: '#8b5cf6',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
         marginBottom: 24,
         borderStyle: 'dashed'
     },
-    createBtnText: { color: '#1d4ed8', fontWeight: '700', fontSize: 16 },
+    createBtnText: { color: '#8b5cf6', fontWeight: '700', fontSize: 16 },
 
     // Modal Styles
     modalOverlay: {
@@ -214,12 +214,12 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 20,
         fontWeight: '800',
-        color: '#e2e8f0',
+        color: '#9A8EBA',
         marginBottom: 6,
     },
     modalSubtitle: {
         fontSize: 13,
-        color: '#64748b',
+        color: '#7A6B9C',
         textAlign: 'center',
         marginBottom: 24,
     },
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     roleOption: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1e1e2e',
+        backgroundColor: '#ffffff',
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
@@ -254,16 +254,16 @@ const styles = StyleSheet.create({
     roleOptionText: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#f1f5f9',
+        color: '#9A8EBA',
     },
     roleDesc: {
         fontSize: 11,
-        color: '#64748b',
+        color: '#7A6B9C',
         marginTop: 2,
     },
     roleArrow: {
         fontSize: 16,
-        color: '#475569',
+        color: '#5B4B8A',
     },
     cancelBtn: {
         backgroundColor: 'rgba(255, 255, 255, 0.04)',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     cancelBtnText: {
-        color: '#94a3b8',
+        color: '#9A8EBA',
         fontSize: 15,
         fontWeight: '600',
     },

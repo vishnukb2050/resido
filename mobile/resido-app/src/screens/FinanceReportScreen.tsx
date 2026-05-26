@@ -47,7 +47,7 @@ export default function FinanceReportScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -75,7 +75,7 @@ export default function FinanceReportScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {loading ? (
-                    <ActivityIndicator color="#1d4ed8" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
                 ) : (
                     <>
                         {/* Summary Cards */}
@@ -137,7 +137,7 @@ export default function FinanceReportScreen() {
                                             </Text>
                                             {tx.billUrl && (
                                                 <TouchableOpacity onPress={() => Linking.openURL(tx.billUrl)} style={styles.billBtn}>
-                                                    <Ionicons name="receipt-outline" size={14} color="#1d4ed8" />
+                                                    <Ionicons name="receipt-outline" size={14} color="#8b5cf6" />
                                                     <Text style={styles.billBtnText}>View Bill</Text>
                                                 </TouchableOpacity>
                                             )}
@@ -154,44 +154,44 @@ export default function FinanceReportScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 10 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
     
-    periodContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 20, borderRadius: 14, padding: 4, marginBottom: 20 },
+    periodContainer: { flexDirection: 'row', backgroundColor: '#F4EEFC', marginHorizontal: 20, borderRadius: 14, padding: 4, marginBottom: 20 },
     periodTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-    activePeriodTab: { backgroundColor: '#1d4ed8' },
-    periodText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    activePeriodText: { color: '#fff' },
+    activePeriodTab: { backgroundColor: '#8b5cf6' },
+    periodText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
+    activePeriodText: { color: '#2D2445' },
 
     summaryGrid: { paddingHorizontal: 20 },
-    mainSummaryCard: { backgroundColor: '#1e293b', padding: 24, borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-    summaryLabel: { fontSize: 14, color: '#94a3b8', fontWeight: '600' },
-    summaryValue: { fontSize: 32, fontWeight: '900', color: '#fff', marginTop: 8, marginBottom: 24 },
+    mainSummaryCard: { backgroundColor: '#ffffff', padding: 24, borderRadius: 32, borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center' },
+    summaryLabel: { fontSize: 14, color: '#9A8EBA', fontWeight: '600' },
+    summaryValue: { fontSize: 32, fontWeight: '900', color: '#2D2445', marginTop: 8, marginBottom: 24 },
     summaryRow: { flexDirection: 'row', alignItems: 'center', width: '100%', backgroundColor: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 24 },
     summaryItem: { flex: 1, alignItems: 'center' },
     dot: { width: 8, height: 8, borderRadius: 4, marginBottom: 6 },
-    summarySubLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase' },
-    summarySubValue: { fontSize: 16, fontWeight: '800', color: '#fff', marginTop: 4 },
-    divider: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 10 },
+    summarySubLabel: { fontSize: 11, color: '#7A6B9C', fontWeight: '700', textTransform: 'uppercase' },
+    summarySubValue: { fontSize: 16, fontWeight: '800', color: '#2D2445', marginTop: 4 },
+    divider: { width: 1, height: 30, backgroundColor: '#EFE9F8', marginHorizontal: 10 },
 
     section: { paddingHorizontal: 20, marginTop: 32 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 16 },
+    sectionTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 16 },
     
-    txCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    txCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     txIconBox: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     txInfo: { flex: 1, marginLeft: 16 },
-    txTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
+    txTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     txSubRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-    txSubText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+    txSubText: { fontSize: 12, color: '#7A6B9C', fontWeight: '600' },
     smallDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#475569', marginHorizontal: 6 },
-    txDesc: { fontSize: 11, color: '#475569', marginTop: 4 },
+    txDesc: { fontSize: 11, color: '#5B4B8A', marginTop: 4 },
     txRight: { alignItems: 'flex-end', gap: 6 },
     txAmount: { fontSize: 15, fontWeight: '900' },
     billBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(37, 99, 235, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-    billBtnText: { fontSize: 10, color: '#1d4ed8', fontWeight: '800' },
+    billBtnText: { fontSize: 10, color: '#8b5cf6', fontWeight: '800' },
 
     emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 40, gap: 16 },
-    emptyText: { fontSize: 15, color: '#475569', fontWeight: '600' }
+    emptyText: { fontSize: 15, color: '#5B4B8A', fontWeight: '600' }
 });

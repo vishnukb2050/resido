@@ -19,7 +19,7 @@ export default function AddTransactionScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="dark-content" />
             
             {/* Header */}
             <View style={styles.header}>
@@ -39,7 +39,7 @@ export default function AddTransactionScreen() {
                         <Ionicons name="document-text-outline" size={24} color="#fff" />
                     </View>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text style={styles.uploadTitle}>Upload Bill <Text style={{ color: '#64748b' }}>(Optional)</Text></Text>
+                        <Text style={styles.uploadTitle}>Upload Bill <Text style={{ color: '#7A6B9C' }}>(Optional)</Text></Text>
                         <Text style={styles.uploadSub}>JPG, PNG, PDF upto 10MB</Text>
                     </View>
                     <TouchableOpacity style={styles.uploadBtn}><Text style={styles.uploadBtnText}>Upload</Text></TouchableOpacity>
@@ -121,35 +121,35 @@ export default function AddTransactionScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
     header: { padding: 20, paddingTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     
     scrollContent: { padding: 20 },
-    uploadCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: 16, borderRadius: 24, marginBottom: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    uploadIconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    uploadTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
-    uploadSub: { fontSize: 12, color: '#64748b', marginTop: 4 },
+    uploadCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', padding: 16, borderRadius: 24, marginBottom: 32, borderWidth: 1, borderColor: '#C4B5DC' },
+    uploadIconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C4B5DC' },
+    uploadTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
+    uploadSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
     uploadBtn: { backgroundColor: 'rgba(37, 99, 235, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-    uploadBtnText: { color: '#1d4ed8', fontSize: 13, fontWeight: '800' },
+    uploadBtnText: { color: '#8b5cf6', fontSize: 13, fontWeight: '800' },
 
     inputGroup: { marginBottom: 24 },
-    inputLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', marginBottom: 12 },
-    amountInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 20, height: 64, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    currency: { fontSize: 22, fontWeight: '900', color: '#fff', marginRight: 10 },
-    amountInput: { flex: 1, fontSize: 22, fontWeight: '900', color: '#fff' },
+    inputLabel: { fontSize: 13, fontWeight: '700', color: '#9A8EBA', marginBottom: 12 },
+    amountInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', paddingHorizontal: 20, height: 64, borderRadius: 20, borderWidth: 1, borderColor: '#D4C9E8' },
+    currency: { fontSize: 22, fontWeight: '900', color: '#2D2445', marginRight: 10 },
+    amountInput: { flex: 1, fontSize: 22, fontWeight: '900', color: '#2D2445' },
 
-    selector: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 16, height: 56, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    selector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', paddingHorizontal: 16, height: 56, borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     selectorIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    selectorText: { flex: 1, fontSize: 15, fontWeight: '700', color: '#fff' },
+    selectorText: { flex: 1, fontSize: 15, fontWeight: '700', color: '#2D2445' },
 
-    descInput: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 18, borderRadius: 16, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', minHeight: 100, textAlignVertical: 'top' },
+    descInput: { backgroundColor: '#ffffff', padding: 18, borderRadius: 16, color: '#2D2445', fontSize: 15, borderWidth: 1, borderColor: '#D4C9E8', minHeight: 100, textAlignVertical: 'top' },
 
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     tag: { backgroundColor: 'rgba(37, 99, 235, 0.1)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-    tagText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' },
+    tagText: { color: '#8b5cf6', fontSize: 13, fontWeight: '700' },
     addTagBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-    addTagText: { color: '#1d4ed8', fontSize: 13, fontWeight: '700' }
+    addTagText: { color: '#8b5cf6', fontSize: 13, fontWeight: '700' }
 });

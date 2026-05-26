@@ -37,8 +37,8 @@ export default function GatepassDetailsScreen() {
         }
     };
 
-    if (loading) return <View style={styles.center}><ActivityIndicator color="#1d4ed8" size="large" /></View>;
-    if (!gatepass) return <View style={styles.center}><Text style={{color: '#fff'}}>Not Found</Text></View>;
+    if (loading) return <View style={styles.center}><ActivityIndicator color="#8b5cf6" size="large" /></View>;
+    if (!gatepass) return <View style={styles.center}><Text style={{color: '#2D2445'}}>Not Found</Text></View>;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -99,25 +99,25 @@ function DetailRow({ label, value, isStatus }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000000' },
-    center: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
+    container: { flex: 1, backgroundColor: '#F8F5FF' },
+    center: { flex: 1, backgroundColor: '#F8F5FF', justifyContent: 'center', alignItems: 'center' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40 },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
-    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    shareBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    shareBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     content: { padding: 24, alignItems: 'center' },
     qrContainer: { alignItems: 'center', marginBottom: 32 },
-    qrBox: { padding: 20, backgroundColor: '#1e293b', borderRadius: 32, borderWidth: 2, borderColor: '#1d4ed8', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
+    qrBox: { padding: 20, backgroundColor: '#ffffff', borderRadius: 32, borderWidth: 2, borderColor: '#8b5cf6', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
     qrFallback: { width: 200, height: 200, alignItems: 'center', justifyContent: 'center', gap: 10 },
-    qrPassText: { fontSize: 18, color: '#1d4ed8', fontWeight: '900', letterSpacing: 3 },
-    passId: { fontSize: 12, color: '#94a3b8', fontWeight: '800', marginTop: 20, letterSpacing: 2 },
-    scanHint: { fontSize: 14, color: '#1d4ed8', fontWeight: '600', marginTop: 10, textAlign: 'center' },
-    detailsCard: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    cardTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 20 },
+    qrPassText: { fontSize: 18, color: '#8b5cf6', fontWeight: '900', letterSpacing: 3 },
+    passId: { fontSize: 12, color: '#9A8EBA', fontWeight: '800', marginTop: 20, letterSpacing: 2 },
+    scanHint: { fontSize: 14, color: '#8b5cf6', fontWeight: '600', marginTop: 10, textAlign: 'center' },
+    detailsCard: { width: '100%', backgroundColor: '#ffffff', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: '#D4C9E8' },
+    cardTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445', marginBottom: 20 },
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-    detailLabel: { fontSize: 14, color: '#64748b', fontWeight: '600' },
-    detailValue: { fontSize: 14, color: '#e2e8f0', fontWeight: '700' },
-    divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 10 },
+    detailLabel: { fontSize: 14, color: '#7A6B9C', fontWeight: '600' },
+    detailValue: { fontSize: 14, color: '#9A8EBA', fontWeight: '700' },
+    divider: { height: 1, backgroundColor: '#F4EEFC', marginVertical: 10 },
     mainShareBtn: { width: '100%', height: 64, backgroundColor: '#10b981', borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24 },
-    shareText: { color: '#fff', fontSize: 16, fontWeight: '900' }
+    shareText: { color: '#2D2445', fontSize: 16, fontWeight: '900' }
 });
