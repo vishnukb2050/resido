@@ -277,6 +277,34 @@ export class BusinessService {
         });
     }
 
+    async deleteProfile(userId: string, profileId: string) {
+        const profile = await this.prisma.businessProfile.findFirst({
+            where: { id: profileId, userId }
+        });
+        if (!profile) {
+            throw new NotFoundException('Business profile not found or you are not authorized to delete it.');
+        }
+
+        // Cascade delete: bookings -> slots -> services -> profile
+        // (schema has no onDelete: Cascade, so we do it explicitly in a transaction)
+        return this.prisma.$transaction(async (tx) => {
+            const slots = await tx.businessSlot.findMany({
+                where: { businessProfileId: profileId },
+                select: { id: true }
+            });
+            const slotIds = slots.map(s => s.id);
+
+            if (slotIds.length > 0) {
+                await tx.businessBooking.deleteMany({ where: { slotId: { in: slotIds } } });
+            }
+            await tx.businessSlot.deleteMany({ where: { businessProfileId: profileId } });
+            await tx.serviceItem.deleteMany({ where: { businessProfileId: profileId } });
+            await tx.businessProfile.delete({ where: { id: profileId } });
+
+            return { success: true, id: profileId };
+        });
+    }
+
     async getCategories() {
         const profiles = await this.prisma.businessProfile.findMany({
             select: { category: true },

@@ -73,6 +73,14 @@ export class BusinessController {
         return this.businessService.updateProfile(id, data);
     }
 
+    @Delete('profiles/:id')
+    deleteProfile(
+        @Headers('x-user-id') userId: string,
+        @Param('id') id: string
+    ) {
+        return this.businessService.deleteProfile(userId, id);
+    }
+
     // ─── Business Slot Endpoints ──────────────────────────────────────────────
 
     @Post('profiles/:profileId/slots')

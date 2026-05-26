@@ -163,6 +163,7 @@ export const businessApi = {
     getMyProfiles: () => api.get('/business/profiles/my'),
     getProfile: (id: string) => api.get(`/business/profiles/${id}`),
     updateProfile: (id: string, data: any) => api.patch(`/business/profiles/${id}`, data),
+    deleteProfile: (id: string) => api.delete(`/business/profiles/${id}`),
     getCategories: () => api.get('/business/categories'),
 
     // Slots

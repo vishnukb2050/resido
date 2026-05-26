@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     View, Text, StyleSheet, TouchableOpacity, ScrollView, 
     Image, SafeAreaView, ActivityIndicator, RefreshControl,
-    Dimensions, StatusBar, Modal
+    Dimensions, StatusBar, Modal, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -37,6 +37,31 @@ export default function ManageBusinessScreen() {
     const onRefresh = () => {
         setRefreshing(true);
         fetchProfiles();
+    };
+
+    const handleDeleteProfile = (profile: any) => {
+        Alert.alert(
+            'Delete Business Profile',
+            `Are you sure you want to permanently delete "${profile.businessName}"? This will also remove all its slots and bookings. This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await businessApi.deleteProfile(profile.id);
+                            setProfiles(prev => prev.filter((p: any) => p.id !== profile.id));
+                            Alert.alert('Deleted', 'Business profile removed successfully.');
+                        } catch (error: any) {
+                            console.error('Failed to delete business profile:', error);
+                            const msg = error?.response?.data?.message || 'Failed to delete business profile.';
+                            Alert.alert('Error', msg);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const renderEmptyState = () => (
@@ -135,6 +160,12 @@ export default function ManageBusinessScreen() {
                                     >
                                         <Feather name="edit-3" size={20} color="#1d4ed8" />
                                     </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={styles.deleteBtn}
+                                        onPress={() => handleDeleteProfile(profile)}
+                                    >
+                                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                                    </TouchableOpacity>
                                 </View>
                                 
                                 <View style={styles.quickActionsContainer}>
@@ -144,13 +175,6 @@ export default function ManageBusinessScreen() {
                                     >
                                         <Ionicons name="images-outline" size={16} color="#3b82f6" />
                                         <Text style={styles.quickActionText}>Gallery</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        style={styles.quickActionBtn}
-                                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, manageSlots: 'true' } })}
-                                    >
-                                        <Ionicons name="calendar-outline" size={16} color="#10b981" />
-                                        <Text style={styles.quickActionText}>Slots</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity 
                                         style={styles.quickActionBtn}
@@ -164,15 +188,13 @@ export default function ManageBusinessScreen() {
                                     </TouchableOpacity>
                                 </View>
 
-                                {profile.slots && profile.slots.length > 0 ? (
-                                    <TouchableOpacity 
-                                        style={styles.manageBookingsBtn}
-                                        onPress={() => router.push({ pathname: '/business-bookings-manage', params: { profileId: profile.id } })}
-                                    >
-                                        <Ionicons name="calendar" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                                        <Text style={styles.manageBookingsBtnText}>Manage Bookings</Text>
-                                    </TouchableOpacity>
-                                ) : null}
+                                <TouchableOpacity 
+                                    style={styles.manageSlotsBtn}
+                                    onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, manageSlots: 'true' } })}
+                                >
+                                    <Ionicons name="time" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                                    <Text style={styles.manageSlotsBtnText}>Manage Booking Slots</Text>
+                                </TouchableOpacity>
                                 
                                 <View style={styles.statsRow}>
                                     <View style={styles.statBox}>
@@ -286,6 +308,7 @@ const styles = StyleSheet.create({
     statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
     statusText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
     editBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
+    deleteBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(239, 68, 68, 0.1)', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
     
     quickActionsContainer: {
         flexDirection: 'row',
@@ -318,6 +341,27 @@ const styles = StyleSheet.create({
     statValue: { fontSize: 18, fontWeight: '800', color: '#fff' },
     statLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
     statDivider: { width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.05)' },
+
+    manageSlotsBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#1d4ed8',
+        borderRadius: 12,
+        paddingVertical: 12,
+        marginBottom: 10,
+        shadowColor: '#1d4ed8',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    manageSlotsBtnText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#ffffff',
+        letterSpacing: 0.3,
+    },
 
     manageBookingsBtn: {
         flexDirection: 'row',

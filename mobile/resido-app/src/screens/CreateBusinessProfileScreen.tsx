@@ -1556,44 +1556,6 @@ export default function CreateBusinessProfileScreen() {
                     </View>
                 )}
 
-                {/* Save Slots shortcut button for existing profiles */}
-                {id && formData.bookingSlots.length > 0 && (
-                    <TouchableOpacity
-                        style={[styles.continueBtn, { marginTop: 20, backgroundColor: '#10b981', shadowColor: '#10b981' }]}
-                        onPress={async () => {
-                            setLoading(true);
-                            try {
-                                const slotPayload = formData.enableBooking ? formData.bookingSlots.map((s: any) => ({
-                                    name: s.name,
-                                    description: s.description || null,
-                                    maxPersons: s.maxPersons || 1,
-                                    timeSlots: s.timeSlots || [],
-                                    scheduleType: s.scheduleType || 'WEEKLY',
-                                    scheduleConfig: typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig),
-                                    allowRecurringBookings: s.allowRecurringBookings || false
-                                })) : [];
-                                await businessApi.updateProfile(id as string, {
-                                    enableBooking: formData.enableBooking,
-                                    slots: slotPayload
-                                });
-                                Alert.alert('✅ Saved!', 'Booking slots updated successfully.');
-                            } catch (err: any) {
-                                const msg = err.response?.data?.message || 'Failed to save slots.';
-                                Alert.alert('Error', msg);
-                            } finally {
-                                setLoading(false);
-                            }
-                        }}
-                        disabled={loading}
-                    >
-                        {loading ? <ActivityIndicator color="#fff" /> : (
-                            <>
-                                <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                <Text style={styles.continueBtnText}>Save & Update Slots</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                )}
             </View>
         );
     };
@@ -2150,8 +2112,15 @@ export default function CreateBusinessProfileScreen() {
                         </ScrollView>
 
                         {/* Save Button */}
-                        <TouchableOpacity style={[styles.continueBtn, { marginTop: 12, backgroundColor: '#8b5cf6', shadowColor: '#8b5cf6' }]} onPress={handleSaveSlot} disabled={slotSavingLoader}>
-                            {slotSavingLoader ? <ActivityIndicator color="#fff" /> : <Text style={styles.continueBtnText}>Save Booking Slot</Text>}
+                        <TouchableOpacity style={styles.saveSlotBtn} onPress={handleSaveSlot} disabled={slotSavingLoader} activeOpacity={0.85}>
+                            {slotSavingLoader ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <>
+                                    <Ionicons name="save-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                    <Text style={styles.saveSlotBtnText}>Save Booking Slot</Text>
+                                </>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -3207,6 +3176,8 @@ const styles = StyleSheet.create({
     backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     continueBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: '#1d4ed8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     continueBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    saveSlotBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 18, marginTop: 10 },
+    saveSlotBtnText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
     safetyInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
     safetyText: { fontSize: 11, color: '#64748b' },
 
