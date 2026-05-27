@@ -5,7 +5,7 @@ import {
     ActivityIndicator, Alert
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -16,6 +16,34 @@ export default function CreateNoteScreen() {
     const [title, setTitle] = useState(params.title as string || '');
     const [body, setBody] = useState(params.body as string || '');
     const [loading, setLoading] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDelete = () => {
+        if (!params.id) return;
+        Alert.alert(
+            `Delete "${title || 'this note'}"?`,
+            'This note will be permanently deleted. This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setDeleting(true);
+                            await mySpaceApi.deleteNotePage(params.id as string);
+                            router.back();
+                        } catch (err: any) {
+                            const msg = err?.response?.data?.message || 'Failed to delete note.';
+                            Alert.alert('Error', msg);
+                        } finally {
+                            setDeleting(false);
+                        }
+                    },
+                },
+            ],
+        );
+    };
 
     const handleSave = async () => {
         if (!title.trim() || !body.trim()) {
@@ -58,9 +86,20 @@ export default function CreateNoteScreen() {
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{params.id ? 'Edit Note' : 'New Note'}</Text>
-                <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={loading}>
-                    {loading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="checkmark" size={24} color="#fff" />}
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                    {params.id ? (
+                        <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} disabled={loading || deleting}>
+                            {deleting ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Ionicons name="trash-outline" size={20} color="#b91c1c" />
+                            )}
+                        </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={loading || deleting}>
+                        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="checkmark" size={24} color="#fff" />}
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <KeyboardAvoidingView 
@@ -69,7 +108,7 @@ export default function CreateNoteScreen() {
             >
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                     {/* Title Input */}
-                    <TextInput 
+                    <TextInput
                         style={styles.titleInput}
                         value={title}
                         onChangeText={setTitle}
@@ -78,16 +117,8 @@ export default function CreateNoteScreen() {
                         multiline
                     />
 
-                    {/* Folder Selector */}
-                    <View style={styles.folderSelector}>
-                        <View style={[styles.folderIconBox, { backgroundColor: '#f59e0b' }]}>
-                            <MaterialCommunityIcons name="folder" size={16} color="#fff" />
-                        </View>
-                        <Text style={styles.folderName}>{params.folderName || 'General'}</Text>
-                    </View>
-
                     {/* Body Input */}
-                    <TextInput 
+                    <TextInput
                         style={styles.bodyInput}
                         value={body}
                         onChangeText={setBody}
@@ -115,16 +146,19 @@ const styles = StyleSheet.create({
     header: { padding: 20, paddingTop: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    deleteBtn: {
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+        borderWidth: 1, borderColor: 'rgba(220, 38, 38, 0.2)',
+        alignItems: 'center', justifyContent: 'center',
+    },
     
     scrollContent: { padding: 20, paddingTop: 10 },
-    titleInput: { fontSize: 24, fontWeight: '900', color: '#2D2445', marginBottom: 20, marginTop: 10, lineHeight: 32 },
-    
-    folderSelector: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#F4EEFC', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, marginBottom: 30, borderWidth: 1, borderColor: '#C4B5DC' },
-    folderIconBox: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-    folderName: { fontSize: 14, fontWeight: '700', color: '#2D2445', marginRight: 8 },
+    titleInput: { fontSize: 24, fontWeight: '900', color: '#2D2445', marginBottom: 16, marginTop: 10, lineHeight: 32 },
 
-    bodyInput: { fontSize: 16, color: '#9A8EBA', lineHeight: 26, minHeight: 400, textAlignVertical: 'top' },
+    bodyInput: { fontSize: 16, color: '#2D2445', lineHeight: 26, minHeight: 400, textAlignVertical: 'top' },
 
     toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 16, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: '#EFE9F8', backgroundColor: '#F8F5FF' },
     toolBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }

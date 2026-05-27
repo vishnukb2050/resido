@@ -111,7 +111,7 @@ export default function FinanceScreen() {
                             <View style={styles.shortcutGrid}>
                                 <ShortcutItem icon="plus" label="Add Income" color="#10b981" onPress={() => router.push('/add-income')} />
                                 <ShortcutItem icon="minus" label="Add Expense" color="#ef4444" onPress={() => router.push('/add-expense')} />
-                                <ShortcutItem icon="file-upload" label="Bills" color="#8b5cf6" onPress={() => router.push('/documents')} />
+                                <ShortcutItem icon="file-upload" label="Bills" color="#8b5cf6" onPress={() => router.push('/bills')} />
                                 <ShortcutItem icon="chart-bar" label="View Report" color="#94a3b8" onPress={() => router.push('/finance-report')} />
                             </View>
                         </View>

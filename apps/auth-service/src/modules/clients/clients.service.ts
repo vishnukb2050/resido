@@ -440,6 +440,62 @@ export class ClientsService {
         };
     }
 
+    /**
+     * Allow a non-admin member to exit a community they belong to.
+     * Admins (APARTMENT_ADMIN) are intentionally rejected — they should either
+     * transfer admin rights to another member first or permanently delete the
+     * community via `deleteClient`. This protects communities from being
+     * orphaned without an owner.
+     *
+     * Removes every non-admin membership the current user has in this tenant
+     * (a user may simultaneously be e.g. RESIDENT + ADMIN_STAFF), plus the
+     * matching `Member` rows. The user keeps their account and any other
+     * workspaces; only this tenant's links are removed.
+     */
+    async leaveClient(
+        clientId: string,
+        currentUser?: { userId?: string; sub?: string },
+    ) {
+        if (!clientId) {
+            throw new BadRequestException('Community id is required.');
+        }
+        const userId = currentUser?.userId || currentUser?.sub;
+        if (!userId) {
+            throw new ForbiddenException('You must be signed in to exit a community.');
+        }
+
+        const memberships = await this.prisma.userRead.workspaceMembership.findMany({
+            where: { userId, tenantId: clientId },
+        });
+        if (memberships.length === 0) {
+            throw new NotFoundException('You are not a member of this community.');
+        }
+
+        const isAdmin = memberships.some((m) => m.role === ('APARTMENT_ADMIN' as Role));
+        if (isAdmin) {
+            throw new ForbiddenException(
+                'Community admins cannot exit. Transfer admin rights to another member first, or delete the community.',
+            );
+        }
+
+        await this.prisma.userClient.workspaceMembership.deleteMany({
+            where: { userId, tenantId: clientId },
+        });
+
+        try {
+            await this.prisma.coreClient.member.deleteMany({
+                where: { userId, tenantId: clientId },
+            });
+        } catch (err: any) {
+            console.warn('[leaveClient] member cleanup failed:', err?.message);
+        }
+
+        return {
+            success: true,
+            message: 'You have left the community.',
+        };
+    }
+
     private slugify(name: string): string {
         return name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '_').substring(0, 40);
     }

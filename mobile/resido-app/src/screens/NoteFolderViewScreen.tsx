@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions, FlatList,
-    ActivityIndicator
+    TextInput, SafeAreaView, StatusBar, Dimensions,
+    ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -34,6 +34,58 @@ export default function NoteFolderViewScreen() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // 3-dot action sheet for a single note: share or delete.
+    const openNoteMenu = (note: any) => {
+        Alert.alert(
+            note.title || 'Note',
+            'What would you like to do?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Share',
+                    onPress: () =>
+                        router.push({
+                            pathname: '/share-note',
+                            params: {
+                                id: note.id,
+                                folderId: id,
+                                name: note.title,
+                                isFolder: 'false',
+                            },
+                        }),
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => confirmDeleteNote(note),
+                },
+            ],
+        );
+    };
+
+    const confirmDeleteNote = (note: any) => {
+        Alert.alert(
+            `Delete "${note.title || 'this note'}"?`,
+            'This note will be permanently deleted. This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await mySpaceApi.deleteNotePage(note.id);
+                            setPages((prev) => prev.filter((p) => p.id !== note.id));
+                        } catch (err: any) {
+                            const msg = err?.response?.data?.message || 'Failed to delete note.';
+                            Alert.alert('Error', msg);
+                        }
+                    },
+                },
+            ],
+        );
     };
 
     return (
@@ -80,16 +132,31 @@ export default function NoteFolderViewScreen() {
                 ) : (
                     <View style={styles.gridContainer}>
                         {pages.map((note) => (
-                            <TouchableOpacity 
-                                key={note.id} 
+                            <TouchableOpacity
+                                key={note.id}
                                 style={[styles.noteCard, { backgroundColor: note.color || '#fff' }]}
                                 onPress={() => router.push({ pathname: '/create-note', params: { id: note.id, folderId: id, title: note.title, body: note.content } })}
                             >
                                 <View style={styles.cardHeader}>
-                                    <Text style={[styles.noteTitle, note.color === '#1d4ed8' && { color: '#2D2445' }]}>{note.title}</Text>
+                                    <Text
+                                        style={[styles.noteTitle, note.color === '#1d4ed8' && { color: '#2D2445' }]}
+                                        numberOfLines={1}
+                                    >
+                                        {note.title}
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.noteDotsBtn}
+                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                        onPress={(e) => {
+                                            e.stopPropagation?.();
+                                            openNoteMenu(note);
+                                        }}
+                                    >
+                                        <Ionicons name="ellipsis-vertical" size={16} color="#7A6B9C" />
+                                    </TouchableOpacity>
                                 </View>
-                                <Text 
-                                    style={[styles.noteBody, note.color === '#1d4ed8' && { color: '#5B4B8A' }]} 
+                                <Text
+                                    style={[styles.noteBody, note.color === '#1d4ed8' && { color: '#5B4B8A' }]}
                                     numberOfLines={5}
                                 >
                                     {note.content}
@@ -129,6 +196,11 @@ const styles = StyleSheet.create({
     noteCard: { width: columnWidth, padding: 16, borderRadius: 20, minHeight: 180, justifyContent: 'space-between' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
     noteTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445', flex: 1, marginRight: 8 },
+    noteDotsBtn: {
+        width: 26, height: 26, borderRadius: 13,
+        alignItems: 'center', justifyContent: 'center',
+        backgroundColor: 'rgba(244, 238, 252, 0.7)',
+    },
     noteBody: { fontSize: 13, color: '#5B4B8A', lineHeight: 18 },
     noteDate: { fontSize: 11, color: '#7A6B9C', marginTop: 12, fontWeight: '600' },
 

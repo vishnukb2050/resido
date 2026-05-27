@@ -51,6 +51,13 @@ export default function ManageCommunityScreen() {
     const [deleteConfirmName, setDeleteConfirmName] = useState('');
     const [deletingCommunity, setDeletingCommunity] = useState(false);
 
+    // Exit Community State (for non-admin members)
+    const [exitingTenantId, setExitingTenantId] = useState<string | null>(null);
+
+    // Roles that are permitted to configure / edit a community.
+    const isAdminRole = (role?: string) =>
+        String(role || '').toUpperCase() === 'APARTMENT_ADMIN';
+
     // ── Fetch Staff for Editing Workspace ─────────────────────────────
     const fetchStaff = async (tenantId: string) => {
         setLoadingStaff(true);
@@ -341,6 +348,62 @@ export default function ManageCommunityScreen() {
         );
     };
 
+    // ── Exit Community (non-admin members) ────────────────────────────
+    // Removes the current user's membership from a tenant. Admins are
+    // blocked server-side and must use delete or transfer admin instead.
+    const performExitCommunity = async (ws: any) => {
+        if (!ws?.tenantId) return;
+        setExitingTenantId(ws.tenantId);
+        try {
+            await authApi.leaveClient(ws.tenantId);
+
+            // If the user just left the active workspace, clear it so the app
+            // falls back to MySpace / another community.
+            const auth = useAuthStore.getState();
+            if (auth.activeWorkspace?.tenantId === ws.tenantId) {
+                auth.setActiveWorkspace(null as any, auth.token || '');
+            }
+
+            await fetchWorkspacesList();
+            if (editingWorkspace?.tenantId === ws.tenantId) {
+                setEditingWorkspace(null);
+            }
+
+            Alert.alert(
+                'Left community',
+                `You have exited "${ws.tenantName}".`,
+            );
+        } catch (err: any) {
+            const status = err?.response?.status;
+            const serverMsg =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Failed to exit community.';
+            Alert.alert(
+                'Could not exit',
+                `${serverMsg}${status ? ` (HTTP ${status})` : ''}`,
+            );
+        } finally {
+            setExitingTenantId(null);
+        }
+    };
+
+    const handleExitCommunity = (ws: any) => {
+        if (!ws?.tenantId) return;
+        Alert.alert(
+            `Exit ${ws.tenantName}?`,
+            `You will lose access to this community's posts, announcements and chats. You can be re-invited later by an admin.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Exit Community',
+                    style: 'destructive',
+                    onPress: () => performExitCommunity(ws),
+                },
+            ],
+        );
+    };
+
     // ── Render List of Communities (Dashboard) ─────────────────────────
     if (!editingWorkspace) {
         return (
@@ -387,29 +450,53 @@ export default function ManageCommunityScreen() {
                         </View>
                     ) : (
                         <View style={{ gap: 14 }}>
-                            {workspaces.map((ws: any) => (
-                                <TouchableOpacity 
-                                    key={ws.tenantId} 
-                                    style={styles.communityListItem}
-                                    onPress={() => handleSelectWorkspace(ws)}
-                                >
-                                    <Image 
-                                        source={ws.photoUrl ? { uri: ws.photoUrl } : require('../../assets/greenwoods_logo.jpg')} 
-                                        style={styles.communityListImg} 
-                                    />
-                                    <View style={{ flex: 1, marginLeft: 16, gap: 4 }}>
-                                        <Text style={styles.communityListName} numberOfLines={1}>{ws.tenantName}</Text>
-                                        <View style={styles.roleLabelTag}>
-                                            <Ionicons name="shield-outline" size={10} color="#c084fc" />
-                                            <Text style={styles.roleLabelText}>{ws.role || 'RESIDENT'}</Text>
+                            {workspaces.map((ws: any) => {
+                                const canConfigure = isAdminRole(ws.role);
+                                const exiting = exitingTenantId === ws.tenantId;
+                                return (
+                                    <TouchableOpacity
+                                        key={ws.tenantId}
+                                        style={styles.communityListItem}
+                                        activeOpacity={0.85}
+                                        onPress={() => {
+                                            if (canConfigure) {
+                                                handleSelectWorkspace(ws);
+                                            } else if (!exiting) {
+                                                handleExitCommunity(ws);
+                                            }
+                                        }}
+                                    >
+                                        <Image
+                                            source={ws.photoUrl ? { uri: ws.photoUrl } : require('../../assets/greenwoods_logo.jpg')}
+                                            style={styles.communityListImg}
+                                        />
+                                        <View style={{ flex: 1, marginLeft: 16, gap: 4 }}>
+                                            <Text style={styles.communityListName} numberOfLines={1}>{ws.tenantName}</Text>
+                                            <View style={styles.roleLabelTag}>
+                                                <Ionicons name="shield-outline" size={10} color="#c084fc" />
+                                                <Text style={styles.roleLabelText}>{ws.role || 'RESIDENT'}</Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                    <View style={styles.manageLabelBox}>
-                                        <Text style={styles.manageLabelText}>Configure</Text>
-                                        <Ionicons name="settings-outline" size={14} color="#8b5cf6" />
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
+                                        {canConfigure ? (
+                                            <View style={styles.manageLabelBox}>
+                                                <Text style={styles.manageLabelText}>Configure</Text>
+                                                <Ionicons name="settings-outline" size={14} color="#8b5cf6" />
+                                            </View>
+                                        ) : (
+                                            <View style={styles.exitLabelBox}>
+                                                {exiting ? (
+                                                    <ActivityIndicator size="small" color="#b91c1c" />
+                                                ) : (
+                                                    <>
+                                                        <Text style={styles.exitLabelText}>Exit</Text>
+                                                        <Ionicons name="log-out-outline" size={14} color="#dc2626" />
+                                                    </>
+                                                )}
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
                     )}
                 </ScrollView>
@@ -525,6 +612,67 @@ export default function ManageCommunityScreen() {
     }
 
     // ── Render Specific Community Configurations ─────────────────────
+    // Only APARTMENT_ADMIN can see the configure/edit form. Non-admin members
+    // who reach this branch (rare — list-row taps already route them away)
+    // see a minimal screen with their info and an Exit Community button.
+    const canConfigureCurrent = isAdminRole(editingWorkspace?.role);
+
+    if (!canConfigureCurrent) {
+        const exiting = exitingTenantId === editingWorkspace.tenantId;
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => setEditingWorkspace(null)} style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle} numberOfLines={1}>{editingWorkspace.tenantName}</Text>
+                    <View style={{ width: 44 }} />
+                </View>
+
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <View style={styles.memberHeroCard}>
+                        <Image
+                            source={editingWorkspace.photoUrl ? { uri: editingWorkspace.photoUrl } : require('../../assets/greenwoods_logo.jpg')}
+                            style={styles.memberHeroImg}
+                        />
+                        <Text style={styles.memberHeroName} numberOfLines={2}>{editingWorkspace.tenantName}</Text>
+                        <View style={styles.roleLabelTag}>
+                            <Ionicons name="shield-outline" size={10} color="#c084fc" />
+                            <Text style={styles.roleLabelText}>{editingWorkspace.role || 'MEMBER'}</Text>
+                        </View>
+                        <Text style={styles.memberHeroSub}>
+                            Only community admins can edit details and manage staff. As a member you can stay in this community or exit at any time.
+                        </Text>
+                    </View>
+
+                    <View style={styles.exitCard}>
+                        <View style={styles.exitCardHeader}>
+                            <Ionicons name="log-out-outline" size={18} color="#b91c1c" />
+                            <Text style={styles.exitCardTitle}>Exit this community</Text>
+                        </View>
+                        <Text style={styles.exitCardSub}>
+                            Leaving removes your access to posts, announcements and chats in {editingWorkspace.tenantName}. An admin can re-invite you later.
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.exitCardBtn, exiting && { opacity: 0.6 }]}
+                            disabled={exiting}
+                            onPress={() => handleExitCommunity(editingWorkspace)}
+                        >
+                            {exiting ? (
+                                <ActivityIndicator color="#ffffff" />
+                            ) : (
+                                <>
+                                    <Ionicons name="log-out-outline" size={18} color="#ffffff" />
+                                    <Text style={styles.exitCardBtnText}>Exit Community</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <KeyboardAvoidingView 
             style={[styles.container, { backgroundColor: theme.background }]}
@@ -933,6 +1081,60 @@ const styles = StyleSheet.create({
         borderRadius: 10
     },
     manageLabelText: { fontSize: 11, color: '#a78bfa', fontWeight: '800' },
+    exitLabelBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(220, 38, 38, 0.08)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(220, 38, 38, 0.18)',
+    },
+    exitLabelText: { fontSize: 11, color: '#dc2626', fontWeight: '800' },
+
+    // Member (non-admin) editor view
+    memberHeroCard: {
+        alignItems: 'center',
+        padding: 24,
+        borderRadius: 20,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#E5DCF5',
+        marginBottom: 24,
+        gap: 12,
+    },
+    memberHeroImg: { width: 92, height: 92, borderRadius: 22 },
+    memberHeroName: { fontSize: 20, fontWeight: '900', color: '#2D2445', textAlign: 'center' },
+    memberHeroSub: {
+        fontSize: 13,
+        color: '#7A6B9C',
+        textAlign: 'center',
+        lineHeight: 20,
+        fontWeight: '500',
+        marginTop: 4,
+    },
+    exitCard: {
+        padding: 20,
+        borderRadius: 16,
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+    },
+    exitCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    exitCardTitle: { fontSize: 13, fontWeight: '900', color: '#b91c1c', textTransform: 'uppercase', letterSpacing: 0.5 },
+    exitCardSub: { fontSize: 12, color: '#7f1d1d', lineHeight: 18, marginBottom: 16, fontWeight: '500' },
+    exitCardBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#dc2626',
+        borderRadius: 12,
+        paddingVertical: 14,
+    },
+    exitCardBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 14 },
 
     // Modal Fullscreen Styling
     modalFullscreen: { flex: 1, backgroundColor: '#F8F5FF' },

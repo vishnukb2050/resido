@@ -162,6 +162,18 @@ export class ProfileController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Delete('notes/pages/:id')
+    async deleteNotePage(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.deleteNotePage(req.user.userId, id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete('notes/folders/:id')
+    async deleteNoteFolder(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.deleteNoteFolder(req.user.userId, id);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get('documents/folders')
     async getDocumentFolders(@Req() req: any) {
         return this.profileService.getDocumentFolders(req.user.userId);
@@ -181,8 +193,40 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Post('documents/files')
-    async addDocumentFile(@Body() body: { folderId: string, name: string, url: string, type: string, size?: number }) {
-        return this.profileService.addDocumentFile(body.folderId, body.name, body.url, body.type, body.size);
+    async addDocumentFile(
+        @Req() req: any,
+        @Body() body: {
+            folderId?: string,
+            name: string,
+            url: string,
+            type: string,
+            size?: number,
+            title?: string,
+            description?: string,
+        },
+    ) {
+        return this.profileService.addDocumentFile(
+            req.user.userId,
+            body.folderId,
+            body.name,
+            body.url,
+            body.type,
+            body.size,
+            body.title,
+            body.description,
+        );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete('documents/files/:id')
+    async deleteDocumentFile(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.deleteDocumentFile(req.user.userId, id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete('documents/folders/:id')
+    async deleteDocumentFolder(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.deleteDocumentFolder(req.user.userId, id);
     }
 
     @UseGuards(JwtAuthGuard)

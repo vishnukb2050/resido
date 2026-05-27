@@ -1,26 +1,22 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Dimensions, Image,
-    ActivityIndicator, Alert, Modal
+    TextInput, SafeAreaView, StatusBar, Dimensions,
+    ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
-import { mySpaceApi, authApi } from '../services/api';
-import axios from 'axios';
+import { mySpaceApi } from '../services/api';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function FolderViewScreen() {
     const router = useRouter();
-    const { id, name } = useLocalSearchParams();
+    const { id, name, isShared } = useLocalSearchParams();
+    const readOnly = isShared === 'true';
     const [files, setFiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
 
     useFocusEffect(
         useCallback(() => {
@@ -40,72 +36,68 @@ export default function FolderViewScreen() {
         }
     };
 
-    const handleFileUpload = async (type: 'IMAGE' | 'FILE') => {
-        try {
-            let result: any;
-            if (type === 'IMAGE') {
-                result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                    quality: 0.8,
-                });
-            } else {
-                result = await DocumentPicker.getDocumentAsync({
-                    type: '*/*',
-                    copyToCacheDirectory: true
-                });
-            }
-
-            if (result.canceled) return;
-
-            const asset = type === 'IMAGE' ? result.assets[0] : result.assets[0];
-            const fileName = asset.name || `file_${Date.now()}`;
-            const mimeType = asset.mimeType || 'application/octet-stream';
-
-            setUploading(true);
-            setUploadProgress(0.1);
-
-            // 1. Get presigned URL
-            const { data: { uploadUrl, fileUrl } } = await authApi.getPresignedUrl(fileName, mimeType, 'DOCUMENTS');
-
-            // 2. Upload to R2
-            const response = await fetch(asset.uri);
-            const blob = await response.blob();
-
-            await axios.put(uploadUrl, blob, {
-                headers: { 'Content-Type': mimeType },
-                onUploadProgress: (progressEvent) => {
-                    const progress = progressEvent.loaded / (progressEvent.total || 1);
-                    setUploadProgress(0.2 + progress * 0.7);
-                }
+    // 3-dot menu on a single file: Share or Delete.
+    const openFileMenu = (file: any) => {
+        const options: any[] = [{ text: 'Cancel', style: 'cancel' }];
+        options.push({
+            text: 'Share',
+            onPress: () =>
+                router.push({
+                    pathname: '/share-doc',
+                    params: {
+                        id: file.id,
+                        folderId: id,
+                        name: file.title || file.name,
+                        isFolder: 'false',
+                        size: file.size
+                            ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
+                            : '',
+                    },
+                }),
+        });
+        if (!readOnly) {
+            options.push({
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => confirmDeleteFile(file),
             });
-
-            // 3. Save to backend
-            await mySpaceApi.addDocumentFile({
-                folderId: id as string,
-                name: fileName,
-                url: fileUrl,
-                type: type,
-                size: asset.size
-            });
-
-            setUploadProgress(1);
-            setTimeout(() => {
-                setUploading(false);
-                loadFiles();
-            }, 500);
-
-        } catch (error: any) {
-            console.error('Upload failed:', error);
-            const errorMsg = error.response?.data?.message || 'Upload failed. Please try again.';
-            Alert.alert('Error', errorMsg);
-            setUploading(false);
         }
+        Alert.alert(file.title || file.name || 'Document', 'What would you like to do?', options);
+    };
+
+    const confirmDeleteFile = (file: any) => {
+        Alert.alert(
+            `Delete "${file.title || file.name}"?`,
+            'This document will be permanently deleted. This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await mySpaceApi.deleteDocumentFile(file.id);
+                            setFiles((prev) => prev.filter((f) => f.id !== file.id));
+                        } catch (err: any) {
+                            const msg = err?.response?.data?.message || 'Failed to delete document.';
+                            Alert.alert('Error', msg);
+                        }
+                    },
+                },
+            ],
+        );
     };
 
     const getFileColor = (type: string) => {
         if (type === 'IMAGE') return '#3b82f6';
-        if (type.includes('pdf')) return '#ef4444';
-        return '#1d4ed8';
+        if (type?.toLowerCase().includes('pdf')) return '#ef4444';
+        return '#8b5cf6';
+    };
+
+    const getTypeBadge = (type: string) => {
+        if (type === 'IMAGE') return 'IMG';
+        if (type?.toLowerCase().includes('pdf')) return 'PDF';
+        return 'DOC';
     };
 
     return (
@@ -116,83 +108,99 @@ export default function FolderViewScreen() {
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color="#2D2445" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                        <Text style={styles.headerTitle}>{name || 'Folder'}</Text>
-                        <Text style={styles.headerSub}>{files.length} Documents</Text>
+                        <Text style={styles.headerTitle} numberOfLines={1}>{name || 'Folder'}</Text>
+                        <Text style={styles.headerSub}>{files.length} Documents{readOnly ? ' · Shared' : ''}</Text>
                     </View>
-                    <View style={styles.headerActions}>
-                        <TouchableOpacity style={styles.iconBtn}><Ionicons name="search" size={22} color="#fff" /></TouchableOpacity>
-                        <TouchableOpacity style={styles.iconBtn} onPress={() => router.push({ pathname: '/share-doc', params: { folderId: id, name } })}>
-                            <Ionicons name="share-social" size={22} color="#fff" />
+                    {!readOnly && (
+                        <TouchableOpacity
+                            style={styles.iconBtn}
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/share-doc',
+                                    params: { folderId: id, name, isFolder: 'true' },
+                                })
+                            }
+                        >
+                            <Ionicons name="share-social" size={22} color="#8b5cf6" />
                         </TouchableOpacity>
-                    </View>
+                    )}
                 </View>
 
                 {/* Search Bar */}
                 <View style={styles.searchSection}>
                     <View style={styles.searchBar}>
                         <Ionicons name="search" size={20} color="#64748b" />
-                        <TextInput 
-                            placeholder={`Search documents in ${name || 'Folder'}`} 
+                        <TextInput
+                            placeholder={`Search documents in ${name || 'Folder'}`}
                             style={styles.searchInput}
                             placeholderTextColor="#94a3b8"
                         />
-                        <TouchableOpacity><Ionicons name="options-outline" size={20} color="#64748b" /></TouchableOpacity>
                     </View>
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
                 {loading ? (
                     <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
                 ) : files.length === 0 ? (
-                    <Text style={styles.emptyText}>No documents here yet. Upload one!</Text>
+                    <Text style={styles.emptyText}>
+                        {readOnly ? 'This folder is empty.' : 'No documents here yet. Tap the + button to upload one!'}
+                    </Text>
                 ) : (
                     <View style={styles.listContainer}>
                         {files.map((doc) => (
-                            <TouchableOpacity 
-                                key={doc.id} 
+                            <TouchableOpacity
+                                key={doc.id}
                                 style={styles.docCard}
-                                onPress={() => router.push({ pathname: '/share-doc', params: { id: doc.id, name: doc.name, url: doc.url } })}
+                                onPress={() => openFileMenu(doc)}
                             >
                                 <View style={[styles.typeIconBox, { backgroundColor: getFileColor(doc.type) }]}>
-                                    <Text style={styles.typeText}>{doc.type === 'IMAGE' ? 'IMG' : 'DOC'}</Text>
+                                    <Text style={styles.typeText}>{getTypeBadge(doc.type)}</Text>
                                 </View>
                                 <View style={styles.docInfo}>
-                                    <Text style={styles.docName}>{doc.name}</Text>
-                                    <Text style={styles.docSub}>{doc.size ? (doc.size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size'} • {new Date(doc.updatedAt).toLocaleDateString()}</Text>
+                                    <Text style={styles.docName} numberOfLines={1}>
+                                        {doc.title || doc.name}
+                                    </Text>
+                                    {doc.description ? (
+                                        <Text style={styles.docDesc} numberOfLines={2}>{doc.description}</Text>
+                                    ) : null}
+                                    <Text style={styles.docSub}>
+                                        {doc.size ? (doc.size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size'} · {new Date(doc.updatedAt).toLocaleDateString()}
+                                    </Text>
                                 </View>
-                                <TouchableOpacity><Ionicons name="ellipsis-vertical" size={18} color="#64748b" /></TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.dotsBtn}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    onPress={(e) => {
+                                        e.stopPropagation?.();
+                                        openFileMenu(doc);
+                                    }}
+                                >
+                                    <Ionicons name="ellipsis-vertical" size={18} color="#7A6B9C" />
+                                </TouchableOpacity>
                             </TouchableOpacity>
                         ))}
                     </View>
                 )}
             </ScrollView>
 
-            {/* FAB Options */}
-            <View style={styles.fabContainer}>
-                <TouchableOpacity style={[styles.fabMini, { bottom: 170 }]} onPress={() => handleFileUpload('FILE')}>
-                    <Ionicons name="document-text" size={24} color="#fff" />
+            {/* Upload FAB → opens upload screen prefilled with this folder */}
+            {!readOnly && (
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() =>
+                        router.push({
+                            pathname: '/upload-document',
+                            params: { folderId: id, folderName: name },
+                        })
+                    }
+                >
+                    <Ionicons name="cloud-upload" size={26} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.fabMini, { bottom: 100 }]} onPress={() => handleFileUpload('IMAGE')}>
-                    <Ionicons name="image" size={24} color="#fff" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Uploading Overlay */}
-            <Modal transparent visible={uploading}>
-                <View style={styles.overlay}>
-                    <View style={styles.progressBox}>
-                        <ActivityIndicator size="large" color="#8b5cf6" />
-                        <Text style={styles.progressText}>Uploading... {Math.round(uploadProgress * 100)}%</Text>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBar, { width: `${uploadProgress * 100}%` }]} />
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            )}
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>
@@ -206,28 +214,34 @@ const styles = StyleSheet.create({
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
     headerSub: { fontSize: 13, color: '#9A8EBA', marginTop: 2 },
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
-    
+
     searchSection: { marginTop: 8 },
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#C4B5DC' },
     searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
     listContainer: { paddingHorizontal: 20, marginTop: 12 },
-    docCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
+    docCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#ffffff', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     typeIconBox: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    typeText: { color: '#2D2445', fontSize: 11, fontWeight: '900' },
-    docInfo: { flex: 1, marginLeft: 16 },
+    typeText: { color: '#ffffff', fontSize: 11, fontWeight: '900' },
+    docInfo: { flex: 1, marginLeft: 14 },
     docName: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
-    docSub: { fontSize: 12, color: '#7A6B9C', marginTop: 4 },
+    docDesc: { fontSize: 12, color: '#5B4B8A', marginTop: 4, lineHeight: 17 },
+    docSub: { fontSize: 11, color: '#7A6B9C', marginTop: 6, fontWeight: '600' },
+    dotsBtn: {
+        width: 28, height: 28, borderRadius: 14,
+        alignItems: 'center', justifyContent: 'center',
+        backgroundColor: '#F4EEFC', marginTop: 4,
+    },
 
     emptyText: { textAlign: 'center', color: '#9A8EBA', marginTop: 40, fontSize: 15, fontWeight: '600' },
-    fabContainer: { position: 'absolute', bottom: 0, right: 20 },
-    fabMini: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
 
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
-    progressBox: { backgroundColor: '#ffffff', padding: 30, borderRadius: 24, alignItems: 'center', width: width * 0.8 },
-    progressText: { color: '#2D2445', fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 15 },
-    progressBarBg: { width: '100%', height: 6, backgroundColor: '#EFE9F8', borderRadius: 3, overflow: 'hidden' },
-    progressBar: { height: '100%', backgroundColor: '#8b5cf6' }
+    fab: {
+        position: 'absolute', bottom: 100, right: 20,
+        width: 60, height: 60, borderRadius: 30,
+        backgroundColor: '#8b5cf6',
+        alignItems: 'center', justifyContent: 'center',
+        shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
+    },
 });

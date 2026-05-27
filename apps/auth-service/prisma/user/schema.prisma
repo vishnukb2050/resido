@@ -258,14 +258,16 @@ model DocumentFolder {
 }
 
 model DocumentFile {
-  id         String   @id @default(cuid())
-  folderId   String
-  name       String
-  url        String
-  type       String   // IMAGE, PDF, DOC, etc.
-  size       Int?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  folderId    String
+  name        String   // Original file name (used for download)
+  title       String?  // User-supplied title (preferred display name)
+  description String?  // Optional notes about the document
+  url         String
+  type        String   // IMAGE, PDF, DOC, etc.
+  size        Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   folder DocumentFolder @relation(fields: [folderId], references: [id])
   shares DocumentShare[]

@@ -1,10 +1,94 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@resido/business-client';
 import { PrismaService } from '../prisma/prisma.service';
+import { LocationResolverService } from './location-resolver.service';
+
+/**
+ * Indian district / state name aliases.
+ *
+ * Reverse-geocode and the business creation dropdown may use different
+ * conventions for the same place (e.g. "Thiruvananthapuram" vs "Trivandrum").
+ * To make search robust we expand the searcher-supplied name into all of its
+ * known synonyms and match against the stored `serviceAreaValues` array using
+ * case/whitespace-insensitive comparison.
+ *
+ * Add new aliases here when users report mismatches.
+ */
+const DISTRICT_ALIASES: Record<string, string[]> = {
+    // Kerala
+    trivandrum: ['Trivandrum', 'Thiruvananthapuram'],
+    thiruvananthapuram: ['Thiruvananthapuram', 'Trivandrum'],
+    ernakulam: ['Ernakulam', 'Kochi', 'Cochin'],
+    kochi: ['Kochi', 'Cochin', 'Ernakulam'],
+    cochin: ['Cochin', 'Kochi', 'Ernakulam'],
+    kozhikode: ['Kozhikode', 'Calicut'],
+    calicut: ['Calicut', 'Kozhikode'],
+    kollam: ['Kollam', 'Quilon'],
+    quilon: ['Quilon', 'Kollam'],
+    alappuzha: ['Alappuzha', 'Alleppey'],
+    alleppey: ['Alleppey', 'Alappuzha'],
+    palakkad: ['Palakkad', 'Palghat'],
+    palghat: ['Palghat', 'Palakkad'],
+    kannur: ['Kannur', 'Cannanore'],
+    cannanore: ['Cannanore', 'Kannur'],
+
+    // Karnataka
+    bengaluru: ['Bengaluru', 'Bangalore', 'Bengaluru Urban', 'Bangalore Urban'],
+    bangalore: ['Bangalore', 'Bengaluru', 'Bangalore Urban', 'Bengaluru Urban'],
+    mysuru: ['Mysuru', 'Mysore'],
+    mysore: ['Mysore', 'Mysuru'],
+    mangaluru: ['Mangaluru', 'Mangalore'],
+    mangalore: ['Mangalore', 'Mangaluru'],
+
+    // Tamil Nadu
+    chennai: ['Chennai', 'Madras'],
+    madras: ['Madras', 'Chennai'],
+    tiruchirappalli: ['Tiruchirappalli', 'Trichy', 'Tiruchirapalli'],
+    trichy: ['Trichy', 'Tiruchirappalli', 'Tiruchirapalli'],
+    thoothukudi: ['Thoothukudi', 'Tuticorin'],
+    tuticorin: ['Tuticorin', 'Thoothukudi'],
+
+    // Maharashtra
+    mumbai: ['Mumbai', 'Bombay', 'Mumbai Suburban', 'Mumbai City'],
+    bombay: ['Bombay', 'Mumbai', 'Mumbai Suburban'],
+    pune: ['Pune', 'Poona'],
+
+    // Telangana / Andhra
+    hyderabad: ['Hyderabad', 'Secunderabad'],
+    vijayawada: ['Vijayawada', 'Bezwada'],
+    visakhapatnam: ['Visakhapatnam', 'Vizag'],
+    vizag: ['Vizag', 'Visakhapatnam'],
+
+    // West Bengal
+    kolkata: ['Kolkata', 'Calcutta'],
+    calcutta: ['Calcutta', 'Kolkata'],
+
+    // Odisha
+    odisha: ['Odisha', 'Orissa'],
+    orissa: ['Orissa', 'Odisha'],
+};
+
+/** Return every known alias for a place name (case-insensitive lookup). */
+function expandPlaceAliases(name?: string): string[] {
+    if (!name) return [];
+    const cleaned = String(name).trim();
+    if (!cleaned) return [];
+    const aliases = DISTRICT_ALIASES[cleaned.toLowerCase()];
+    if (aliases && aliases.length > 0) {
+        // Make sure the original spelling is included.
+        const set = new Set(aliases.map((a) => a.trim()).filter(Boolean));
+        set.add(cleaned);
+        return Array.from(set);
+    }
+    return [cleaned];
+}
 
 @Injectable()
 export class BusinessService {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private locationResolver: LocationResolverService,
+    ) {}
 
     async createProfile(userId: string, tenantId: string, data: any) {
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
@@ -21,7 +105,12 @@ export class BusinessService {
             throw new ConflictException('Business name already exists. Please choose a unique name.');
         }
 
-        this.validateServiceArea(rest.serviceAreaType, rest.serviceAreaValues);
+        const normalizedServiceAreaType = String(rest.serviceAreaType || 'RADIUS').trim().toUpperCase();
+        const normalizedServiceAreaValues = (rest.serviceAreaValues || [])
+            .map((v: any) => String(v).trim())
+            .filter((v: string) => v.length > 0);
+
+        this.validateServiceArea(normalizedServiceAreaType, normalizedServiceAreaValues);
         
         const profileData = {
             profileType: rest.profileType || 'BUSINESS',
@@ -43,8 +132,8 @@ export class BusinessService {
             fullAddress: rest.fullAddress,
             latitude: rest.latitude,
             longitude: rest.longitude,
-            serviceAreaType: rest.serviceAreaType,
-            serviceAreaValues: rest.serviceAreaValues,
+            serviceAreaType: normalizedServiceAreaType,
+            serviceAreaValues: normalizedServiceAreaValues,
             serviceRadiusKm: rest.serviceRadiusKm,
             hashtags: rest.hashtags,
         };
@@ -118,7 +207,11 @@ export class BusinessService {
         radius?: number;
     }): Prisma.BusinessProfileWhereInput | undefined {
         const { pincode, district, state, lat, lng, radius } = params;
-        const hasAdminFilter = !!(pincode || district || state);
+        const tPincode = pincode ? String(pincode).trim() : undefined;
+        const tDistrict = district ? String(district).trim() : undefined;
+        const tState = state ? String(state).trim() : undefined;
+
+        const hasAdminFilter = !!(tPincode || tDistrict || tState);
         const hasGeoFilter = lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng);
 
         if (!hasAdminFilter && !hasGeoFilter) {
@@ -129,20 +222,23 @@ export class BusinessService {
             { serviceAreaType: 'PAN_INDIA' },
         ];
 
-        if (state) {
-            reachOr.push({ serviceAreaType: 'STATE', serviceAreaValues: { has: state } });
+        // Expand to every known alias so a searcher who reports
+        // "Thiruvananthapuram" still matches a profile that listed "Trivandrum".
+        if (tState) {
+            const stateAliases = expandPlaceAliases(tState);
+            stateAliases.forEach((s) => {
+                reachOr.push({ serviceAreaType: 'STATE', serviceAreaValues: { has: s } });
+            });
         }
-        if (district) {
-            reachOr.push({ serviceAreaType: 'DISTRICT', serviceAreaValues: { has: district } });
+        if (tDistrict) {
+            const districtAliases = expandPlaceAliases(tDistrict);
+            districtAliases.forEach((d) => {
+                reachOr.push({ serviceAreaType: 'DISTRICT', serviceAreaValues: { has: d } });
+            });
         }
-        if (pincode) {
-            reachOr.push({ serviceAreaType: 'PINCODE', serviceAreaValues: { has: pincode } });
-            reachOr.push({ location: { contains: pincode, mode: 'insensitive' } });
-        }
-
-        // RADIUS-mode providers: visible when searcher has coordinates (approximated via raw query for geo)
-        if (!hasGeoFilter) {
-            return { OR: reachOr };
+        if (tPincode) {
+            reachOr.push({ serviceAreaType: 'PINCODE', serviceAreaValues: { has: tPincode } });
+            reachOr.push({ location: { contains: tPincode, mode: 'insensitive' } });
         }
 
         return { OR: reachOr };
@@ -161,9 +257,29 @@ export class BusinessService {
         limit?: number;
         offset?: number;
     }) {
-        const { category, pincode, district, state, tenantId, lat, lng, radius, query } = params;
+        const { category, tenantId, query } = params;
+        let { pincode, district, state, lat, lng, radius } = params;
         const limit = Math.min(Math.max(params.limit ?? 50, 1), 100);
         const offset = Math.max(params.offset ?? 0, 0);
+
+        // PINCODE → DISTRICT / STATE hydration.
+        // If the caller supplied a pincode but no district/state (e.g. picked
+        // a pincode from the map dropdown, where the suggestion record didn't
+        // carry administrative context), resolve it from location_master so a
+        // business that registered "Kollam" as a DISTRICT service area is
+        // still matched when someone searches with a Kollam pincode.
+        if (pincode && (!district || !state)) {
+            const resolved = await this.locationResolver.resolvePincode(pincode);
+            if (resolved) {
+                if (!district && resolved.district) district = resolved.district;
+                if (!state && resolved.state) state = resolved.state;
+                if ((lat == null || lng == null) && resolved.latitude != null && resolved.longitude != null) {
+                    lat = resolved.latitude;
+                    lng = resolved.longitude;
+                }
+            }
+        }
+
         const hasGeo = lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng);
         const hasAdmin = !!(pincode || district || state);
         const hasLocationContext = hasGeo || hasAdmin;
@@ -192,6 +308,18 @@ export class BusinessService {
         if (hasGeo) {
             const queryPattern = query?.trim() ? `%${query.trim()}%` : null;
             const categoryPattern = category ? `%${category}%` : null;
+
+            // Lower-cased + alias-expanded variants. These are compared against
+            // LOWER(btrim(stored value)) so search is fully case/whitespace
+            // tolerant. We materialise them as Postgres text[] literals via the
+            // Prisma parameter binding (Prisma maps a JS string[] to text[]).
+            const stateVariants = state
+                ? expandPlaceAliases(state).map((s) => s.toLowerCase())
+                : [];
+            const districtVariants = district
+                ? expandPlaceAliases(district).map((s) => s.toLowerCase())
+                : [];
+            const pincodeVariants = pincode ? [String(pincode).toLowerCase()] : [];
 
             const rows = await this.prisma.$queryRaw<{ id: string; distance_km: number | null; has_slots: boolean }[]>`
                 WITH matched AS (
@@ -228,9 +356,27 @@ export class BusinessService {
                     )` : Prisma.empty}
                     AND (
                         b."serviceAreaType" = 'PAN_INDIA'
-                        ${state ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND ${state} = ANY(b."serviceAreaValues"))` : Prisma.empty}
-                        ${district ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND ${district} = ANY(b."serviceAreaValues"))` : Prisma.empty}
-                        ${pincode ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND ${pincode} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                        ${stateVariants.length
+                            ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND EXISTS (
+                                SELECT 1
+                                FROM unnest(b."serviceAreaValues") v
+                                WHERE LOWER(btrim(v)) = ANY(${stateVariants}::text[])
+                            ))`
+                            : Prisma.empty}
+                        ${districtVariants.length
+                            ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND EXISTS (
+                                SELECT 1
+                                FROM unnest(b."serviceAreaValues") v
+                                WHERE LOWER(btrim(v)) = ANY(${districtVariants}::text[])
+                            ))`
+                            : Prisma.empty}
+                        ${pincodeVariants.length
+                            ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND EXISTS (
+                                SELECT 1
+                                FROM unnest(b."serviceAreaValues") v
+                                WHERE LOWER(btrim(v)) = ANY(${pincodeVariants}::text[])
+                            ))`
+                            : Prisma.empty}
                         ${pincode ? Prisma.sql`OR (b.location ILIKE ${'%' + pincode + '%'})` : Prisma.empty}
                         OR (
                             b.latitude IS NOT NULL AND b.longitude IS NOT NULL
@@ -295,9 +441,27 @@ export class BusinessService {
                 )` : Prisma.empty}
                 AND (
                     b."serviceAreaType" = 'PAN_INDIA'
-                    ${state ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND ${state} = ANY(b."serviceAreaValues"))` : Prisma.empty}
-                    ${district ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND ${district} = ANY(b."serviceAreaValues"))` : Prisma.empty}
-                    ${pincode ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND ${pincode} = ANY(b."serviceAreaValues"))` : Prisma.empty}
+                    ${stateVariants.length
+                        ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND EXISTS (
+                            SELECT 1
+                            FROM unnest(b."serviceAreaValues") v
+                            WHERE LOWER(btrim(v)) = ANY(${stateVariants}::text[])
+                        ))`
+                        : Prisma.empty}
+                    ${districtVariants.length
+                        ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND EXISTS (
+                            SELECT 1
+                            FROM unnest(b."serviceAreaValues") v
+                            WHERE LOWER(btrim(v)) = ANY(${districtVariants}::text[])
+                        ))`
+                        : Prisma.empty}
+                    ${pincodeVariants.length
+                        ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND EXISTS (
+                            SELECT 1
+                            FROM unnest(b."serviceAreaValues") v
+                            WHERE LOWER(btrim(v)) = ANY(${pincodeVariants}::text[])
+                        ))`
+                        : Prisma.empty}
                     ${pincode ? Prisma.sql`OR (b.location ILIKE ${'%' + pincode + '%'})` : Prisma.empty}
                     OR (
                         b.latitude IS NOT NULL AND b.longitude IS NOT NULL
@@ -447,8 +611,20 @@ export class BusinessService {
     async updateProfile(id: string, data: any) {
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
 
-        if (rest.serviceAreaType !== undefined) {
-            this.validateServiceArea(rest.serviceAreaType, rest.serviceAreaValues ?? []);
+        const normalizedServiceAreaType =
+            rest.serviceAreaType !== undefined
+                ? String(rest.serviceAreaType || 'RADIUS').trim().toUpperCase()
+                : undefined;
+
+        const normalizedServiceAreaValues =
+            rest.serviceAreaValues !== undefined
+                ? (rest.serviceAreaValues || [])
+                    .map((v: any) => String(v).trim())
+                    .filter((v: string) => v.length > 0)
+                : undefined;
+
+        if (normalizedServiceAreaType !== undefined) {
+            this.validateServiceArea(normalizedServiceAreaType, normalizedServiceAreaValues ?? []);
         }
         
         if (rest.businessName) {
@@ -488,8 +664,8 @@ export class BusinessService {
             fullAddress: rest.fullAddress,
             latitude: rest.latitude,
             longitude: rest.longitude,
-            serviceAreaType: rest.serviceAreaType,
-            serviceAreaValues: rest.serviceAreaValues,
+            serviceAreaType: normalizedServiceAreaType,
+            serviceAreaValues: normalizedServiceAreaValues,
             serviceRadiusKm: rest.serviceRadiusKm,
             hashtags: rest.hashtags,
         };

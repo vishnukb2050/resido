@@ -323,8 +323,14 @@ export default function EventsScreen() {
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.headerTitle}>Community Calendar</Text>
-                    <Text style={styles.headerSub}>{isAdmin ? 'Create & manage events' : 'View community events'}</Text>
+                    <Text style={styles.headerTitle}>
+                        {activeWorkspace ? 'Community Calendar' : 'My Calendar'}
+                    </Text>
+                    <Text style={styles.headerSub}>
+                        {activeWorkspace
+                            ? (isAdmin ? 'Create & manage events' : 'View community events')
+                            : 'Your personal events & reminders'}
+                    </Text>
                 </View>
                 {isAdmin && (
                     <TouchableOpacity style={styles.createBtn} onPress={() => setShowAdd(true)}>

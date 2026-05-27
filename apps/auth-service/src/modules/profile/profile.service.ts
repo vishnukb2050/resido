@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import * as fs from 'fs';
@@ -615,6 +615,68 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
+    /**
+     * Permanently delete a single note page. Caller must own the folder that
+     * contains it. Any NoteShare rows pointing at this page are removed first
+     * so the FK cleanup is clean.
+     */
+    async deleteNotePage(userId: string, pageId: string) {
+        if (!pageId) {
+            throw new BadRequestException('Note id is required.');
+        }
+        const page = await this.prisma.userRead.notePage.findUnique({
+            where: { id: pageId },
+            include: { folder: true },
+        });
+        if (!page) {
+            throw new NotFoundException('Note not found.');
+        }
+        if (page.folder?.userId !== userId) {
+            throw new ForbiddenException('You can only delete your own notes.');
+        }
+        await this.prisma.userClient.noteShare.deleteMany({ where: { pageId } });
+        await this.prisma.userClient.notePage.delete({ where: { id: pageId } });
+        return { success: true };
+    }
+
+    /**
+     * Permanently delete a folder and every note inside it. Caller must own
+     * the folder. NoteShare rows that reference the folder or any of its
+     * pages are removed first so deletes don't fail on FK constraints.
+     */
+    async deleteNoteFolder(userId: string, folderId: string) {
+        if (!folderId) {
+            throw new BadRequestException('Folder id is required.');
+        }
+        const folder = await this.prisma.userRead.noteFolder.findUnique({
+            where: { id: folderId },
+            include: { pages: { select: { id: true } } },
+        });
+        if (!folder) {
+            throw new NotFoundException('Folder not found.');
+        }
+        if (folder.userId !== userId) {
+            throw new ForbiddenException('You can only delete your own folders.');
+        }
+        const pageIds = folder.pages.map((p) => p.id);
+
+        await this.prisma.userClient.noteShare.deleteMany({
+            where: {
+                OR: [
+                    { folderId },
+                    pageIds.length ? { pageId: { in: pageIds } } : { pageId: '___never___' },
+                ],
+            },
+        });
+        if (pageIds.length) {
+            await this.prisma.userClient.notePage.deleteMany({
+                where: { id: { in: pageIds } },
+            });
+        }
+        await this.prisma.userClient.noteFolder.delete({ where: { id: folderId } });
+        return { success: true, deletedPages: pageIds.length };
+    }
+
     async getDocumentFolders(userId: string) {
         return this.prisma.userRead.documentFolder.findMany({
             where: { userId },
@@ -638,10 +700,115 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
-    async addDocumentFile(folderId: string, name: string, url: string, type: string, size?: number) {
+    async addDocumentFile(
+        userId: string,
+        folderId: string | undefined,
+        name: string,
+        url: string,
+        type: string,
+        size?: number,
+        title?: string,
+        description?: string,
+    ) {
+        let targetFolderId = folderId;
+
+        // No folder selected → use (or lazily create) the user's "General" folder.
+        // This lets the user upload from the main Documents screen without
+        // first navigating into a folder.
+        if (!targetFolderId) {
+            let general = await this.prisma.userRead.documentFolder.findFirst({
+                where: { userId, name: 'General' },
+            });
+            if (!general) {
+                general = await this.prisma.userClient.documentFolder.create({
+                    data: { userId, name: 'General' },
+                });
+            }
+            targetFolderId = general.id;
+        } else {
+            // Make sure the supplied folder belongs to this user.
+            const owned = await this.prisma.userRead.documentFolder.findUnique({
+                where: { id: targetFolderId },
+            });
+            if (!owned || owned.userId !== userId) {
+                throw new ForbiddenException('You can only upload to your own folders.');
+            }
+        }
+
+        const cleanTitle = typeof title === 'string' ? title.trim() : '';
+        const cleanDesc = typeof description === 'string' ? description.trim() : '';
+
         return this.prisma.userClient.documentFile.create({
-            data: { folderId, name, url, type, size }
+            data: {
+                folderId: targetFolderId,
+                name,
+                title: cleanTitle ? cleanTitle : null,
+                description: cleanDesc ? cleanDesc : null,
+                url,
+                type,
+                size,
+            },
         });
+    }
+
+    /**
+     * Delete a single document file. Owner-only. Cleans up DocumentShare rows
+     * pointing at this file first to satisfy FK constraints.
+     */
+    async deleteDocumentFile(userId: string, fileId: string) {
+        if (!fileId) {
+            throw new BadRequestException('Document id is required.');
+        }
+        const file = await this.prisma.userRead.documentFile.findUnique({
+            where: { id: fileId },
+            include: { folder: true },
+        });
+        if (!file) {
+            throw new NotFoundException('Document not found.');
+        }
+        if (file.folder?.userId !== userId) {
+            throw new ForbiddenException('You can only delete your own documents.');
+        }
+        await this.prisma.userClient.documentShare.deleteMany({ where: { fileId } });
+        await this.prisma.userClient.documentFile.delete({ where: { id: fileId } });
+        return { success: true };
+    }
+
+    /**
+     * Delete an entire document folder and every file in it. Owner-only.
+     * Cleans up DocumentShare rows for the folder and any of its files first.
+     */
+    async deleteDocumentFolder(userId: string, folderId: string) {
+        if (!folderId) {
+            throw new BadRequestException('Folder id is required.');
+        }
+        const folder = await this.prisma.userRead.documentFolder.findUnique({
+            where: { id: folderId },
+            include: { files: { select: { id: true } } },
+        });
+        if (!folder) {
+            throw new NotFoundException('Folder not found.');
+        }
+        if (folder.userId !== userId) {
+            throw new ForbiddenException('You can only delete your own folders.');
+        }
+        const fileIds = folder.files.map((f) => f.id);
+
+        await this.prisma.userClient.documentShare.deleteMany({
+            where: {
+                OR: [
+                    { folderId },
+                    fileIds.length ? { fileId: { in: fileIds } } : { fileId: '___never___' },
+                ],
+            },
+        });
+        if (fileIds.length) {
+            await this.prisma.userClient.documentFile.deleteMany({
+                where: { id: { in: fileIds } },
+            });
+        }
+        await this.prisma.userClient.documentFolder.delete({ where: { id: folderId } });
+        return { success: true, deletedFiles: fileIds.length };
     }
 
     async shareItem(userId: string, type: 'NOTE' | 'DOC', itemId: string, targetType: 'COMMUNITY' | 'GROUP' | 'CONTACT', targetId: string, isFolder: boolean) {

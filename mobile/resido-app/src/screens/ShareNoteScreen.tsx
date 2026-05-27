@@ -10,14 +10,18 @@ export default function ShareNoteScreen() {
     const router = useRouter();
     const { id, folderId, name, isFolder } = useLocalSearchParams();
 
-    const handleSharePress = (targetType: 'CONTACT' | 'GROUP') => {
+    const handleSharePress = (targetType: 'CONTACT' | 'GROUP' | 'PROFILE') => {
+        const pathname =
+            targetType === 'CONTACT' ? '/select-contacts'
+            : targetType === 'PROFILE' ? '/select-profiles'
+            : '/select-groups';
         router.push({
-            pathname: targetType === 'CONTACT' ? '/select-contacts' : '/select-groups',
+            pathname,
             params: {
                 shareType: 'NOTE',
                 itemId: id || folderId,
-                isFolder: isFolder ? 'true' : 'false'
-            }
+                isFolder: isFolder === 'true' ? 'true' : 'false',
+            },
         });
     };
 
@@ -45,22 +49,23 @@ export default function ShareNoteScreen() {
 
                 {/* Share Options */}
                 <Text style={styles.sectionTitle}>Share with</Text>
-                <ShareOption 
-                    icon="person-outline" 
-                    title="Contacts" 
-                    desc="Share with your contacts or search by profile name" 
+                <ShareOption
+                    icon="person-outline"
+                    title="Contacts"
+                    desc="Pick from your contacts"
                     onPress={() => handleSharePress('CONTACT')}
                 />
-                <ShareOption 
-                    icon="people-outline" 
-                    title="Groups" 
-                    desc="Share with your groups" 
-                    onPress={() => handleSharePress('GROUP')}
+                <ShareOption
+                    icon="at-outline"
+                    title="Profile names"
+                    desc="Search anyone by their profile name"
+                    onPress={() => handleSharePress('PROFILE')}
                 />
-                <ShareOption 
-                    icon="link-outline" 
-                    title="Copy Link" 
-                    desc="Anyone with link can view" 
+                <ShareOption
+                    icon="people-outline"
+                    title="Groups"
+                    desc="Share with your groups"
+                    onPress={() => handleSharePress('GROUP')}
                 />
 
                 {/* People with access (Static for now) */}

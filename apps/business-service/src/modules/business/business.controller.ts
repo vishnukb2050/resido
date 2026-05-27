@@ -41,16 +41,23 @@ export class BusinessController {
         @Query('limit') limit?: string,
         @Query('offset') offset?: string
     ) {
+        const tTenantId = tenantId ? tenantId.trim() : undefined;
+        const tCategory = category ? category.trim() : undefined;
+        const tPincode = pincode ? pincode.trim() : undefined;
+        const tDistrict = district ? district.trim() : undefined;
+        const tState = state ? state.trim() : undefined;
+        const tQuery = query ? query.trim() : undefined;
+
         return this.businessService.listProfiles({ 
-            tenantId, 
-            category, 
-            pincode, 
-            district, 
-            state, 
+            tenantId: tTenantId,
+            category: tCategory,
+            pincode: tPincode,
+            district: tDistrict,
+            state: tState,
             lat: lat ? parseFloat(lat) : undefined,
             lng: lng ? parseFloat(lng) : undefined,
             radius: radius ? parseInt(radius, 10) : undefined,
-            query,
+            query: tQuery,
             limit: limit ? parseInt(limit, 10) : undefined,
             offset: offset ? parseInt(offset, 10) : undefined,
         });

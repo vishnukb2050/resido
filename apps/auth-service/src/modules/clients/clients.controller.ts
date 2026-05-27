@@ -64,4 +64,11 @@ export class ClientsController {
     ) {
         return this.clientsService.deleteClient(id, body, req.user);
     }
+
+    // Any non-admin member can call this to exit a community they belong to.
+    // APARTMENT_ADMIN cannot use it — the service enforces that.
+    @Post(':id/leave')
+    leaveClient(@Param('id') id: string, @Req() req: any) {
+        return this.clientsService.leaveClient(id, req.user);
+    }
 }
