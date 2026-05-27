@@ -188,73 +188,94 @@ export default function ServiceSearchScreen() {
         if (text.length > 2) {
             try {
                 const { data } = await authApi.searchLocations(text);
-                
-                // Filter to only show results that have valid coordinates
-                const validResults = data.filter((loc: any) => loc.latitude && loc.longitude);
-                
-                if (validResults.length === 0) {
-                    // If no valid results with coordinates, show the prompt
+                const queryLower = text.toLowerCase().trim();
+
+                // Place-level rows (pincode searchable on the map) need
+                // coordinates; state/district aggregates do not — the
+                // business search uses admin names, not lat/lng.
+                const placeResults = (data || []).filter(
+                    (loc: any) => loc.latitude && loc.longitude,
+                );
+
+                const distinctStates = new Set<string>();
+                const distinctDistricts = new Set<string>();
+                const stateCoords: Record<string, { lat: number; lng: number }> = {};
+                const districtCoords: Record<
+                    string,
+                    { lat: number; lng: number; state: string }
+                > = {};
+
+                // Aggregate state/district names from EVERY row (with or
+                // without coordinates). Match either via the explicit column
+                // or via a substring of the typed query, so "Trivandrum"
+                // surfaces "Thiruvananthapuram" rows once the backend
+                // returns them and vice versa.
+                (data || []).forEach((loc: any) => {
+                    const stateName = (loc.state || '').toString();
+                    const districtName = (loc.district || '').toString();
+
+                    if (
+                        stateName &&
+                        (stateName.toLowerCase().includes(queryLower) ||
+                            queryLower.includes(stateName.toLowerCase()))
+                    ) {
+                        distinctStates.add(stateName);
+                        if (loc.latitude && loc.longitude && !stateCoords[stateName]) {
+                            stateCoords[stateName] = {
+                                lat: Number(loc.latitude),
+                                lng: Number(loc.longitude),
+                            };
+                        }
+                    }
+                    if (
+                        districtName &&
+                        (districtName.toLowerCase().includes(queryLower) ||
+                            queryLower.includes(districtName.toLowerCase()))
+                    ) {
+                        distinctDistricts.add(districtName);
+                        if (loc.latitude && loc.longitude && !districtCoords[districtName]) {
+                            districtCoords[districtName] = {
+                                lat: Number(loc.latitude),
+                                lng: Number(loc.longitude),
+                                state: stateName,
+                            };
+                        }
+                    }
+                });
+
+                const stateSuggestions = Array.from(distinctStates).map((state) => ({
+                    id: `state_${state}`,
+                    placeName: `Entire State: ${state}`,
+                    state,
+                    district: '',
+                    pincode: '',
+                    isState: true,
+                    latitude: stateCoords[state]?.lat,
+                    longitude: stateCoords[state]?.lng,
+                }));
+
+                const districtSuggestions = Array.from(distinctDistricts).map((dist) => ({
+                    id: `district_${dist}`,
+                    placeName: `Entire District: ${dist}`,
+                    district: dist,
+                    state: districtCoords[dist]?.state || '',
+                    pincode: '',
+                    isDistrict: true,
+                    latitude: districtCoords[dist]?.lat,
+                    longitude: districtCoords[dist]?.lng,
+                }));
+
+                const combinedResults = [
+                    ...stateSuggestions,
+                    ...districtSuggestions,
+                    ...placeResults,
+                ];
+
+                if (combinedResults.length === 0) {
                     setLocationResults([{ id: 'no-results', isNoResult: true }]);
                 } else {
-                    // Extract distinct states and districts that match the typed query
-                    const queryLower = text.toLowerCase();
-                    const distinctStates = new Set<string>();
-                    const distinctDistricts = new Set<string>();
-                    
-                    // Map to find coordinates for the state/district
-                    const stateCoords: Record<string, { lat: number, lng: number }> = {};
-                    const districtCoords: Record<string, { lat: number, lng: number, state: string }> = {};
-
-                    validResults.forEach((loc: any) => {
-                        if (loc.state && loc.state.toLowerCase().includes(queryLower)) {
-                            distinctStates.add(loc.state);
-                            if (loc.latitude && loc.longitude) {
-                                stateCoords[loc.state] = { lat: Number(loc.latitude), lng: Number(loc.longitude) };
-                            }
-                        }
-                        if (loc.district && loc.district.toLowerCase().includes(queryLower)) {
-                            distinctDistricts.add(loc.district);
-                            if (loc.latitude && loc.longitude) {
-                                districtCoords[loc.district] = { 
-                                    lat: Number(loc.latitude), 
-                                    lng: Number(loc.longitude),
-                                    state: loc.state
-                                };
-                            }
-                        }
-                    });
-
-                    const stateSuggestions = Array.from(distinctStates).map(state => ({
-                        id: `state_${state}`,
-                        placeName: `Entire State: ${state}`,
-                        state: state,
-                        district: '',
-                        pincode: '',
-                        isState: true,
-                        latitude: stateCoords[state]?.lat || validResults[0]?.latitude,
-                        longitude: stateCoords[state]?.lng || validResults[0]?.longitude
-                    }));
-
-                    const districtSuggestions = Array.from(distinctDistricts).map(dist => ({
-                        id: `district_${dist}`,
-                        placeName: `Entire District: ${dist}`,
-                        district: dist,
-                        state: districtCoords[dist]?.state || '',
-                        pincode: '',
-                        isDistrict: true,
-                        latitude: districtCoords[dist]?.lat || validResults[0]?.latitude,
-                        longitude: districtCoords[dist]?.lng || validResults[0]?.longitude
-                    }));
-
-                    // Combine them, displaying state and district suggestions first
-                    const combinedResults = [
-                        ...stateSuggestions,
-                        ...districtSuggestions,
-                        ...validResults
-                    ];
-
-                    setLocationResults(combinedResults); 
-                    setVisibleCount(100); 
+                    setLocationResults(combinedResults);
+                    setVisibleCount(100);
                 }
                 setShowGlobalDropdown(true);
             } catch (error) {
@@ -496,7 +517,37 @@ export default function ServiceSearchScreen() {
         !!userLocation
     );
 
+    /**
+     * Has the user narrowed by category or free-text query? When true we
+     * MUST also have a location pinned before listing results — otherwise
+     * we'd surface profiles from anywhere in India, which the product
+     * spec forbids. QR scans and direct profile-name picks route to
+     * /business-detail, so they bypass this listing entirely.
+     */
+    const hasCategoryFilter = activeCat !== 'all' || debouncedQuery.trim().length > 0;
+    const hasLocation = !!(selectedLocation || userLocation || selectedPin);
+    const locationRequired = hasCategoryFilter && !hasLocation;
+
+    /** Nudge the user to pick a location: alert + focus the location input. */
+    const promptForLocation = () => {
+        Alert.alert(
+            'Choose a location',
+            'Please select a location (area, pincode, district or state) so we can show services near you.',
+            [{ text: 'OK' }],
+        );
+        setTimeout(() => locationInputRef.current?.focus(), 250);
+    };
+
     const fetchProfiles = async () => {
+        // Refuse to list "all profiles in India" when a category/query is
+        // active but no location has been picked. The UI shows a banner
+        // explaining what to do.
+        if (locationRequired) {
+            setProfiles([]);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             const params: any = {};
@@ -504,13 +555,12 @@ export default function ServiceSearchScreen() {
                 const cat = CATEGORIES.find(c => c.id === activeCat);
                 if (cat) params.category = cat.name;
             }
-            
+
             if (debouncedQuery.trim()) {
                 params.query = debouncedQuery.trim();
             }
             params.limit = 50;
-            
-            // 1. Coordinates (Pin takes priority over GPS)
+
             if (selectedPin) {
                 params.lat = selectedPin.latitude;
                 params.lng = selectedPin.longitude;
@@ -521,7 +571,6 @@ export default function ServiceSearchScreen() {
                 params.radius = userLocation.radius;
             }
 
-            // 2. Administrative Context (Dropdown selection)
             if (selectedLocation) {
                 params.pincode = selectedLocation.pincode;
                 params.district = selectedLocation.district;
@@ -552,9 +601,13 @@ export default function ServiceSearchScreen() {
                         <Text style={styles.headerTitle}>Services</Text>
                         <Text style={styles.headerSubtitle}>Find trusted professionals for your needs</Text>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/business-scanner')}>
-                            <Ionicons name="qr-code-outline" size={24} color="#1e293b" />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <TouchableOpacity
+                            style={styles.myBookingsBtn}
+                            onPress={() => router.push('/business-bookings')}
+                        >
+                            <Ionicons name="calendar-outline" size={16} color="#1d4ed8" />
+                            <Text style={styles.myBookingsText}>My Bookings</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.notifBtn}>
                             <Ionicons name="notifications-outline" size={26} color="#1e293b" />
@@ -590,26 +643,43 @@ export default function ServiceSearchScreen() {
                                 <Ionicons name="close-circle" size={18} color="#94a3b8" />
                             </TouchableOpacity>
                         ) : null}
+                        <TouchableOpacity
+                            style={styles.scannerInlineBtn}
+                            onPress={() => router.push('/business-scanner')}
+                        >
+                            <Ionicons name="qr-code-outline" size={20} color="#1d4ed8" />
+                        </TouchableOpacity>
                     </View>
 
                     {showTopDropdown && searchQuery.trim().length > 0 && (
                         <View style={[styles.dropdownContainer, { position: 'absolute', top: 60, left: 20, right: 20, zIndex: 9999, elevation: 11 }]}>
                             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 250 }}>
                                 {(suggestItems.length > 0 ? suggestItems : getTopSuggestions()).map((item, idx) => (
-                                    <TouchableOpacity 
-                                        key={idx} 
+                                    <TouchableOpacity
+                                        key={idx}
                                         style={styles.dropdownItem}
                                         onPress={() => {
                                             if (item.type === 'category') {
-                                                setActiveCat(item.id || 'all');
+                                                // Look up by name first so the suggestion (which
+                                                // may carry a backend id that doesn't match our
+                                                // local CATEGORIES list) still highlights the
+                                                // matching round icon strip below.
+                                                const match = CATEGORIES.find(c => c.name.toLowerCase() === item.name.toLowerCase());
+                                                setActiveCat(match ? match.id : (item.id || 'all'));
                                                 setSearchQuery('');
+                                                setShowTopDropdown(false);
+                                                if (!hasLocation) promptForLocation();
                                             } else if (item.type === 'profile') {
+                                                // Direct profile pick — no need to enforce
+                                                // location, navigate straight to the detail screen.
                                                 router.push({ pathname: '/business-detail', params: { id: item.profileId } });
                                                 setSearchQuery('');
+                                                setShowTopDropdown(false);
                                             } else if (item.type === 'service') {
                                                 setSearchQuery(item.name);
+                                                setShowTopDropdown(false);
+                                                if (!hasLocation) promptForLocation();
                                             }
-                                            setShowTopDropdown(false);
                                         }}
                                     >
                                         <Ionicons 
@@ -674,6 +744,65 @@ export default function ServiceSearchScreen() {
                                     <Text style={styles.nearMeText}>Near Me</Text>
                                 </TouchableOpacity>
                             </View>
+
+                            {showGlobalDropdown && locationResults.length > 0 && (
+                                <View style={styles.locationDropdown}>
+                                    <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                                        {locationResults.slice(0, visibleCount).map((loc, idx) => (
+                                            <TouchableOpacity
+                                                key={idx}
+                                                style={styles.dropdownItem}
+                                                onPress={() => {
+                                                    dismissKeyboard();
+                                                    onSelectLocation(loc);
+                                                }}
+                                            >
+                                                <Ionicons
+                                                    name={loc.isNoResult ? 'help-circle-outline' : 'location-outline'}
+                                                    size={16}
+                                                    color={loc.isNoResult ? '#94a3b8' : '#1d4ed8'}
+                                                />
+                                                <View style={{ marginLeft: 10, flex: 1 }}>
+                                                    <Text
+                                                        style={[
+                                                            styles.dropdownPlace,
+                                                            loc.isNoResult && { color: '#94a3b8', fontStyle: 'italic' },
+                                                        ]}
+                                                    >
+                                                        {loc.isNoResult
+                                                            ? 'Location not found'
+                                                            : loc.isState || loc.isDistrict
+                                                                ? loc.placeName
+                                                                : `${loc.placeName} (${loc.pincode})`}
+                                                    </Text>
+                                                    {!loc.isNoResult && (
+                                                        <Text style={styles.dropdownSub}>
+                                                            {loc.isState
+                                                                ? 'State Area'
+                                                                : loc.isDistrict
+                                                                    ? `District in ${loc.state}`
+                                                                    : `${loc.district}, ${loc.state}`}
+                                                        </Text>
+                                                    )}
+                                                    {loc.isNoResult && (
+                                                        <Text style={styles.dropdownSub}>Try searching by Pincode</Text>
+                                                    )}
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                        {locationResults.length > visibleCount && (
+                                            <TouchableOpacity
+                                                style={[styles.dropdownItem, { justifyContent: 'center', backgroundColor: '#f8fafc' }]}
+                                                onPress={() => setVisibleCount((prev) => prev + 100)}
+                                            >
+                                                <Text style={{ color: '#1d4ed8', fontWeight: '700', fontSize: 13 }}>
+                                                    Show More Results ({locationResults.length - visibleCount} remaining)
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </ScrollView>
+                                </View>
+                            )}
                         </View>
                     )}
                 </View>
@@ -685,18 +814,35 @@ export default function ServiceSearchScreen() {
                         style={styles.catScroll}
                         contentContainerStyle={styles.catContent}
                     >
-                        {CATEGORIES.map(cat => (
-                            <TouchableOpacity
-                                key={cat.id}
-                                style={styles.catItem}
-                                onPress={() => setActiveCat(cat.id)}
-                            >
-                                <View style={[styles.catIcon, { backgroundColor: cat.color }, activeCat === cat.id && styles.catIconActive]}>
-                                    <MaterialCommunityIcons name={cat.icon as any} size={26} color="#fff" />
-                                </View>
-                                <Text style={styles.catName}>{cat.name}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {CATEGORIES.map(cat => {
+                            const isActive = activeCat === cat.id;
+                            return (
+                                <TouchableOpacity
+                                    key={cat.id}
+                                    style={styles.catItem}
+                                    onPress={() => {
+                                        setActiveCat(cat.id);
+                                        // Once the user picks a specific category, force a
+                                        // location pick. Tapping "All" doesn't require one
+                                        // because it clears the filter.
+                                        if (cat.id !== 'all' && !hasLocation) promptForLocation();
+                                    }}
+                                >
+                                    <View
+                                        style={[
+                                            styles.catIcon,
+                                            { backgroundColor: cat.color },
+                                            isActive && styles.catIconActive,
+                                        ]}
+                                    >
+                                        <MaterialCommunityIcons name={cat.icon as any} size={26} color="#fff" />
+                                    </View>
+                                    <Text style={[styles.catName, isActive && styles.catNameActive]}>
+                                        {cat.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
                 )}
 
@@ -812,16 +958,43 @@ export default function ServiceSearchScreen() {
                     <Text style={styles.sectionTitle}>
                         {isSearching ? 'Search Results' : 'Nationwide Providers'}
                     </Text>
-                    {isSearching ? (
+                    {isSearching && !locationRequired ? (
                         <Text style={[styles.viewAll, { color: '#64748b', fontWeight: '600' }]}>
                             {profiles.length} result{profiles.length === 1 ? '' : 's'}
                         </Text>
-                    ) : (
+                    ) : !isSearching ? (
                         <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
-                    )}
+                    ) : null}
                 </View>
 
-                {loading ? (
+                {locationRequired ? (
+                    <View style={styles.locationGate}>
+                        <Ionicons name="location" size={28} color="#1d4ed8" style={{ marginBottom: 10 }} />
+                        <Text style={styles.locationGateTitle}>Select a location</Text>
+                        <Text style={styles.locationGateText}>
+                            Tell us where you need this service and we'll show you matching professionals
+                            who serve that area.
+                        </Text>
+                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                            <TouchableOpacity
+                                style={styles.locationGateBtn}
+                                onPress={() => {
+                                    setTimeout(() => locationInputRef.current?.focus(), 100);
+                                }}
+                            >
+                                <Ionicons name="search" size={14} color="#ffffff" />
+                                <Text style={styles.locationGateBtnText}>Type Area / Pincode</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.locationGateBtn, { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#1d4ed8' }]}
+                                onPress={handleUseCurrentLocation}
+                            >
+                                <MaterialCommunityIcons name="crosshairs-gps" size={14} color="#1d4ed8" />
+                                <Text style={[styles.locationGateBtnText, { color: '#1d4ed8' }]}>Use My GPS</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : loading ? (
                     <View style={{ padding: 40, alignItems: 'center' }}>
                         <ActivityIndicator color="#1d4ed8" size="large" />
                         <Text style={{ marginTop: 12, color: '#64748b' }}>Finding best matches...</Text>
@@ -930,46 +1103,6 @@ export default function ServiceSearchScreen() {
             </ScrollView>
 
             <BottomNav activeTab="Home" />
-
-            {showGlobalDropdown && viewMode !== 'MAP' && locationResults.length > 0 && (
-                <View style={[styles.dropdownContainer, { top: 180, left: 20, right: 20 }]}>
-                    <ScrollView keyboardShouldPersistTaps="handled">
-                        {locationResults.slice(0, visibleCount).map((loc, idx) => (
-                            <TouchableOpacity 
-                                key={idx} 
-                                style={styles.dropdownItem}
-                                onPress={() => {
-                                    dismissKeyboard();
-                                    onSelectLocation(loc);
-                                }}
-                            >
-                                <Ionicons name={loc.isNoResult ? "help-circle-outline" : "location-outline"} size={16} color={loc.isNoResult ? "#94a3b8" : "#1d4ed8"} />
-                                <View style={{ marginLeft: 10, flex: 1 }}>
-                                    <Text style={[styles.dropdownPlace, loc.isNoResult && { color: '#94a3b8', fontStyle: 'italic' }]}>
-                                        {loc.isNoResult ? "Location not found" : (loc.isState || loc.isDistrict ? loc.placeName : `${loc.placeName} (${loc.pincode})`)}
-                                    </Text>
-                                    {!loc.isNoResult && (
-                                        <Text style={styles.dropdownSub}>
-                                            {loc.isState ? 'State Area' : loc.isDistrict ? `District in ${loc.state}` : `${loc.district}, ${loc.state}`}
-                                        </Text>
-                                    )}
-                                    {loc.isNoResult && <Text style={styles.dropdownSub}>Try searching by Pincode</Text>}
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                        {locationResults.length > visibleCount && (
-                            <TouchableOpacity 
-                                style={[styles.dropdownItem, { justifyContent: 'center', backgroundColor: '#f8fafc' }]}
-                                onPress={() => setVisibleCount(prev => prev + 100)}
-                            >
-                                <Text style={{ color: '#1d4ed8', fontWeight: '700', fontSize: 13 }}>
-                                    Show More Results ({locationResults.length - visibleCount} remaining)
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    </ScrollView>
-                </View>
-            )}
         </SafeAreaView>
     );
 }
@@ -996,6 +1129,29 @@ const styles = StyleSheet.create({
     headerSubtitle: { fontSize: 14, color: '#64748b', marginTop: 2 },
     notifBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
     notifBadge: { position: 'absolute', top: 10, right: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fcfcfd' },
+    myBookingsBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        backgroundColor: '#eef2ff',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#dbe2ff',
+    },
+    myBookingsText: { fontSize: 12, fontWeight: '800', color: '#1d4ed8' },
+    scannerInlineBtn: {
+        marginLeft: 8,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#eef2ff',
+        borderWidth: 1,
+        borderColor: '#dbe2ff',
+    },
     
     searchContainer: { paddingHorizontal: 20, marginBottom: 20 },
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', height: 56, borderRadius: 18, paddingHorizontal: 16, borderWidth: 1.5, borderColor: '#be185d', shadowColor: '#be185d', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
@@ -1006,8 +1162,32 @@ const styles = StyleSheet.create({
     catContent: { paddingHorizontal: 20 },
     catItem: { alignItems: 'center', marginRight: 20, width: 64 },
     catIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-    catIconActive: { borderWidth: 3, borderColor: '#fff' },
+    catIconActive: { borderWidth: 3, borderColor: '#1d4ed8' },
     catName: { fontSize: 12, fontWeight: '700', color: '#475569' },
+    catNameActive: { color: '#1d4ed8' },
+
+    locationGate: {
+        marginHorizontal: 20,
+        marginTop: 10,
+        padding: 22,
+        backgroundColor: '#eef2ff',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#dbe2ff',
+        alignItems: 'center',
+    },
+    locationGateTitle: { fontSize: 16, fontWeight: '900', color: '#1d4ed8', marginBottom: 6 },
+    locationGateText: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 18 },
+    locationGateBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        backgroundColor: '#1d4ed8',
+        borderRadius: 10,
+    },
+    locationGateBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
 
     verifiedBanner: { marginHorizontal: 20, backgroundColor: '#f5f7ff', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e0e7ff', marginBottom: 25 },
     verifiedIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOpacity: 0.1 },
@@ -1080,6 +1260,22 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
+    },
+    locationDropdown: {
+        // Anchored to the relative wrapper that holds the location input,
+        // so it always opens directly UNDER the input — never on top of it.
+        marginTop: 6,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        maxHeight: 320,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 10,
+        zIndex: 9999,
     },
     dropdownItem: {
         padding: 15,

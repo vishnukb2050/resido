@@ -772,6 +772,9 @@ model BusinessSlot {
   scheduleConfig         String?  // JSON serialized config
   allowRecurringBookings Boolean  @default(false)
 
+  // Window (in weeks) within which customers may pick a date. Default 4 weeks.
+  advanceBookingWeeks    Int      @default(4)
+
   bookings               BusinessBooking[]
 
   @@index([businessProfileId])

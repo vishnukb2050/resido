@@ -364,21 +364,28 @@ export class ProfileService implements OnModuleInit {
 
     async searchLocations(query: string) {
         if (!query || query.length < 2) return [];
-        const lowerQuery = query.toLowerCase();
-        
+        const lowerQuery = query.toLowerCase().trim();
+
         this.logger.debug(`🔍 Search Location Query: "${query}"`);
 
-        // Search for matches across multiple fields
+        // Search for matches across multiple fields. `state` is included so
+        // typing a state name (e.g. "Kerala") returns rows for the whole
+        // state — the frontend then aggregates those into a single "Entire
+        // State" suggestion. `searchStr` is a pre-built concatenation of
+        // place + pincode + district + state, so it usually catches what the
+        // explicit columns miss, but we still keep the explicit columns for
+        // deterministic ordering against the various indexes.
         const results = await this.prisma.geoRead.locationMaster.findMany({
             where: {
                 OR: [
                     { placeName: { contains: query, mode: 'insensitive' } },
                     { district: { contains: query, mode: 'insensitive' } },
+                    { state: { contains: query, mode: 'insensitive' } },
                     { pincode: { startsWith: query } },
-                    { searchStr: { contains: lowerQuery, mode: 'insensitive' } }
-                ]
+                    { searchStr: { contains: lowerQuery, mode: 'insensitive' } },
+                ],
             },
-            take: 100, // Fetch more to ensure we find coordinate matches
+            take: 200, // Pull more so state/district aggregation has signal.
             select: {
                 id: true,
                 placeName: true,
@@ -386,8 +393,8 @@ export class ProfileService implements OnModuleInit {
                 district: true,
                 state: true,
                 latitude: true,
-                longitude: true
-            }
+                longitude: true,
+            },
         });
 
         this.logger.debug(`📍 Found ${results.length} potential matches for "${query}"`);
@@ -416,7 +423,9 @@ export class ProfileService implements OnModuleInit {
 
             // 4. Alphabetical
             return aName.localeCompare(bName);
-        }).slice(0, 15); // Show top 15 results
+        }).slice(0, 50); // Keep enough rows so the client can build
+                          // state/district aggregations even when the user
+                          // types a broad term like a state name.
     }
 
     async reverseGeocode(lat: number, lng: number) {

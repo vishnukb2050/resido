@@ -10,6 +10,7 @@ import { businessApi, threadApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import * as SecureStore from 'expo-secure-store';
 import { Video, ResizeMode } from 'expo-av';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
@@ -34,9 +35,14 @@ export default function BusinessDetailScreen() {
     // Save state
     const [isSaved, setIsSaved] = useState(false);
 
-    // Date picker states (next 7 days)
+    // Date strip + native calendar picker. The strip length is governed by
+    // the most generous `advanceBookingWeeks` configured across the profile's
+    // slots so owners can extend or restrict the booking horizon. We default
+    // to 4 weeks when nothing is configured.
     const [datesList, setDatesList] = useState<any[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>('');
+    const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+    const [maxAdvanceDays, setMaxAdvanceDays] = useState<number>(28);
 
     // Booking form states
     const [selectedSlot, setSelectedSlot] = useState<any>(null);
@@ -70,10 +76,26 @@ export default function BusinessDetailScreen() {
         if (id) {
             fetchProfileDetail();
             checkSavedStatus();
-            generateDatesList();
             fetchBusinessPosts();
         }
     }, [id]);
+
+    // Recompute the visible date strip whenever the profile (and therefore
+    // its slots' advance-booking windows) is loaded or changed.
+    useEffect(() => {
+        if (!profile) return;
+        const slotList: any[] = Array.isArray(profile.slots) ? profile.slots : [];
+        let weeks = 0;
+        slotList.forEach((s: any) => {
+            const w = Number(s?.advanceBookingWeeks);
+            if (Number.isFinite(w) && w > weeks) weeks = w;
+        });
+        if (weeks <= 0) weeks = 4;
+        weeks = Math.min(Math.max(weeks, 1), 52);
+        const days = weeks * 7;
+        setMaxAdvanceDays(days);
+        generateDatesList(days);
+    }, [profile]);
 
     useEffect(() => {
         if (profile && selectedDate) {
@@ -102,27 +124,79 @@ export default function BusinessDetailScreen() {
         }
     };
 
-    const generateDatesList = () => {
-        const dates = [];
+    const generateDatesList = (daysCount: number = 28) => {
+        const dates: any[] = [];
         const today = new Date();
-        for (let i = 0; i < 7; i++) {
+        const safeCount = Math.max(1, daysCount);
+        for (let i = 0; i < safeCount; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
-            
+            const dateStr = date.toISOString().split('T')[0];
+
             const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
             const dayNum = date.getDate();
             const month = date.toLocaleDateString('en-US', { month: 'short' });
-            
-            dates.push({
-                fullDate: dateStr,
-                weekday,
-                dayNum,
-                month
-            });
+
+            dates.push({ fullDate: dateStr, weekday, dayNum, month });
         }
         setDatesList(dates);
-        setSelectedDate(dates[0].fullDate); // Default to today
+        // Preserve the user's pick when the strip re-renders. Default to today
+        // only if no selection exists or the previous pick is now out of range.
+        setSelectedDate((prev) => {
+            if (prev && dates.some((d) => d.fullDate === prev)) return prev;
+            return dates[0].fullDate;
+        });
+    };
+
+    const onPickCalendarDate = (event: any, picked?: Date) => {
+        setShowCalendarPicker(false);
+        if (!picked) return;
+        const dateStr = picked.toISOString().split('T')[0];
+
+        // Clamp the picked date inside the [today, today + maxAdvanceDays) window
+        // so customers can't book beyond the owner-configured advance window.
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const last = new Date(today);
+        last.setDate(today.getDate() + (maxAdvanceDays - 1));
+
+        const pickedDay = new Date(picked);
+        pickedDay.setHours(0, 0, 0, 0);
+
+        if (pickedDay < today) {
+            Alert.alert('Invalid date', 'You cannot pick a date in the past.');
+            return;
+        }
+        if (pickedDay > last) {
+            Alert.alert(
+                'Outside booking window',
+                `This business accepts bookings up to ${maxAdvanceDays} day(s) in advance.`,
+            );
+            return;
+        }
+
+        // If the picked date is not yet in the rendered strip (e.g. the strip
+        // is shorter than the configured advance window for some reason),
+        // append entries up to that date so it becomes selectable.
+        setDatesList((prev) => {
+            if (prev.some((d) => d.fullDate === dateStr)) return prev;
+            const extended = [...prev];
+            const last = prev[prev.length - 1];
+            const cursor = last ? new Date(last.fullDate) : new Date();
+            while (true) {
+                cursor.setDate(cursor.getDate() + 1);
+                const cursorStr = cursor.toISOString().split('T')[0];
+                extended.push({
+                    fullDate: cursorStr,
+                    weekday: cursor.toLocaleDateString('en-US', { weekday: 'short' }),
+                    dayNum: cursor.getDate(),
+                    month: cursor.toLocaleDateString('en-US', { month: 'short' }),
+                });
+                if (cursorStr === dateStr) break;
+            }
+            return extended;
+        });
+        setSelectedDate(dateStr);
     };
 
     const fetchBusinessPosts = async () => {
@@ -203,12 +277,12 @@ export default function BusinessDetailScreen() {
         try {
             setBookingSubmitting(true);
             const bookingPayload = {
-                date: selectedDate,
+                bookingDate: selectedDate,
                 timeSlot: selectedInterval,
                 persons: guestCount,
                 userName: userName.trim(),
                 userPhone: userPhone.trim(),
-                notes: notes.trim()
+                notes: notes.trim(),
             };
 
             await businessApi.bookSlot(id as string, selectedSlot.id, bookingPayload);
@@ -299,20 +373,6 @@ export default function BusinessDetailScreen() {
                         <Feather name="edit-3" size={14} color="#a78bfa" />
                         <Text style={{ color: '#60a5fa', fontSize: 12, fontWeight: '800' }}>Edit Profile</Text>
                     </TouchableOpacity>
-                    {profile.slots !== undefined && (
-                        <TouchableOpacity
-                            style={{
-                                flexDirection: 'row', alignItems: 'center', gap: 6,
-                                backgroundColor: 'rgba(139, 92, 246, 0.15)',
-                                paddingHorizontal: 14, paddingVertical: 8,
-                                borderRadius: 20, borderWidth: 1, borderColor: '#8b5cf6'
-                            }}
-                            onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, manageSlots: 'true' } })}
-                        >
-                            <Ionicons name="time" size={14} color="#a78bfa" />
-                            <Text style={{ color: '#a78bfa', fontSize: 12, fontWeight: '800' }}>Manage Booking Slots</Text>
-                        </TouchableOpacity>
-                    )}
                     {profile.slots && profile.slots.length > 0 && (
                         <TouchableOpacity
                             style={{
@@ -538,17 +598,48 @@ export default function BusinessDetailScreen() {
                         <Ionicons name="sparkles" size={18} color="#fbbf24" />
                     </View>
 
+                    <View
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: 6,
+                            marginBottom: 4,
+                        }}
+                    >
+                        <Text style={{ fontSize: 12, color: '#7A6B9C', fontWeight: '700' }}>
+                            Bookings open for the next {Math.round(maxAdvanceDays / 7)} week{maxAdvanceDays > 7 ? 's' : ''}
+                        </Text>
+                        <TouchableOpacity
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 6,
+                                paddingHorizontal: 12,
+                                paddingVertical: 8,
+                                borderRadius: 20,
+                                backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                                borderWidth: 1,
+                                borderColor: 'rgba(139, 92, 246, 0.25)',
+                            }}
+                            onPress={() => setShowCalendarPicker(true)}
+                        >
+                            <Ionicons name="calendar" size={14} color="#8b5cf6" />
+                            <Text style={{ color: '#8b5cf6', fontSize: 12, fontWeight: '800' }}>Pick a Date</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Date Horizontal Strip */}
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false} 
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.dateStripScroll}
                     >
                         {datesList.map((dt) => {
                             const isAct = selectedDate === dt.fullDate;
                             return (
-                                <TouchableOpacity 
-                                    key={dt.fullDate} 
+                                <TouchableOpacity
+                                    key={dt.fullDate}
                                     style={[styles.dateCard, isAct && styles.dateCardActive]}
                                     onPress={() => setSelectedDate(dt.fullDate)}
                                 >
@@ -559,6 +650,21 @@ export default function BusinessDetailScreen() {
                             );
                         })}
                     </ScrollView>
+
+                    {showCalendarPicker && (
+                        <DateTimePicker
+                            value={selectedDate ? new Date(selectedDate) : new Date()}
+                            mode="date"
+                            display="calendar"
+                            minimumDate={new Date()}
+                            maximumDate={(() => {
+                                const d = new Date();
+                                d.setDate(d.getDate() + (maxAdvanceDays - 1));
+                                return d;
+                            })()}
+                            onChange={onPickCalendarDate}
+                        />
+                    )}
 
                     {/* Available Slots List */}
                     <Text style={styles.slotSubTitle}>Available Slots for {new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</Text>

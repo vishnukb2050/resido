@@ -186,11 +186,12 @@ export class BusinessService {
                         timeSlots: s.timeSlots || [],
                         scheduleType: s.scheduleType || 'WEEKLY',
                         scheduleConfig: s.scheduleConfig ? (typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig)) : null,
-                        allowRecurringBookings: s.allowRecurringBookings || false
-                    }))
-                } : undefined
+                        allowRecurringBookings: s.allowRecurringBookings || false,
+                        advanceBookingWeeks: this.clampAdvanceWeeks(s.advanceBookingWeeks),
+                    })),
+                } : undefined,
             },
-            include: { services: true, slots: true }
+            include: { services: true, slots: true },
         });
     }
 
@@ -716,8 +717,9 @@ export class BusinessService {
                     timeSlots: s.timeSlots || [],
                     scheduleType: s.scheduleType || 'WEEKLY',
                     scheduleConfig: s.scheduleConfig ? (typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig)) : null,
-                    allowRecurringBookings: s.allowRecurringBookings || false
-                }))
+                    allowRecurringBookings: s.allowRecurringBookings || false,
+                    advanceBookingWeeks: this.clampAdvanceWeeks(s.advanceBookingWeeks),
+                })),
             };
         }
 
@@ -784,8 +786,21 @@ export class BusinessService {
                 scheduleType: data.scheduleType || 'CUSTOM',
                 scheduleConfig: data.scheduleConfig ? JSON.stringify(data.scheduleConfig) : null,
                 allowRecurringBookings: data.allowRecurringBookings || false,
-            }
+                advanceBookingWeeks: this.clampAdvanceWeeks(data.advanceBookingWeeks),
+            },
         });
+    }
+
+    /**
+     * Clamps the advance-booking window so we never persist nonsense like
+     * `0` weeks (which would hide every date from customers) or a year-long
+     * window (which would balloon the date strip). Falls back to the
+     * schema default of 4 weeks when the value is missing or invalid.
+     */
+    private clampAdvanceWeeks(raw: any): number {
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n <= 0) return 4;
+        return Math.min(Math.max(Math.round(n), 1), 52);
     }
 
     async updateSlot(userId: string, profileId: string, slotId: string, data: any) {
@@ -804,10 +819,13 @@ export class BusinessService {
         if (data.scheduleType !== undefined) updateData.scheduleType = data.scheduleType;
         if (data.scheduleConfig !== undefined) updateData.scheduleConfig = data.scheduleConfig ? JSON.stringify(data.scheduleConfig) : null;
         if (data.allowRecurringBookings !== undefined) updateData.allowRecurringBookings = data.allowRecurringBookings;
+        if (data.advanceBookingWeeks !== undefined) {
+            updateData.advanceBookingWeeks = this.clampAdvanceWeeks(data.advanceBookingWeeks);
+        }
 
         return this.prisma.businessSlot.update({
             where: { id: slotId },
-            data: updateData
+            data: updateData,
         });
     }
 
@@ -919,25 +937,40 @@ export class BusinessService {
     }
 
     async createBooking(userId: string, profileId: string, slotId: string, data: any) {
-        const slot = await this.getSlotById(profileId, slotId, data.bookingDate);
+        if (!userId) {
+            throw new BadRequestException('Authentication required to book a slot.');
+        }
+
+        const bookingDate = (data.bookingDate || data.date || '').toString().trim();
+        const timeSlot = (data.timeSlot || '').toString().trim();
+        if (!bookingDate) {
+            throw new BadRequestException('bookingDate is required (YYYY-MM-DD).');
+        }
+        if (!timeSlot) {
+            throw new BadRequestException('timeSlot is required.');
+        }
+
+        const slot = await this.getSlotById(profileId, slotId, bookingDate);
         const requestedPersons = data.persons || 1;
         const isRecurring = data.isRecurring || false;
         const recurringPeriod = data.recurringPeriod || null;
 
-        const performSingleBooking = async (bookingDate: string, timeSlot: string, parentBookingId?: string) => {
+        const performSingleBooking = async (dateStr: string, slotTime: string, parentBookingId?: string) => {
             const existingBookings = await this.prisma.businessBooking.findMany({
                 where: {
                     businessProfileId: profileId,
                     slotId,
-                    bookingDate,
-                    timeSlot,
-                    status: 'CONFIRMED'
-                }
+                    bookingDate: dateStr,
+                    timeSlot: slotTime,
+                    status: 'CONFIRMED',
+                },
             });
 
             const totalBookedPersons = existingBookings.reduce((sum, b) => sum + b.persons, 0);
             if (totalBookedPersons + requestedPersons > slot.maxPersons) {
-                throw new Error(`Time slot (${timeSlot}) on ${bookingDate} is fully booked. Only ${slot.maxPersons - totalBookedPersons} slot(s) left.`);
+                throw new BadRequestException(
+                    `Time slot (${slotTime}) on ${dateStr} is fully booked. Only ${slot.maxPersons - totalBookedPersons} slot(s) left.`,
+                );
             }
 
             return this.prisma.businessBooking.create({
@@ -947,8 +980,8 @@ export class BusinessService {
                     userId,
                     userName: data.userName || null,
                     userPhone: data.userPhone || null,
-                    bookingDate,
-                    timeSlot,
+                    bookingDate: dateStr,
+                    timeSlot: slotTime,
                     persons: requestedPersons,
                     status: 'CONFIRMED',
                     notes: data.notes || null,
@@ -959,10 +992,10 @@ export class BusinessService {
             });
         };
 
-        const primaryBooking = await performSingleBooking(data.bookingDate, data.timeSlot);
+        const primaryBooking = await performSingleBooking(bookingDate, timeSlot);
 
         if (isRecurring && recurringPeriod) {
-            let currentDate = new Date(data.bookingDate);
+            let currentDate = new Date(bookingDate);
             for (let i = 1; i <= 3; i++) {
                 if (recurringPeriod === 'WEEKLY') {
                     currentDate.setDate(currentDate.getDate() + 7);
@@ -971,7 +1004,7 @@ export class BusinessService {
                 }
                 const nextDateStr = currentDate.toISOString().split('T')[0];
                 try {
-                    await performSingleBooking(nextDateStr, data.timeSlot, primaryBooking.id);
+                    await performSingleBooking(nextDateStr, timeSlot, primaryBooking.id);
                 } catch (e: any) {
                     console.warn(`Could not schedule recurring occurrence ${i} on ${nextDateStr}:`, e.message);
                 }

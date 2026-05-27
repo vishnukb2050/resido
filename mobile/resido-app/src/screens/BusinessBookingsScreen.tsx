@@ -1,104 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { 
-    View, Text, StyleSheet, ScrollView, TouchableOpacity, 
-    Image, SafeAreaView, ActivityIndicator, FlatList, 
-    TextInput, Alert, RefreshControl, StatusBar, Dimensions 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+    View, Text, StyleSheet, TouchableOpacity,
+    Image, SafeAreaView, ActivityIndicator, FlatList,
+    Alert, RefreshControl, StatusBar,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import { authApi, businessApi, unpackBusinessProfileList } from '../services/api';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { businessApi } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 
-const { width } = Dimensions.get('window');
 const SECURE_STORE_KEY = 'resido_saved_businesses';
+
+type TabKey = 'BOOKINGS' | 'SAVED';
 
 export default function BusinessBookingsScreen() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'SAVED' | 'SEARCH'>('BOOKINGS');
-    
-    // Lists and data states
+    const [activeTab, setActiveTab] = useState<TabKey>('BOOKINGS');
+
     const [bookings, setBookings] = useState<any[]>([]);
     const [savedProfiles, setSavedProfiles] = useState<any[]>([]);
-    const [allProfiles, setAllProfiles] = useState<any[]>([]);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [debouncedQuery, setDebouncedQuery] = useState('');
-    const [searchLocation, setSearchLocation] = useState('');
-    const [selectedLocation, setSelectedLocation] = useState<{ pincode?: string; district?: string; state?: string } | null>(null);
-    const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; radius: number } | null>(null);
-    
-    // Loader and refreshers
+
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    // Live suggestions (category / business profile / service) for the search box.
-    const [suggestions, setSuggestions] = useState<Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }>>([]);
-    const [showSuggest, setShowSuggest] = useState(false);
-    const [loadingSuggest, setLoadingSuggest] = useState(false);
-
-    useEffect(() => {
-        loadTabData();
-    }, [activeTab]);
-
-    useEffect(() => {
-        const t = setTimeout(() => setDebouncedQuery(searchQuery), 350);
-        return () => clearTimeout(t);
-    }, [searchQuery]);
-
-    useEffect(() => {
-        if (activeTab === 'SEARCH') {
-            fetchSearchProfiles();
-        }
-    }, [debouncedQuery, selectedLocation, userLocation, activeTab]);
-
-    // Live profile/category suggestions while typing in the Search tab.
-    useEffect(() => {
-        if (activeTab !== 'SEARCH') return;
-        const q = searchQuery.trim();
-        if (q.length < 2) {
-            setSuggestions([]);
-            return;
-        }
-        let cancelled = false;
-        setLoadingSuggest(true);
-        const timer = setTimeout(async () => {
-            try {
-                const { data } = await businessApi.suggestProfiles(q, 10);
-                if (cancelled) return;
-                const items: Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }> = [];
-                (data?.categories || []).slice(0, 5).forEach((name: string) => items.push({ type: 'category', name }));
-                (data?.profiles || []).slice(0, 5).forEach((p: any) => items.push({ type: 'profile', name: p.name, profileId: p.id }));
-                (data?.services || []).slice(0, 5).forEach((s: any) => items.push({ type: 'service', name: s.name, profileId: s.profileId }));
-                setSuggestions(items.slice(0, 10));
-            } catch {
-                setSuggestions([]);
-            } finally {
-                if (!cancelled) setLoadingSuggest(false);
-            }
-        }, 280);
-        return () => { cancelled = true; clearTimeout(timer); };
-    }, [searchQuery, activeTab]);
-
-    const onPickSuggestion = (item: { type: 'category' | 'profile' | 'service'; name: string; profileId?: string }) => {
-        setShowSuggest(false);
-        if (item.type === 'profile' && item.profileId) {
-            // Open the picked profile directly.
-            router.push({ pathname: '/business-detail', params: { id: item.profileId } });
-            return;
-        }
-        // For category / service: set the search text so the list reloads.
-        setSearchQuery(item.name);
-    };
-
-    const loadTabData = async () => {
+    const loadTabData = useCallback(async () => {
         setLoading(true);
         try {
             if (activeTab === 'BOOKINGS') {
                 await fetchMyBookings();
-            } else if (activeTab === 'SAVED') {
+            } else {
                 await fetchSavedServices();
-            } else if (activeTab === 'SEARCH') {
-                await fetchSearchProfiles();
             }
         } catch (e) {
             console.error('Failed to load tab data:', e);
@@ -106,12 +37,23 @@ export default function BusinessBookingsScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [activeTab]);
+
+    useEffect(() => {
+        loadTabData();
+    }, [loadTabData]);
+
+    // Refresh whenever the user returns to this screen so newly saved
+    // business profiles (or new bookings) show up immediately.
+    useFocusEffect(
+        useCallback(() => {
+            loadTabData();
+        }, [loadTabData]),
+    );
 
     const fetchMyBookings = async () => {
         try {
             const { data } = await businessApi.getMyBookings();
-            // Sort bookings by creation or date descending
             const sorted = (data || []).sort((a: any, b: any) => {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             });
@@ -129,107 +71,27 @@ export default function BusinessBookingsScreen() {
                 setSavedProfiles([]);
                 return;
             }
-            const ids = JSON.parse(savedStr);
-            if (ids.length === 0) {
+            const ids: string[] = JSON.parse(savedStr);
+            if (!Array.isArray(ids) || ids.length === 0) {
                 setSavedProfiles([]);
                 return;
             }
 
-            // Fetch profile info for each saved ID
             const fetched = await Promise.all(
-                ids.map(async (id: string) => {
+                ids.map(async (id) => {
                     try {
                         const { data } = await businessApi.getProfile(id);
                         return data;
                     } catch (err) {
-                        console.warn(`Profile with ID ${id} not found:`, err);
+                        console.warn(`Saved profile ${id} not found:`, err);
                         return null;
                     }
-                })
+                }),
             );
-            setSavedProfiles(fetched.filter(p => p !== null));
+            setSavedProfiles(fetched.filter((p) => p !== null));
         } catch (error) {
             console.error('Failed to fetch saved services:', error);
             setSavedProfiles([]);
-        }
-    };
-
-    const fetchSearchProfiles = async () => {
-        try {
-            const params: any = { limit: 50 };
-            if (debouncedQuery.trim()) params.query = debouncedQuery.trim();
-            if (userLocation) {
-                params.lat = userLocation.latitude;
-                params.lng = userLocation.longitude;
-                params.radius = userLocation.radius;
-            }
-            if (selectedLocation) {
-                if (selectedLocation.pincode) params.pincode = selectedLocation.pincode;
-                if (selectedLocation.district) params.district = selectedLocation.district;
-                if (selectedLocation.state) params.state = selectedLocation.state;
-            }
-            const { data } = await businessApi.getProfiles(params);
-            setAllProfiles(unpackBusinessProfileList(data).items);
-        } catch (error) {
-            console.error('Failed to fetch search profiles:', error);
-            setAllProfiles([]);
-        }
-    };
-
-    const handleLocationSearch = async (text: string) => {
-        setSearchLocation(text);
-        if (text.length > 2) {
-            try {
-                const { data } = await authApi.searchLocations(text);
-                const loc = data?.find((l: any) => l.pincode && l.latitude && l.longitude);
-                if (loc) {
-                    setSelectedLocation({ pincode: loc.pincode, district: loc.district, state: loc.state });
-                    setUserLocation({
-                        latitude: Number(loc.latitude),
-                        longitude: Number(loc.longitude),
-                        radius: 10,
-                    });
-                }
-            } catch (e) {
-                console.error('Location search failed', e);
-            }
-        }
-    };
-
-    const handleNearMe = async () => {
-        try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert('Permission denied', 'Enable location to search nearby businesses.');
-                return;
-            }
-            const loc = await Location.getCurrentPositionAsync({});
-            const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-            setUserLocation({ ...coords, radius: 10 });
-
-            try {
-                const { data } = await authApi.reverseGeocode(coords.latitude, coords.longitude);
-                if (data && (data.pincode || data.district || data.state)) {
-                    setSelectedLocation({
-                        pincode: data.pincode || '',
-                        district: data.district || '',
-                        state: data.state || '',
-                    });
-                    setSearchLocation(
-                        data.placeName
-                            ? `Near Me — ${data.placeName}${data.district ? `, ${data.district}` : ''}`
-                            : 'Near Me'
-                    );
-                } else {
-                    setSelectedLocation(null);
-                    setSearchLocation('Near Me');
-                }
-            } catch {
-                setSelectedLocation(null);
-                setSearchLocation('Near Me');
-            }
-        } catch (e) {
-            console.error('GPS error', e);
         }
     };
 
@@ -244,8 +106,8 @@ export default function BusinessBookingsScreen() {
             'Are you sure you want to cancel this service reservation?',
             [
                 { text: 'No, Keep It', style: 'cancel' },
-                { 
-                    text: 'Yes, Cancel', 
+                {
+                    text: 'Yes, Cancel',
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -260,37 +122,48 @@ export default function BusinessBookingsScreen() {
                         } finally {
                             setLoading(false);
                         }
-                    }
-                }
-            ]
+                    },
+                },
+            ],
         );
     };
 
     const renderBookingItem = ({ item }: { item: any }) => {
         const isCancelled = item.status === 'CANCELLED';
+        const profile = item.slot?.businessProfile;
         return (
             <View style={styles.bookingCard}>
-                <View style={styles.bookingHeader}>
+                <TouchableOpacity
+                    style={styles.bookingHeader}
+                    activeOpacity={profile?.id ? 0.7 : 1}
+                    onPress={() => {
+                        if (profile?.id) {
+                            router.push({ pathname: '/business-detail', params: { id: profile.id } });
+                        }
+                    }}
+                >
                     <View style={styles.businessBadge}>
                         <Ionicons name="business" size={16} color="#a084ca" style={{ marginRight: 6 }} />
-                        <Text style={styles.businessName} numberOfLines={1}>{item.slot?.businessProfile?.businessName || 'Business Profile'}</Text>
+                        <Text style={styles.businessName} numberOfLines={1}>
+                            {profile?.businessName || 'Business Profile'}
+                        </Text>
                     </View>
                     <View style={[
-                        styles.statusBadge, 
-                        { backgroundColor: isCancelled ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)' }
+                        styles.statusBadge,
+                        { backgroundColor: isCancelled ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)' },
                     ]}>
                         <Text style={[
                             styles.statusText,
-                            { color: isCancelled ? '#ef4444' : '#10b981' }
+                            { color: isCancelled ? '#ef4444' : '#10b981' },
                         ]}>
                             {item.status}
                         </Text>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.bookingDetails}>
                     <Text style={styles.slotName}>{item.slot?.name}</Text>
-                    
+
                     <View style={styles.metaRow}>
                         <View style={styles.metaCol}>
                             <Text style={styles.metaLabel}>Date & Time</Text>
@@ -311,7 +184,7 @@ export default function BusinessBookingsScreen() {
                 </View>
 
                 {!isCancelled && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.cancelBtn}
                         onPress={() => handleCancelBooking(item.id)}
                     >
@@ -324,7 +197,7 @@ export default function BusinessBookingsScreen() {
     };
 
     const renderProfileItem = ({ item }: { item: any }) => (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={styles.profileCard}
             onPress={() => router.push({ pathname: '/business-detail', params: { id: item.id } })}
         >
@@ -343,12 +216,6 @@ export default function BusinessBookingsScreen() {
                     {item.isVerified && <Ionicons name="checkmark-circle" size={14} color="#10b981" />}
                 </View>
                 <Text style={styles.cardCategory}>{item.category}</Text>
-                {item.distanceKm != null ? (
-                    <Text style={{ fontSize: 11, color: '#9A8EBA', marginTop: 2 }}>
-                        {Number(item.distanceKm).toFixed(1)} km away
-                    </Text>
-                ) : null}
-                
                 {item.slots && item.slots.length > 0 ? (
                     <View style={styles.bookNowBadge}>
                         <Text style={styles.bookNowText}>Book Online</Text>
@@ -362,208 +229,103 @@ export default function BusinessBookingsScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            
-            {/* Header Navbar */}
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Bookings</Text>
-                
-                {/* QR Scanner Trigger Button */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.scannerBtn}
                     onPress={() => router.push('/business-scanner')}
                 >
-                    <Ionicons name="qr-code-outline" size={20} color="#fff" />
+                    <Ionicons name="qr-code-outline" size={20} color="#1d4ed8" />
                 </TouchableOpacity>
             </View>
 
-            {/* Glassmorphism Tabs Control */}
             <View style={styles.tabsStrip}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.tab, activeTab === 'BOOKINGS' && styles.tabActive]}
                     onPress={() => setActiveTab('BOOKINGS')}
                 >
-                    <Ionicons name="calendar-outline" size={16} color={activeTab === 'BOOKINGS' ? '#fff' : '#94a3b8'} style={{ marginRight: 6 }} />
+                    <Ionicons
+                        name="calendar-outline"
+                        size={16}
+                        color={activeTab === 'BOOKINGS' ? '#ffffff' : '#9A8EBA'}
+                        style={{ marginRight: 6 }}
+                    />
                     <Text style={[styles.tabText, activeTab === 'BOOKINGS' && styles.tabTextActive]}>My Bookings</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                     style={[styles.tab, activeTab === 'SAVED' && styles.tabActive]}
                     onPress={() => setActiveTab('SAVED')}
                 >
-                    <Ionicons name="bookmark-outline" size={16} color={activeTab === 'SAVED' ? '#fff' : '#94a3b8'} style={{ marginRight: 6 }} />
+                    <Ionicons
+                        name="bookmark-outline"
+                        size={16}
+                        color={activeTab === 'SAVED' ? '#ffffff' : '#9A8EBA'}
+                        style={{ marginRight: 6 }}
+                    />
                     <Text style={[styles.tabText, activeTab === 'SAVED' && styles.tabTextActive]}>Saved</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={[styles.tab, activeTab === 'SEARCH' && styles.tabActive]}
-                    onPress={() => setActiveTab('SEARCH')}
-                >
-                    <Ionicons name="search-outline" size={16} color={activeTab === 'SEARCH' ? '#fff' : '#94a3b8'} style={{ marginRight: 6 }} />
-                    <Text style={[styles.tabText, activeTab === 'SEARCH' && styles.tabTextActive]}>Search</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Main Content Area */}
             {loading && !refreshing ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#a084ca" />
+                    <ActivityIndicator size="large" color="#8b5cf6" />
                 </View>
-            ) : (
-                <View style={{ flex: 1 }}>
-                    {activeTab === 'BOOKINGS' ? (
-                        <FlatList
-                            data={bookings}
-                            keyExtractor={item => item.id}
-                            renderItem={renderBookingItem}
-                            contentContainerStyle={styles.listContent}
-                            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#a084ca" />}
-                            ListEmptyComponent={
-                                <View style={styles.emptyContainer}>
-                                    <Ionicons name="calendar-outline" size={60} color="#475569" style={{ marginBottom: 16 }} />
-                                    <Text style={styles.emptyTitle}>No Reservations Yet</Text>
-                                    <Text style={styles.emptySub}>
-                                        Any slot bookings or appointments you schedule with business profiles will appear here instantly.
-                                    </Text>
-                                    <TouchableOpacity style={styles.exploreBtn} onPress={() => setActiveTab('SEARCH')}>
-                                        <Text style={styles.exploreBtnText}>Find Services</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            }
-                        />
-                    ) : activeTab === 'SAVED' ? (
-                        <FlatList
-                            data={savedProfiles}
-                            keyExtractor={item => item.id}
-                            renderItem={renderProfileItem}
-                            contentContainerStyle={styles.listContent}
-                            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#a084ca" />}
-                            ListEmptyComponent={
-                                <View style={styles.emptyContainer}>
-                                    <Ionicons name="bookmark-outline" size={60} color="#475569" style={{ marginBottom: 16 }} />
-                                    <Text style={styles.emptyTitle}>No Saved Profiles</Text>
-                                    <Text style={styles.emptySub}>
-                                        Save business profiles in bookings/services so you can quickly access and schedule future reservations!
-                                    </Text>
-                                    <TouchableOpacity style={styles.exploreBtn} onPress={() => setActiveTab('SEARCH')}>
-                                        <Text style={styles.exploreBtnText}>Explore Providers</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            }
-                        />
-                    ) : (
-                        <View style={{ flex: 1 }}>
-                            {/* Search bar inside the Search tab */}
-                            <View style={{ zIndex: 50 }}>
-                                <View style={styles.searchSection}>
-                                    <Ionicons name="search" size={20} color="#94a3b8" />
-                                    <TextInput
-                                        style={styles.searchInput}
-                                        placeholder="Search by profile name or category..."
-                                        placeholderTextColor="#64748b"
-                                        value={searchQuery}
-                                        onChangeText={(t) => { setSearchQuery(t); setShowSuggest(true); }}
-                                        onFocus={() => setShowSuggest(true)}
-                                    />
-                                    {searchQuery ? (
-                                        <TouchableOpacity onPress={() => { setSearchQuery(''); setShowSuggest(false); }}>
-                                            <Ionicons name="close-circle" size={18} color="#94a3b8" />
-                                        </TouchableOpacity>
-                                    ) : null}
-                                </View>
-
-                                {/* Live suggestions dropdown */}
-                                {showSuggest && searchQuery.trim().length >= 2 && (
-                                    <View style={styles.suggestDropdown}>
-                                        {loadingSuggest && suggestions.length === 0 ? (
-                                            <View style={{ padding: 16, alignItems: 'center' }}>
-                                                <ActivityIndicator color="#8b5cf6" size="small" />
-                                            </View>
-                                        ) : suggestions.length === 0 ? (
-                                            <View style={{ padding: 16, alignItems: 'center' }}>
-                                                <Text style={{ color: '#7A6B9C', fontSize: 12, fontWeight: '600' }}>
-                                                    No matches yet — keep typing.
-                                                </Text>
-                                            </View>
-                                        ) : (
-                                            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 260 }}>
-                                                {suggestions.map((it, idx) => (
-                                                    <TouchableOpacity
-                                                        key={`${it.type}-${idx}-${it.name}`}
-                                                        style={styles.suggestItem}
-                                                        onPress={() => onPickSuggestion(it)}
-                                                    >
-                                                        <View style={[styles.suggestIcon, {
-                                                            backgroundColor:
-                                                                it.type === 'category' ? 'rgba(139,92,246,0.12)'
-                                                                : it.type === 'profile' ? 'rgba(16,185,129,0.12)'
-                                                                : 'rgba(245,158,11,0.12)',
-                                                        }]}>
-                                                            <Ionicons
-                                                                name={
-                                                                    it.type === 'category' ? 'grid-outline'
-                                                                    : it.type === 'profile' ? 'business-outline'
-                                                                    : 'construct-outline'
-                                                                }
-                                                                size={16}
-                                                                color={
-                                                                    it.type === 'category' ? '#8b5cf6'
-                                                                    : it.type === 'profile' ? '#10b981'
-                                                                    : '#f59e0b'
-                                                                }
-                                                            />
-                                                        </View>
-                                                        <View style={{ flex: 1 }}>
-                                                            <Text style={styles.suggestName} numberOfLines={1}>{it.name}</Text>
-                                                            <Text style={styles.suggestType}>
-                                                                {it.type === 'category' ? 'Category'
-                                                                    : it.type === 'profile' ? 'Business Profile'
-                                                                    : 'Service'}
-                                                            </Text>
-                                                        </View>
-                                                        <Ionicons name="chevron-forward" size={14} color="#9A8EBA" />
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </ScrollView>
-                                        )}
-                                    </View>
-                                )}
-                            </View>
-                            <View style={[styles.searchSection, { marginTop: 0, marginBottom: 8 }]}>
-                                <Ionicons name="location" size={18} color="#94a3b8" />
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Pincode or area..."
-                                    placeholderTextColor="#64748b"
-                                    value={searchLocation}
-                                    onChangeText={handleLocationSearch}
-                                />
-                                <TouchableOpacity onPress={handleNearMe} style={{ paddingHorizontal: 8 }}>
-                                    <Text style={{ color: '#8b5cf6', fontWeight: '800', fontSize: 12 }}>Near Me</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            <FlatList
-                                data={allProfiles}
-                                keyExtractor={item => item.id}
-                                renderItem={renderProfileItem}
-                                contentContainerStyle={styles.listContent}
-                                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#a084ca" />}
-                                ListEmptyComponent={
-                                    <View style={styles.emptyContainer}>
-                                        <Ionicons name="search-outline" size={60} color="#475569" style={{ marginBottom: 16 }} />
-                                        <Text style={styles.emptyTitle}>No Results Found</Text>
-                                        <Text style={styles.emptySub}>
-                                            We couldn't find any business profiles matching "{searchQuery}". Try other keywords.
-                                        </Text>
-                                    </View>
-                                }
-                            />
+            ) : activeTab === 'BOOKINGS' ? (
+                <FlatList
+                    data={bookings}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderBookingItem}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="calendar-outline" size={60} color="#9A8EBA" style={{ marginBottom: 16 }} />
+                            <Text style={styles.emptyTitle}>No Reservations Yet</Text>
+                            <Text style={styles.emptySub}>
+                                Slots you book with business profiles will appear here. Browse Services to find one.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.exploreBtn}
+                                onPress={() => router.push('/service-search')}
+                            >
+                                <Text style={styles.exploreBtnText}>Find Services</Text>
+                            </TouchableOpacity>
                         </View>
-                    )}
-                </View>
+                    }
+                />
+            ) : (
+                <FlatList
+                    data={savedProfiles}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderProfileItem}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="bookmark-outline" size={60} color="#9A8EBA" style={{ marginBottom: 16 }} />
+                            <Text style={styles.emptyTitle}>No Saved Profiles</Text>
+                            <Text style={styles.emptySub}>
+                                Open a business profile and tap the bookmark icon to save it. Saved profiles show up
+                                here for quick access.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.exploreBtn}
+                                onPress={() => router.push('/service-search')}
+                            >
+                                <Text style={styles.exploreBtnText}>Explore Providers</Text>
+                            </TouchableOpacity>
+                        </View>
+                    }
+                />
             )}
         </SafeAreaView>
     );
@@ -573,22 +335,19 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-    // Navbar
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
-    scannerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(139, 92, 246, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(139, 92, 246, 0.3)' },
+    scannerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eef2ff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#dbe2ff' },
 
-    // Glass tabs
     tabsStrip: { flexDirection: 'row', backgroundColor: '#ffffff', margin: 16, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: '#D4C9E8' },
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10 },
     tabActive: { backgroundColor: '#8b5cf6' },
     tabText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
-    tabTextActive: { color: '#2D2445' },
+    tabTextActive: { color: '#ffffff' },
 
     listContent: { padding: 16, paddingBottom: 40 },
 
-    // Booking Cards
     bookingCard: { backgroundColor: '#ffffff', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#D4C9E8' },
     bookingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#EFE9F8', paddingBottom: 12, marginBottom: 12 },
     businessBadge: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
@@ -602,14 +361,13 @@ const styles = StyleSheet.create({
     metaCol: { flex: 1 },
     metaLabel: { fontSize: 10, color: '#7A6B9C', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
     metaVal: { fontSize: 13, color: '#7A6B9C', fontWeight: '700' },
-    notesBox: { marginTop: 12, backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.02)' },
+    notesBox: { marginTop: 12, backgroundColor: '#F8F5FF', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#EFE9F8' },
     notesLabel: { fontSize: 10, color: '#a084ca', fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
-    notesText: { fontSize: 12, color: '#9A8EBA', lineHeight: 16 },
+    notesText: { fontSize: 12, color: '#7A6B9C', lineHeight: 16 },
 
     cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: '#EFE9F8', paddingTop: 12, marginTop: 4 },
     cancelBtnText: { color: '#ef4444', fontSize: 13, fontWeight: '800' },
 
-    // Profile Cards
     profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     logoContainer: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#F4EEFC', overflow: 'hidden' },
     logo: { width: '100%', height: '100%' },
@@ -620,45 +378,9 @@ const styles = StyleSheet.create({
     bookNowBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
     bookNowText: { color: '#10b981', fontSize: 10, fontWeight: '900' },
 
-    // Empty States
     emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30, marginTop: 40 },
     emptyTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445', marginBottom: 8, marginTop: 16 },
     emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', lineHeight: 22, marginBottom: 30 },
     exploreBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    exploreBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
-
-    // Search bar
-    searchSection: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderLeftWidth: 1, borderRightWidth: 1, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#D4C9E8', marginHorizontal: 16, marginTop: 8, marginBottom: 8, borderRadius: 14, paddingHorizontal: 16, height: 50 },
-    searchInput: { flex: 1, marginLeft: 12, color: '#2D2445', fontSize: 14, fontWeight: '600' },
-
-    // Live suggestions dropdown
-    suggestDropdown: {
-        position: 'absolute',
-        top: 60,
-        left: 16,
-        right: 16,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: '#E2D9F2',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 12,
-        overflow: 'hidden',
-        zIndex: 9999,
-    },
-    suggestItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F4EEFC',
-    },
-    suggestIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-    suggestName: { fontSize: 13, fontWeight: '800', color: '#2D2445' },
-    suggestType: { fontSize: 10, color: '#9A8EBA', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+    exploreBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 14 },
 });

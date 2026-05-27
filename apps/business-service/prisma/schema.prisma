@@ -90,6 +90,11 @@ model BusinessSlot {
   scheduleConfig         String?  // JSON serialized config
   allowRecurringBookings Boolean  @default(false)
 
+  // How far in advance (in weeks) customers may pick a date when booking
+  // this slot. Owners typically set 1–12 weeks. Defaults to 4 weeks so
+  // existing slots keep showing roughly a month of dates.
+  advanceBookingWeeks    Int      @default(4)
+
   bookings               BusinessBooking[]
 
   @@index([businessProfileId])

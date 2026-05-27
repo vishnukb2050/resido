@@ -2,18 +2,76 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
     Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
-    FlatList, Modal, ActivityIndicator, Switch, Dimensions, StatusBar
+    FlatList, Modal, ActivityIndicator, Switch, Dimensions, StatusBar,
+    BackHandler, Pressable,
 } from 'react-native';
 import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import OSMMap from '../components/OSMMap';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { businessApi, authApi } from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
 import { storageApi } from '../services/storage';
 
 const { width } = Dimensions.get('window');
+
+// ─── Time-range helpers ────────────────────────────────────────────────────
+// Slot ranges are stored as "HH:MM AM/PM - HH:MM AM/PM" strings for backwards
+// compatibility. Conversion helpers keep the clock picker and conflict
+// detection logic working with the same string format.
+
+const buildTimeDate = (hour: number, minute: number): Date => {
+    const d = new Date();
+    d.setHours(hour, minute, 0, 0);
+    return d;
+};
+
+const formatTime = (d: Date): string => {
+    const h = d.getHours();
+    const m = d.getMinutes();
+    const period = h >= 12 ? 'PM' : 'AM';
+    const display = h % 12 === 0 ? 12 : h % 12;
+    return `${String(display).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+};
+
+const formatRange = (start: Date, end: Date): string => `${formatTime(start)} - ${formatTime(end)}`;
+
+const parseTimeToMinutes = (s: string): number | null => {
+    // Accepts "HH:MM AM/PM" (case insensitive). Returns minutes since midnight.
+    const m = s.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!m) return null;
+    let hh = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    const period = m[3].toUpperCase();
+    if (hh === 12) hh = 0;
+    if (period === 'PM') hh += 12;
+    return hh * 60 + mm;
+};
+
+const parseRange = (s: string): { start: number; end: number } | null => {
+    const parts = s.split(/\s*-\s*/);
+    if (parts.length !== 2) return null;
+    const start = parseTimeToMinutes(parts[0]);
+    const end = parseTimeToMinutes(parts[1]);
+    if (start === null || end === null) return null;
+    return { start, end };
+};
+
+const rangesOverlap = (a: { start: number; end: number }, b: { start: number; end: number }) =>
+    a.start < b.end && a.end > b.start;
+
+const findConflictingRange = (
+    candidate: { start: number; end: number },
+    existing: string[],
+): string | null => {
+    for (const r of existing) {
+        const parsed = parseRange(r);
+        if (parsed && rangesOverlap(parsed, candidate)) return r;
+    }
+    return null;
+};
 
 // --- DATA ---
 const DEFAULT_CATEGORIES = [
@@ -139,6 +197,7 @@ export default function CreateBusinessProfileScreen() {
         scheduleConfig: '',
         timeSlots: [] as string[],
         allowRecurringBookings: true,
+        advanceBookingWeeks: 4,
     });
 
     const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -155,12 +214,10 @@ export default function CreateBusinessProfileScreen() {
         Sunday: ['10:00 AM - 12:00 PM', '02:00 PM - 04:00 PM'],
     });
     const [selectedWeeklyDay, setSelectedWeeklyDay] = useState('Monday');
-    const [weeklyNewSlot, setWeeklyNewSlot] = useState('');
 
     // 2. Monthly schedule state
     const [monthlyDays, setMonthlyDays] = useState<number[]>([1, 15]);
     const [monthlySlots, setMonthlySlots] = useState<string[]>(['09:00 AM - 12:00 PM', '02:00 PM - 05:00 PM']);
-    const [monthlyNewSlot, setMonthlyNewSlot] = useState('');
     const [monthlyDayInput, setMonthlyDayInput] = useState('');
 
     // 3. Custom calendar schedule state
@@ -169,8 +226,28 @@ export default function CreateBusinessProfileScreen() {
         '2026-05-21': ['09:00 AM - 10:00 AM', '10:00 AM - 11:00 AM'],
     });
     const [selectedCustomDate, setSelectedCustomDate] = useState('2026-05-20');
-    const [customNewSlot, setCustomNewSlot] = useState('');
     const [customDateInput, setCustomDateInput] = useState('');
+
+    // Clock-based time range builder. We keep one start/end pair per scheduler
+    // tab (weekly, monthly, custom). The native time picker shows when
+    // `*Pick` is 'start' or 'end'; tapping a chip swaps the visible picker.
+    const [weeklyStart, setWeeklyStart] = useState<Date>(buildTimeDate(9, 0));
+    const [weeklyEnd, setWeeklyEnd] = useState<Date>(buildTimeDate(10, 0));
+    const [weeklyPick, setWeeklyPick] = useState<'start' | 'end' | null>(null);
+    const [monthlyStart, setMonthlyStart] = useState<Date>(buildTimeDate(9, 0));
+    const [monthlyEnd, setMonthlyEnd] = useState<Date>(buildTimeDate(12, 0));
+    const [monthlyPick, setMonthlyPick] = useState<'start' | 'end' | null>(null);
+    const [customStart, setCustomStart] = useState<Date>(buildTimeDate(14, 0));
+    const [customEnd, setCustomEnd] = useState<Date>(buildTimeDate(15, 0));
+    const [customPick, setCustomPick] = useState<'start' | 'end' | null>(null);
+
+    /** Dismiss the add/edit slot sheet without saving (header back, Android back, X). */
+    const closeSlotModal = () => {
+        setWeeklyPick(null);
+        setMonthlyPick(null);
+        setCustomPick(null);
+        setShowSlotModal(false);
+    };
 
     const parseSlotDescription = (desc: string | null) => {
         if (!desc) return { text: '', rules: '', photoUrl: '' };
@@ -244,6 +321,22 @@ export default function CreateBusinessProfileScreen() {
             fetchProfile();
         }
     }, [id]);
+
+    // While the slot sheet is open, hardware back closes the picker first, then the sheet.
+    useEffect(() => {
+        if (!showSlotModal) return;
+        const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (weeklyPick || monthlyPick || customPick) {
+                setWeeklyPick(null);
+                setMonthlyPick(null);
+                setCustomPick(null);
+                return true;
+            }
+            closeSlotModal();
+            return true;
+        });
+        return () => sub.remove();
+    }, [showSlotModal, weeklyPick, monthlyPick, customPick]);
 
     const fetchProfile = async () => {
         try {
@@ -1497,7 +1590,8 @@ export default function CreateBusinessProfileScreen() {
                                                     scheduleType: slot.scheduleType || 'WEEKLY',
                                                     scheduleConfig: slot.scheduleConfig || '',
                                                     timeSlots: slot.timeSlots || [],
-                                                    allowRecurringBookings: slot.allowRecurringBookings !== undefined ? slot.allowRecurringBookings : true
+                                                    allowRecurringBookings: slot.allowRecurringBookings !== undefined ? slot.allowRecurringBookings : true,
+                                                    advanceBookingWeeks: typeof slot.advanceBookingWeeks === 'number' && slot.advanceBookingWeeks > 0 ? slot.advanceBookingWeeks : 4,
                                                 });
                                                 setPhotoUri(parsedDetail.photoUrl || null);
                                                 setRules(parsedDetail.rules || '');
@@ -1582,6 +1676,7 @@ export default function CreateBusinessProfileScreen() {
                                     scheduleConfig: '',
                                     timeSlots: [],
                                     allowRecurringBookings: true,
+                                    advanceBookingWeeks: 4,
                                 });
                                 setPhotoUri(null);
                                 setRules('');
@@ -1616,19 +1711,32 @@ export default function CreateBusinessProfileScreen() {
     };
 
     const renderSlotModal = () => {
-        // Advanced weekly slot handlers
+        const validateRange = (start: Date, end: Date): { start: number; end: number } | null => {
+            const candidate = { start: start.getHours() * 60 + start.getMinutes(), end: end.getHours() * 60 + end.getMinutes() };
+            if (candidate.end <= candidate.start) {
+                Alert.alert('Invalid Range', 'End time must be after the start time.');
+                return null;
+            }
+            return candidate;
+        };
+
         const handleAddWeeklySlot = () => {
-            if (!weeklyNewSlot.trim()) return;
+            const candidate = validateRange(weeklyStart, weeklyEnd);
+            if (!candidate) return;
+            const range = formatRange(weeklyStart, weeklyEnd);
             const currentSlots = weeklyConfig[selectedWeeklyDay] || [];
-            if (currentSlots.includes(weeklyNewSlot.trim())) {
-                Alert.alert('Duplicate', 'This time slot is already added for ' + selectedWeeklyDay);
+            const conflict = findConflictingRange(candidate, currentSlots);
+            if (conflict) {
+                Alert.alert(
+                    'Time Conflict',
+                    `This range overlaps an existing slot (${conflict}) for ${selectedWeeklyDay}. Pick a non-overlapping time.`,
+                );
                 return;
             }
             setWeeklyConfig({
                 ...weeklyConfig,
-                [selectedWeeklyDay]: [...currentSlots, weeklyNewSlot.trim()]
+                [selectedWeeklyDay]: [...currentSlots, range],
             });
-            setWeeklyNewSlot('');
         };
 
         const handleRemoveWeeklySlot = (slotToRemove: string) => {
@@ -1659,13 +1767,18 @@ export default function CreateBusinessProfileScreen() {
         };
 
         const handleAddMonthlySlot = () => {
-            if (!monthlyNewSlot.trim()) return;
-            if (monthlySlots.includes(monthlyNewSlot.trim())) {
-                Alert.alert('Duplicate', 'This slot is already added.');
+            const candidate = validateRange(monthlyStart, monthlyEnd);
+            if (!candidate) return;
+            const range = formatRange(monthlyStart, monthlyEnd);
+            const conflict = findConflictingRange(candidate, monthlySlots);
+            if (conflict) {
+                Alert.alert(
+                    'Time Conflict',
+                    `This range overlaps an existing monthly slot (${conflict}). Pick a non-overlapping time.`,
+                );
                 return;
             }
-            setMonthlySlots([...monthlySlots, monthlyNewSlot.trim()]);
-            setMonthlyNewSlot('');
+            setMonthlySlots([...monthlySlots, range]);
         };
 
         const handleRemoveMonthlySlot = (slotToRemove: string) => {
@@ -1710,17 +1823,22 @@ export default function CreateBusinessProfileScreen() {
                 Alert.alert('No Date', 'Please add or select a custom date first.');
                 return;
             }
-            if (!customNewSlot.trim()) return;
+            const candidate = validateRange(customStart, customEnd);
+            if (!candidate) return;
+            const range = formatRange(customStart, customEnd);
             const currentSlots = customDatesSlots[selectedCustomDate] || [];
-            if (currentSlots.includes(customNewSlot.trim())) {
-                Alert.alert('Duplicate', 'This slot is already added.');
+            const conflict = findConflictingRange(candidate, currentSlots);
+            if (conflict) {
+                Alert.alert(
+                    'Time Conflict',
+                    `This range overlaps an existing slot (${conflict}) for ${selectedCustomDate}.`,
+                );
                 return;
             }
             setCustomDatesSlots({
                 ...customDatesSlots,
-                [selectedCustomDate]: [...currentSlots, customNewSlot.trim()]
+                [selectedCustomDate]: [...currentSlots, range],
             });
-            setCustomNewSlot('');
         };
 
         const handleRemoveCustomSlot = (slotToRemove: string) => {
@@ -1839,7 +1957,7 @@ export default function CreateBusinessProfileScreen() {
                     ...formData,
                     bookingSlots: updatedSlots
                 });
-                setShowSlotModal(false);
+                closeSlotModal();
             } catch (err) {
                 console.error('Failed to save slot:', err);
                 Alert.alert('Error', 'Failed to save slot configuration.');
@@ -1849,21 +1967,29 @@ export default function CreateBusinessProfileScreen() {
         };
 
         return (
-            <Modal visible={showSlotModal} transparent animationType="slide">
+            <Modal
+                visible={showSlotModal}
+                transparent
+                animationType="slide"
+                onRequestClose={closeSlotModal}
+            >
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={{ flex: 1 }}
                 >
-                    <View style={pickerStyles.modalOverlay}>
-                        <View style={[pickerStyles.modalContent, { height: '90%', backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}>
+                    <Pressable style={pickerStyles.modalOverlay} onPress={closeSlotModal}>
+                        <View
+                            style={[pickerStyles.modalContent, { height: '90%', backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}
+                            onStartShouldSetResponder={() => true}
+                        >
                             
                             {/* Modal Header */}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                <Text style={{ fontSize: 20, fontWeight: '800', color: '#2D2445' }}>
+                                <Text style={{ fontSize: 20, fontWeight: '800', color: '#2D2445', flex: 1, marginRight: 12 }}>
                                     {formData.bookingSlots.some((s: any) => String(s.id) === String(currentSlot.id)) ? 'Edit Service Slot' : 'New Service Slot & Schedule'}
                                 </Text>
-                                <TouchableOpacity onPress={() => setShowSlotModal(false)}>
-                                    <Ionicons name="close" size={24} color="#fff" />
+                                <TouchableOpacity onPress={closeSlotModal} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                                    <Ionicons name="close" size={26} color="#64748b" />
                                 </TouchableOpacity>
                             </View>
                             
@@ -1994,18 +2120,47 @@ export default function CreateBusinessProfileScreen() {
 
                                     <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#D4C9E8' }}>
                                         <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 10 }}>Slots for {selectedWeeklyDay}</Text>
-                                        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-                                            <TextInput 
-                                                style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
-                                                placeholder="e.g. 09:00 AM - 10:00 AM" 
-                                                placeholderTextColor="#64748b"
-                                                value={weeklyNewSlot}
-                                                onChangeText={setWeeklyNewSlot}
-                                            />
-                                            <TouchableOpacity style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }} onPress={handleAddWeeklySlot}>
-                                                <Ionicons name="add" size={24} color="#fff" />
+                                        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                                            <TouchableOpacity
+                                                onPress={() => setWeeklyPick('start')}
+                                                style={styles.timeChip}
+                                            >
+                                                <Ionicons name="time-outline" size={14} color="#8b5cf6" />
+                                                <View style={{ marginLeft: 6 }}>
+                                                    <Text style={styles.timeChipLabel}>Start</Text>
+                                                    <Text style={styles.timeChipValue}>{formatTime(weeklyStart)}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                            <Text style={{ color: '#7A6B9C', fontWeight: '800' }}>→</Text>
+                                            <TouchableOpacity
+                                                onPress={() => setWeeklyPick('end')}
+                                                style={styles.timeChip}
+                                            >
+                                                <Ionicons name="time-outline" size={14} color="#8b5cf6" />
+                                                <View style={{ marginLeft: 6 }}>
+                                                    <Text style={styles.timeChipLabel}>End</Text>
+                                                    <Text style={styles.timeChipValue}>{formatTime(weeklyEnd)}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }} onPress={handleAddWeeklySlot}>
+                                                <Ionicons name="add" size={22} color="#fff" />
                                             </TouchableOpacity>
                                         </View>
+                                        {weeklyPick && (
+                                            <DateTimePicker
+                                                value={weeklyPick === 'start' ? weeklyStart : weeklyEnd}
+                                                mode="time"
+                                                is24Hour={false}
+                                                display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+                                                onChange={(_e, picked) => {
+                                                    const target = weeklyPick;
+                                                    setWeeklyPick(null);
+                                                    if (!picked) return;
+                                                    if (target === 'start') setWeeklyStart(picked);
+                                                    else setWeeklyEnd(picked);
+                                                }}
+                                            />
+                                        )}
 
                                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                             {(weeklyConfig[selectedWeeklyDay] || []).map((slot, index) => (
@@ -2056,18 +2211,47 @@ export default function CreateBusinessProfileScreen() {
 
                                     <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#D4C9E8' }}>
                                         <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 10 }}>Available Monthly Time Slots</Text>
-                                        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-                                            <TextInput 
-                                                style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
-                                                placeholder="e.g. 09:00 AM - 12:00 PM" 
-                                                placeholderTextColor="#64748b"
-                                                value={monthlyNewSlot}
-                                                onChangeText={setMonthlyNewSlot}
-                                            />
-                                            <TouchableOpacity style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }} onPress={handleAddMonthlySlot}>
-                                                <Ionicons name="add" size={24} color="#fff" />
+                                        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                                            <TouchableOpacity
+                                                onPress={() => setMonthlyPick('start')}
+                                                style={styles.timeChip}
+                                            >
+                                                <Ionicons name="time-outline" size={14} color="#8b5cf6" />
+                                                <View style={{ marginLeft: 6 }}>
+                                                    <Text style={styles.timeChipLabel}>Start</Text>
+                                                    <Text style={styles.timeChipValue}>{formatTime(monthlyStart)}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                            <Text style={{ color: '#7A6B9C', fontWeight: '800' }}>→</Text>
+                                            <TouchableOpacity
+                                                onPress={() => setMonthlyPick('end')}
+                                                style={styles.timeChip}
+                                            >
+                                                <Ionicons name="time-outline" size={14} color="#8b5cf6" />
+                                                <View style={{ marginLeft: 6 }}>
+                                                    <Text style={styles.timeChipLabel}>End</Text>
+                                                    <Text style={styles.timeChipValue}>{formatTime(monthlyEnd)}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }} onPress={handleAddMonthlySlot}>
+                                                <Ionicons name="add" size={22} color="#fff" />
                                             </TouchableOpacity>
                                         </View>
+                                        {monthlyPick && (
+                                            <DateTimePicker
+                                                value={monthlyPick === 'start' ? monthlyStart : monthlyEnd}
+                                                mode="time"
+                                                is24Hour={false}
+                                                display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+                                                onChange={(_e, picked) => {
+                                                    const target = monthlyPick;
+                                                    setMonthlyPick(null);
+                                                    if (!picked) return;
+                                                    if (target === 'start') setMonthlyStart(picked);
+                                                    else setMonthlyEnd(picked);
+                                                }}
+                                            />
+                                        )}
 
                                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                             {monthlySlots.map((slot, index) => (
@@ -2120,18 +2304,47 @@ export default function CreateBusinessProfileScreen() {
                                     {selectedCustomDate ? (
                                         <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#D4C9E8' }}>
                                             <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 10 }}>Slots for {selectedCustomDate}</Text>
-                                            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-                                                <TextInput 
-                                                    style={[styles.input, { flex: 1, color: '#2D2445', backgroundColor: '#F4EEFC', borderColor: '#C4B5DC' }]} 
-                                                    placeholder="e.g. 02:00 PM - 03:00 PM" 
-                                                    placeholderTextColor="#64748b"
-                                                    value={customNewSlot}
-                                                    onChangeText={setCustomNewSlot}
-                                                />
-                                                <TouchableOpacity style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }} onPress={handleAddCustomSlot}>
-                                                    <Ionicons name="add" size={24} color="#fff" />
+                                            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                                                <TouchableOpacity
+                                                    onPress={() => setCustomPick('start')}
+                                                    style={styles.timeChip}
+                                                >
+                                                    <Ionicons name="time-outline" size={14} color="#8b5cf6" />
+                                                    <View style={{ marginLeft: 6 }}>
+                                                        <Text style={styles.timeChipLabel}>Start</Text>
+                                                        <Text style={styles.timeChipValue}>{formatTime(customStart)}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                                <Text style={{ color: '#7A6B9C', fontWeight: '800' }}>→</Text>
+                                                <TouchableOpacity
+                                                    onPress={() => setCustomPick('end')}
+                                                    style={styles.timeChip}
+                                                >
+                                                    <Ionicons name="time-outline" size={14} color="#8b5cf6" />
+                                                    <View style={{ marginLeft: 6 }}>
+                                                        <Text style={styles.timeChipLabel}>End</Text>
+                                                        <Text style={styles.timeChipValue}>{formatTime(customEnd)}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }} onPress={handleAddCustomSlot}>
+                                                    <Ionicons name="add" size={22} color="#fff" />
                                                 </TouchableOpacity>
                                             </View>
+                                            {customPick && (
+                                                <DateTimePicker
+                                                    value={customPick === 'start' ? customStart : customEnd}
+                                                    mode="time"
+                                                    is24Hour={false}
+                                                    display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+                                                    onChange={(_e, picked) => {
+                                                        const target = customPick;
+                                                        setCustomPick(null);
+                                                        if (!picked) return;
+                                                        if (target === 'start') setCustomStart(picked);
+                                                        else setCustomEnd(picked);
+                                                    }}
+                                                />
+                                            )}
 
                                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                                                 {(customDatesSlots[selectedCustomDate] || []).map((slot, index) => (
@@ -2164,6 +2377,46 @@ export default function CreateBusinessProfileScreen() {
                                 />
                             </View>
 
+                            {/* Advance Booking Window */}
+                            <View style={{ marginTop: 16, backgroundColor: '#ffffff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8' }}>
+                                <Text style={{ fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 4 }}>
+                                    Allow Booking In Advance
+                                </Text>
+                                <Text style={{ fontSize: 12, color: '#7A6B9C', lineHeight: 16, marginBottom: 12 }}>
+                                    How many weeks ahead can customers reserve this slot? Customers can pick any
+                                    date inside this window from a calendar.
+                                </Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                    {[1, 2, 3, 4, 6, 8, 12].map((wk) => {
+                                        const active = currentSlot.advanceBookingWeeks === wk;
+                                        return (
+                                            <TouchableOpacity
+                                                key={wk}
+                                                onPress={() => setCurrentSlot({ ...currentSlot, advanceBookingWeeks: wk })}
+                                                style={{
+                                                    paddingHorizontal: 14,
+                                                    paddingVertical: 8,
+                                                    borderRadius: 20,
+                                                    borderWidth: 1,
+                                                    borderColor: active ? '#8b5cf6' : '#D4C9E8',
+                                                    backgroundColor: active ? '#8b5cf6' : '#F8F5FF',
+                                                }}
+                                            >
+                                                <Text
+                                                    style={{
+                                                        fontSize: 12,
+                                                        fontWeight: '800',
+                                                        color: active ? '#ffffff' : '#7A6B9C',
+                                                    }}
+                                                >
+                                                    {wk === 1 ? '1 week' : `${wk} weeks`}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+
                         </ScrollView>
 
                         {/* Save Button */}
@@ -2177,8 +2430,8 @@ export default function CreateBusinessProfileScreen() {
                                 </>
                             )}
                         </TouchableOpacity>
-                    </View>
-                </View>
+                        </View>
+                    </Pressable>
                 </KeyboardAvoidingView>
             </Modal>
         );
@@ -2462,7 +2715,8 @@ export default function CreateBusinessProfileScreen() {
                     timeSlots: s.timeSlots || [],
                     scheduleType: s.scheduleType || 'WEEKLY',
                     scheduleConfig: typeof s.scheduleConfig === 'string' ? s.scheduleConfig : JSON.stringify(s.scheduleConfig),
-                    allowRecurringBookings: s.allowRecurringBookings || false
+                    allowRecurringBookings: s.allowRecurringBookings || false,
+                    advanceBookingWeeks: typeof s.advanceBookingWeeks === 'number' && s.advanceBookingWeeks > 0 ? s.advanceBookingWeeks : 4,
                 })) : []
             };
 
@@ -2793,7 +3047,17 @@ export default function CreateBusinessProfileScreen() {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => (isManageSlotsOnly || step === 1) ? router.back() : prevStep()} style={styles.backBtn}>
+                <TouchableOpacity
+                    onPress={() => {
+                        if (showSlotModal) {
+                            closeSlotModal();
+                            return;
+                        }
+                        if (isManageSlotsOnly || step === 1) router.back();
+                        else prevStep();
+                    }}
+                    style={styles.backBtn}
+                >
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <View>
@@ -3233,6 +3497,19 @@ const styles = StyleSheet.create({
     continueBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     saveSlotBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 18, marginTop: 10 },
     saveSlotBtnText: { color: '#2D2445', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
+    timeChip: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#C4B5DC',
+        backgroundColor: '#F4EEFC',
+    },
+    timeChipLabel: { fontSize: 10, fontWeight: '700', color: '#9A8EBA', textTransform: 'uppercase', letterSpacing: 0.5 },
+    timeChipValue: { fontSize: 13, fontWeight: '800', color: '#2D2445' },
     safetyInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
     safetyText: { fontSize: 11, color: '#7A6B9C' },
 
