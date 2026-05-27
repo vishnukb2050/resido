@@ -118,6 +118,27 @@ const styles = StyleSheet.create({
     psQuickAccessIconBox: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1 },
     psQuickAccessLabel: { color: '#2D2445', fontSize: 11, fontWeight: '800', textAlign: 'center' },
 
+    // MySpace feature grid — mirrors the AdminDashboard's FeatureCard layout
+    // (solid circle, white icon, label below) so both screens feel cohesive.
+    msSection: { marginBottom: 25 },
+    msSectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
+    msFeatureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, justifyContent: 'space-between' },
+    msFeatureCard: { width: '30%', alignItems: 'center', marginBottom: 15 },
+    msFCardHeader: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    msFCardTitle: { color: '#2D2445', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+
     psBusinessBanner: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 20, marginBottom: 15, borderWidth: 1 },
     psBannerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
     psBannerIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
@@ -627,16 +648,19 @@ export default function DefaultDashboard() {
                         {!activeWorkspace ? (
                             /* My Space View (Flares + Quick Access) */
                             <View style={{ paddingHorizontal: 20 }}>
-                                <View style={styles.psQuickAccessBar}>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psQuickAccessScroll} nestedScrollEnabled={true}>
-                                        <QuickAccessItem icon="settings-outline" label="Manage Community" color={darkLavender} onPress={() => router.push('/manage-community')} />
-                                        <QuickAccessItem icon="storefront-outline" label="Business" color={darkLavender} onPress={() => router.push('/business-profiles')} />
-                                        <QuickAccessItem icon="calendar-outline" label="Events" color={darkLavender} onPress={() => router.push('/events')} />
-                                        <QuickAccessItem icon="wallet-outline" label="Finance" color={darkLavender} onPress={() => router.push('/finance')} />
-                                        <QuickAccessItem icon="construct-outline" label="Services" color={darkLavender} onPress={() => router.push('/service-search')} />
-                                        <QuickAccessItem icon="journal-outline" label="Notes" color={darkLavender} onPress={() => router.push('/notes')} />
-                                        <QuickAccessItem icon="folder-outline" label="Docs" color={darkLavender} onPress={() => router.push('/documents')} />
-                                    </ScrollView>
+                                {/* My Space Tools — solid colorful tiles, same design language as
+                                    the admin panel so users get a consistent visual experience. */}
+                                <View style={styles.msSection}>
+                                    <Text style={styles.msSectionTitle}>My Space</Text>
+                                    <View style={styles.msFeatureGrid}>
+                                        <MSFeatureCard icon="settings" title="Manage Community" bg="#ec4899" onPress={() => router.push('/manage-community')} />
+                                        <MSFeatureCard icon="storefront" title="Business" bg="#10b981" onPress={() => router.push('/business-profiles')} />
+                                        <MSFeatureCard icon="calendar" title="Events" bg="#3b82f6" onPress={() => router.push('/events')} />
+                                        <MSFeatureCard icon="construct" title="Services" bg="#f59e0b" onPress={() => router.push('/service-search')} />
+                                        <MSFeatureCard icon="wallet" title="Finance" bg="#0ea5e9" onPress={() => router.push('/finance')} />
+                                        <MSFeatureCard icon="journal" title="Notes" bg="#a855f7" onPress={() => router.push('/notes')} />
+                                        <MSFeatureCard icon="folder" title="Docs" bg="#2d3748" onPress={() => router.push('/documents')} />
+                                    </View>
                                 </View>
 
                                 {/* Community Creation Banner */}
@@ -822,6 +846,20 @@ function QuickAccessItem({ icon, label, color, onPress }: any) {
                 <Ionicons name={icon as any} size={24} color={color} />
             </View>
             <Text style={styles.psQuickAccessLabel}>{label}</Text>
+        </TouchableOpacity>
+    );
+}
+
+// MySpace feature tile — solid colorful circle + white icon + label below.
+// Visually identical to AdminDashboard's FeatureCard so both screens share
+// the same design language.
+function MSFeatureCard({ icon, title, bg, onPress }: { icon: string; title: string; bg: string; onPress?: () => void }) {
+    return (
+        <TouchableOpacity style={styles.msFeatureCard} onPress={onPress} activeOpacity={0.85}>
+            <View style={[styles.msFCardHeader, { backgroundColor: bg, shadowColor: bg }]}>
+                <Ionicons name={icon as any} size={28} color="#fff" />
+            </View>
+            <Text style={styles.msFCardTitle} numberOfLines={2}>{title}</Text>
         </TouchableOpacity>
     );
 }

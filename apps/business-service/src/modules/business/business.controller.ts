@@ -77,6 +77,33 @@ export class BusinessController {
         return this.businessService.cancelBooking(userId, bookingId);
     }
 
+    // ─── Booking Updates (owner-posted notes/photos visible to customer) ─────
+
+    @Post('bookings/:bookingId/updates')
+    addBookingUpdate(
+        @Headers('x-user-id') userId: string,
+        @Param('bookingId') bookingId: string,
+        @Body() data: { message?: string; photoUrl?: string }
+    ) {
+        return this.businessService.addBookingUpdate(userId, bookingId, data || {});
+    }
+
+    @Get('bookings/:bookingId/updates')
+    listBookingUpdates(
+        @Headers('x-user-id') userId: string,
+        @Param('bookingId') bookingId: string
+    ) {
+        return this.businessService.listBookingUpdates(userId, bookingId);
+    }
+
+    @Delete('bookings/:bookingId/updates/:updateId')
+    deleteBookingUpdate(
+        @Headers('x-user-id') userId: string,
+        @Param('updateId') updateId: string
+    ) {
+        return this.businessService.deleteBookingUpdate(userId, updateId);
+    }
+
     @Get('profiles/my')
     getMyProfiles(@Headers('x-user-id') userId: string) {
         return this.businessService.getProfilesByUserId(userId);

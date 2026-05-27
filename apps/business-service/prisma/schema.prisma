@@ -115,15 +115,38 @@ model BusinessBooking {
   notes             String?
   createdAt         DateTime @default(now())
 
+  // Per-profile per-day sequential token (e.g. 1, 2, 3...). Displayed to
+  // the customer as a zero-padded number ("0001") in the app.
+  tokenNumber       Int?
+
   // Recurrence (same as AmenityBooking)
   isRecurring       Boolean  @default(false)
   recurringPeriod   String?  // "WEEKLY", "MONTHLY"
   parentBookingId   String?
 
   slot              BusinessSlot @relation(fields: [slotId], references: [id])
+  updates           BusinessBookingUpdate[]
 
   @@index([businessProfileId])
   @@index([slotId])
   @@index([userId])
+  @@index([businessProfileId, bookingDate])
   @@map("business_bookings")
+}
+
+// Free-form status update or photo a business owner posts on a booking
+// so the customer can see progress notes (e.g. "Your order is being
+// prepared", "Technician on the way") with optional media.
+model BusinessBookingUpdate {
+  id           String   @id @default(cuid())
+  bookingId    String
+  message      String?
+  photoUrl     String?
+  createdAt    DateTime @default(now())
+  authorUserId String
+
+  booking      BusinessBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("business_booking_updates")
 }

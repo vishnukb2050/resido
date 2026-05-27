@@ -8,8 +8,15 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { businessApi } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const SECURE_STORE_KEY = 'resido_saved_businesses';
+
+// Per-profile per-day booking number → "0001"
+const formatToken = (n?: number | null): string | null => {
+    if (n === null || n === undefined || Number.isNaN(Number(n))) return null;
+    return String(n).padStart(4, '0');
+};
 
 type TabKey = 'BOOKINGS' | 'SAVED';
 
@@ -19,9 +26,19 @@ export default function BusinessBookingsScreen() {
 
     const [bookings, setBookings] = useState<any[]>([]);
     const [savedProfiles, setSavedProfiles] = useState<any[]>([]);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     const loadTabData = useCallback(async () => {
         setLoading(true);
@@ -131,6 +148,11 @@ export default function BusinessBookingsScreen() {
     const renderBookingItem = ({ item }: { item: any }) => {
         const isCancelled = item.status === 'CANCELLED';
         const profile = item.slot?.businessProfile;
+        const token = formatToken(item.tokenNumber);
+        const updates: any[] = Array.isArray(item.updates) ? item.updates : [];
+        const isExpanded = expandedIds.has(item.id);
+        const businessName = profile?.businessName || 'Business Profile';
+
         return (
             <View style={styles.bookingCard}>
                 <TouchableOpacity
@@ -145,7 +167,7 @@ export default function BusinessBookingsScreen() {
                     <View style={styles.businessBadge}>
                         <Ionicons name="business" size={16} color="#a084ca" style={{ marginRight: 6 }} />
                         <Text style={styles.businessName} numberOfLines={1}>
-                            {profile?.businessName || 'Business Profile'}
+                            {businessName}
                         </Text>
                     </View>
                     <View style={[
@@ -160,6 +182,17 @@ export default function BusinessBookingsScreen() {
                         </Text>
                     </View>
                 </TouchableOpacity>
+
+                {!isCancelled && token ? (
+                    <View style={styles.tokenStrip}>
+                        <View style={styles.tokenChip}>
+                            <Ionicons name="pricetag" size={14} color="#8b5cf6" style={{ marginRight: 6 }} />
+                            <Text style={styles.tokenLabel}>Token</Text>
+                            <Text style={styles.tokenValue}>#{token}</Text>
+                        </View>
+                        <Text style={styles.tokenHint}>Show this number when you arrive.</Text>
+                    </View>
+                ) : null}
 
                 <View style={styles.bookingDetails}>
                     <Text style={styles.slotName}>{item.slot?.name}</Text>
@@ -182,6 +215,67 @@ export default function BusinessBookingsScreen() {
                         </View>
                     ) : null}
                 </View>
+
+                {!isCancelled ? (
+                    <TouchableOpacity
+                        style={styles.updatesToggle}
+                        onPress={() => toggleExpand(item.id)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={16}
+                            color="#8b5cf6"
+                            style={{ marginRight: 6 }}
+                        />
+                        <Text style={styles.updatesToggleText}>
+                            {updates.length > 0
+                                ? `${isExpanded ? 'Hide' : 'View'} updates from ${businessName} (${updates.length})`
+                                : `${isExpanded ? 'Hide' : 'View'} updates from ${businessName}`}
+                        </Text>
+                    </TouchableOpacity>
+                ) : null}
+
+                {!isCancelled && isExpanded ? (
+                    <View style={styles.updatesBox}>
+                        {updates.length === 0 ? (
+                            <Text style={styles.updatesEmpty}>
+                                No updates from {businessName} yet. You will see status notes or photos
+                                they post here.
+                            </Text>
+                        ) : (
+                            updates.map((u) => {
+                                const photo = resolveMediaUrl(u.photoUrl);
+                                return (
+                                    <View key={u.id} style={styles.updateRow}>
+                                        <View style={styles.updateHeader}>
+                                            <Ionicons name="megaphone-outline" size={14} color="#8b5cf6" />
+                                            <Text style={styles.updateAuthor}>{businessName}</Text>
+                                            <Text style={styles.updateTime}>
+                                                {new Date(u.createdAt).toLocaleString(undefined, {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
+                                            </Text>
+                                        </View>
+                                        {u.message ? (
+                                            <Text style={styles.updateMessage}>{u.message}</Text>
+                                        ) : null}
+                                        {photo ? (
+                                            <Image
+                                                source={{ uri: photo }}
+                                                style={styles.updatePhoto}
+                                                resizeMode="cover"
+                                            />
+                                        ) : null}
+                                    </View>
+                                );
+                            })
+                        )}
+                    </View>
+                ) : null}
 
                 {!isCancelled && (
                     <TouchableOpacity
@@ -367,6 +461,45 @@ const styles = StyleSheet.create({
 
     cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: '#EFE9F8', paddingTop: 12, marginTop: 4 },
     cancelBtnText: { color: '#ef4444', fontSize: 13, fontWeight: '800' },
+
+    tokenStrip: {
+        marginBottom: 12,
+        backgroundColor: '#F4EEFC',
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#D4C9E8',
+    },
+    tokenChip: { flexDirection: 'row', alignItems: 'center' },
+    tokenLabel: { fontSize: 11, color: '#7A6B9C', fontWeight: '800', textTransform: 'uppercase', marginRight: 8 },
+    tokenValue: { fontSize: 22, color: '#5b21b6', fontWeight: '900', letterSpacing: 1 },
+    tokenHint: { fontSize: 11, color: '#7A6B9C', fontWeight: '600', marginTop: 4 },
+
+    updatesToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        marginTop: 4,
+        borderRadius: 10,
+        backgroundColor: '#F8F5FF',
+    },
+    updatesToggleText: { color: '#8b5cf6', fontSize: 12, fontWeight: '800' },
+
+    updatesBox: { marginTop: 12, gap: 12 },
+    updatesEmpty: { fontSize: 12, color: '#7A6B9C', textAlign: 'center', paddingVertical: 8 },
+    updateRow: {
+        backgroundColor: '#F8F5FF',
+        borderRadius: 12,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: '#EFE9F8',
+    },
+    updateHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+    updateAuthor: { fontSize: 12, fontWeight: '800', color: '#2D2445' },
+    updateTime: { fontSize: 10, fontWeight: '700', color: '#9A8EBA', marginLeft: 'auto' },
+    updateMessage: { fontSize: 13, color: '#2D2445', lineHeight: 18 },
+    updatePhoto: { width: '100%', height: 180, borderRadius: 10, marginTop: 8, backgroundColor: '#EFE9F8' },
 
     profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     logoContainer: { width: 52, height: 52, borderRadius: 12, backgroundColor: '#F4EEFC', overflow: 'hidden' },

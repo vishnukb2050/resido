@@ -800,17 +800,36 @@ model BusinessBooking {
   notes             String?
   createdAt         DateTime @default(now())
 
+  // Per-profile per-day sequential token (e.g. 1 → "0001").
+  tokenNumber       Int?
+
   // Recurrence (same as AmenityBooking)
   isRecurring       Boolean  @default(false)
   recurringPeriod   String?  // "WEEKLY", "MONTHLY"
   parentBookingId   String?
 
   slot              BusinessSlot @relation(fields: [slotId], references: [id])
+  updates           BusinessBookingUpdate[]
 
   @@index([businessProfileId])
   @@index([slotId])
   @@index([userId])
+  @@index([businessProfileId, bookingDate])
   @@map("business_bookings")
+}
+
+model BusinessBookingUpdate {
+  id           String   @id @default(cuid())
+  bookingId    String
+  message      String?
+  photoUrl     String?
+  createdAt    DateTime @default(now())
+  authorUserId String
+
+  booking      BusinessBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("business_booking_updates")
 }
 
 // ─── Visitors (Entry/Exit) ────────────────────────────────────

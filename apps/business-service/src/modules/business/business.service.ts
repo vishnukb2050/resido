@@ -956,39 +956,57 @@ export class BusinessService {
         const recurringPeriod = data.recurringPeriod || null;
 
         const performSingleBooking = async (dateStr: string, slotTime: string, parentBookingId?: string) => {
-            const existingBookings = await this.prisma.businessBooking.findMany({
-                where: {
-                    businessProfileId: profileId,
-                    slotId,
-                    bookingDate: dateStr,
-                    timeSlot: slotTime,
-                    status: 'CONFIRMED',
-                },
-            });
+            // Wrap capacity check + token assignment + create in a single
+            // transaction so we never assign duplicate token numbers when
+            // two customers tap "Reserve" at the same time.
+            return this.prisma.$transaction(async (tx) => {
+                const existingBookings = await tx.businessBooking.findMany({
+                    where: {
+                        businessProfileId: profileId,
+                        slotId,
+                        bookingDate: dateStr,
+                        timeSlot: slotTime,
+                        status: 'CONFIRMED',
+                    },
+                });
 
-            const totalBookedPersons = existingBookings.reduce((sum, b) => sum + b.persons, 0);
-            if (totalBookedPersons + requestedPersons > slot.maxPersons) {
-                throw new BadRequestException(
-                    `Time slot (${slotTime}) on ${dateStr} is fully booked. Only ${slot.maxPersons - totalBookedPersons} slot(s) left.`,
-                );
-            }
+                const totalBookedPersons = existingBookings.reduce((sum, b) => sum + b.persons, 0);
+                if (totalBookedPersons + requestedPersons > slot.maxPersons) {
+                    throw new BadRequestException(
+                        `Time slot (${slotTime}) on ${dateStr} is fully booked. Only ${slot.maxPersons - totalBookedPersons} slot(s) left.`,
+                    );
+                }
 
-            return this.prisma.businessBooking.create({
-                data: {
-                    businessProfileId: profileId,
-                    slotId,
-                    userId,
-                    userName: data.userName || null,
-                    userPhone: data.userPhone || null,
-                    bookingDate: dateStr,
-                    timeSlot: slotTime,
-                    persons: requestedPersons,
-                    status: 'CONFIRMED',
-                    notes: data.notes || null,
-                    isRecurring,
-                    recurringPeriod,
-                    parentBookingId,
-                },
+                // Next token for this business profile on this calendar day.
+                // Confirmed bookings only — cancelled ones still own their old
+                // token so the sequence stays gap-free per customer.
+                const maxToken = await tx.businessBooking.aggregate({
+                    _max: { tokenNumber: true },
+                    where: {
+                        businessProfileId: profileId,
+                        bookingDate: dateStr,
+                    },
+                });
+                const nextToken = (maxToken._max.tokenNumber ?? 0) + 1;
+
+                return tx.businessBooking.create({
+                    data: {
+                        businessProfileId: profileId,
+                        slotId,
+                        userId,
+                        userName: data.userName || null,
+                        userPhone: data.userPhone || null,
+                        bookingDate: dateStr,
+                        timeSlot: slotTime,
+                        persons: requestedPersons,
+                        status: 'CONFIRMED',
+                        notes: data.notes || null,
+                        tokenNumber: nextToken,
+                        isRecurring,
+                        recurringPeriod,
+                        parentBookingId,
+                    },
+                });
             });
         };
 
@@ -1032,11 +1050,14 @@ export class BusinessService {
             include: {
                 slot: {
                     include: {
-                        businessProfile: true
-                    }
-                }
+                        businessProfile: true,
+                    },
+                },
+                updates: {
+                    orderBy: { createdAt: 'asc' },
+                },
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
         });
     }
 
@@ -1049,9 +1070,94 @@ export class BusinessService {
 
         return this.prisma.businessBooking.findMany({
             where: { businessProfileId: profileId },
-            include: { slot: true },
-            orderBy: { createdAt: 'desc' }
+            include: {
+                slot: true,
+                updates: { orderBy: { createdAt: 'asc' } },
+            },
+            orderBy: [
+                { bookingDate: 'desc' },
+                { tokenNumber: 'asc' },
+                { createdAt: 'desc' },
+            ],
         });
+    }
+
+    // ─── Booking Updates ──────────────────────────────────────────────────────
+
+    /**
+     * Business owner posts an update (text and/or photo) on a customer
+     * booking. The customer will see these inside My Bookings.
+     */
+    async addBookingUpdate(
+        userId: string,
+        bookingId: string,
+        data: { message?: string; photoUrl?: string },
+    ) {
+        const booking = await this.prisma.businessBooking.findUnique({
+            where: { id: bookingId },
+        });
+        if (!booking) throw new NotFoundException('Booking not found');
+
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { id: booking.businessProfileId },
+        });
+        if (!profile || profile.userId !== userId) {
+            throw new BadRequestException('Only the business owner can post updates');
+        }
+
+        const message = (data.message || '').trim();
+        const photoUrl = (data.photoUrl || '').trim();
+        if (!message && !photoUrl) {
+            throw new BadRequestException('Provide a message or a photo to post');
+        }
+
+        return this.prisma.businessBookingUpdate.create({
+            data: {
+                bookingId,
+                message: message || null,
+                photoUrl: photoUrl || null,
+                authorUserId: userId,
+            },
+        });
+    }
+
+    async listBookingUpdates(userId: string, bookingId: string) {
+        const booking = await this.prisma.businessBooking.findUnique({
+            where: { id: bookingId },
+        });
+        if (!booking) throw new NotFoundException('Booking not found');
+
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { id: booking.businessProfileId },
+        });
+
+        // Only the customer or the owning business may read updates.
+        if (booking.userId !== userId && profile?.userId !== userId) {
+            throw new BadRequestException('Not allowed to view these updates');
+        }
+
+        return this.prisma.businessBookingUpdate.findMany({
+            where: { bookingId },
+            orderBy: { createdAt: 'asc' },
+        });
+    }
+
+    async deleteBookingUpdate(userId: string, updateId: string) {
+        const update = await this.prisma.businessBookingUpdate.findUnique({
+            where: { id: updateId },
+            include: { booking: true },
+        });
+        if (!update) throw new NotFoundException('Update not found');
+
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { id: update.booking.businessProfileId },
+        });
+        if (!profile || profile.userId !== userId) {
+            throw new BadRequestException('Only the business owner can delete updates');
+        }
+
+        await this.prisma.businessBookingUpdate.delete({ where: { id: updateId } });
+        return { success: true };
     }
 
     async cancelBooking(userId: string, bookingId: string) {

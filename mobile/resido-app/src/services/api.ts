@@ -228,6 +228,12 @@ export const businessApi = {
     getProfileBookings: (profileId: string) => api.get(`/business/profiles/${profileId}/bookings`),
     getMyBookings: () => api.get('/business/bookings/my'),
     cancelBooking: (bookingId: string) => api.patch(`/business/bookings/${bookingId}/cancel`),
+    addBookingUpdate: (bookingId: string, data: { message?: string; photoUrl?: string }) =>
+        api.post(`/business/bookings/${bookingId}/updates`, data),
+    listBookingUpdates: (bookingId: string) =>
+        api.get(`/business/bookings/${bookingId}/updates`),
+    deleteBookingUpdate: (bookingId: string, updateId: string) =>
+        api.delete(`/business/bookings/${bookingId}/updates/${updateId}`),
 };
 
 // Accounting APIs
