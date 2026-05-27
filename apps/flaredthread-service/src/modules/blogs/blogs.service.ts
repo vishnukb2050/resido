@@ -27,15 +27,25 @@ export class BlogsService {
         if (!value) return null;
         const trimmed = String(value).trim();
         if (!trimmed) return null;
-        if (/^https?:\/\//i.test(trimmed)) return trimmed;
         if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) return trimmed;
+        if (/^https?:\/\//i.test(trimmed)) {
+            // Rewrite legacy auth-only r2.cloudflarestorage.com URLs to the
+            // public r2.dev domain so old rows render correctly.
+            return this.storage.healPublicUrl(trimmed);
+        }
         return this.storage.buildPublicUrl(trimmed);
     }
 
-    private decorateMedia<T extends { mediaUrls?: string[] | null; audioUrl?: string | null }>(blog: T): T {
+    private decorateMedia<T extends { mediaUrls?: string[] | null; audioUrl?: string | null; authorAvatar?: string | null }>(blog: T): T {
         const resolvedMedia = (blog.mediaUrls || []).map(u => this.resolveMediaValue(u)).filter(Boolean) as string[];
         const resolvedAudio = blog.audioUrl ? this.resolveMediaValue(blog.audioUrl) : null;
-        return { ...blog, mediaUrls: resolvedMedia, audioUrl: resolvedAudio } as T;
+        const resolvedAvatar = blog.authorAvatar ? this.resolveMediaValue(blog.authorAvatar) : null;
+        return {
+            ...blog,
+            mediaUrls: resolvedMedia,
+            audioUrl: resolvedAudio,
+            authorAvatar: resolvedAvatar,
+        } as T;
     }
 
     async listBlogs(

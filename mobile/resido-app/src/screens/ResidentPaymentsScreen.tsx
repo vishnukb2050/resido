@@ -436,19 +436,19 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#4C5C68' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 20 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scrollContent: { paddingHorizontal: 20, paddingBottom: 50 },
 
     communityCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2E3A42', padding: 18, borderRadius: 22, marginTop: 10, marginBottom: 25, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    communityName: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    communityName: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     communityTag: { color: '#94a3b8', fontSize: 11, fontWeight: '600', marginTop: 2 },
     unitTag: { color: '#38bdf8', fontSize: 12, fontWeight: '700', marginTop: 4 },
 
     noUnitBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', borderWidth: 1, padding: 14, borderRadius: 14, marginBottom: 20 },
     noUnitText: { color: '#fbbf24', fontSize: 12, fontWeight: '600', flex: 1, lineHeight: 18 },
 
-    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#fff', marginBottom: 12 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 12 },
     subSectionTitle: { fontSize: 12, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginTop: 4 },
     splitSectionHint: { color: '#64748b', fontSize: 11, fontWeight: '600', marginBottom: 14, marginTop: -6 },
 
@@ -457,9 +457,9 @@ const styles = StyleSheet.create({
 
     billCard: { backgroundColor: '#2E3A42', padding: 18, borderRadius: 22, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    billMonth: { fontSize: 15, fontWeight: '800', color: '#fff' },
+    billMonth: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     billDue: { fontSize: 12, color: '#94a3b8', marginTop: 4, fontWeight: '600' },
-    billAmount: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    billAmount: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
     paidAmtTag: { color: '#f59e0b', fontSize: 11, fontWeight: '700', marginTop: 4 },
     residentNote: { color: '#94a3b8', fontSize: 11, marginTop: 8, fontStyle: 'italic' },
 
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     adminNoteInline: { color: '#94a3b8', fontSize: 11, fontStyle: 'italic', marginTop: 4 },
 
     payBtn: { backgroundColor: '#ec4899', height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
-    payBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    payBtnText: { color: '#2D2445', fontSize: 13, fontWeight: '800' },
 
     noHistoryText: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 20, marginLeft: 4 },
     historyCard: { backgroundColor: '#2E3A42', padding: 16, borderRadius: 18, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#2E3A42', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: '88%' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    modalTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     modalSub: { fontSize: 13, color: '#94a3b8', marginBottom: 16, fontWeight: '600' },
 
     inputLabel: { fontSize: 11, fontWeight: '800', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 12 },
@@ -486,13 +486,13 @@ const styles = StyleSheet.create({
     methodBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)' },
     methodBtnActive: { backgroundColor: '#ec4899' },
     methodBtnText: { color: '#94a3b8', fontSize: 12, fontWeight: '800' },
-    methodBtnTextActive: { color: '#fff' },
+    methodBtnTextActive: { color: '#2D2445' },
 
-    textInput: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 14, fontSize: 14, fontWeight: '600' },
+    textInput: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 14, fontSize: 14, fontWeight: '600' },
     receiptPicker: { minHeight: 120, borderRadius: 16, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     receiptPreview: { width: '100%', minHeight: 120 },
     receiptPickerText: { fontSize: 12, color: '#64748b', marginTop: 8, fontWeight: '600' },
 
     submitBtn: { backgroundColor: '#ec4899', height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 24, marginBottom: 10 },
-    submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+    submitBtnText: { color: '#2D2445', fontSize: 14, fontWeight: '900' },
 });

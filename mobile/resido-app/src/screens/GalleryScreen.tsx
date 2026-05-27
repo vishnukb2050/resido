@@ -223,5 +223,5 @@ const styles = StyleSheet.create({
     cancelBtn: { paddingHorizontal: 20, paddingVertical: 12 },
     cancelBtnText: { color: '#64748b', fontWeight: '800', fontSize: 15 },
     confirmBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 14 },
-    confirmBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    confirmBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 15 },
 });

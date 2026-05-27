@@ -3181,7 +3181,7 @@ const styles = StyleSheet.create({
 
     searchRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     locationBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#8b5cf6', paddingHorizontal: 12, borderRadius: 12, height: 48 },
-    locationBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700', marginLeft: 6 },
+    locationBtnText: { color: '#2D2445', fontSize: 13, fontWeight: '700', marginLeft: 6 },
 
     mapContainer: { height: 200, borderRadius: 16, overflow: 'hidden', marginBottom: 20 },
     mapImage: { width: '100%', height: '100%' },
@@ -3228,11 +3228,11 @@ const styles = StyleSheet.create({
     footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#F8F5FF', borderTopWidth: 1, borderTopColor: '#D4C9E8' },
     footerInner: { flexDirection: 'row', gap: 12 },
     backBtnFooter: { flex: 0.4, height: 56, borderRadius: 16, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C4B5DC' },
-    backBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+    backBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '700' },
     continueBtn: { flex: 1, height: 56, borderRadius: 16, backgroundColor: '#8b5cf6', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     continueBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     saveSlotBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 18, marginTop: 10 },
-    saveSlotBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
+    saveSlotBtnText: { color: '#2D2445', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
     safetyInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
     safetyText: { fontSize: 11, color: '#7A6B9C' },
 
@@ -3252,7 +3252,7 @@ const styles = StyleSheet.create({
 
     chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
     chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
-    chipText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
+    chipText: { color: '#2D2445', fontSize: 12, fontWeight: '700' },
 
     mapViewContainer: { height: 400, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#EFE9F8', marginBottom: 20, position: 'relative', zIndex: 1 },
     map: { ...StyleSheet.absoluteFillObject, zIndex: 0 },

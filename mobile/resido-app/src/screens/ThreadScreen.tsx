@@ -236,7 +236,7 @@ export default function ThreadScreen() {
     const renderThreadItem = ({ item }: { item: any }) => (
         <View style={styles.threadCard}>
             <View style={styles.threadHeader}>
-                <Image source={{ uri: item.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.authorAvatar} />
+                <Image source={{ uri: resolveMediaUrl(item.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.authorAvatar} />
                 <View style={styles.authorInfo}>
                     <View style={styles.authorRow}>
                         <Text style={styles.authorName}>{item.authorName || 'Anonymous'}</Text>
@@ -446,7 +446,7 @@ export default function ThreadScreen() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesList}>
                         <TouchableOpacity style={styles.storyItem} onPress={() => router.push('/create-flare')}>
                             <View style={[styles.storyAvatarContainer, { borderColor: '#e2e8f0', borderStyle: 'dashed' }]}>
-                                <Image source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
+                                <Image source={{ uri: resolveMediaUrl(user?.profilePhoto) || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
                                 <View style={styles.storyAddBtn}>
                                     <Ionicons name="add" size={12} color="#fff" />
                                 </View>
@@ -461,7 +461,7 @@ export default function ThreadScreen() {
                                 onPress={() => router.push({ pathname: '/flares', params: { initialId: flare.id } })}
                             >
                                 <View style={styles.storyAvatarContainer}>
-                                    <Image source={{ uri: flare.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
+                                    <Image source={{ uri: resolveMediaUrl(flare.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
                                     <View style={styles.flareBadge}>
                                         <Ionicons name="play" size={8} color="#fff" />
                                     </View>
@@ -476,7 +476,7 @@ export default function ThreadScreen() {
             {/* Thread Creator Quick Access */}
             {activeTab === 'PUBLIC' && (
                 <TouchableOpacity style={styles.quickAccess} onPress={() => router.push('/create-thread')}>
-                    <Image source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/100' }} style={styles.miniAvatar} />
+                    <Image source={{ uri: resolveMediaUrl(user?.profilePhoto) || 'https://i.pravatar.cc/100' }} style={styles.miniAvatar} />
                     <Text style={styles.quickPlaceholder}>What's on your mind?</Text>
                     <Ionicons name="image-outline" size={24} color="#94a3b8" />
                 </TouchableOpacity>
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     activeCatPill: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     catIconActive: { marginRight: 8 },
     catText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
-    activeCatText: { color: '#fff' },
+    activeCatText: { color: '#2D2445' },
 
     quickAccess: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', marginHorizontal: 20, padding: 15, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: '#f1f5f9' },
     miniAvatar: { width: 40, height: 40, borderRadius: 20 },
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
     mediaContainer: { width: '100%', height: 220, borderRadius: 20, overflow: 'hidden', marginBottom: 15, position: 'relative' },
     mainMedia: { width: '100%', height: '100%', backgroundColor: '#f1f5f9' },
     mediaBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-    mediaBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+    mediaBadgeText: { color: '#2D2445', fontSize: 12, fontWeight: '800' },
 
     tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 },
     tag: { backgroundColor: '#f8fafc', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     carouselItem: { width: width - 80, height: 250 },
     carouselMedia: { width: '100%', height: '100%' },
     mediaCounter: { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-    mediaCounterText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+    mediaCounterText: { color: '#2D2445', fontSize: 12, fontWeight: '800' },
 
     pollContainer: { backgroundColor: '#f8fafc', borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: '#f1f5f9' },
     pollQuestion: { fontSize: 16, fontWeight: '800', color: '#1e293b', marginBottom: 15, lineHeight: 22 },

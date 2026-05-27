@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     mineBubble: { backgroundColor: '#1d4ed8', borderBottomRightRadius: 4 },
     theirsBubble: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#f1f5f9' },
     bubbleText: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
-    mineText: { color: '#fff' },
+    mineText: { color: '#2D2445' },
     theirsText: { color: '#1e293b' },
     bubbleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 },
     time: { fontSize: 9, color: '#94a3b8', fontWeight: '600' },

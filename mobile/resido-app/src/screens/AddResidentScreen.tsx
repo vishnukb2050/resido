@@ -201,5 +201,5 @@ const styles = StyleSheet.create({
     selectedText: { color: '#10b981', fontSize: 13, fontWeight: '800' },
     input: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#C4B5DC', color: '#2D2445', padding: 18, fontSize: 16, fontWeight: '600' },
     submitBtn: { backgroundColor: '#10b981', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 20 },
-    submitText: { color: '#ffffff', fontWeight: '900', fontSize: 16 }
+    submitText: { color: '#2D2445', fontWeight: '900', fontSize: 16 }
 });

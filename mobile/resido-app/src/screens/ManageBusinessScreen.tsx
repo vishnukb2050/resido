@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     benefitIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' },
     benefitText: { fontSize: 15, color: '#7A6B9C', fontWeight: '600' },
     createBtn: { width: '100%', height: 60, borderRadius: 20, backgroundColor: '#8b5cf6', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    createBtnText: { color: '#ffffff', fontSize: 18, fontWeight: '800' },
+    createBtnText: { color: '#2D2445', fontSize: 18, fontWeight: '800' },
 
     // List State
     profileCard: { backgroundColor: '#F4EEFC', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#C4B5DC' },
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     manageBookingsBtnText: {
         fontSize: 13,
         fontWeight: '800',
-        color: '#ffffff',
+        color: '#2D2445',
     },
 
     addAnotherCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(37, 99, 235, 0.3)', marginTop: 8 },
@@ -394,5 +394,5 @@ const styles = StyleSheet.create({
     qrBizName: { fontSize: 20, fontWeight: '900', color: '#2D2445', textAlign: 'center', marginBottom: 4 },
     qrBizCat: { fontSize: 14, color: '#a084ca', fontWeight: '800', textAlign: 'center', marginBottom: 24 },
     qrDoneBtn: { width: '100%', height: 50, borderRadius: 12, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
-    qrDoneBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '800' }
+    qrDoneBtnText: { color: '#2D2445', fontSize: 15, fontWeight: '800' }
 });

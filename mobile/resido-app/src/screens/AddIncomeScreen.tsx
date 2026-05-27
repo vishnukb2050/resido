@@ -133,5 +133,5 @@ const styles = StyleSheet.create({
     input: { flex: 1, height: 56, fontSize: 16, color: '#2D2445', fontWeight: '600' },
     
     saveBtn: { backgroundColor: '#8b5cf6', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 32, gap: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    saveBtnText: { fontSize: 16, fontWeight: '800', color: '#ffffff' },
+    saveBtnText: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
 });

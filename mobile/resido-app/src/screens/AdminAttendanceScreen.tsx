@@ -135,6 +135,14 @@ export default function AdminAttendanceScreen() {
     };
 
     const saveConfig = async () => {
+        if (!activeWorkspace?.tenantId) {
+            Alert.alert(
+                'Community required',
+                'Open your community workspace from the top switcher, then save attendance settings.',
+            );
+            return;
+        }
+
         const lat = parseFloat(latitude);
         const lng = parseFloat(longitude);
         const r = parseInt(radius, 10);
@@ -157,7 +165,18 @@ export default function AdminAttendanceScreen() {
             setConfig(data);
             Alert.alert('Saved', 'Attendance location & radius updated.');
         } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message || 'Failed to save configuration.');
+            const status = e?.response?.status;
+            const serverMsg =
+                e?.response?.data?.message ||
+                (Array.isArray(e?.response?.data?.message)
+                    ? e.response.data.message.join(', ')
+                    : null) ||
+                e?.response?.data?.error;
+            const reason = serverMsg || e?.message || 'Failed to save configuration.';
+            Alert.alert(
+                'Save failed',
+                `${reason}${status ? ` (HTTP ${status})` : ''}`,
+            );
         } finally {
             setSavingConfig(false);
         }
@@ -492,7 +511,7 @@ const styles = StyleSheet.create({
     tab: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#D4C9E8' },
     tabActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
     tabText: { color: '#7A6B9C', fontSize: 12, fontWeight: '800' },
-    tabTextActive: { color: '#fff' },
+    tabTextActive: { color: '#2D2445' },
 
     content: { padding: 16, paddingBottom: 140 },
     card: { padding: 18, borderRadius: 20, borderWidth: 1, borderColor: '#D4C9E8', backgroundColor: '#ffffff' },
@@ -500,14 +519,14 @@ const styles = StyleSheet.create({
     helper: { color: '#7A6B9C', fontSize: 12, marginTop: 6, marginBottom: 12, fontWeight: '600' },
 
     gpsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#10b981', paddingVertical: 12, borderRadius: 12, marginBottom: 16 },
-    gpsBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+    gpsBtnText: { color: '#2D2445', fontWeight: '900', fontSize: 13 },
 
     row: { flexDirection: 'row', marginBottom: 6 },
     label: { color: '#7A6B9C', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginTop: 10, marginBottom: 6, letterSpacing: 0.5 },
     input: { backgroundColor: '#F4EEFC', borderColor: '#D4C9E8', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#2D2445', fontWeight: '700', fontSize: 14 },
 
     saveBtn: { backgroundColor: '#8b5cf6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
-    saveBtnText: { color: '#fff', fontWeight: '900' },
+    saveBtnText: { color: '#2D2445', fontWeight: '900' },
 
     summaryBox: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 16, padding: 12, backgroundColor: 'rgba(16,185,129,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' },
     summaryText: { color: '#047857', fontWeight: '700', fontSize: 12, flex: 1 },
@@ -516,7 +535,7 @@ const styles = StyleSheet.create({
     rangeChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#D4C9E8' },
     rangeChipActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
     rangeChipText: { color: '#7A6B9C', fontWeight: '800', fontSize: 11 },
-    rangeChipTextActive: { color: '#fff' },
+    rangeChipTextActive: { color: '#2D2445' },
 
     customRange: { marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#ffffff', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     customRangeText: { color: '#2D2445', fontWeight: '700', fontSize: 12 },

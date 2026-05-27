@@ -82,16 +82,36 @@ export class StorageService {
      */
     buildPublicUrl(key: string): string {
         const trimmed = key.replace(/^\/+/, '');
-        const endpoint = this.config.get<string>('AWS_S3_ENDPOINT');
         const publicUrlBase = this.config.get<string>('CLOUDFLARE_R2_PUBLIC_URL');
 
         if (publicUrlBase) {
             return `${publicUrlBase.replace(/\/$/, '')}/${trimmed}`;
         }
+
+        const endpoint = this.config.get<string>('AWS_S3_ENDPOINT');
         if (endpoint && endpoint.includes('cloudflarestorage.com')) {
+            console.warn(
+                '[StorageService] CLOUDFLARE_R2_PUBLIC_URL is not set — uploads will not be publicly viewable.',
+            );
             return `${endpoint.replace(/\/$/, '')}/${this.bucket}/${trimmed}`;
         }
         const region = this.config.get<string>('AWS_REGION') || 'ap-south-1';
         return `https://${this.bucket}.s3.${region}.amazonaws.com/${trimmed}`;
+    }
+
+    /**
+     * Rewrite a fully-qualified URL that points at the auth-only
+     * `<acct>.r2.cloudflarestorage.com` endpoint to the configured public
+     * R2.dev domain. Legacy rows from before CLOUDFLARE_R2_PUBLIC_URL was
+     * configured contain those URLs and would otherwise render as blank.
+     */
+    healPublicUrl(url: string): string {
+        if (!url) return url;
+        const publicUrlBase = this.config.get<string>('CLOUDFLARE_R2_PUBLIC_URL');
+        if (!publicUrlBase) return url;
+        if (!/\.r2\.cloudflarestorage\.com\//i.test(url)) return url;
+        const match = url.match(/r2\.cloudflarestorage\.com\/[^/]+\/(.+)$/i);
+        if (!match || !match[1]) return url;
+        return `${publicUrlBase.replace(/\/$/, '')}/${match[1]}`;
     }
 }

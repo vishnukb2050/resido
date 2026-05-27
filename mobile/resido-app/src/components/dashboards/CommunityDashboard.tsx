@@ -74,7 +74,7 @@ export default function CommunityDashboard() {
                                 <Image source={require('../../../assets/icon.png')} style={styles.logoMini} />
                             </View>
                             <View style={{ marginLeft: 15 }}>
-                                <Text style={[styles.brandTitleText, { color: '#fff' }]}>Resido</Text>
+                                <Text style={[styles.brandTitleText, { color: '#2D2445' }]}>Resido</Text>
                                 <Text style={styles.brandTaglineText}>Your Community Starts Here</Text>
                             </View>
                         </View>
@@ -95,7 +95,7 @@ export default function CommunityDashboard() {
                                 />
                             </View>
                             <View style={styles.cmNameBox}>
-                                <Text style={[styles.cmName, { color: '#fff' }]} numberOfLines={1}>{activeWorkspace?.tenantName || 'Greenwoods Community'}</Text>
+                                <Text style={[styles.cmName, { color: '#2D2445' }]} numberOfLines={1}>{activeWorkspace?.tenantName || 'Greenwoods Community'}</Text>
                                 <Text style={styles.cmRoleText}>{activeWorkspace?.role || 'RESIDENT'}</Text>
                             </View>
                             <Ionicons name="chevron-down" size={20} color="#64748b" />
@@ -120,7 +120,7 @@ export default function CommunityDashboard() {
                                     <MaterialCommunityIcons name="hand-pointing-up" size={24} color="#1d4ed8" />
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 12 }}>
-                                    <Text style={[styles.actionTitle, { color: '#fff' }]}>Raise Request</Text>
+                                    <Text style={[styles.actionTitle, { color: '#2D2445' }]}>Raise Request</Text>
                                     <Text style={styles.actionSub}>Submit a request</Text>
                                 </View>
                                 <Ionicons name="chevron-forward" size={18} color="#1d4ed8" />
@@ -130,7 +130,7 @@ export default function CommunityDashboard() {
 
                     {/* Features Section */}
                     <View style={styles.sectionHeading}>
-                        <Text style={[styles.sectionTitle, { color: '#fff' }]}>Community Features</Text>
+                        <Text style={[styles.sectionTitle, { color: '#2D2445' }]}>Community Features</Text>
                     </View>
                     <View style={styles.featuresGrid}>
                         {features.map((item) => (
@@ -165,7 +165,7 @@ function SmallStatItem({ icon, count, label, color, bg }: any) {
     return (
         <View style={styles.smallStatItem}>
             <View style={[styles.smallStatIconBox, { backgroundColor: bg }]}><Ionicons name={icon} size={24} color={color} /></View>
-            <Text style={[styles.smallStatCount, { color: '#fff' }]}>{count}</Text>
+            <Text style={[styles.smallStatCount, { color: '#2D2445' }]}>{count}</Text>
             <Text style={styles.smallStatLabel}>{label}</Text>
         </View>
     );

@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     
     followBtn: { marginTop: 25, width: '60%', height: 50, borderRadius: 25, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
     unfollowBtn: { backgroundColor: '#f1f5f9', shadowOpacity: 0, elevation: 0, borderWidth: 1, borderColor: '#e2e8f0' },
-    followBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    followBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     unfollowBtnText: { color: '#1e293b' },
 
     infoSection: { padding: 25 },

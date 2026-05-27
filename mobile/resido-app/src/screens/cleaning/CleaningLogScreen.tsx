@@ -76,5 +76,5 @@ const styles = StyleSheet.create({
     photoBtnText: { color: '#7A6B9C', fontWeight: '600' },
     thumb: { width: 80, height: 80, borderRadius: 8 },
     btn: { backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 },
-    btnText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
+    btnText: { color: '#2D2445', fontWeight: '700', fontSize: 16 },
 });

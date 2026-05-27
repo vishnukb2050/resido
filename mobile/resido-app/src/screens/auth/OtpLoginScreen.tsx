@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     input: { flex: 1, color: '#2D2445', padding: 14, fontSize: 18 },
     otpInput: { backgroundColor: '#ffffff', borderRadius: 12, padding: 14, color: '#000000', fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 20, height: 60 },
     btn: { backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, alignItems: 'center' },
-    btnText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
+    btnText: { color: '#2D2445', fontWeight: '700', fontSize: 16 },
     backBtn: { marginTop: 16, alignItems: 'center' },
     backText: { color: '#8b5cf6', fontSize: 14 },
 });

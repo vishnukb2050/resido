@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#000000' },
-    psNotifCount: { color: '#fff', fontSize: 8, fontWeight: '900' },
+    psNotifCount: { color: '#2D2445', fontSize: 8, fontWeight: '900' },
     adminAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
 
     // Workspace Bubbles
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#fff' },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
     wsBubbleLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '800', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    wsBubbleLabelActive: { color: '#2D2445', fontSize: 11, fontWeight: '900' },
 
     // Search Section
     psSearchSection: { paddingHorizontal: 20, marginBottom: 20 },
@@ -297,5 +297,5 @@ const styles = StyleSheet.create({
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
     rolePillActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
-    rolePillTextActive: { color: '#fff' },
+    rolePillTextActive: { color: '#2D2445' },
 });

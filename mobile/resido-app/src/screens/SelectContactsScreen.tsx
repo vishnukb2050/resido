@@ -179,5 +179,5 @@ const styles = StyleSheet.create({
     selectedAvatars: { flex: 1 },
     miniAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 8, borderWidth: 2, borderColor: '#8b5cf6' },
     shareButton: { backgroundColor: '#8b5cf6', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
-    shareButtonText: { color: '#ffffff', fontWeight: '900', fontSize: 15 }
+    shareButtonText: { color: '#2D2445', fontWeight: '900', fontSize: 15 }
 });

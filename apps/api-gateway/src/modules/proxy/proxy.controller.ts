@@ -66,6 +66,11 @@ export class ProxyController {
         delete headers.host;
         delete headers['content-length'];
 
+        // Preserve tenant headers the mobile app already chose (active workspace).
+        // JWT may still carry an older tenantId until the user switches workspace again.
+        const clientTenantId = headers['x-tenant-id'];
+        const clientDbName = headers['x-db-name'];
+
         const authHeader = req.headers['authorization'];
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
@@ -73,9 +78,9 @@ export class ProxyController {
                 const payload = this.jwtService.verify(token, {
                     secret: this.config.get('JWT_SECRET'),
                 });
-                if (payload.dbName) headers['x-db-name'] = payload.dbName;
+                if (!clientDbName && payload.dbName) headers['x-db-name'] = payload.dbName;
                 if (payload.sub) headers['x-user-id'] = payload.sub;
-                if (payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
+                if (!clientTenantId && payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
                 if (payload.phone) headers['x-user-phone'] = payload.phone;
                 if (payload.role) headers['x-user-role'] = payload.role;
             } catch (err) {

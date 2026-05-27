@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#D4C9E8' },
     activeChip: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
     chipText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
-    activeChipText: { color: '#ffffff' },
+    activeChipText: { color: '#2D2445' },
     
     uploadArea: { height: 100, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#8b5cf6', backgroundColor: 'rgba(37, 99, 235, 0.05)', alignItems: 'center', justifyContent: 'center', gap: 8 },
     uploadText: { fontSize: 13, color: '#9A8EBA', fontWeight: '600' },
@@ -259,5 +259,5 @@ const styles = StyleSheet.create({
     fileName: { flex: 1, fontSize: 14, color: '#2D2445', fontWeight: '600' },
 
     saveBtn: { backgroundColor: '#ef4444', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 40, gap: 10, shadowColor: '#ef4444', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    saveBtnText: { fontSize: 16, fontWeight: '800', color: '#ffffff' },
+    saveBtnText: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
 });

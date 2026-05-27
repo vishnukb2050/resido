@@ -107,8 +107,8 @@ export default function CalendarScreen() {
                                 <Text style={[
                                     styles.dateNumber, 
                                     item.active && { color: theme.primary }, 
-                                    item.otherMonth && { color: '#475569' },
-                                    !item.active && !item.otherMonth && { color: '#fff' }
+                                    item.otherMonth && { color: '#9A8EBA' },
+                                    !item.active && !item.otherMonth && { color: '#2D2445' }
                                 ]}>
                                     {item.date}
                                 </Text>
@@ -133,7 +133,7 @@ export default function CalendarScreen() {
                 {/* Events Section */}
                 <View style={styles.eventsSection}>
                     <View style={styles.eventsHeader}>
-                        <Text style={[styles.eventsTitle, { color: '#fff' }]}>Events on May 7, 2026</Text>
+                        <Text style={[styles.eventsTitle, { color: '#2D2445' }]}>Events on May 7, 2026</Text>
                         <Text style={[styles.eventsCount, { color: theme.primary }]}>3 Events</Text>
                     </View>
 
@@ -144,7 +144,7 @@ export default function CalendarScreen() {
                                 <Ionicons name={event.icon as any} size={22} color={event.color} />
                             </View>
                             <View style={styles.eventInfo}>
-                                <Text style={[styles.eventTitleText, { color: '#fff' }]}>{event.title}</Text>
+                                <Text style={[styles.eventTitleText, { color: '#2D2445' }]}>{event.title}</Text>
                                 <Text style={styles.eventTypeText}>{event.type}</Text>
                                 
                                 <View style={styles.eventDetailRow}>
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     headerIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     headerTitleContainer: { alignItems: 'center' },
     monthSelector: { flexDirection: 'row', alignItems: 'center' },
-    monthText: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    monthText: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
     subtitleText: { fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
     headerIcons: { flexDirection: 'row', gap: 10 },
     content: { flex: 1 },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     viewToggleButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
     viewToggleButtonActive: { backgroundColor: '#1d4ed8' },
     viewToggleText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    viewToggleTextActive: { color: '#fff' },
+    viewToggleTextActive: { color: '#2D2445' },
 
     calendarCard: { backgroundColor: '#fff', padding: 15, marginHorizontal: 20, borderRadius: 24, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 1 },
     daysHeader: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15 },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     dotsContainer: { flexDirection: 'row', gap: 2, marginTop: 2 },
     dot: { width: 4, height: 4, borderRadius: 2 },
     dateLabel: { position: 'absolute', bottom: 4, backgroundColor: '#1d4ed8', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
-    dateLabelText: { fontSize: 8, color: '#fff', fontWeight: '800' },
+    dateLabelText: { fontSize: 8, color: '#2D2445', fontWeight: '800' },
 
     legendContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, paddingHorizontal: 25, marginTop: 15, justifyContent: 'center' },
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },

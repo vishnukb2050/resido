@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 20 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scrollContent: { paddingHorizontal: 20, paddingBottom: 50 },
 
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
     tabBtnActive: { backgroundColor: 'rgba(255,255,255,0.08)' },
     tabBtnText: { color: '#94a3b8', fontSize: 11, fontWeight: '800' },
-    tabBtnTextActive: { color: '#fff' },
+    tabBtnTextActive: { color: '#2D2445' },
 
     summaryCard: { backgroundColor: '#2E3A42', padding: 22, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 25 },
     statRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -317,9 +317,9 @@ const styles = StyleSheet.create({
     divider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.1)' },
     savingsBox: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, alignItems: 'center', marginTop: 18 },
     savingsLabel: { color: '#cbd5e1', fontSize: 12, fontWeight: '700' },
-    savingsValue: { fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 4 },
+    savingsValue: { fontSize: 20, fontWeight: '900', color: '#2D2445', marginTop: 4 },
 
-    sectionTitle: { fontSize: 15, fontWeight: '900', color: '#fff', marginBottom: 15 },
+    sectionTitle: { fontSize: 15, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
     chartCard: { backgroundColor: '#2E3A42', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 25 },
     chartContainer: { height: 160, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingBottom: 10 },
     chartBarCol: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     transactionCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2E3A42', padding: 18, borderRadius: 22, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     ledgerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
     ledgerIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    ledgerCategory: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    ledgerCategory: { color: '#2D2445', fontSize: 14, fontWeight: '800' },
     ledgerDesc: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginTop: 2, marginRight: 15 },
     ledgerDate: { color: '#64748b', fontSize: 10, fontWeight: '600', marginTop: 4 },
     ledgerAmount: { fontSize: 15, fontWeight: '900' },
@@ -349,21 +349,21 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#2E3A42', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: '85%' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
 
     inputLabel: { fontSize: 11, fontWeight: '800', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginTop: 15 },
     typeRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
     typeBtn: { flex: 1, paddingVertical: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
     typeBtnText: { color: '#94a3b8', fontSize: 11, fontWeight: '900' },
-    typeBtnTextActive: { color: '#fff' },
+    typeBtnTextActive: { color: '#2D2445' },
 
-    textInput: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 16, fontSize: 16, fontWeight: '600' },
+    textInput: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 16, fontSize: 16, fontWeight: '600' },
     categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
     catBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)' },
     catBtnActive: { backgroundColor: 'rgba(255,255,255,0.12)' },
     catBtnText: { color: '#cbd5e1', fontSize: 12, fontWeight: '700' },
-    catBtnTextActive: { color: '#fff', fontWeight: '800' },
+    catBtnTextActive: { color: '#2D2445', fontWeight: '800' },
 
     submitBtn: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 25 },
-    submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' }
+    submitBtnText: { color: '#2D2445', fontSize: 14, fontWeight: '900' }
 });

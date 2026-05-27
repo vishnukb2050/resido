@@ -559,38 +559,38 @@ const styles = StyleSheet.create({
     plusBtn: { position: 'absolute', bottom: -5, width: 20, height: 20, borderRadius: 10, backgroundColor: '#1d4ed8', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#000' },
     
     actionIcon: { alignItems: 'center' },
-    actionLabel: { color: '#fff', fontSize: 13, fontWeight: '700', marginTop: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
+    actionLabel: { color: '#2D2445', fontSize: 13, fontWeight: '700', marginTop: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
 
     bottomOverlay: { position: 'absolute', bottom: 0, left: 0, right: 80, paddingHorizontal: 20, zIndex: 10 },
     flareHeader: { marginBottom: 12 },
     badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start', gap: 6 },
-    badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+    badgeText: { color: '#2D2445', fontSize: 11, fontWeight: '800' },
     
     authorInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-    username: { color: '#fff', fontSize: 18, fontWeight: '900' },
+    username: { color: '#2D2445', fontSize: 18, fontWeight: '900' },
     verified: { marginLeft: 2 },
-    locationText: { color: '#fff', fontSize: 13, fontWeight: '600', opacity: 0.9 },
+    locationText: { color: '#2D2445', fontSize: 13, fontWeight: '600', opacity: 0.9 },
     timeText: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 },
     
-    titleText: { color: '#fff', fontSize: 18, fontWeight: '900', marginTop: 15 },
-    descriptionText: { color: '#fff', fontSize: 14, lineHeight: 20, marginTop: 5, opacity: 0.9 },
+    titleText: { color: '#2D2445', fontSize: 18, fontWeight: '900', marginTop: 15 },
+    descriptionText: { color: '#2D2445', fontSize: 14, lineHeight: 20, marginTop: 5, opacity: 0.9 },
     
     musicRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 15, backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, alignSelf: 'flex-start' },
-    musicText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    musicText: { color: '#2D2445', fontSize: 13, fontWeight: '600' },
 
     progressBarContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 20 },
     progressBar: { height: '100%', backgroundColor: '#1d4ed8' },
 
     // Poll Styles
     pollContainer: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 15, padding: 15, marginTop: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    pollQuestion: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 12 },
+    pollQuestion: { fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 12 },
     pollOptionBtn: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    pollOptionText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    pollOptionText: { fontSize: 13, fontWeight: '700', color: '#2D2445' },
     resultItem: { marginBottom: 10 },
     resultLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     resultText: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
-    selectedResultText: { color: '#fff', fontWeight: '800' },
-    resultPercentage: { fontSize: 13, fontWeight: '800', color: '#fff' },
+    selectedResultText: { color: '#2D2445', fontWeight: '800' },
+    resultPercentage: { fontSize: 13, fontWeight: '800', color: '#2D2445' },
     progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
     progressFill: { height: '100%', backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3 },
 });

@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#fff' },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
     wsBubbleLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '800', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    wsBubbleLabelActive: { color: '#2D2445', fontSize: 11, fontWeight: '900' },
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', paddingHorizontal: 15, marginBottom: 25, gap: 12 },
     dbIconItem: { width: '30%', alignItems: 'center', marginBottom: 15 },
     dbIconBox: { width: 65, height: 65, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
@@ -233,5 +233,5 @@ const styles = StyleSheet.create({
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
     rolePillActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
-    rolePillTextActive: { color: '#fff' }
+    rolePillTextActive: { color: '#2D2445' }
 });

@@ -55,19 +55,27 @@ export class StorageService {
             });
 
             const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 });
-            
-            // Generate public URL
-            const endpoint = this.config.get('AWS_S3_ENDPOINT');
+
             const publicUrlBase = this.config.get('CLOUDFLARE_R2_PUBLIC_URL');
             let fileUrl = '';
-            
+
             if (publicUrlBase) {
                 fileUrl = `${publicUrlBase.replace(/\/$/, '')}/${key}`;
-            } else if (endpoint && endpoint.includes('cloudflarestorage.com')) {
-                fileUrl = `${endpoint}/${this.bucket}/${key}`;
             } else {
-                const region = this.config.get('AWS_REGION', 'ap-south-1');
-                fileUrl = `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
+                // CLOUDFLARE_R2_PUBLIC_URL is REQUIRED for browser/app fetches.
+                // The raw cloudflarestorage.com endpoint is auth-only and will
+                // appear blank in <Image>. Log loudly so the misconfig is caught.
+                const endpoint = this.config.get('AWS_S3_ENDPOINT');
+                if (endpoint && endpoint.includes('cloudflarestorage.com')) {
+                    console.warn(
+                        '[StorageService] CLOUDFLARE_R2_PUBLIC_URL is not set — uploads will not be publicly viewable. ' +
+                        'Set CLOUDFLARE_R2_PUBLIC_URL=https://pub-<id>.r2.dev in the service env.',
+                    );
+                    fileUrl = `${endpoint}/${this.bucket}/${key}`;
+                } else {
+                    const region = this.config.get('AWS_REGION', 'ap-south-1');
+                    fileUrl = `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
+                }
             }
 
             return { uploadUrl, fileUrl, key };

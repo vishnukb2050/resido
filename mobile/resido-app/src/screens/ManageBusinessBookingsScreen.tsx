@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     },
     activeTab: { backgroundColor: '#8b5cf6' },
     tabText: { fontSize: 13, fontWeight: '700', color: '#9A8EBA' },
-    activeTabText: { color: '#ffffff' },
+    activeTabText: { color: '#2D2445' },
 
     scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
 

@@ -354,16 +354,16 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900' },
+    headerTitle: { color: '#2D2445', fontSize: 20, fontWeight: '900' },
     headerSubtitle: { color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 2 },
 
     content: { padding: 16, paddingBottom: 140 },
     markCard: { padding: 20, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
     markIconWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(99,102,241,0.35)' },
-    markTitle: { color: '#fff', fontSize: 18, fontWeight: '900', marginTop: 14 },
+    markTitle: { color: '#2D2445', fontSize: 18, fontWeight: '900', marginTop: 14 },
     markSubtitle: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: 'center' },
     markBtn: { width: '100%', marginTop: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, backgroundColor: '#6366f1', paddingVertical: 14, borderRadius: 14 },
-    markBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+    markBtnText: { color: '#2D2445', fontWeight: '900', fontSize: 14 },
 
     todayBox: { marginTop: 14, alignItems: 'center', gap: 4 },
     todayPill: { flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.2)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
@@ -374,20 +374,20 @@ const styles = StyleSheet.create({
     resultText: { fontWeight: '800', fontSize: 12, flex: 1 },
 
     historyHeader: { marginTop: 28, marginBottom: 12 },
-    historyTitle: { color: '#fff', fontWeight: '900', fontSize: 16, marginBottom: 10 },
+    historyTitle: { color: '#2D2445', fontWeight: '900', fontSize: 16, marginBottom: 10 },
     rangeRow: { flexDirection: 'row', gap: 8 },
     rangeChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)' },
     rangeChipActive: { backgroundColor: '#6366f1' },
     rangeChipText: { color: '#94a3b8', fontWeight: '800', fontSize: 11 },
-    rangeChipTextActive: { color: '#fff' },
+    rangeChipTextActive: { color: '#2D2445' },
 
     customRange: { marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 12 },
-    customRangeText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+    customRangeText: { color: '#2D2445', fontWeight: '700', fontSize: 12 },
     customRangeEdit: { color: '#6366f1', fontWeight: '800', fontSize: 12 },
 
     recordCard: { padding: 14, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     recordHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    recordDate: { color: '#fff', fontWeight: '800', fontSize: 13 },
+    recordDate: { color: '#2D2445', fontWeight: '800', fontSize: 13 },
     recordTime: { color: '#94a3b8', fontWeight: '600', fontSize: 11, marginTop: 2 },
     statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
     statusPillText: { fontSize: 10, fontWeight: '900' },
@@ -395,15 +395,15 @@ const styles = StyleSheet.create({
     recordMetaText: { color: '#94a3b8', fontSize: 11, fontWeight: '700' },
 
     empty: { alignItems: 'center', marginTop: 50, paddingHorizontal: 30 },
-    emptyTitle: { color: '#fff', fontWeight: '800', fontSize: 14, marginTop: 14 },
+    emptyTitle: { color: '#2D2445', fontWeight: '800', fontSize: 14, marginTop: 14 },
     emptyText: { color: '#64748b', textAlign: 'center', marginTop: 6, fontSize: 12, fontWeight: '600' },
 
     label: { color: '#94a3b8', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginTop: 10, marginBottom: 6, letterSpacing: 0.5 },
-    input: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontWeight: '600', fontSize: 14 },
+    input: { backgroundColor: '#ffffff', borderColor: '#D4C9E8', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#2D2445', fontWeight: '600', fontSize: 14 },
 
     modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
     modalBox: { backgroundColor: '#0f172a', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-    modalTitle: { color: '#fff', fontSize: 16, fontWeight: '900', marginBottom: 4 },
+    modalTitle: { color: '#2D2445', fontSize: 16, fontWeight: '900', marginBottom: 4 },
     modalBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12 },
     modalBtnText: { color: '#94a3b8', fontWeight: '900' },
 });

@@ -250,5 +250,5 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
         elevation: 8
     },
-    submitText: { color: '#ffffff', fontWeight: '900', fontSize: 16 }
+    submitText: { color: '#2D2445', fontWeight: '900', fontSize: 16 }
 });

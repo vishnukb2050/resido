@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     dayChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8 },
     dayChipActive: { backgroundColor: '#6366f1' },
     dayChipText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    dayChipTextActive: { color: '#fff' },
+    dayChipTextActive: { color: '#2D2445' },
 
     builderCard: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e2e8f0' },
     builderCardTitle: { fontSize: 14, fontWeight: '800', color: '#334155', marginBottom: 10 },
@@ -624,5 +624,5 @@ const styles = StyleSheet.create({
     switchHelp: { fontSize: 12, color: '#64748b', lineHeight: 16 },
 
     submitBtn: { backgroundColor: '#6366f1', borderRadius: 16, padding: 18, alignItems: 'center', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
-    submitText: { color: '#fff', fontSize: 16, fontWeight: '800' }
+    submitText: { color: '#2D2445', fontSize: 16, fontWeight: '800' }
 });

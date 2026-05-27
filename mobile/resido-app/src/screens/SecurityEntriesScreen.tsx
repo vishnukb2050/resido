@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     filterChip: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9' },
     filterChipActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     filterText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    filterTextActive: { color: '#fff' },
+    filterTextActive: { color: '#2D2445' },
     listContent: { padding: 20, gap: 12 },
     entryItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' },
     avatarBox: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden' },

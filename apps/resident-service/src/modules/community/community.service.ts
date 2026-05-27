@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -490,15 +490,23 @@ export class CommunityService {
     }
 
     /**
-     * Map a Member.role to the audience bucket used on events.
-     * APARTMENT_ADMIN sees everything regardless.
+     * Audience buckets a member belongs to. A user can belong to MULTIPLE
+     * buckets because the same person could be both a RESIDENT and a MEMBER
+     * (community owner). APARTMENT_ADMIN returns `null` to mean "see all".
+     *
+     * Staff roles map to `STAFF` only. Plain residents map to `RESIDENTS` (and
+     * `MEMBERS` since residents are members of the community too — admins who
+     * select the "Members" audience would otherwise unintentionally exclude
+     * residents). `MEMBER` role maps to `MEMBERS` only.
      */
-    private audienceForEventRole(role?: string | null): 'MEMBERS' | 'RESIDENTS' | 'STAFF' | null {
-        if (!role) return null;
-        if (role === 'APARTMENT_ADMIN') return null; // admin sees all
-        if (role === 'MEMBER') return 'MEMBERS';
-        if (role === 'RESIDENT') return 'RESIDENTS';
-        return 'STAFF';
+    private audienceBucketsForRole(role?: string | null): string[] | null {
+        if (!role) return [];
+        const upper = String(role).toUpperCase();
+        if (upper === 'APARTMENT_ADMIN') return null; // admin sees all
+        if (upper === 'RESIDENT') return ['RESIDENTS', 'MEMBERS'];
+        if (upper === 'MEMBER') return ['MEMBERS'];
+        if (upper === 'NOT_APPLICABLE') return [];
+        return ['STAFF'];
     }
 
     async getEvents(args: {
@@ -517,8 +525,12 @@ export class CommunityService {
             phone: args.authUserPhone,
         });
 
-        const role = member?.role || args.authUserRole;
-        const isAdmin = role === 'APARTMENT_ADMIN';
+        // Prefer the JWT-supplied workspace role (the role the user is currently
+        // signed in as), and fall back to Member.role if the JWT didn't carry
+        // one. A member may have multiple roles across workspaces, so trusting
+        // the workspace role first prevents cross-role bleed-through.
+        const role = args.authUserRole || member?.role;
+        const isAdmin = String(role || '').toUpperCase() === 'APARTMENT_ADMIN';
         if (isAdmin) return events;
 
         const myIds = new Set<string>();
@@ -527,26 +539,30 @@ export class CommunityService {
         if (args.authUserId) myIds.add(args.authUserId);
         if (args.memberId) myIds.add(args.memberId);
 
-        const target = this.audienceForEventRole(role);
+        const buckets = this.audienceBucketsForRole(role) || [];
 
-        return events.filter((e: any) => {
-            const aud: string[] = e.audience || [];
-            const sharedIds: string[] = e.sharedWithIds || [];
+        const filtered = events.filter((e: any) => {
+            const aud: string[] = Array.isArray(e.audience) ? e.audience : [];
+            const sharedIds: string[] = Array.isArray(e.sharedWithIds) ? e.sharedWithIds : [];
 
             const isCreator = e.createdBy && myIds.has(e.createdBy);
             const isShared = sharedIds.some((sid: string) => myIds.has(sid));
 
             if (isCreator || isShared) return true;
 
-            // PRIVATE / GROUPS / CONTACTS events that don't include this user are hidden.
+            // Anything other than COMMUNITY (PRIVATE / GROUPS / CONTACTS)
+            // is share-list only; if you weren't on the share list, hide it.
             if (e.visibility && e.visibility !== 'COMMUNITY') return false;
 
-            // COMMUNITY events without an audience restriction are visible to everyone.
+            // Legacy community events without an audience are visible to all.
             if (aud.length === 0) return true;
 
-            // Otherwise, audience must include the caller's bucket.
-            return !!target && aud.includes(target);
+            // Otherwise the rule audience must overlap the user's buckets.
+            return buckets.some((b) => aud.includes(b));
         });
+
+        console.log('[getEvents] role=', role, 'buckets=', buckets, 'returned', filtered.length, 'of', events.length);
+        return filtered;
     }
 
     async createEvent(args: {
@@ -558,10 +574,19 @@ export class CommunityService {
     }) {
         const { memberId: _omitMemberId, ...eventData } = args.data || {};
 
-        // Sanitize audience to allowed values (empty list = visible to everyone).
+        // Sanitize audience to allowed values. NOTE: an empty audience on a
+        // COMMUNITY event means "visible to all roles", which is rarely what
+        // admins want — the mobile UI requires at least one bucket to be
+        // selected before submitting.
         const allowed = ['MEMBERS', 'RESIDENTS', 'STAFF'];
         const audience = Array.isArray(eventData.audience)
-            ? eventData.audience.filter((a: string) => allowed.includes(a))
+            ? Array.from(
+                new Set(
+                    eventData.audience
+                        .map((a: any) => String(a || '').toUpperCase().trim())
+                        .filter((a: string) => allowed.includes(a)),
+                ),
+            )
             : [];
 
         const creator = await this.resolveMember({
@@ -832,17 +857,7 @@ export class CommunityService {
         return member;
     }
 
-    /**
-     * Map a Member.role to the audience bucket used on rules.
-     * APARTMENT_ADMIN sees everything regardless.
-     */
-    private audienceForRole(role?: string | null): 'MEMBERS' | 'RESIDENTS' | 'STAFF' | null {
-        if (!role) return null;
-        if (role === 'APARTMENT_ADMIN') return null; // admin sees all
-        if (role === 'MEMBER') return 'MEMBERS';
-        if (role === 'RESIDENT') return 'RESIDENTS';
-        return 'STAFF';
-    }
+    // (audienceBucketsForRole is defined above near getEvents)
 
     async getRules(args: {
         memberId?: string;
@@ -850,9 +865,19 @@ export class CommunityService {
         authUserPhone?: string;
         authUserRole?: string;
     }) {
-        const rules = await (this.prisma.reader as any).rule.findMany({
-            orderBy: { createdAt: 'desc' },
-        });
+        const tenantId = PrismaService.als.getStore()?.tenantId;
+        if (!tenantId) return [];
+
+        let rules: any[] = [];
+        try {
+            rules = await (this.prisma.reader as any).rule.findMany({
+                where: { tenantId },
+                orderBy: { createdAt: 'desc' },
+            });
+        } catch (err: any) {
+            console.warn('[getRules] failed', err?.message);
+            return [];
+        }
 
         const member = await this.resolveMember({
             candidateId: args.memberId,
@@ -860,21 +885,24 @@ export class CommunityService {
             phone: args.authUserPhone,
         });
 
-        const role = member?.role || args.authUserRole;
-        const isAdmin = role === 'APARTMENT_ADMIN';
+        // Prefer the JWT workspace role over Member.role for the same reason
+        // as events (multi-role users).
+        const role = args.authUserRole || member?.role;
+        const isAdmin = String(role || '').toUpperCase() === 'APARTMENT_ADMIN';
         if (isAdmin) return rules;
 
-        const target = this.audienceForRole(role);
-        if (!target) {
-            // Unknown role — only show rules with no audience restriction
-            return rules.filter((r: any) => !r.audience || r.audience.length === 0);
-        }
+        const buckets = this.audienceBucketsForRole(role) || [];
 
-        return rules.filter((r: any) => {
-            const aud = r.audience || [];
-            // Empty audience = visible to everyone
-            return aud.length === 0 || aud.includes(target);
+        const filtered = rules.filter((r: any) => {
+            const aud: string[] = Array.isArray(r.audience) ? r.audience : [];
+            // Legacy rules with no audience are visible to everyone in the
+            // tenant; new rules must overlap with the caller's buckets.
+            if (aud.length === 0) return true;
+            return buckets.some((b) => aud.includes(b));
         });
+
+        console.log('[getRules] role=', role, 'buckets=', buckets, 'returned', filtered.length, 'of', rules.length);
+        return filtered;
     }
 
     async createRule(data: {
@@ -887,6 +915,17 @@ export class CommunityService {
         authUserPhone?: string;
         authUserRole?: string;
     }) {
+        const tenantId = PrismaService.als.getStore()?.tenantId;
+        if (!tenantId) {
+            throw new BadRequestException(
+                'Community context is required. Open your community workspace from the top switcher and try again.',
+            );
+        }
+
+        if (!data?.title?.trim() || !data?.description?.trim()) {
+            throw new BadRequestException('Title and description are required.');
+        }
+
         await this.requireApartmentAdmin({
             authUserId: data.authUserId,
             authUserPhone: data.authUserPhone,
@@ -895,10 +934,16 @@ export class CommunityService {
 
         const allowed = ['MEMBERS', 'RESIDENTS', 'STAFF'];
         const audience = Array.isArray(data.audience)
-            ? data.audience.filter((a) => allowed.includes(a))
+            ? Array.from(
+                new Set(
+                    data.audience
+                        .map((a: any) => String(a || '').toUpperCase().trim())
+                        .filter((a: string) => allowed.includes(a)),
+                ),
+            )
             : [];
         if (audience.length === 0) {
-            throw new BadRequestException('At least one audience (MEMBERS, RESIDENTS, or STAFF) is required.');
+            throw new BadRequestException('At least one audience (Members, Residents, or Staff) is required.');
         }
 
         const creator = await this.resolveMember({
@@ -906,16 +951,37 @@ export class CommunityService {
             phone: data.authUserPhone,
         });
 
-        return (this.prisma.client as any).rule.create({
-            data: {
-                title: data.title,
-                description: data.description,
-                category: data.category || 'General',
-                photoUrl: data.photoUrl || null,
-                audience,
-                createdBy: creator?.id || null,
-            },
-        });
+        try {
+            // Pass tenantId explicitly to be safe even if ALS injection
+            // is bypassed by extensions on some Prisma versions.
+            return await (this.prisma.client as any).rule.create({
+                data: {
+                    tenantId,
+                    title: data.title.trim(),
+                    description: data.description.trim(),
+                    category: (data.category || 'General').trim(),
+                    photoUrl: data.photoUrl || null,
+                    audience,
+                    createdBy: creator?.id || null,
+                },
+            });
+        } catch (err: any) {
+            const code = err?.code;
+            const msg = String(err?.message || '');
+            console.error('[createRule] failed', { code, msg, tenantId });
+
+            if (code === 'P2021' || /does not exist|relation.*rules/i.test(msg)) {
+                throw new InternalServerErrorException(
+                    'Rules table is not set up yet. Please redeploy resident-service to apply the latest schema.',
+                );
+            }
+            if (typeof msg === 'string' && msg.includes('Unknown arg')) {
+                throw new BadRequestException(
+                    'Server schema mismatch while saving the rule. Please try again in a moment.',
+                );
+            }
+            throw new InternalServerErrorException(msg || 'Failed to save the rule. Please try again.');
+        }
     }
 
     async updateRule(
@@ -931,6 +997,13 @@ export class CommunityService {
             authUserRole?: string;
         },
     ) {
+        const tenantId = PrismaService.als.getStore()?.tenantId;
+        if (!tenantId) {
+            throw new BadRequestException(
+                'Community context is required. Open your community workspace from the top switcher and try again.',
+            );
+        }
+
         await this.requireApartmentAdmin({
             authUserId: data.authUserId,
             authUserPhone: data.authUserPhone,
@@ -944,24 +1017,43 @@ export class CommunityService {
 
         const allowed = ['MEMBERS', 'RESIDENTS', 'STAFF'];
         const payload: any = {};
-        if (typeof data.title === 'string') payload.title = data.title;
-        if (typeof data.description === 'string') payload.description = data.description;
-        if (typeof data.category === 'string') payload.category = data.category;
+        if (typeof data.title === 'string') payload.title = data.title.trim();
+        if (typeof data.description === 'string') payload.description = data.description.trim();
+        if (typeof data.category === 'string') payload.category = data.category.trim();
         if (data.photoUrl === null || typeof data.photoUrl === 'string') payload.photoUrl = data.photoUrl;
         if (Array.isArray(data.audience)) {
-            const filtered = data.audience.filter((a) => allowed.includes(a));
+            const filtered = Array.from(
+                new Set(
+                    data.audience
+                        .map((a: any) => String(a || '').toUpperCase().trim())
+                        .filter((a: string) => allowed.includes(a)),
+                ),
+            );
             if (filtered.length === 0) {
-                throw new BadRequestException('At least one audience (MEMBERS, RESIDENTS, or STAFF) is required.');
+                throw new BadRequestException('At least one audience (Members, Residents, or Staff) is required.');
             }
             payload.audience = filtered;
         }
-        return (this.prisma.client as any).rule.update({ where: { id }, data: payload });
+
+        try {
+            return await (this.prisma.client as any).rule.update({ where: { id }, data: payload });
+        } catch (err: any) {
+            console.error('[updateRule] failed', { code: err?.code, msg: err?.message });
+            throw new InternalServerErrorException(err?.message || 'Failed to update the rule.');
+        }
     }
 
     async deleteRule(
         id: string,
         ctx: { authUserId?: string; authUserPhone?: string; authUserRole?: string },
     ) {
+        const tenantId = PrismaService.als.getStore()?.tenantId;
+        if (!tenantId) {
+            throw new BadRequestException(
+                'Community context is required. Open your community workspace from the top switcher and try again.',
+            );
+        }
+
         await this.requireApartmentAdmin(ctx);
 
         const existing = await (this.prisma.reader as any).rule.findFirst({ where: { id } });
@@ -969,7 +1061,12 @@ export class CommunityService {
             throw new NotFoundException('Rule not found.');
         }
 
-        return (this.prisma.client as any).rule.delete({ where: { id } });
+        try {
+            return await (this.prisma.client as any).rule.delete({ where: { id } });
+        } catch (err: any) {
+            console.error('[deleteRule] failed', { code: err?.code, msg: err?.message });
+            throw new InternalServerErrorException(err?.message || 'Failed to delete the rule.');
+        }
     }
 
     async getSummaryStats() {

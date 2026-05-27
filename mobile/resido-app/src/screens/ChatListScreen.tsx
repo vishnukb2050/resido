@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     filterPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, backgroundColor: '#f1f5f9' },
     filterPillActive: { backgroundColor: '#1d4ed8' },
     filterText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    filterTextActive: { color: '#fff' },
+    filterTextActive: { color: '#2D2445' },
 
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, marginBottom: 10 },
     sectionTitle: { fontSize: 13, fontWeight: '800', color: '#1d4ed8' },
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     chatBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     chatSub: { fontSize: 13, color: '#64748b', fontWeight: '500', flex: 1 },
     unreadBadge: { backgroundColor: '#1d4ed8', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8 },
-    unreadText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+    unreadText: { color: '#2D2445', fontSize: 10, fontWeight: '900' },
     
     // Search Styles
     searchResultsContainer: { paddingHorizontal: 20, marginTop: 10, paddingBottom: 10 },

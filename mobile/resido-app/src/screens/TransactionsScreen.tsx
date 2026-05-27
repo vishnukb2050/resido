@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
     activeTab: { backgroundColor: '#8b5cf6' },
     tabText: { fontSize: 14, fontWeight: '700', color: '#9A8EBA' },
-    activeTabText: { color: '#ffffff' },
+    activeTabText: { color: '#2D2445' },
 
     monthHeader: { padding: 20, marginTop: 10 },
     monthTitle: { fontSize: 14, fontWeight: '800', color: '#8b5cf6', textTransform: 'uppercase', marginBottom: 16 },

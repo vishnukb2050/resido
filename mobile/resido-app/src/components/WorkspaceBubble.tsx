@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     initialBoxActive: { backgroundColor: '#7c3aed' },
-    initialText: { color: '#ffffff', fontWeight: '900', fontSize: 18 },
+    initialText: { color: '#2D2445', fontWeight: '900', fontSize: 18 },
     initialTextActive: { fontSize: 28 },
     wsBubbleLabel: { color: '#7A6B9C', fontSize: 10, fontWeight: '700', marginTop: 8 },
     wsBubbleLabelActive: { color: '#8b5cf6', fontSize: 12, fontWeight: '900' },

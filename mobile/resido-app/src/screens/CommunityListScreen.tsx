@@ -105,11 +105,11 @@ const styles = StyleSheet.create({
     stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     statText: { fontSize: 13, color: '#64748b', fontWeight: '500' },
     joinBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-    joinBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    joinBtnText: { color: '#2D2445', fontSize: 13, fontWeight: '800' },
     
     footer: { position: 'absolute', bottom: 30, left: 20, right: 20 },
     createBtn: { backgroundColor: '#1e293b', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
-    createBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    createBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     
     empty: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
     emptyText: { marginTop: 20, fontSize: 16, color: '#94a3b8', fontWeight: '600' }

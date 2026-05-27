@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
 
     actionRow: { flexDirection: 'row', gap: 10, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#EFE9F8', marginTop: 8 },
     actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#6366f1', paddingVertical: 12, borderRadius: 12 },
-    actionBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
+    actionBtnText: { color: '#2D2445', fontSize: 12, fontWeight: '800' },
     
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
     
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
     modalCancelBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: '#F4EEFC', alignItems: 'center' },
     modalCancelText: { color: '#9A8EBA', fontSize: 14, fontWeight: '800' },
     modalSubmitBtn: { flex: 2, paddingVertical: 16, borderRadius: 16, backgroundColor: '#6366f1', alignItems: 'center' },
-    modalSubmitText: { color: '#ffffff', fontSize: 14, fontWeight: '900' },
+    modalSubmitText: { color: '#2D2445', fontSize: 14, fontWeight: '900' },
 
     // Standard Modals Styling
     modalContent: { backgroundColor: '#ffffff', borderRadius: 28, padding: 24 },

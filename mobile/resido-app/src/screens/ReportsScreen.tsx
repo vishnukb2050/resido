@@ -169,13 +169,13 @@ const styles = StyleSheet.create({
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
     activeTab: { backgroundColor: '#8b5cf6' },
     tabText: { fontSize: 14, fontWeight: '700', color: '#9A8EBA' },
-    activeTabText: { color: '#ffffff' },
+    activeTabText: { color: '#2D2445' },
 
     periodScroll: { flexDirection: 'row', gap: 10 },
     periodTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, marginRight: 10 },
     activePeriodTab: { backgroundColor: '#8b5cf6' },
     periodTabText: { fontSize: 13, color: '#9A8EBA', fontWeight: '700' },
-    activePeriodTabText: { color: '#ffffff' },
+    activePeriodTabText: { color: '#2D2445' },
 
     summaryContainer: { paddingHorizontal: 20, marginTop: 10 },
     summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

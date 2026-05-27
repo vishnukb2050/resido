@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
         width: 44, height: 44, borderRadius: 22, 
         backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' 
     },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445' },
     scrollContent: { padding: 24 },
     tabContainer: { 
         flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', 
@@ -726,13 +726,13 @@ const styles = StyleSheet.create({
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
     activeTab: { borderBottomWidth: 2 },
     tabText: { fontSize: 13, color: '#64748b', fontWeight: '700' },
-    activeTabText: { color: '#fff' },
+    activeTabText: { color: '#2D2445' },
     
     scannerWrapper: { height: 380, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
     fallbackContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
     fallbackText: { color: '#64748b', textAlign: 'center', fontSize: 14, fontWeight: '600' },
     permissionBtn: { borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
-    permissionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    permissionBtnText: { color: '#2D2445', fontWeight: '700', fontSize: 14 },
     
     cameraBox: { flex: 1 },
     overlayContainer: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
@@ -741,9 +741,9 @@ const styles = StyleSheet.create({
     
     manualCard: { padding: 24, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     manualLabel: { fontSize: 12, color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-    input: { borderRadius: 12, padding: 16, fontSize: 16, color: '#fff', fontWeight: '600', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 20 },
+    input: { borderRadius: 12, padding: 16, fontSize: 16, color: '#2D2445', fontWeight: '600', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 20 },
     verifyBtn: { borderRadius: 12, padding: 18, alignItems: 'center' },
-    verifyBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+    verifyBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 16 },
     
     loaderContainer: { alignItems: 'center', padding: 40, gap: 12 },
     loaderText: { color: '#64748b', fontWeight: '600' },
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
     visitorCard: { padding: 24, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', gap: 20 },
     visitorHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 16 },
     visitorIconBox: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    visitorNameText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    visitorNameText: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
     visitorPassId: { fontSize: 12, color: '#64748b', fontWeight: '600', marginTop: 2 },
     statusBadge: { marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
     statusBadgeText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
@@ -760,11 +760,11 @@ const styles = StyleSheet.create({
     detailItem: { width: '48%', padding: 16, borderRadius: 16, flexDirection: 'row', gap: 12, alignItems: 'center' },
     detailItemFull: { width: '100%', padding: 16, borderRadius: 16, flexDirection: 'row', gap: 12, alignItems: 'center' },
     detailLabel: { fontSize: 10, color: '#64748b', fontWeight: '700', textTransform: 'uppercase' },
-    detailValue: { fontSize: 14, color: '#fff', fontWeight: '700', marginTop: 2 },
+    detailValue: { fontSize: 14, color: '#2D2445', fontWeight: '700', marginTop: 2 },
     
     actionContainer: { gap: 12, marginTop: 12 },
     approveActionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, padding: 18 },
-    approveActionBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+    approveActionBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 16 },
     resetBtn: { borderRadius: 12, padding: 14, alignItems: 'center' },
     resetBtnText: { color: '#64748b', fontWeight: '700', fontSize: 14 },
     
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 14,
         fontSize: 14,
-        color: '#fff',
+        color: '#2D2445',
         fontWeight: '600',
         borderWidth: 1,
     },
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
         alignItems: 'center' 
     },
     selectorText: { 
-        color: '#fff', 
+        color: '#2D2445', 
         fontSize: 14, 
         fontWeight: '600' 
     },

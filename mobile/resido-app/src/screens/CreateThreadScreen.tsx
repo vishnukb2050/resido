@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     publishBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
     publishBtnDisabled: { opacity: 0.5 },
-    publishText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    publishText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
     
     userSection: { flexDirection: 'row', alignItems: 'center', padding: 20 },
     userAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#f1f5f9' },
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     durationPill: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
     durationPillActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     durationPillText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-    durationPillTextActive: { color: '#fff' },
+    durationPillTextActive: { color: '#2D2445' },
 
     pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
@@ -556,5 +556,5 @@ const styles = StyleSheet.create({
     pickerItemName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
     pickerItemCat: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
     pickerClose: { marginTop: 12, backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-    pickerCloseText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    pickerCloseText: { color: '#2D2445', fontSize: 15, fontWeight: '800' },
 });

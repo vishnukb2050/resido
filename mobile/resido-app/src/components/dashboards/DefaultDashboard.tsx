@@ -23,13 +23,13 @@ const styles = StyleSheet.create({
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
     psLogoBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' },
     psWorkspaceImg: { width: '100%', height: '100%' },
-    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#fff' },
+    psBrandTitleText: { fontSize: 24, fontWeight: '900', color: '#2D2445' },
     psBrandTaglineText: { fontSize: 10, color: '#94a3b8', fontWeight: '800', letterSpacing: 1 },
     
     psHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     psIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     psNotifBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#ef4444', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#000000' },
-    psNotifCount: { color: '#fff', fontSize: 8, fontWeight: '900' },
+    psNotifCount: { color: '#2D2445', fontSize: 8, fontWeight: '900' },
     psProfileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psProfileImg: { width: '100%', height: '100%' },
 
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
     fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
-    fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    fCardTitle: { color: '#2D2445', fontSize: 13, fontWeight: '800' },
 
     announcementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8E2F2', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
     annIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(91, 75, 138, 0.1)', alignItems: 'center', justifyContent: 'center' },
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     psBannerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
     psBannerIconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     psBannerTextCol: { marginLeft: 15, flex: 1 },
-    psBannerTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    psBannerTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445' },
     psBannerSub: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
     psBannerBtn: { paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
     psBannerBtnText: { fontWeight: '900', fontSize: 14 },
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     heroDesc: { fontSize: 15, color: '#7A6B9C', textAlign: 'center', lineHeight: 24 },
     actionSection: { width: '100%' },
     primaryBtn: { backgroundColor: '#A084CA', paddingVertical: 18, borderRadius: 18, alignItems: 'center' },
-    primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
+    primaryBtnText: { color: '#2D2445', fontSize: 18, fontWeight: '900' },
 
     activitySection: { marginTop: 25, marginBottom: 40 },
     activityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
     rolePillActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
-    rolePillTextActive: { color: '#fff' },
+    rolePillTextActive: { color: '#2D2445' },
 });
 
 export default function DefaultDashboard() {

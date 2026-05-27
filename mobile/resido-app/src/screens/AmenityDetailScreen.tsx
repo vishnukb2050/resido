@@ -445,11 +445,11 @@ const styles = StyleSheet.create({
     recTypeBtn: { flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
     recTypeBtnActive: { backgroundColor: '#6366f1' },
     recTypeText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-    recTypeTextActive: { color: '#fff' },
+    recTypeTextActive: { color: '#2D2445' },
 
     bookBtn: { backgroundColor: '#6366f1', borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 10, shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
     bookBtnDisabled: { backgroundColor: '#cbd5e1', shadowOpacity: 0, elevation: 0 },
-    bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    bookBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
 
     // Admin Bookings
     adminSection: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' },

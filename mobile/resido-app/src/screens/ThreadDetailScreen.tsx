@@ -178,7 +178,7 @@ export default function ThreadDetailScreen() {
                     ListHeaderComponent={
                         <View style={styles.threadContent}>
                             <View style={styles.authorSection}>
-                                <Image source={{ uri: thread.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.avatar} />
+                                <Image source={{ uri: resolveMediaUrl(thread.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.avatar} />
                                 <View style={styles.authorMeta}>
                                     <Text style={styles.authorName}>{thread.authorName || 'Anonymous'}</Text>
                                     <Text style={styles.timeText}>{dayjs(thread.createdAt).fromNow()}</Text>
@@ -264,7 +264,7 @@ export default function ThreadDetailScreen() {
                     }
                     renderItem={({ item }) => (
                         <View style={styles.commentItem}>
-                            <Image source={{ uri: item.userAvatar || 'https://i.pravatar.cc/100' }} style={styles.commentAvatar} />
+                            <Image source={{ uri: resolveMediaUrl(item.userAvatar) || 'https://i.pravatar.cc/100' }} style={styles.commentAvatar} />
                             <View style={styles.commentBody}>
                                 <View style={styles.commentHeader}>
                                     <Text style={styles.commentAuthor}>{item.userName || 'User'}</Text>
@@ -321,7 +321,7 @@ export default function ThreadDetailScreen() {
                 />
 
                 <View style={styles.inputWrapper}>
-                    <Image source={{ uri: user?.profilePhoto || 'https://i.pravatar.cc/100' }} style={styles.smallAvatar} />
+                    <Image source={{ uri: resolveMediaUrl(user?.profilePhoto) || 'https://i.pravatar.cc/100' }} style={styles.smallAvatar} />
                     <TouchableOpacity style={styles.commentPlusBtn} onPress={() => setShowPollBuilder(true)}>
                         <Ionicons name="add" size={24} color="#1d4ed8" />
                     </TouchableOpacity>
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     errorText: { fontSize: 16, color: '#94a3b8' },
     backBtn: { marginTop: 20, backgroundColor: '#1d4ed8', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
-    backBtnText: { color: '#fff', fontWeight: '800' },
+    backBtnText: { color: '#2D2445', fontWeight: '800' },
 
     // Poll Styles
     pollContainer: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 16, marginVertical: 15, borderWidth: 1, borderColor: '#f1f5f9' },

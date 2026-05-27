@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
 
     footer: { padding: 24, marginTop: 40, alignItems: 'center' },
     createBtn: { width: '100%', height: 64, borderRadius: 20, backgroundColor: '#8b5cf6', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    createBtnText: { color: '#ffffff', fontSize: 18, fontWeight: '900' },
+    createBtnText: { color: '#2D2445', fontSize: 18, fontWeight: '900' },
     footerSub: { fontSize: 12, color: '#7A6B9C', marginTop: 16, fontWeight: '600' },
     lockRow: { flexDirection: 'row', alignItems: 'center', marginTop: 24, gap: 6 },
     lockText: { fontSize: 10, color: '#5B4B8A', fontWeight: '500' }

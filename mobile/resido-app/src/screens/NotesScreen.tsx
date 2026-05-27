@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
     activeTab: { backgroundColor: '#8b5cf6' },
     tabText: { fontSize: 14, fontWeight: '700', color: '#9A8EBA' },
-    activeTabText: { color: '#ffffff' },
+    activeTabText: { color: '#2D2445' },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

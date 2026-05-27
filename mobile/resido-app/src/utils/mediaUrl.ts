@@ -36,9 +36,21 @@ export function resolveMediaUrl(url?: string | null): string | null {
     if (!url) return null;
     const trimmed = String(url).trim();
     if (!trimmed) return null;
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
     if (/^data:/i.test(trimmed)) return trimmed;
     if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) {
+        return trimmed;
+    }
+    if (/^https?:\/\//i.test(trimmed)) {
+        // Auto-heal legacy URLs that pointed at the auth-only
+        // *.r2.cloudflarestorage.com endpoint (rendered as blank images).
+        // Rewrite to the public R2.dev domain configured via mediaBaseUrl.
+        if (MEDIA_BASE_URL && /\.r2\.cloudflarestorage\.com\//i.test(trimmed)) {
+            // Path looks like: https://<acct>.r2.cloudflarestorage.com/<bucket>/<key>
+            const match = trimmed.match(/r2\.cloudflarestorage\.com\/[^/]+\/(.+)$/i);
+            if (match && match[1]) {
+                return `${MEDIA_BASE_URL}/${match[1]}`;
+            }
+        }
         return trimmed;
     }
     if (!MEDIA_BASE_URL) return trimmed;

@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     blockIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f3e8ff', alignItems: 'center', justifyContent: 'center', marginRight: 15 },
     blockInfo: { flex: 1 },
     blockTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
-    blockTitleActive: { color: '#fff' },
+    blockTitleActive: { color: '#2D2445' },
     blockSub: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
     blockSubActive: { color: '#e2e8f0' },
     
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     membersContainer: { padding: 12, paddingTop: 4, backgroundColor: '#f1f5f9' },
     memberCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
     memberAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#4c1d95', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    memberAvatarText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    memberAvatarText: { color: '#2D2445', fontSize: 14, fontWeight: '800' },
     memberInfo: { flex: 1 },
     memberName: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
     memberPhone: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '500' },

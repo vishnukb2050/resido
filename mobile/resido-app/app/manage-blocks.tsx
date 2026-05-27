@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     addForm: { flexDirection: 'row', gap: 10 },
     input: { flex: 1, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 15, height: 48, fontSize: 14, color: '#1e293b' },
     addBtn: { backgroundColor: '#4c1d95', borderRadius: 12, paddingHorizontal: 20, justifyContent: 'center', alignItems: 'center' },
-    addBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    addBtnText: { color: '#2D2445', fontSize: 14, fontWeight: '700' },
     
     pickerContainer: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 15 },
     pickerTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 48 },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
     chipActive: { backgroundColor: '#4c1d95', borderColor: '#4c1d95' },
     chipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-    chipTextActive: { color: '#fff' },
+    chipTextActive: { color: '#2D2445' },
     
     list: { gap: 12 },
     card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0' },

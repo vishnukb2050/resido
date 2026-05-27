@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     emptyTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445', marginBottom: 8, marginTop: 16 },
     emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', lineHeight: 22, marginBottom: 30 },
     exploreBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    exploreBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 14 },
+    exploreBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
 
     // Search bar
     searchSection: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderLeftWidth: 1, borderRightWidth: 1, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#D4C9E8', marginHorizontal: 16, marginTop: 8, marginBottom: 8, borderRadius: 14, paddingHorizontal: 16, height: 50 },

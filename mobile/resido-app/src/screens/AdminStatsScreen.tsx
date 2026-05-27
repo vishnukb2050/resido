@@ -426,13 +426,13 @@ const styles = StyleSheet.create({
     loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
     loaderText: { color: '#94a3b8', fontSize: 14, fontWeight: '600', marginTop: 16 },
     retryBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 24, backgroundColor: '#6366f1', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    retryBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    retryBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
 
     // Header styling
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20 },
     backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
     headerTitleBox: { flex: 1, marginLeft: 15 },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     headerSubtitle: { fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
     refreshBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
 
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10 },
     activeTab: { backgroundColor: '#6366f1' },
     tabText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    activeTabText: { color: '#fff' },
+    activeTabText: { color: '#2D2445' },
 
     // Content container
     scrollContent: { paddingBottom: 120 },
@@ -450,25 +450,25 @@ const styles = StyleSheet.create({
 
     // Custom circular indicators and cards
     glassCard: { padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    cardTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 15 },
+    cardTitle: { fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 15 },
     circleContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     
     progressCircle: { width: 110, height: 110, borderRadius: 55, borderWidth: 10, borderColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
     progressInnerCircle: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
-    circleValueText: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    circleValueText: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     circleLabelText: { fontSize: 9, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
 
     circleDetails: { flex: 1, marginLeft: 25, gap: 10 },
     detailRow: { flexDirection: 'row', alignItems: 'center' },
     bullet: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
     detailLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600', flex: 1 },
-    detailValue: { fontSize: 12, color: '#fff', fontWeight: '800' },
+    detailValue: { fontSize: 12, color: '#2D2445', fontWeight: '800' },
     detailDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4 },
 
     // Metric cards grid
     gridContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
     gridHalfCard: { width: '48%', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    gridCardValue: { fontSize: 22, fontWeight: '900', color: '#fff', marginTop: 10 },
+    gridCardValue: { fontSize: 22, fontWeight: '900', color: '#2D2445', marginTop: 10 },
     gridCardLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', marginTop: 2 },
 
     // Staff horizontal breakdown bar
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     legendLeft: { flexDirection: 'row', alignItems: 'center' },
     legendText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
     legendRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    legendCount: { fontSize: 12, color: '#fff', fontWeight: '700' },
+    legendCount: { fontSize: 12, color: '#2D2445', fontWeight: '700' },
     legendPercent: { fontSize: 11, color: '#64748b', fontWeight: '700' },
 
     // Outstanding Dues List Table
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     pendingItem: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)', paddingBottom: 12 },
     pendingIconBox: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(245,158,11,0.1)', alignItems: 'center', justifyContent: 'center' },
     pendingInfo: { flex: 1, marginLeft: 12 },
-    pendingUnit: { fontSize: 13, fontWeight: '800', color: '#fff' },
+    pendingUnit: { fontSize: 13, fontWeight: '800', color: '#2D2445' },
     pendingLabel: { fontSize: 10, color: '#64748b', fontWeight: '700', marginTop: 2 },
     pendingAmount: { fontSize: 13, fontWeight: '900', color: '#ef4444' },
 

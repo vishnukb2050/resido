@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     draftBtn: { flex: 1, backgroundColor: '#f5f3ff', padding: 16, borderRadius: 14, alignItems: 'center' },
     draftBtnText: { color: '#1d4ed8', fontWeight: '800', fontSize: 15 },
     publishBtn: { flex: 1.5, backgroundColor: '#1d4ed8', padding: 16, borderRadius: 14, alignItems: 'center', shadowColor: '#1d4ed8', shadowOpacity: 0.25, shadowRadius: 10, elevation: 5 },
-    publishBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    publishBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 15 },
     termsText: { textAlign: 'center', fontSize: 11, color: '#94a3b8', paddingHorizontal: 40, lineHeight: 16 },
     link: { color: '#1d4ed8', fontWeight: '700' },
 });

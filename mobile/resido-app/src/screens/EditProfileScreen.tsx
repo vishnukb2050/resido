@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     prefValue: { fontSize: 13, color: '#9A8EBA', fontWeight: '600' },
 
     saveBtn: { backgroundColor: '#8b5cf6', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 40, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-    saveBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '900' },
+    saveBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '900' },
     deleteBtn: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 12, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)', flexDirection: 'row' },
     deleteBtnText: { color: '#ef4444', fontSize: 16, fontWeight: '800' },
     

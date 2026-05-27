@@ -811,7 +811,7 @@ export default function ServiceSearchScreen() {
                         ) : (
                             <View style={{ padding: 40, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginTop: 10 }}>
                                 <Ionicons name="business-outline" size={48} color="#94a3b8" style={{ marginBottom: 12 }} />
-                                <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 4 }}>No Providers Found</Text>
+                                <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 4 }}>No Providers Found</Text>
                                 <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 18 }}>
                                     No business profiles are currently registered under this category in your selected area.
                                 </Text>
@@ -973,7 +973,7 @@ const styles = StyleSheet.create({
     postJobTitle: { fontSize: 16, fontWeight: '900', color: '#1d4ed8' },
     postJobSubtitle: { fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 18 },
     postJobBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
-    postJobBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+    postJobBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 13 },
 
     dropdownContainer: {
         position: 'absolute',
@@ -1032,12 +1032,12 @@ const styles = StyleSheet.create({
     mapSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#1e293b' },
     mapGpsBtn: { position: 'absolute', right: 15, bottom: 85, backgroundColor: '#fff', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
     mapDoneBtn: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#1d4ed8', height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 8, zIndex: 100 },
-    mapDoneText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    mapDoneText: { color: '#2D2445', fontWeight: '800', fontSize: 15 },
     radiusSelector: { position: 'absolute', right: 15, top: 80, backgroundColor: '#fff', borderRadius: 12, padding: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, zIndex: 100 },
     radiusBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginBottom: 4 },
     radiusBtnActive: { backgroundColor: '#1d4ed8' },
     radiusText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-    radiusTextActive: { color: '#fff' },
+    radiusTextActive: { color: '#2D2445' },
     markerContainer: { alignItems: 'center', justifyContent: 'center' },
     markerCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
     markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 10, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#ef4444', marginTop: -2 },

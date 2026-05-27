@@ -155,5 +155,5 @@ const styles = StyleSheet.create({
     emptyTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445', marginTop: 20 },
     emptySub: { fontSize: 14, color: '#7A6B9C', textAlign: 'center', marginTop: 10, lineHeight: 22 },
     createBtn: { backgroundColor: '#8b5cf6', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, marginTop: 30 },
-    createBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 15 }
+    createBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 15 }
 });

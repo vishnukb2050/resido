@@ -34,7 +34,7 @@ export default function RulesScreen() {
     const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
     const [newRule, setNewRule] = useState({ title: '', description: '', category: 'General' });
     const [audience, setAudience] = useState<Record<string, boolean>>({
-        MEMBERS: true, RESIDENTS: true, STAFF: false,
+        MEMBERS: false, RESIDENTS: false, STAFF: false,
     });
 
     const fetchRules = useCallback(async (silent = false) => {
@@ -83,7 +83,7 @@ export default function RulesScreen() {
         setEditingId(null);
         setExistingPhotoUrl(null);
         setNewRule({ title: '', description: '', category: 'General' });
-        setAudience({ MEMBERS: true, RESIDENTS: true, STAFF: false });
+        setAudience({ MEMBERS: false, RESIDENTS: false, STAFF: false });
         setPhotoUri(null);
     };
 
@@ -103,6 +103,13 @@ export default function RulesScreen() {
     };
 
     const handleSubmit = async () => {
+        if (!activeWorkspace?.tenantId) {
+            Alert.alert(
+                'Community required',
+                'Open your community workspace from the top switcher, then create a rule.',
+            );
+            return;
+        }
         if (!newRule.title.trim() || !newRule.description.trim()) {
             Alert.alert('Required', 'Please enter a title and description.');
             return;
@@ -164,7 +171,15 @@ export default function RulesScreen() {
                     : 'Rule has been shared with the selected roles.',
             );
         } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message || 'Failed to save rule.');
+            const status = e?.response?.status;
+            const serverMsg =
+                e?.response?.data?.message ||
+                (Array.isArray(e?.response?.data?.message)
+                    ? e.response.data.message.join(', ')
+                    : null) ||
+                e?.response?.data?.error;
+            const reason = serverMsg || e?.message || 'Failed to save rule.';
+            Alert.alert('Save failed', `${reason}${status ? ` (HTTP ${status})` : ''}`);
         } finally {
             setSubmitting(false);
         }
@@ -368,8 +383,11 @@ export default function RulesScreen() {
                                 </TouchableOpacity>
                             )}
 
-                            <Text style={styles.fieldLabel}>Share With</Text>
-                            <Text style={styles.fieldHint}>Only selected roles can view this rule.</Text>
+                            <Text style={styles.fieldLabel}>Share With *</Text>
+                            <Text style={styles.fieldHint}>
+                                Pick at least one role. Only ticked roles will see this rule —
+                                others in the community won&apos;t.
+                            </Text>
                             {AUDIENCE_OPTIONS.map((opt) => (
                                 <TouchableOpacity
                                     key={opt.key}
@@ -450,7 +468,7 @@ const styles = StyleSheet.create({
     cancelBtn: { flex: 1, padding: 18, alignItems: 'center' },
     cancelText: { color: '#7A6B9C', fontWeight: '700' },
     submitBtn: { flex: 2, backgroundColor: '#f59e0b', borderRadius: 16, padding: 18, alignItems: 'center' },
-    submitText: { color: '#ffffff', fontWeight: '900' },
+    submitText: { color: '#2D2445', fontWeight: '900' },
 
     fieldLabel: { fontSize: 12, color: '#9A8EBA', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 16 },
     fieldHint: { fontSize: 11, color: '#7A6B9C', fontWeight: '600', marginBottom: 10 },

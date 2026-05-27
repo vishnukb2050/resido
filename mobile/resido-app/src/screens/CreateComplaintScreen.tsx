@@ -211,5 +211,5 @@ const styles = StyleSheet.create({
     photoPreview: { width: '100%', height: '100%' },
     removePhotoBtn: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(239, 68, 68, 0.85)', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     submitBtn: { backgroundColor: '#8b5cf6', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
-    submitText: { color: '#ffffff', fontWeight: '900', fontSize: 16 }
+    submitText: { color: '#2D2445', fontWeight: '900', fontSize: 16 }
 });

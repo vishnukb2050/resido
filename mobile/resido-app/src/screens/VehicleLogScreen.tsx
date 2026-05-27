@@ -261,16 +261,16 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 15 },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
     
     filterBar: { paddingHorizontal: 20, marginBottom: 15 },
     dateFilters: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
     filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-    filterText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    filterText: { color: '#2D2445', fontSize: 13, fontWeight: '700' },
     
     searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', marginHorizontal: 20, paddingHorizontal: 15, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', marginBottom: 15 },
     searchIcon: { marginRight: 10 },
-    searchInput: { flex: 1, height: 50, color: '#fff', fontSize: 14, fontWeight: '600' },
+    searchInput: { flex: 1, height: 50, color: '#2D2445', fontSize: 14, fontWeight: '600' },
 
     listContent: { paddingHorizontal: 20, paddingBottom: 40 },
     entryCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 20, marginBottom: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
@@ -283,11 +283,11 @@ const styles = StyleSheet.create({
     plateText: { color: '#f8fafc', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
     
     entryInfo: { flex: 1, marginLeft: 16 },
-    destinationText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+    destinationText: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     visitorName: { fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
     
     timeBox: { alignItems: 'flex-end' },
-    timeText: { fontSize: 14, fontWeight: '800', color: '#fff' },
+    timeText: { fontSize: 14, fontWeight: '800', color: '#2D2445' },
     statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
     statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 5 },
     statusText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
@@ -301,6 +301,6 @@ const styles = StyleSheet.create({
     detailDesc: { fontSize: 13, color: '#cbd5e1', marginTop: 4, lineHeight: 18 },
     
     emptyState: { alignItems: 'center', marginTop: 80, paddingHorizontal: 40 },
-    emptyTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 15 },
+    emptyTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445', marginTop: 15 },
     emptySub: { fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 8 },
 });

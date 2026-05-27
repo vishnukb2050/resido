@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     headerRight: { width: 80, alignItems: 'flex-end' },
     publishBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
-    publishText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    publishText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
 
     scrollContent: { padding: 20 },
     
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     videoPreviewContainer: { flex: 1 },
     videoThumbnail: { width: '100%', height: '100%' },
     videoOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
-    changeVideoText: { color: '#fff', fontWeight: '800', marginTop: 8 },
+    changeVideoText: { color: '#2D2445', fontWeight: '800', marginTop: 8 },
     previewPlayBtn: { 
         position: 'absolute', 
         bottom: 20, 
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8, 
         borderRadius: 12 
     },
-    previewBtnText: { color: '#fff', fontWeight: '700', marginLeft: 8 },
+    previewBtnText: { color: '#2D2445', fontWeight: '700', marginLeft: 8 },
     
     emptyVideo: { alignItems: 'center' },
     videoIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#f5f3ff', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     musicIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
     musicName: { color: '#1e293b', fontSize: 14, fontWeight: '800', marginBottom: 4 },
     artistName: { color: '#94a3b8', fontSize: 12, fontWeight: '500' },
-    activeMusicText: { color: '#fff' },
+    activeMusicText: { color: '#2D2445' },
     activeArtistText: { color: 'rgba(255,255,255,0.8)' },
 
     settingsContainer: { 
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     fullPreview: { flex: 1 },
     closePreview: { position: 'absolute', top: 50, right: 20 },
     previewInfo: { position: 'absolute', bottom: 40, left: 20 },
-    previewTitle: { color: '#fff', fontSize: 24, fontWeight: '900' },
+    previewTitle: { color: '#2D2445', fontSize: 24, fontWeight: '900' },
     previewSub: { color: 'rgba(255,255,255,0.7)', fontSize: 16, marginTop: 5 },
 
     pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     pickerItemName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
     pickerItemCat: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
     pickerClose: { marginTop: 12, backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-    pickerCloseText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    pickerCloseText: { color: '#2D2445', fontSize: 15, fontWeight: '800' },
 
     uploadModalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
     uploadCard: { width: width * 0.85, backgroundColor: '#fff', borderRadius: 32, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },

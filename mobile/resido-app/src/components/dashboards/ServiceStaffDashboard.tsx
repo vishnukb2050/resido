@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     wsBubbleImgBoxActive: { width: 75, height: 75, borderRadius: 37.5, borderColor: '#fff' },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 40 },
     wsBubbleLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '800', marginTop: 8 },
-    wsBubbleLabelActive: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    wsBubbleLabelActive: { color: '#2D2445', fontSize: 11, fontWeight: '900' },
 
     // Quick Icon Grid
     gridContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 25 },
@@ -254,12 +254,12 @@ const styles = StyleSheet.create({
     featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     featureCard: { width: '48%', height: 100, borderRadius: 20, padding: 15, justifyContent: 'space-between' },
     fCardHeader: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
-    fCardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    fCardTitle: { color: '#2D2445', fontSize: 13, fontWeight: '800' },
 
     // Role Switcher
     roleSwitcherRow: { marginBottom: 15 },
     rolePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
     rolePillActive: { backgroundColor: '#ea580c', borderColor: '#ea580c' },
     rolePillText: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
-    rolePillTextActive: { color: '#fff' },
+    rolePillTextActive: { color: '#2D2445' },
 });

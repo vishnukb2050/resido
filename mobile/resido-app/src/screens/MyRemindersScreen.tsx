@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 12 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900' },
+    headerTitle: { color: '#2D2445', fontSize: 20, fontWeight: '900' },
     headerSubtitle: { color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 2 },
 
     content: { padding: 16, paddingBottom: 80 },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     card: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 20, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
     iconBox: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(251, 191, 36, 0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(251, 191, 36, 0.3)' },
-    cardTitle: { color: '#fff', fontWeight: '900', fontSize: 15 },
+    cardTitle: { color: '#2D2445', fontWeight: '900', fontSize: 15 },
     cardCategory: { color: '#94a3b8', fontSize: 11, fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
     statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
     statusPillText: { fontSize: 10, fontWeight: '900' },
@@ -190,6 +190,6 @@ const styles = StyleSheet.create({
     metaText: { color: '#94a3b8', fontSize: 11, fontWeight: '700' },
 
     empty: { alignItems: 'center', marginTop: 80, paddingHorizontal: 30 },
-    emptyTitle: { color: '#fff', fontWeight: '800', fontSize: 16, marginTop: 16 },
+    emptyTitle: { color: '#2D2445', fontWeight: '800', fontSize: 16, marginTop: 16 },
     emptyText: { color: '#64748b', textAlign: 'center', marginTop: 6, fontSize: 12, fontWeight: '600' },
 });

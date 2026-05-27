@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
     errorContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
     errorTitle: { color: '#2D2445', fontSize: 18, fontWeight: '800', marginTop: 16, marginBottom: 24 },
     backBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-    backBtnText: { color: '#ffffff', fontWeight: '800' },
+    backBtnText: { color: '#2D2445', fontWeight: '800' },
 
     // Navbar
     navBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
@@ -784,9 +784,9 @@ const styles = StyleSheet.create({
     placeholderCoverText: { color: '#a084ca', fontSize: 18, fontWeight: '900', marginTop: 8 },
     heroOverlay: { position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', gap: 10 },
     categoryBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#8b5cf6' },
-    categoryBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+    categoryBadgeText: { color: '#2D2445', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
     verifiedBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#10b981', flexDirection: 'row', alignItems: 'center', gap: 4 },
-    verifiedText: { color: '#ffffff', fontSize: 12, fontWeight: '900' },
+    verifiedText: { color: '#2D2445', fontSize: 12, fontWeight: '900' },
 
     // Info section
     infoSection: { padding: 20, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     topBookBtnText: {
-        color: '#ffffff',
+        color: '#2D2445',
         fontSize: 15,
         fontWeight: '900',
         textTransform: 'uppercase',
@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
     maxGuestText: { color: '#7A6B9C', fontSize: 12, fontWeight: '700', marginLeft: 10 },
 
     bookingConfirmBtn: { backgroundColor: '#8b5cf6', paddingVertical: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-    bookingConfirmBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
+    bookingConfirmBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
 
     // Modal 2 success screen styles
     successBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' },
@@ -889,5 +889,5 @@ const styles = StyleSheet.create({
     successTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445', marginBottom: 12 },
     successSub: { fontSize: 15, color: '#9A8EBA', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
     successDoneBtn: { width: '100%', backgroundColor: '#10b981', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-    successDoneBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '800' }
+    successDoneBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' }
 });

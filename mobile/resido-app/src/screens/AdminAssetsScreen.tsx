@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 20 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scrollContent: { paddingHorizontal: 20, paddingBottom: 50 },
 
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
 
     metricsRow: { flexDirection: 'row', backgroundColor: '#2E3A42', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 15 },
     metricItem: { flex: 1, alignItems: 'center' },
-    metricVal: { fontSize: 20, fontWeight: '900', color: '#fff' },
+    metricVal: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
     metricLabel: { color: '#cbd5e1', fontSize: 10, fontWeight: '700', marginTop: 4 },
     verticalDivider: { width: 1, height: 35, backgroundColor: 'rgba(255,255,255,0.1)' },
 
@@ -640,9 +640,9 @@ const styles = StyleSheet.create({
     categoryTab: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)' },
     categoryTabActive: { backgroundColor: '#d97706' },
     categoryTabText: { color: '#cbd5e1', fontSize: 11, fontWeight: '800' },
-    categoryTabTextActive: { color: '#fff' },
+    categoryTabTextActive: { color: '#2D2445' },
 
-    sectionTitle: { fontSize: 15, fontWeight: '900', color: '#fff', marginBottom: 15 },
+    sectionTitle: { fontSize: 15, fontWeight: '900', color: '#2D2445', marginBottom: 15 },
     emptyCard: { backgroundColor: '#2E3A42', padding: 30, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     emptyText: { color: '#cbd5e1', fontSize: 13, fontWeight: '700', marginTop: 12, textAlign: 'center' },
 
@@ -650,15 +650,15 @@ const styles = StyleSheet.create({
     assetImage: { width: '100%', height: 150, resizeMode: 'cover' },
     assetCardBody: { padding: 20 },
     cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 },
-    assetName: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    assetName: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
     assetCategory: { color: '#94a3b8', fontSize: 11, fontWeight: '700', marginTop: 2 },
     statusBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1 },
-    statusBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+    statusBadgeText: { color: '#2D2445', fontSize: 10, fontWeight: '900' },
 
     paramsGrid: { gap: 10, marginBottom: 15 },
     detailRow: { flexDirection: 'row', alignItems: 'center' },
     detailLabel: { color: '#cbd5e1', fontSize: 11, fontWeight: '700' },
-    detailValue: { color: '#fff', fontSize: 12, fontWeight: '700', flex: 1 },
+    detailValue: { color: '#2D2445', fontSize: 12, fontWeight: '700', flex: 1 },
 
     assetDescription: { color: '#94a3b8', fontSize: 12, lineHeight: 18, fontWeight: '600', marginBottom: 15, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', paddingTop: 10 },
 
@@ -669,35 +669,35 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#2E3A42', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: '85%' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
     modalSub: { fontSize: 13, color: '#cbd5e1', marginBottom: 15, fontWeight: '700' },
 
     statusOptionBtn: { height: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
     statusOptionActive: { backgroundColor: '#d97706' },
     statusOptionText: { color: '#cbd5e1', fontSize: 13, fontWeight: '800' },
-    statusOptionTextActive: { color: '#fff', fontWeight: '900' },
+    statusOptionTextActive: { color: '#2D2445', fontWeight: '900' },
 
     inputLabel: { fontSize: 11, fontWeight: '800', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginTop: 15 },
     methodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
     methodBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)' },
     methodBtnActive: { backgroundColor: '#d97706' },
     methodBtnText: { color: '#cbd5e1', fontSize: 11, fontWeight: '800' },
-    methodBtnTextActive: { color: '#fff' },
+    methodBtnTextActive: { color: '#2D2445' },
 
     photoPicker: { height: 120, borderRadius: 16, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     photoPreview: { width: '100%', height: '100%' },
     photoPickerText: { fontSize: 12, color: '#cbd5e1', marginTop: 8, fontWeight: '600' },
 
-    textInput: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 16, fontSize: 15, fontWeight: '600', marginBottom: 5 },
+    textInput: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 16, fontSize: 15, fontWeight: '600', marginBottom: 5 },
     textInputSelector: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 16, marginBottom: 5, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    selectorText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+    selectorText: { color: '#2D2445', fontSize: 15, fontWeight: '600' },
     billPicker: { padding: 16, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.02)', marginBottom: 5 },
     billPickerText: { fontSize: 13, color: '#cbd5e1', fontWeight: '700' },
-    billPickerName: { fontSize: 14, color: '#fff', fontWeight: '800' },
+    billPickerName: { fontSize: 14, color: '#2D2445', fontWeight: '800' },
     billPickerSub: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '600' },
     billRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.15)', marginTop: 8 },
     billLabel: { color: '#cbd5e1', fontSize: 11, fontWeight: '700', flex: 1 },
     billValue: { color: '#10b981', fontSize: 12, fontWeight: '800' },
     submitBtn: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 25 },
-    submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' }
+    submitBtnText: { color: '#2D2445', fontSize: 14, fontWeight: '900' }
 });

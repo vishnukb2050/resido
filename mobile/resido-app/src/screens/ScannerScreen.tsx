@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     headerTitle: { color: '#1e293b', fontSize: 18, fontWeight: '900' },
     errorText: { marginTop: 20, textAlign: 'center', color: '#64748b', fontSize: 16, marginBottom: 20, fontWeight: '500' },
     primaryBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, marginBottom: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
-    primaryBtnText: { color: '#fff', fontWeight: '800' },
+    primaryBtnText: { color: '#2D2445', fontWeight: '800' },
     backBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12 },
     backBtnText: { color: '#475569', fontWeight: '800' },
 
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     unfocusedContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
     middleContainer: { flexDirection: 'row', height: 250 },
     focusedContainer: { width: 250, position: 'relative' },
-    hint: { color: '#fff', fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 20 },
+    hint: { color: '#2D2445', fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 20 },
 
     cornerTopLeft: { position: 'absolute', top: 0, left: 0, width: 40, height: 40, borderTopWidth: 4, borderLeftWidth: 4, borderColor: '#1d4ed8' },
     cornerTopRight: { position: 'absolute', top: 0, right: 0, width: 40, height: 40, borderTopWidth: 4, borderRightWidth: 4, borderColor: '#1d4ed8' },

@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     sheetTitle: {
-        color: '#fff',
+        color: '#2D2445',
         fontSize: 16,
         fontWeight: '700',
         textAlign: 'center',
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     commentUser: {
-        color: '#fff',
+        color: '#2D2445',
         fontSize: 13,
         fontWeight: '700',
     },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     commentText: {
-        color: '#fff',
+        color: '#2D2445',
         fontSize: 14,
         lineHeight: 18,
     },
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
-        color: '#fff',
+        color: '#2D2445',
         fontSize: 14,
         maxHeight: 100,
     },
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     // Poll Styles (Dark)
     plusBtn: { marginRight: 5, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
     pollContainer: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 12, marginVertical: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    pollQuestion: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 10 },
+    pollQuestion: { fontSize: 14, fontWeight: '800', color: '#2D2445', marginBottom: 10 },
     pollOption: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 8, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     pollOptionSelected: { borderColor: '#1d4ed8', backgroundColor: 'rgba(37, 99, 235, 0.1)' },
     pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(37, 99, 235, 0.2)' },

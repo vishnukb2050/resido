@@ -356,5 +356,5 @@ const styles = StyleSheet.create({
     dropdownItemText: { color: '#9A8EBA', fontSize: 15, fontWeight: '600' },
     selectedItemText: { color: '#10b981' },
     submitBtn: { backgroundColor: '#10b981', borderRadius: 22, padding: 22, alignItems: 'center', marginTop: 10, shadowColor: '#10b981', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 },
-    submitText: { color: '#ffffff', fontWeight: '900', fontSize: 16 }
+    submitText: { color: '#2D2445', fontWeight: '900', fontSize: 16 }
 });

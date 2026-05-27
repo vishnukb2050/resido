@@ -48,7 +48,7 @@
             },
             "apiUrl": "https://residoapp.com/api",
             "socketUrl": "https://residoapp.com",
-            "mediaBaseUrl": "https://residoapp.com/media"
+            "mediaBaseUrl": "https://pub-b77673bc094543898e426855c275bb56.r2.dev"
         }
     }
 }

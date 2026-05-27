@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
     cardLabel: { fontSize: 11, color: '#7A6B9C', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
     input: { borderRadius: 12, padding: 16, fontSize: 16, color: '#2D2445', fontWeight: '600', borderWidth: 1, borderColor: '#D4C9E8', marginBottom: 16 },
     saveBtn: { borderRadius: 12, padding: 18, alignItems: 'center', justifyContent: 'center' },
-    saveBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 16 },
+    saveBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 16 },
     staffHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
     addStaffBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
     addStaffBtnText: { fontSize: 12, fontWeight: '700' },

@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     phone: { fontSize: 12, color: '#64748b', fontWeight: '600' },
     chatBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
     inviteBtn: { borderWidth: 1, borderColor: '#1d4ed8', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-    btnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    btnText: { color: '#2D2445', fontSize: 13, fontWeight: '800' },
     inviteText: { color: '#1d4ed8', fontSize: 13, fontWeight: '800' },
     empty: { textAlign: 'center', color: '#94a3b8', marginTop: 48, fontSize: 15, fontWeight: '600' },
     globalBadge: { fontSize: 10, color: '#1d4ed8', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' },

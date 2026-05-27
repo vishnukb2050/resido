@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     tab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#f1f5f9' },
     tabActive: { backgroundColor: '#1d4ed8' },
     tabText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    tabTextActive: { color: '#fff' },
+    tabTextActive: { color: '#2D2445' },
 
     searchSection: { paddingHorizontal: 20, marginTop: 15 },
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 12, height: 44, borderWidth: 1, borderColor: '#f1f5f9' },

@@ -309,5 +309,5 @@ const styles = StyleSheet.create({
     cancelBtn: { flex: 1, padding: 18, alignItems: 'center' },
     cancelText: { color: '#7A6B9C', fontWeight: '700' },
     submitBtn: { flex: 2, backgroundColor: '#8b5cf6', borderRadius: 16, padding: 18, alignItems: 'center' },
-    submitText: { color: '#ffffff', fontWeight: '900' }
+    submitText: { color: '#2D2445', fontWeight: '900' }
 });

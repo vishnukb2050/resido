@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     publishBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-    publishBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    publishBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
     body: { padding: 20 },
     label: { fontSize: 14, fontWeight: '800', color: '#64748b', marginBottom: 10, marginTop: 10 },
     questionInput: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 15, fontSize: 16, color: '#1e293b', minHeight: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: '#f1f5f9' },

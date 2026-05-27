@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#4C5C68' },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 12 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 17, fontWeight: '900', color: '#fff' },
+    headerTitle: { fontSize: 17, fontWeight: '900', color: '#2D2445' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scrollContent: { paddingHorizontal: 20, paddingBottom: 50 },
 
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
 
     periodCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#2E3A42', padding: 16, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     periodArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    periodText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    periodText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
 
     statsContainer: { flexDirection: 'row', backgroundColor: '#2E3A42', padding: 22, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 20 },
     statBox: { flex: 1, alignItems: 'center' },
@@ -839,21 +839,21 @@ const styles = StyleSheet.create({
     progressFill: { height: '100%', backgroundColor: '#10b981', borderRadius: 4 },
 
     runGenBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0ea5e9', padding: 16, borderRadius: 18, marginBottom: 20 },
-    runGenText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    runGenText: { color: '#2D2445', fontSize: 13, fontWeight: '800' },
 
     tabRow: { flexDirection: 'row', backgroundColor: '#2E3A42', padding: 5, borderRadius: 14, marginBottom: 16 },
     tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
     tabBtnActive: { backgroundColor: 'rgba(255,255,255,0.08)' },
     tabBtnText: { color: '#94a3b8', fontSize: 10, fontWeight: '800' },
-    tabBtnTextActive: { color: '#fff' },
+    tabBtnTextActive: { color: '#2D2445' },
 
     emptyText: { color: '#cbd5e1', fontSize: 12, fontWeight: '600', textAlign: 'center', marginVertical: 20 },
 
     billItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2E3A42', padding: 16, borderRadius: 20, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     billLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-    unitNum: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    unitNum: { color: '#2D2445', fontSize: 14, fontWeight: '800' },
     residentName: { color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginTop: 2 },
-    amountText: { fontSize: 14, fontWeight: '800', color: '#fff' },
+    amountText: { fontSize: 14, fontWeight: '800', color: '#2D2445' },
     verifyBtnText: { color: '#0ea5e9', fontSize: 10, fontWeight: '800', marginTop: 4 },
     amountPaidTag: { color: '#38bdf8', fontSize: 10, fontWeight: '700', marginTop: 2 },
     adminNoteTag: { color: '#94a3b8', fontSize: 10, fontStyle: 'italic', marginTop: 2 },
@@ -861,23 +861,23 @@ const styles = StyleSheet.create({
 
     splitCard: { backgroundColor: '#2E3A42', borderRadius: 22, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
     splitHeader: { flexDirection: 'row', padding: 18, alignItems: 'flex-start' },
-    splitTitle: { color: '#fff', fontSize: 15, fontWeight: '900' },
+    splitTitle: { color: '#2D2445', fontSize: 15, fontWeight: '900' },
     splitDesc: { color: '#94a3b8', fontSize: 12, marginTop: 4 },
     splitMeta: { color: '#64748b', fontSize: 11, fontWeight: '700', marginTop: 6 },
     splitShares: { paddingHorizontal: 12, paddingBottom: 12 },
-    globalSplitTitle: { color: '#fff', fontSize: 14, fontWeight: '900', marginBottom: 12, marginTop: 8 },
+    globalSplitTitle: { color: '#2D2445', fontSize: 14, fontWeight: '900', marginBottom: 12, marginTop: 8 },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#2E3A42', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: '88%' },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
 
     inputLabel: { fontSize: 11, fontWeight: '800', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginTop: 12 },
     methodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
     methodBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)' },
     methodBtnActive: { backgroundColor: '#0ea5e9' },
     methodBtnText: { color: '#cbd5e1', fontSize: 11, fontWeight: '700' },
-    methodBtnTextActive: { color: '#fff', fontWeight: '800' },
+    methodBtnTextActive: { color: '#2D2445', fontWeight: '800' },
 
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
     chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
@@ -885,19 +885,19 @@ const styles = StyleSheet.create({
     chipText: { color: '#94a3b8', fontSize: 12, fontWeight: '700' },
     chipTextActive: { color: '#38bdf8' },
 
-    textInput: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 14, fontSize: 14, fontWeight: '600', marginBottom: 8 },
+    textInput: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 14, fontSize: 14, fontWeight: '600', marginBottom: 8 },
     submitBtn: { backgroundColor: '#0ea5e9', height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 10 },
-    submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+    submitBtnText: { color: '#2D2445', fontSize: 14, fontWeight: '900' },
     genModalSub: { color: '#cbd5e1', fontSize: 13, lineHeight: 20, fontWeight: '600', marginBottom: 20 },
     splitPreview: { color: '#38bdf8', fontSize: 12, fontWeight: '700', marginTop: 8, marginBottom: 4 },
 
     verifyDetailBox: { backgroundColor: 'rgba(255,255,255,0.02)', padding: 18, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 16 },
     verifyTextLabel: { fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-    verifyTextVal: { fontSize: 14, color: '#fff', fontWeight: '700', marginBottom: 12 },
+    verifyTextVal: { fontSize: 14, color: '#2D2445', fontWeight: '700', marginBottom: 12 },
     unitResidentLine: { fontSize: 12, color: '#cbd5e1', fontWeight: '600', marginBottom: 4 },
     verifyReceiptPreview: { width: '100%', height: 200, borderRadius: 16, marginBottom: 16, resizeMode: 'contain' },
 
     decisionRow: { flexDirection: 'row', gap: 15, marginTop: 20, marginBottom: 10 },
     decisionBtn: { flex: 1, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    decisionBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+    decisionBtnText: { color: '#2D2445', fontSize: 14, fontWeight: '900' },
 });

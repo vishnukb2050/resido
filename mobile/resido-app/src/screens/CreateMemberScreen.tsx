@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     roleChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e2e8f0' },
     roleChipActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     roleChipText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-    roleChipTextActive: { color: '#fff' },
+    roleChipTextActive: { color: '#2D2445' },
     
     chipContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 5 },
     emptyText: { color: '#94a3b8', fontSize: 14, fontWeight: '600', fontStyle: 'italic', padding: 5 },
@@ -410,5 +410,5 @@ const styles = StyleSheet.create({
     avatarHint: { marginTop: 8, fontSize: 13, fontWeight: '600', color: '#64748b' },
 
     submitBtn: { backgroundColor: '#1d4ed8', padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
-    submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    submitBtnText: { color: '#2D2445', fontSize: 16, fontWeight: '800' },
 });
