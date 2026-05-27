@@ -11,9 +11,18 @@ interface BottomNavProps {
 
 export default function BottomNav({ activeTab }: BottomNavProps) {
     const router = useRouter();
-    const { user, activeWorkspace } = useAuthStore();
+    const { user, activeWorkspace, setActiveWorkspace, token } = useAuthStore();
     const isMySpace = activeWorkspace === null;
     const [imageKey, setImageKey] = useState(Date.now());
+
+    // Tapping Home always returns the user to the personal MySpace view,
+    // even if they were inside a community workspace.
+    const goToMySpace = () => {
+        if (activeWorkspace !== null) {
+            setActiveWorkspace(null as any, token || '');
+        }
+        router.push('/');
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -38,7 +47,7 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
                 icon={activeTab === 'Home' ? 'home' : 'home-outline'} 
                 label="Home" 
                 active={activeTab === 'Home'} 
-                onPress={() => router.push('/')}
+                onPress={goToMySpace}
                 theme={themeStyles}
             />
             <NavItem 

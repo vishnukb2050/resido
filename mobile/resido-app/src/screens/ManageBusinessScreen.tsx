@@ -195,7 +195,15 @@ export default function ManageBusinessScreen() {
                                     <Ionicons name="time" size={16} color="#ffffff" style={{ marginRight: 6 }} />
                                     <Text style={styles.manageSlotsBtnText}>Manage Booking Slots</Text>
                                 </TouchableOpacity>
-                                
+
+                                <TouchableOpacity
+                                    style={styles.manageBookingsBtn}
+                                    onPress={() => router.push({ pathname: '/business-bookings-manage', params: { profileId: profile.id } })}
+                                >
+                                    <Ionicons name="people" size={16} color="#8b5cf6" style={{ marginRight: 6 }} />
+                                    <Text style={styles.manageBookingsBtnText}>Manage Bookings</Text>
+                                </TouchableOpacity>
+
                                 <View style={styles.statsRow}>
                                     <View style={styles.statBox}>
                                         <Text style={styles.statValue}>{profile.services?.length || 0}</Text>
@@ -363,19 +371,24 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
 
+    // Secondary "Manage Bookings" tab — lower visual weight than the
+    // primary purple "Manage Booking Slots" CTA above it.
     manageBookingsBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#8b5cf6',
+        backgroundColor: '#F4EEFC',
         borderRadius: 12,
-        paddingVertical: 10,
-        marginBottom: 16,
+        paddingVertical: 12,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#D4C9E8',
     },
     manageBookingsBtnText: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '800',
-        color: '#2D2445',
+        color: '#8b5cf6',
+        letterSpacing: 0.3,
     },
 
     addAnotherCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(37, 99, 235, 0.3)', marginTop: 8 },
