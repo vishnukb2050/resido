@@ -478,7 +478,7 @@ export default function DefaultDashboard() {
                                         {activeWorkspace ? (activeWorkspace as any).tenantName : "Resido"}
                                     </Text>
                                     <Text style={[styles.psBrandTaglineText, { color: mySpaceSubText }]}>
-                                        {activeWorkspace ? (activeWorkspace as any).role : "PERSONAL SPACE"}
+                                        {activeWorkspace ? (activeWorkspace as any).role : "Smart Living starts here"}
                                     </Text>
                                 </View>
                             </View>
