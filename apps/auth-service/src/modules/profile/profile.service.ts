@@ -4,14 +4,145 @@ import { StorageService } from '../storage/storage.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
+/** Canonical district labels for GPS consensus voting (must match business-service aliases). */
+const DISTRICT_CANONICAL: Record<string, string> = {
+    trivandrum: 'Thiruvananthapuram',
+    thiruvananthapuram: 'Thiruvananthapuram',
+    ernakulam: 'Ernakulam',
+    kochi: 'Ernakulam',
+    cochin: 'Ernakulam',
+    kozhikode: 'Kozhikode',
+    calicut: 'Kozhikode',
+    kollam: 'Kollam',
+    quilon: 'Kollam',
+    alappuzha: 'Alappuzha',
+    alleppey: 'Alappuzha',
+    palakkad: 'Palakkad',
+    palghat: 'Palakkad',
+    kannur: 'Kannur',
+    cannanore: 'Kannur',
+    bengaluru: 'Bengaluru',
+    bangalore: 'Bengaluru',
+    mysuru: 'Mysuru',
+    mysore: 'Mysuru',
+    mangaluru: 'Mangaluru',
+    mangalore: 'Mangaluru',
+    chennai: 'Chennai',
+    madras: 'Chennai',
+};
+
+type ReverseGeoNeighbor = {
+    id: string;
+    placeName: string;
+    pincode: string;
+    district: string;
+    state: string;
+    latitude: number;
+    longitude: number;
+    distance_m: number;
+};
+
 @Injectable()
 export class ProfileService implements OnModuleInit {
     private readonly logger = new Logger(ProfileService.name);
+
+    /** Only consider pincode centroids within this radius (metres). */
+    private static readonly REVERSE_GEO_MAX_M = 20_000;
+    private static readonly REVERSE_GEO_LIMIT = 15;
+    /** Prefer consensus among neighbors inside this tighter band. */
+    private static readonly REVERSE_GEO_CONSENSUS_M = 12_000;
 
     constructor(
         private prisma: PrismaService,
         private storageService: StorageService
     ) { }
+
+    private canonicalDistrictKey(district: string): string {
+        const trimmed = (district || '').trim();
+        if (!trimmed) return '';
+        const alias = DISTRICT_CANONICAL[trimmed.toLowerCase()];
+        return alias || trimmed;
+    }
+
+    /**
+     * Pick district/state from several nearby pincodes instead of trusting
+     * only the single closest row (which often sits across a district line).
+     */
+    private resolveAdminFromNeighbors(neighbors: ReverseGeoNeighbor[]): { district: string; state: string } | null {
+        if (!neighbors.length) return null;
+
+        const withinBand = neighbors.filter((n) => n.distance_m <= ProfileService.REVERSE_GEO_CONSENSUS_M);
+        const pool = withinBand.length >= 3 ? withinBand : neighbors.slice(0, Math.min(8, neighbors.length));
+
+        const scores = new Map<string, { score: number; district: string; state: string; minDist: number }>();
+
+        for (const row of pool) {
+            const districtLabel = (row.district || '').trim();
+            const stateLabel = (row.state || '').trim();
+            if (!districtLabel || !stateLabel) continue;
+
+            const canon = this.canonicalDistrictKey(districtLabel);
+            const bucketKey = `${canon.toLowerCase()}|${stateLabel.toLowerCase()}`;
+            const weight = 1 / (row.distance_m + 500);
+            const prev = scores.get(bucketKey) || {
+                score: 0,
+                district: districtLabel,
+                state: stateLabel,
+                minDist: row.distance_m,
+            };
+            prev.score += weight;
+            if (row.distance_m < prev.minDist) {
+                prev.minDist = row.distance_m;
+                prev.district = districtLabel;
+                prev.state = stateLabel;
+            }
+            scores.set(bucketKey, prev);
+        }
+
+        let best: { score: number; district: string; state: string } | null = null;
+        for (const entry of scores.values()) {
+            if (!best || entry.score > best.score) {
+                best = { score: entry.score, district: entry.district, state: entry.state };
+            }
+        }
+
+        return best ? { district: best.district, state: best.state } : null;
+    }
+
+    private async queryReverseGeoNeighbors(lat: number, lng: number, useRadiusFilter: boolean): Promise<ReverseGeoNeighbor[]> {
+        const maxM = ProfileService.REVERSE_GEO_MAX_M;
+        const limit = ProfileService.REVERSE_GEO_LIMIT;
+        const radiusClause = useRadiusFilter
+            ? `AND ST_DWithin(
+                ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+                ${maxM}
+            )`
+            : '';
+
+        const sql = `
+            SELECT
+                id,
+                "placeName",
+                pincode,
+                district,
+                state,
+                latitude,
+                longitude,
+                ST_Distance(
+                    ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
+                    ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+                ) AS distance_m
+            FROM location_master
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            ${radiusClause}
+            ORDER BY distance_m
+            LIMIT ${limit}
+        `;
+
+        const rows = await this.prisma.geoRead.$queryRawUnsafe(sql);
+        return Array.isArray(rows) ? (rows as ReverseGeoNeighbor[]) : [];
+    }
 
     async onModuleInit() {
         // Run ingestion in background to not block startup
@@ -429,21 +560,49 @@ export class ProfileService implements OnModuleInit {
     }
 
     async reverseGeocode(lat: number, lng: number) {
-        // Find nearest location in our local database
-        const localMatch = await this.prisma.geoRead.$queryRawUnsafe(`
-            SELECT * FROM location_master
-            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-            ORDER BY ST_Distance(
-                ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
-                ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
-            )
-            LIMIT 1
-        `);
-
-        if (localMatch && Array.isArray(localMatch) && localMatch.length > 0) {
-            return localMatch[0];
+        const safeLat = Number(lat);
+        const safeLng = Number(lng);
+        if (!Number.isFinite(safeLat) || !Number.isFinite(safeLng)) {
+            throw new BadRequestException('Invalid latitude or longitude.');
         }
-        return null;
+
+        let neighbors: ReverseGeoNeighbor[] = [];
+        try {
+            neighbors = await this.queryReverseGeoNeighbors(safeLat, safeLng, true);
+            if (!neighbors.length) {
+                neighbors = await this.queryReverseGeoNeighbors(safeLat, safeLng, false);
+            }
+        } catch (err: any) {
+            this.logger.error(`reverseGeocode query failed: ${err?.message || err}`);
+            return null;
+        }
+
+        if (!neighbors.length) return null;
+
+        const closest = neighbors[0];
+        const admin = this.resolveAdminFromNeighbors(neighbors);
+        const district = admin?.district || closest.district;
+        const state = admin?.state || closest.state;
+
+        const closestCanon = this.canonicalDistrictKey(closest.district);
+        const resolvedCanon = this.canonicalDistrictKey(district);
+        if (closestCanon && resolvedCanon && closestCanon !== resolvedCanon) {
+            this.logger.debug(
+                `reverseGeocode consensus override: nearest pincode was "${closest.district}" ` +
+                `(${(closest.distance_m / 1000).toFixed(1)} km) → using "${district}" from ${neighbors.length} neighbors`,
+            );
+        }
+
+        return {
+            id: closest.id,
+            placeName: closest.placeName,
+            pincode: closest.pincode,
+            district,
+            state,
+            latitude: closest.latitude,
+            longitude: closest.longitude,
+            distanceKm: Number(closest.distance_m) / 1000,
+        };
     }
 
     async saveScan(userId: string, data: string, type?: string) {
