@@ -33,7 +33,11 @@ export default function EditProfileScreen() {
         linkedin: user?.linkedin || '',
         website: user?.website || '',
         visibility: 'Greenwoods Residents',
-        profilePhoto: user?.profilePhoto || "https://i.pravatar.cc/100?u=john"
+        // Only seed from the actual user record. Avoid using a public placeholder
+        // (i.pravatar) because the save flow would then POST that URL back as the
+        // user's profile photo, leaving the bubble showing the stock avatar
+        // instead of falling back to the user's initial.
+        profilePhoto: user?.profilePhoto || '',
     });
 
     const pickImage = async () => {

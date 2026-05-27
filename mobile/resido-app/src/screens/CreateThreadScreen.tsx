@@ -179,27 +179,69 @@ export default function CreateThreadScreen() {
                     </View>
                 </View>
 
-                {/* Visibility Section - Simplified Horizontal Row */}
+                {/* Visibility Section - Public / Contacts / Followers (+ Business if available) */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Visibility</Text>
                     <View style={styles.visibilityRow}>
                         {VISIBILITY_OPTIONS.map(opt => (
-                            <TouchableOpacity 
-                                key={opt.id} 
+                            <TouchableOpacity
+                                key={opt.id}
                                 style={[styles.visibilityPill, selectedVisibilities.includes(opt.id) && styles.visibilityPillActive]}
                                 onPress={() => toggleVisibility(opt.id)}
                             >
-                                <MaterialCommunityIcons 
-                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
-                                    size={18} 
-                                    color={selectedVisibilities.includes(opt.id) ? "#1d4ed8" : "#cbd5e1"} 
+                                <MaterialCommunityIcons
+                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"}
+                                    size={18}
+                                    color={selectedVisibilities.includes(opt.id) ? "#8b5cf6" : "#D4C9E8"}
                                 />
                                 <Text style={[styles.visibilityPillText, selectedVisibilities.includes(opt.id) && styles.visibilityPillTextActive]}>
                                     {opt.name}
                                 </Text>
                             </TouchableOpacity>
                         ))}
+
+                        {myBusinesses.length > 0 && (
+                            <TouchableOpacity
+                                style={[styles.visibilityPill, pinToBusiness && styles.visibilityPillActive]}
+                                onPress={() => {
+                                    const next = !pinToBusiness;
+                                    setPinToBusiness(next);
+                                    if (next && !selectedBusinessId) {
+                                        if (myBusinesses.length === 1) {
+                                            setSelectedBusinessId(myBusinesses[0].id);
+                                        } else {
+                                            setShowBusinessPicker(true);
+                                        }
+                                    }
+                                }}
+                            >
+                                <Ionicons
+                                    name={pinToBusiness ? "briefcase" : "briefcase-outline"}
+                                    size={16}
+                                    color={pinToBusiness ? "#8b5cf6" : "#D4C9E8"}
+                                />
+                                <Text style={[styles.visibilityPillText, pinToBusiness && styles.visibilityPillTextActive]}>
+                                    Business
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
+
+                    {pinToBusiness && myBusinesses.length > 0 && (
+                        <TouchableOpacity
+                            style={styles.bizHintRow}
+                            onPress={() => myBusinesses.length > 1 && setShowBusinessPicker(true)}
+                            activeOpacity={myBusinesses.length > 1 ? 0.6 : 1}
+                        >
+                            <Ionicons name="information-circle-outline" size={14} color="#8b5cf6" />
+                            <Text style={styles.bizHintText} numberOfLines={1}>
+                                Will appear on {myBusinesses.find(b => b.id === selectedBusinessId)?.businessName || 'your business'}
+                            </Text>
+                            {myBusinesses.length > 1 && (
+                                <Text style={styles.bizHintChange}>Change</Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Content Area */}
@@ -361,40 +403,6 @@ export default function CreateThreadScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {myBusinesses.length > 0 && (
-                    <View style={styles.bizPinCard}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.bizPinTitle}>Add to my business profile</Text>
-                            <Text style={styles.bizPinDesc}>
-                                {pinToBusiness && selectedBusinessId
-                                    ? `Will appear on ${myBusinesses.find(b => b.id === selectedBusinessId)?.businessName || 'your business'}`
-                                    : 'Showcase this post on your business page'}
-                            </Text>
-                            {pinToBusiness && myBusinesses.length > 1 && (
-                                <TouchableOpacity onPress={() => setShowBusinessPicker(true)} style={{ marginTop: 6 }}>
-                                    <Text style={{ color: '#1d4ed8', fontSize: 12, fontWeight: '800' }}>Change business profile</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                        <TouchableOpacity
-                            style={[styles.bizPinToggle, pinToBusiness && styles.bizPinToggleOn]}
-                            onPress={() => {
-                                const next = !pinToBusiness;
-                                setPinToBusiness(next);
-                                if (next && !selectedBusinessId) {
-                                    if (myBusinesses.length === 1) setSelectedBusinessId(myBusinesses[0].id);
-                                    else setShowBusinessPicker(true);
-                                }
-                            }}
-                        >
-                            <Ionicons
-                                name={pinToBusiness ? 'checkmark-circle' : 'ellipse-outline'}
-                                size={26}
-                                color={pinToBusiness ? '#1d4ed8' : '#cbd5e1'}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                )}
             </ScrollView>
 
             <Modal visible={showBusinessPicker} animationType="slide" transparent>
@@ -490,21 +498,26 @@ const styles = StyleSheet.create({
     toolbarItem: { alignItems: 'center' },
     toolbarLabel: { fontSize: 11, fontWeight: '700', color: '#64748b', marginTop: 4 },
     
-    visibilityRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 15 },
-    visibilityPill: { 
-        flex: 1, 
-        flexDirection: 'row', 
-        alignItems: 'center', 
+    visibilityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+    visibilityPill: {
+        flexGrow: 1,
+        flexBasis: '22%',
+        flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f8fafc', 
-        paddingVertical: 12, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: '#f1f5f9' 
+        backgroundColor: '#F4EEFC',
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#EFE9F8',
     },
-    visibilityPillActive: { backgroundColor: '#f5f3ff', borderColor: '#1d4ed8' },
-    visibilityPillText: { marginLeft: 6, fontSize: 13, fontWeight: '700', color: '#64748b' },
-    visibilityPillTextActive: { color: '#1d4ed8' },
+    visibilityPillActive: { backgroundColor: '#F0E7FE', borderColor: '#8b5cf6' },
+    visibilityPillText: { marginLeft: 6, fontSize: 12, fontWeight: '700', color: '#7A6B9C' },
+    visibilityPillTextActive: { color: '#5b21b6' },
+    bizHintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4, marginTop: 6 },
+    bizHintText: { flex: 1, fontSize: 12, color: '#5b21b6', fontWeight: '700' },
+    bizHintChange: { fontSize: 12, color: '#8b5cf6', fontWeight: '800' },
     
     communityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     communityIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' },
@@ -531,12 +544,6 @@ const styles = StyleSheet.create({
     durationPillActive: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
     durationPillText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
     durationPillTextActive: { color: '#fff' },
-
-    bizPinCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 20, marginTop: 8, marginBottom: 24, padding: 14, backgroundColor: '#eff6ff', borderRadius: 16, borderWidth: 1, borderColor: '#bfdbfe' },
-    bizPinTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
-    bizPinDesc: { fontSize: 12, color: '#475569', marginTop: 2, fontWeight: '600' },
-    bizPinToggle: { padding: 4 },
-    bizPinToggleOn: {},
 
     pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },

@@ -6,12 +6,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
+import { useProfileRefresh } from '../../hooks/useProfileRefresh';
 
 export default function ServiceStaffDashboard() {
     const { activeWorkspace, user, workspaces, setActiveWorkspace, switchRole } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const router = useRouter();
     const [switchingRole, setSwitchingRole] = React.useState(false);
+    const imageTimestamp = useProfileRefresh();
 
     const handleSwitch = async (ws: any) => {
         try {
@@ -82,6 +84,8 @@ export default function ServiceStaffDashboard() {
                             isActive={!activeWorkspace}
                             onPress={() => setActiveWorkspace(null as any, '')}
                             imageUri={user?.profilePhoto}
+                            initial={user?.name}
+                            cacheBust={imageTimestamp}
                         />
                         {workspaces?.map((ws: any) => (
                             <WorkspaceBubble
@@ -91,6 +95,7 @@ export default function ServiceStaffDashboard() {
                                 onPress={() => handleSwitch(ws)}
                                 imageUri={ws.photoUrl}
                                 fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
+                                cacheBust={imageTimestamp}
                             />
                         ))}
                     </ScrollView>

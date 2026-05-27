@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
 import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
+import { useProfileRefresh } from '../../hooks/useProfileRefresh';
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -14,6 +15,7 @@ export default function AdminDashboard() {
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const [showWS, setShowWS] = useState(false);
     const [switchingRole, setSwitchingRole] = useState(false);
+    const imageTimestamp = useProfileRefresh();
 
     const handleSwitch = async (ws: Workspace) => {
         try {
@@ -84,20 +86,23 @@ export default function AdminDashboard() {
                         showsHorizontalScrollIndicator={false} 
                         contentContainerStyle={styles.psWorkspaceScroll}
                     >
-                        <WorkspaceBubble 
-                            label="My Space" 
-                            isActive={!activeWorkspace} 
-                            onPress={() => setActiveWorkspace(null as any, '')} 
+                        <WorkspaceBubble
+                            label="My Space"
+                            isActive={!activeWorkspace}
+                            onPress={() => setActiveWorkspace(null as any, '')}
                             imageUri={user?.profilePhoto}
+                            initial={user?.name}
+                            cacheBust={imageTimestamp}
                         />
                         {workspaces.map((ws: any) => (
-                            <WorkspaceBubble 
-                                key={ws.tenantId} 
-                                label={ws.tenantName} 
-                                isActive={activeWorkspace?.tenantId === ws.tenantId} 
-                                onPress={() => handleSwitch(ws)} 
+                            <WorkspaceBubble
+                                key={ws.tenantId}
+                                label={ws.tenantName}
+                                isActive={activeWorkspace?.tenantId === ws.tenantId}
+                                onPress={() => handleSwitch(ws)}
                                 imageUri={ws.photoUrl}
                                 fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
+                                cacheBust={imageTimestamp}
                             />
                         ))}
                     </ScrollView>
@@ -144,9 +149,9 @@ export default function AdminDashboard() {
                 {/* Admin Grid — 4 columns so all icons (incl. Attendance) fit on screen */}
                 <View style={styles.adminGrid}>
                     <DashboardIcon icon="stats-chart" label="Stats" color="#2563eb" bg="#E8DEFB" onPress={() => router.push('/admin-stats')} />
-                    <DashboardIcon icon="construct" label="Requests" color="#ef4444" bg="#fee2e2" onPress={() => router.push('/admin-complaints')} />
+                    <DashboardIcon icon="construct" label="Requests & Complaints" color="#ef4444" bg="#fee2e2" onPress={() => router.push('/admin-complaints')} />
                     <DashboardIcon icon="calendar" label="Events" color="#3b82f6" bg="#dbeafe" onPress={() => router.push('/events')} />
-                    <DashboardIcon icon="book" label="Rules" color="#f59e0b" bg="#fef3c7" onPress={() => router.push('/rules')} />
+                    <DashboardIcon icon="book" label="Rules & Regulations" color="#f59e0b" bg="#fef3c7" onPress={() => router.push('/rules')} />
                     <DashboardIcon icon="settings" label="Settings" color="#10b981" bg="#d1fae5" onPress={() => router.push('/manage-community')} />
                     <DashboardIcon icon="cash" label="Finance" color="#0ea5e9" bg="#e0f2fe" onPress={() => router.push('/admin-finance')} />
                     <DashboardIcon icon="finger-print" label="Attendance" color="#a855f7" bg="#f3e8ff" onPress={() => router.push('/admin-attendance')} />

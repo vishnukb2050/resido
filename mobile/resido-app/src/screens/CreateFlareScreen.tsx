@@ -301,27 +301,69 @@ export default function CreateFlareScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Visibility Section - Simplified Horizontal Row */}
+                {/* Visibility Section - Public / Contacts / Followers (+ Business if available) */}
                 <View style={styles.section}>
                     <Text style={styles.label}>Visibility</Text>
                     <View style={styles.visibilityRow}>
                         {VISIBILITY_OPTIONS.map(opt => (
-                            <TouchableOpacity 
-                                key={opt.id} 
+                            <TouchableOpacity
+                                key={opt.id}
                                 style={[styles.visibilityPill, selectedVisibilities.includes(opt.id) && styles.visibilityPillActive]}
                                 onPress={() => toggleVisibility(opt.id)}
                             >
-                                <MaterialCommunityIcons 
-                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"} 
-                                    size={18} 
-                                    color={selectedVisibilities.includes(opt.id) ? "#1d4ed8" : "#cbd5e1"} 
+                                <MaterialCommunityIcons
+                                    name={selectedVisibilities.includes(opt.id) ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"}
+                                    size={18}
+                                    color={selectedVisibilities.includes(opt.id) ? "#8b5cf6" : "#D4C9E8"}
                                 />
                                 <Text style={[styles.visibilityPillText, selectedVisibilities.includes(opt.id) && styles.visibilityPillTextActive]}>
                                     {opt.name}
                                 </Text>
                             </TouchableOpacity>
                         ))}
+
+                        {myBusinesses.length > 0 && (
+                            <TouchableOpacity
+                                style={[styles.visibilityPill, pinToBusiness && styles.visibilityPillActive]}
+                                onPress={() => {
+                                    const next = !pinToBusiness;
+                                    setPinToBusiness(next);
+                                    if (next && !selectedBusinessId) {
+                                        if (myBusinesses.length === 1) {
+                                            setSelectedBusinessId(myBusinesses[0].id);
+                                        } else {
+                                            setShowBusinessPicker(true);
+                                        }
+                                    }
+                                }}
+                            >
+                                <Ionicons
+                                    name={pinToBusiness ? "briefcase" : "briefcase-outline"}
+                                    size={16}
+                                    color={pinToBusiness ? "#8b5cf6" : "#D4C9E8"}
+                                />
+                                <Text style={[styles.visibilityPillText, pinToBusiness && styles.visibilityPillTextActive]}>
+                                    Business
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
+
+                    {pinToBusiness && myBusinesses.length > 0 && (
+                        <TouchableOpacity
+                            style={styles.bizHintRow}
+                            onPress={() => myBusinesses.length > 1 && setShowBusinessPicker(true)}
+                            activeOpacity={myBusinesses.length > 1 ? 0.6 : 1}
+                        >
+                            <Ionicons name="information-circle-outline" size={14} color="#8b5cf6" />
+                            <Text style={styles.bizHintText} numberOfLines={1}>
+                                Will appear on {myBusinesses.find(b => b.id === selectedBusinessId)?.businessName || 'your business'}
+                            </Text>
+                            {myBusinesses.length > 1 && (
+                                <Text style={styles.bizHintChange}>Change</Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Caption Input */}
@@ -394,45 +436,6 @@ export default function CreateFlareScreen() {
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
                     </TouchableOpacity>
-
-                    {myBusinesses.length > 0 && (
-                        <>
-                            <View style={styles.divider} />
-                            <View style={styles.settingRow}>
-                                <View style={styles.settingInfo}>
-                                    <Text style={styles.settingTitle}>Add to my business profile</Text>
-                                    <Text style={styles.settingDesc}>
-                                        {pinToBusiness && selectedBusinessId
-                                            ? myBusinesses.find(b => b.id === selectedBusinessId)?.businessName || 'Selected'
-                                            : 'Showcase this on your business page'}
-                                    </Text>
-                                </View>
-                                <Switch
-                                    value={pinToBusiness}
-                                    onValueChange={(v) => {
-                                        setPinToBusiness(v);
-                                        if (v && !selectedBusinessId) {
-                                            if (myBusinesses.length === 1) setSelectedBusinessId(myBusinesses[0].id);
-                                            else setShowBusinessPicker(true);
-                                        }
-                                    }}
-                                    trackColor={{ false: '#f1f5f9', true: '#1d4ed8' }}
-                                    thumbColor="#fff"
-                                />
-                            </View>
-                            {pinToBusiness && myBusinesses.length > 1 && (
-                                <TouchableOpacity
-                                    style={[styles.settingRow, { paddingTop: 0 }]}
-                                    onPress={() => setShowBusinessPicker(true)}
-                                >
-                                    <View style={styles.settingInfo}>
-                                        <Text style={[styles.settingDesc, { color: '#1d4ed8', fontWeight: '700' }]}>Change business profile</Text>
-                                    </View>
-                                    <Ionicons name="chevron-forward" size={18} color="#1d4ed8" />
-                                </TouchableOpacity>
-                            )}
-                        </>
-                    )}
                 </View>
             </ScrollView>
 
@@ -579,21 +582,26 @@ const styles = StyleSheet.create({
     audioPillText: { flex: 1, marginLeft: 10, fontSize: 15, fontWeight: '700', color: '#64748b' },
     audioPillTextActive: { color: '#1d4ed8' },
 
-    visibilityRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 15 },
-    visibilityPill: { 
-        flex: 1, 
-        flexDirection: 'row', 
-        alignItems: 'center', 
+    visibilityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+    visibilityPill: {
+        flexGrow: 1,
+        flexBasis: '22%',
+        flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f8fafc', 
-        paddingVertical: 12, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: '#f1f5f9' 
+        backgroundColor: '#F4EEFC',
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#EFE9F8',
     },
-    visibilityPillActive: { backgroundColor: '#f5f3ff', borderColor: '#1d4ed8' },
-    visibilityPillText: { marginLeft: 6, fontSize: 13, fontWeight: '700', color: '#64748b' },
-    visibilityPillTextActive: { color: '#1d4ed8' },
+    visibilityPillActive: { backgroundColor: '#F0E7FE', borderColor: '#8b5cf6' },
+    visibilityPillText: { marginLeft: 6, fontSize: 12, fontWeight: '700', color: '#7A6B9C' },
+    visibilityPillTextActive: { color: '#5b21b6' },
+    bizHintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4, marginTop: 6 },
+    bizHintText: { flex: 1, fontSize: 12, color: '#5b21b6', fontWeight: '700' },
+    bizHintChange: { fontSize: 12, color: '#8b5cf6', fontWeight: '800' },
 
     inputSection: { marginBottom: 25 },
     label: { color: '#94a3b8', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', marginBottom: 10, marginLeft: 5 },

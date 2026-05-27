@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { threadApi, authApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import BottomNav from '../BottomNav';
 import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
 import { resolveMediaUrl, withCacheBust } from '../../utils/mediaUrl';
+import { useProfileRefresh } from '../../hooks/useProfileRefresh';
 
 const { width } = Dimensions.get('window');
 
@@ -148,32 +149,7 @@ export default function DefaultDashboard() {
     const workspaceScrollRef = React.useRef<ScrollView>(null);
     const [switchingRole, setSwitchingRole] = React.useState(false);
 
-    const [imageTimestamp, setImageTimestamp] = React.useState(Date.now());
-
-    // Synchronize latest profile & workspaces on focus to load R2 assets immediately and bust caching
-    useFocusEffect(
-        React.useCallback(() => {
-            const syncProfileAndWorkspaces = async () => {
-                try {
-                    const userRes = await authApi.getProfile();
-                    if (userRes?.data) {
-                        useAuthStore.getState().updateUser(userRes.data);
-                    }
-
-                    const wsRes = await authApi.getWorkspaces();
-                    if (wsRes?.data) {
-                        useAuthStore.getState().setWorkspaces(wsRes.data);
-                    }
-
-                    // Bust image cache AFTER data is loaded so new URLs are reflected
-                    setImageTimestamp(Date.now());
-                } catch (e) {
-                    console.warn('Failed to sync profile on screen focus:', e);
-                }
-            };
-            syncProfileAndWorkspaces();
-        }, [])
-    );
+    const imageTimestamp = useProfileRefresh();
 
     const [items, setItems] = React.useState<any[]>([]);
     const [loadingActivity, setLoadingActivity] = React.useState(false);
@@ -413,11 +389,12 @@ export default function DefaultDashboard() {
                                 snapToInterval={100}
                                 decelerationRate="fast"
                             >
-                                <WorkspaceBubble 
-                                    label="My Space" 
-                                    isActive={!activeWorkspace} 
-                                    onPress={() => handleSelectWorkspace(null, 0)} 
+                                <WorkspaceBubble
+                                    label="My Space"
+                                    isActive={!activeWorkspace}
+                                    onPress={() => handleSelectWorkspace(null, 0)}
                                     imageUri={user?.profilePhoto}
+                                    initial={user?.name}
                                     cacheBust={imageTimestamp}
                                 />
                                 {workspaces.map((ws: any, idx: number) => (
@@ -623,7 +600,7 @@ export default function DefaultDashboard() {
                             <View style={{ paddingHorizontal: 20 }}>
                                 <View style={styles.gridContainer}>
                                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#ec4899" onPress={() => router.push('/events')} />
-                                    <DashboardIcon icon="megaphone" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
+                                    <DashboardIcon icon="megaphone" label="Requests & Complaints" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
                                     <DashboardIcon icon="cash" label="Community Payments" color="#fff" bg="#0ea5e9" onPress={() => router.push('/resident-payments')} />
                                 </View>
 

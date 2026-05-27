@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
 import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
+import { useProfileRefresh } from '../../hooks/useProfileRefresh';
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ export default function MemberDashboard() {
     const { user, workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const [switchingRole, setSwitchingRole] = React.useState(false);
+    const imageTimestamp = useProfileRefresh();
 
     const handleSwitch = async (ws: any) => {
         try {
@@ -79,20 +81,23 @@ export default function MemberDashboard() {
                 {/* Workspace Switcher (Bubbles) */}
                 <View style={styles.psWorkspaceSection}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.psWorkspaceScroll}>
-                        <WorkspaceBubble 
-                            label="My Space" 
-                            isActive={!activeWorkspace} 
-                            onPress={() => setActiveWorkspace(null as any, '')} 
+                        <WorkspaceBubble
+                            label="My Space"
+                            isActive={!activeWorkspace}
+                            onPress={() => setActiveWorkspace(null as any, '')}
                             imageUri={user?.profilePhoto}
+                            initial={user?.name}
+                            cacheBust={imageTimestamp}
                         />
                         {workspaces.map((ws: any) => (
-                            <WorkspaceBubble 
-                                key={ws.tenantId} 
-                                label={ws.tenantName} 
-                                isActive={activeWorkspace?.tenantId === ws.tenantId} 
-                                onPress={() => handleSwitch(ws)} 
+                            <WorkspaceBubble
+                                key={ws.tenantId}
+                                label={ws.tenantName}
+                                isActive={activeWorkspace?.tenantId === ws.tenantId}
+                                onPress={() => handleSwitch(ws)}
                                 imageUri={ws.photoUrl}
                                 fallbackSource={require('../../../assets/greenwoods_logo.jpg')}
+                                cacheBust={imageTimestamp}
                             />
                         ))}
                     </ScrollView>
@@ -132,7 +137,7 @@ export default function MemberDashboard() {
                     <DashboardIcon icon="document-text" label="Notes" color="#fff" bg="#3b82f6" onPress={() => router.push('/notes')} />
                     <DashboardIcon icon="folder" label="Documents" color="#fff" bg="#3b82f6" onPress={() => router.push('/documents')} />
                     <DashboardIcon icon="call" label="Contacts" color="#fff" bg="#10b981" onPress={() => router.push('/staff-contacts')} />
-                    <DashboardIcon icon="construct" label="Requests" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
+                    <DashboardIcon icon="construct" label="Requests & Complaints" color="#fff" bg="#ef4444" onPress={() => router.push('/complaints')} />
                     <DashboardIcon icon="book" label="Rules & Regulations" color="#fff" bg="#475569" onPress={() => router.push('/rules')} />
                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#3b82f6" onPress={() => router.push('/events')} />
                     <DashboardIcon icon="cash" label="Community Payments" color="#fff" bg="#ec4899" onPress={() => router.push('/resident-payments')} />

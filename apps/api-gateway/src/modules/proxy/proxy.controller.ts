@@ -3,8 +3,6 @@ import {
     All,
     Req,
     Res,
-    BadRequestException,
-    UnauthorizedException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
@@ -20,11 +18,27 @@ export class ProxyController {
         private config: ConfigService,
     ) {}
 
+    /**
+     * Read the raw body from the request stream into a Buffer. The gateway runs
+     * with `bodyParser: false`, so `req.body` is unset — we drain the stream
+     * here so we can hand a real payload (with accurate content-length) to
+     * axios, instead of passing the IncomingMessage stream object directly
+     * (which has been an intermittent source of dropped bodies → downstream
+     * services seeing `req.body === {}` and returning 500).
+     */
+    private readBody(req: Request): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+            req.on('end', () => resolve(Buffer.concat(chunks)));
+            req.on('error', reject);
+        });
+    }
+
     @All('*')
     async proxy(@Req() req: Request, @Res() res: Response) {
         const path = req.path;
-        
-        // Determine target service based on path
+
         let targetUrl = '';
         if (path.startsWith('/auth') || path.startsWith('/staff') || path.startsWith('/clients') || path.startsWith('/profile') || path.startsWith('/storage') || path.startsWith('/notes')) {
             targetUrl = `http://auth-service:3001${path}`;
@@ -48,11 +62,10 @@ export class ProxyController {
             return res.status(404).json({ message: 'Service not found' });
         }
 
-        // Forwarding logic
-        const headers = { ...req.headers };
-        delete headers.host; // Don't forward host header
+        const headers: Record<string, any> = { ...req.headers };
+        delete headers.host;
+        delete headers['content-length'];
 
-        // Extract tenant info from JWT if present
         const authHeader = req.headers['authorization'];
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
@@ -60,56 +73,63 @@ export class ProxyController {
                 const payload = this.jwtService.verify(token, {
                     secret: this.config.get('JWT_SECRET'),
                 });
-                if (payload.dbName) {
-                    headers['x-db-name'] = payload.dbName;
-                }
-                if (payload.sub) {
-                    headers['x-user-id'] = payload.sub;
-                }
-                if (payload.tenantId) {
-                    headers['x-tenant-id'] = payload.tenantId;
-                }
-                if (payload.phone) {
-                    headers['x-user-phone'] = payload.phone;
-                }
-                if (payload.role) {
-                    headers['x-user-role'] = payload.role;
-                }
+                if (payload.dbName) headers['x-db-name'] = payload.dbName;
+                if (payload.sub) headers['x-user-id'] = payload.sub;
+                if (payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
+                if (payload.phone) headers['x-user-phone'] = payload.phone;
+                if (payload.role) headers['x-user-role'] = payload.role;
             } catch (err) {
-                // Invalid token, but maybe it's a public route?
-                // Downstream services will handle auth if needed.
+                // Token invalid / expired — let the downstream service decide.
+            }
+        }
+
+        // Buffer the body for methods that carry one. GET/HEAD/DELETE/OPTIONS
+        // shouldn't have a body, so we skip reading the stream.
+        let bodyBuffer: Buffer | undefined;
+        const method = (req.method || 'GET').toUpperCase();
+        const hasBody = !['GET', 'HEAD', 'DELETE', 'OPTIONS'].includes(method);
+        if (hasBody) {
+            try {
+                bodyBuffer = await this.readBody(req);
+                if (bodyBuffer.length > 0) {
+                    headers['content-length'] = String(bodyBuffer.length);
+                }
+            } catch (e: any) {
+                console.error('[Proxy] Failed to read body for', req.method, path, e?.message);
+                return res.status(400).json({ message: 'Could not read request body' });
             }
         }
 
         try {
-            console.log(`[Proxy] Forwarding ${req.method} ${path} to ${targetUrl}`);
+            console.log(`[Proxy] ${req.method} ${path} → ${targetUrl} (body=${bodyBuffer?.length || 0}b)`);
             const response = await lastValueFrom(
                 this.httpService.request({
                     method: req.method,
                     url: targetUrl,
-                    data: req, // Forward raw request stream
+                    data: bodyBuffer && bodyBuffer.length > 0 ? bodyBuffer : undefined,
                     headers: headers as any,
                     params: req.query,
                     maxContentLength: Infinity,
                     maxBodyLength: Infinity,
-                    timeout: 30000, // 30s timeout
+                    timeout: 60000,
+                    validateStatus: () => true, // forward whatever the service returns
                 }),
             );
 
-            res.status(response.status).set(response.headers).send(response.data);
+            const respHeaders = { ...response.headers } as Record<string, any>;
+            delete respHeaders['transfer-encoding'];
+            res.status(response.status).set(respHeaders).send(response.data);
         } catch (err: any) {
-            if (err.response?.status === 304) {
-                return res.status(304).set(err.response.headers).send(err.response.data);
-            }
-            console.error(`[Proxy Error] ${req.method} ${path}:`, err.message);
+            console.error(`[Proxy Error] ${req.method} ${path}:`, err?.message, err?.response?.data);
             if (err.response) {
-                res.status(err.response.status).set(err.response.headers).send(err.response.data);
+                const respHeaders = { ...err.response.headers } as Record<string, any>;
+                delete respHeaders['transfer-encoding'];
+                res.status(err.response.status).set(respHeaders).send(err.response.data);
             } else {
-                res.status(502).json({ 
-                    message: 'Internal Gateway Error', 
-                    error: err.message,
+                res.status(502).json({
+                    message: 'Internal Gateway Error',
+                    error: err?.message,
                     target: targetUrl,
-                    hint: 'The target service might be down or unreachable.'
                 });
             }
         }

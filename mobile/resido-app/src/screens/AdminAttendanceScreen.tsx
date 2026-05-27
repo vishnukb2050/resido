@@ -202,17 +202,17 @@ export default function AdminAttendanceScreen() {
             </View>
             <View style={styles.recordMeta}>
                 <View style={styles.metaItem}>
-                    <Ionicons name="calendar-outline" size={13} color="#94a3b8" />
+                    <Ionicons name="calendar-outline" size={13} color="#7A6B9C" />
                     <Text style={styles.metaItemText}>{item.date}</Text>
                 </View>
                 <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={13} color="#94a3b8" />
+                    <Ionicons name="time-outline" size={13} color="#7A6B9C" />
                     <Text style={styles.metaItemText}>
                         {new Date(item.markedAt).toLocaleTimeString()}
                     </Text>
                 </View>
                 <View style={styles.metaItem}>
-                    <Ionicons name="navigate-outline" size={13} color="#94a3b8" />
+                    <Ionicons name="navigate-outline" size={13} color="#7A6B9C" />
                     <Text style={styles.metaItemText}>{item.distanceMeters}m</Text>
                 </View>
             </View>
@@ -223,7 +223,7 @@ export default function AdminAttendanceScreen() {
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={22} color="#fff" />
+                    <Ionicons name="arrow-back" size={22} color="#2D2445" />
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.headerTitle}>Attendance</Text>
@@ -238,7 +238,7 @@ export default function AdminAttendanceScreen() {
                     style={[styles.tab, tab === 'config' && styles.tabActive]}
                     onPress={() => setTab('config')}
                 >
-                    <Ionicons name="location-outline" size={16} color={tab === 'config' ? '#fff' : '#94a3b8'} />
+                    <Ionicons name="location-outline" size={16} color={tab === 'config' ? '#fff' : '#7A6B9C'} />
                     <Text style={[styles.tabText, tab === 'config' && styles.tabTextActive]}>
                         Location & Radius
                     </Text>
@@ -247,7 +247,7 @@ export default function AdminAttendanceScreen() {
                     style={[styles.tab, tab === 'reports' && styles.tabActive]}
                     onPress={() => setTab('reports')}
                 >
-                    <Ionicons name="people-outline" size={16} color={tab === 'reports' ? '#fff' : '#94a3b8'} />
+                    <Ionicons name="people-outline" size={16} color={tab === 'reports' ? '#fff' : '#7A6B9C'} />
                     <Text style={[styles.tabText, tab === 'reports' && styles.tabTextActive]}>
                         Staff Reports
                     </Text>
@@ -283,7 +283,7 @@ export default function AdminAttendanceScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g. 10.0150"
-                                    placeholderTextColor="#64748b"
+                                    placeholderTextColor="#9A8EBA"
                                     value={latitude}
                                     onChangeText={setLatitude}
                                     keyboardType="numeric"
@@ -294,7 +294,7 @@ export default function AdminAttendanceScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g. 76.3030"
-                                    placeholderTextColor="#64748b"
+                                    placeholderTextColor="#9A8EBA"
                                     value={longitude}
                                     onChangeText={setLongitude}
                                     keyboardType="numeric"
@@ -306,7 +306,7 @@ export default function AdminAttendanceScreen() {
                         <TextInput
                             style={styles.input}
                             placeholder="500"
-                            placeholderTextColor="#64748b"
+                            placeholderTextColor="#9A8EBA"
                             value={radius}
                             onChangeText={setRadius}
                             keyboardType="numeric"
@@ -319,7 +319,7 @@ export default function AdminAttendanceScreen() {
                         <TextInput
                             style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
                             placeholder="Auto-filled when you capture GPS"
-                            placeholderTextColor="#64748b"
+                            placeholderTextColor="#9A8EBA"
                             value={address}
                             onChangeText={setAddress}
                             multiline
@@ -404,19 +404,19 @@ export default function AdminAttendanceScreen() {
                     ) : null}
 
                     {loadingRecords ? (
-                        <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 30 }} />
+                        <ActivityIndicator size="large" color="#8b5cf6" style={{ marginTop: 30 }} />
                     ) : (
                         <FlatList
                             data={records}
                             keyExtractor={(r) => r.id}
                             renderItem={renderRecord}
                             refreshControl={
-                                <RefreshControl tintColor="#6366f1" refreshing={refreshing} onRefresh={onRefresh} />
+                                <RefreshControl tintColor="#8b5cf6" refreshing={refreshing} onRefresh={onRefresh} />
                             }
                             contentContainerStyle={styles.listContent}
                             ListEmptyComponent={
                                 <View style={styles.empty}>
-                                    <Ionicons name="checkmark-done-circle-outline" size={56} color="rgba(255,255,255,0.08)" />
+                                    <Ionicons name="checkmark-done-circle-outline" size={56} color="#D4C9E8" />
                                     <Text style={styles.emptyTitle}>No attendance yet</Text>
                                     <Text style={styles.emptyText}>
                                         Once staff mark attendance for this date range, records will appear here.
@@ -434,7 +434,7 @@ export default function AdminAttendanceScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="2026-05-01"
-                                    placeholderTextColor="#64748b"
+                                    placeholderTextColor="#9A8EBA"
                                     value={customFrom}
                                     onChangeText={setCustomFrom}
                                 />
@@ -442,19 +442,19 @@ export default function AdminAttendanceScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="2026-05-26"
-                                    placeholderTextColor="#64748b"
+                                    placeholderTextColor="#9A8EBA"
                                     value={customTo}
                                     onChangeText={setCustomTo}
                                 />
                                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
                                     <TouchableOpacity
-                                        style={[styles.modalBtn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+                                        style={[styles.modalBtn, { backgroundColor: '#F4EEFC' }]}
                                         onPress={() => setPickRangeOpen(false)}
                                     >
                                         <Text style={styles.modalBtnText}>Cancel</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
-                                        style={[styles.modalBtn, { backgroundColor: '#6366f1' }]}
+                                        style={[styles.modalBtn, { backgroundColor: '#8b5cf6' }]}
                                         onPress={() => {
                                             setRange('custom');
                                             setPickRangeOpen(false);
@@ -484,70 +484,70 @@ const styles = StyleSheet.create({
         paddingTop: 50,
         paddingBottom: 12,
     },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900' },
-    headerSubtitle: { color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 2 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { color: '#2D2445', fontSize: 20, fontWeight: '900' },
+    headerSubtitle: { color: '#7A6B9C', fontSize: 12, fontWeight: '700', marginTop: 2 },
 
     tabRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
-    tab: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)' },
-    tabActive: { backgroundColor: '#6366f1' },
-    tabText: { color: '#94a3b8', fontSize: 12, fontWeight: '800' },
+    tab: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#D4C9E8' },
+    tabActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+    tabText: { color: '#7A6B9C', fontSize: 12, fontWeight: '800' },
     tabTextActive: { color: '#fff' },
 
     content: { padding: 16, paddingBottom: 140 },
-    card: { padding: 18, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    cardTitle: { color: '#fff', fontWeight: '900', fontSize: 16 },
-    helper: { color: '#94a3b8', fontSize: 12, marginTop: 6, marginBottom: 12, fontWeight: '600' },
+    card: { padding: 18, borderRadius: 20, borderWidth: 1, borderColor: '#D4C9E8', backgroundColor: '#ffffff' },
+    cardTitle: { color: '#2D2445', fontWeight: '900', fontSize: 16 },
+    helper: { color: '#7A6B9C', fontSize: 12, marginTop: 6, marginBottom: 12, fontWeight: '600' },
 
     gpsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#10b981', paddingVertical: 12, borderRadius: 12, marginBottom: 16 },
     gpsBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
 
     row: { flexDirection: 'row', marginBottom: 6 },
-    label: { color: '#94a3b8', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginTop: 10, marginBottom: 6, letterSpacing: 0.5 },
-    input: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontWeight: '600', fontSize: 14 },
+    label: { color: '#7A6B9C', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginTop: 10, marginBottom: 6, letterSpacing: 0.5 },
+    input: { backgroundColor: '#F4EEFC', borderColor: '#D4C9E8', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: '#2D2445', fontWeight: '700', fontSize: 14 },
 
-    saveBtn: { backgroundColor: '#6366f1', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
+    saveBtn: { backgroundColor: '#8b5cf6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
     saveBtnText: { color: '#fff', fontWeight: '900' },
 
-    summaryBox: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 16, padding: 12, backgroundColor: 'rgba(16,185,129,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.18)' },
-    summaryText: { color: '#10b981', fontWeight: '700', fontSize: 12, flex: 1 },
+    summaryBox: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 16, padding: 12, backgroundColor: 'rgba(16,185,129,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' },
+    summaryText: { color: '#047857', fontWeight: '700', fontSize: 12, flex: 1 },
 
     rangeRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 12 },
-    rangeChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)' },
-    rangeChipActive: { backgroundColor: '#6366f1' },
-    rangeChipText: { color: '#94a3b8', fontWeight: '800', fontSize: 11 },
+    rangeChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#D4C9E8' },
+    rangeChipActive: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+    rangeChipText: { color: '#7A6B9C', fontWeight: '800', fontSize: 11 },
     rangeChipTextActive: { color: '#fff' },
 
-    customRange: { marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.04)', padding: 10, borderRadius: 12 },
-    customRangeText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-    customRangeEdit: { color: '#6366f1', fontWeight: '800', fontSize: 12 },
+    customRange: { marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#ffffff', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#D4C9E8' },
+    customRangeText: { color: '#2D2445', fontWeight: '700', fontSize: 12 },
+    customRangeEdit: { color: '#8b5cf6', fontWeight: '800', fontSize: 12 },
 
     summaryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 },
-    summaryPill: { flex: 1, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    summaryPillLabel: { color: '#94a3b8', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
-    summaryPillValue: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 4 },
-    summaryPillValueSmall: { color: '#fff', fontSize: 11, fontWeight: '800', marginTop: 4 },
+    summaryPill: { flex: 1, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', backgroundColor: '#ffffff' },
+    summaryPillLabel: { color: '#7A6B9C', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+    summaryPillValue: { color: '#2D2445', fontSize: 20, fontWeight: '900', marginTop: 4 },
+    summaryPillValueSmall: { color: '#2D2445', fontSize: 11, fontWeight: '800', marginTop: 4 },
 
     listContent: { paddingHorizontal: 16, paddingBottom: 140 },
-    recordCard: { padding: 14, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    recordCard: { padding: 14, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: '#D4C9E8' },
     recordHeader: { flexDirection: 'row', alignItems: 'center' },
-    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(99,102,241,0.3)' },
-    avatarText: { color: '#a5b4fc', fontWeight: '900', fontSize: 13 },
-    recordName: { color: '#fff', fontWeight: '800', fontSize: 14 },
-    recordRole: { color: '#94a3b8', fontSize: 11, fontWeight: '700', marginTop: 2 },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0EAFB', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#D2BEF6' },
+    avatarText: { color: '#8b5cf6', fontWeight: '900', fontSize: 13 },
+    recordName: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
+    recordRole: { color: '#7A6B9C', fontSize: 11, fontWeight: '700', marginTop: 2 },
     statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
     statusPillText: { fontSize: 10, fontWeight: '900' },
     recordMeta: { flexDirection: 'row', gap: 14, marginTop: 10 },
     metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    metaItemText: { color: '#94a3b8', fontSize: 11, fontWeight: '700' },
+    metaItemText: { color: '#7A6B9C', fontSize: 11, fontWeight: '700' },
 
     empty: { alignItems: 'center', marginTop: 60, paddingHorizontal: 30 },
-    emptyTitle: { color: '#fff', fontWeight: '800', fontSize: 16, marginTop: 16 },
-    emptyText: { color: '#64748b', textAlign: 'center', marginTop: 6, fontSize: 12, fontWeight: '600' },
+    emptyTitle: { color: '#2D2445', fontWeight: '800', fontSize: 16, marginTop: 16 },
+    emptyText: { color: '#7A6B9C', textAlign: 'center', marginTop: 6, fontSize: 12, fontWeight: '600' },
 
-    modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
-    modalBox: { backgroundColor: '#0f172a', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-    modalTitle: { color: '#fff', fontSize: 16, fontWeight: '900', marginBottom: 4 },
+    modalBg: { flex: 1, backgroundColor: 'rgba(45, 36, 69, 0.55)', justifyContent: 'center', padding: 20 },
+    modalBox: { backgroundColor: '#ffffff', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#D4C9E8' },
+    modalTitle: { color: '#2D2445', fontSize: 16, fontWeight: '900', marginBottom: 4 },
     modalBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12 },
-    modalBtnText: { color: '#94a3b8', fontWeight: '900' },
+    modalBtnText: { color: '#7A6B9C', fontWeight: '900' },
 });

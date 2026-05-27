@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { FlareGateway } from './flare.gateway';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import { HttpService } from '@nestjs/axios';
@@ -129,87 +129,127 @@ export class BlogsService {
     }
 
     async createBlog(authorId: string, data: any, tenantId: string) {
-        let pollId = undefined;
-        
-        if (data.poll) {
-            const poll = await (this.prisma.client as any).blogPoll.create({
-                data: {
-                    tenantId,
-                    question: data.poll.question,
-                    expiresAt: new Date(Date.now() + (data.poll.durationDays || 7) * 24 * 60 * 60 * 1000),
-                    options: {
-                        create: data.poll.options.map((opt: string) => ({
-                            tenantId,
-                            text: opt
-                        }))
-                    }
-                }
-            });
-            pollId = poll.id;
+        // Validate required inputs early with a friendly, surfaced error
+        // (otherwise Prisma throws a long unfriendly "Missing required field"
+        // string that bubbles up as a generic 500 to the client).
+        if (!authorId) {
+            throw new BadRequestException('Missing user (x-user-id header). Please re-login.');
+        }
+        if (!tenantId) {
+            throw new BadRequestException('Missing tenant scope. Switch to a community first.');
+        }
+        if (!data || typeof data !== 'object') {
+            throw new BadRequestException('Empty body. Cannot create flare/thread.');
         }
 
-        const blogData: any = {
-            title: data.title || (data.content ? data.content.substring(0, 50) : "Untitled"),
-            content: data.content || "",
-            authorId,
-            authorName: data.authorName || "Anonymous",
-            authorAvatar: data.authorAvatar,
-            location: data.location,
-            isVerified: data.isVerified || false,
-            musicName: data.musicName || "Original Audio",
-            musicId: data.musicId || null,
-            type: data.type || 'THREAD',
-            mediaUrls: data.mediaUrls || [],
-            mediaType: data.mediaType || 'IMAGE',
-            tags: data.tags || [],
-            hashtags: data.hashtags || [],
-            visibility: data.visibility || 'PUBLIC',
-            targetCommunities: data.targetCommunities || [],
-            audioUrl: data.audioUrl || null,
-            businessProfileId: data.businessProfileId || null,
-            commentsEnabled: data.commentsEnabled !== undefined ? data.commentsEnabled : true
-        };
+        try {
+            let pollId: string | undefined;
 
-        if (pollId) {
-            blogData.poll = {
-                connect: {
-                    id_tenantId: { id: pollId, tenantId }
-                }
-            };
-        }
-
-        const blog = await (this.prisma.client as any).blog.create({
-            data: blogData,
-            include: {
-                poll: {
-                    include: {
+            if (data.poll) {
+                const poll = await (this.prisma.client as any).blogPoll.create({
+                    data: {
+                        tenantId,
+                        question: data.poll.question,
+                        expiresAt: new Date(Date.now() + (data.poll.durationDays || 7) * 24 * 60 * 60 * 1000),
                         options: {
-                            include: {
-                                _count: { select: { votes: true } }
-                            }
-                        }
+                            create: (data.poll.options || []).map((opt: string) => ({
+                                tenantId,
+                                text: opt,
+                            })),
+                        },
+                    },
+                });
+                pollId = poll.id;
+            }
+
+            const mediaUrls: string[] = Array.isArray(data.mediaUrls)
+                ? data.mediaUrls.filter((u: any) => typeof u === 'string' && u.length > 0)
+                : [];
+
+            // Only include fields that exist in the Prisma schema. Frontends
+            // occasionally pass extras (like `visibilities`, `tenantId`) which
+            // would cause Prisma to throw "Unknown arg".
+            const blogData: any = {
+                title: data.title || (data.content ? String(data.content).substring(0, 50) : 'Untitled'),
+                content: data.content || '',
+                authorId,
+                authorName: data.authorName || 'Anonymous',
+                authorAvatar: data.authorAvatar || null,
+                location: data.location || null,
+                isVerified: !!data.isVerified,
+                category: data.category || null,
+                musicName: data.musicName || 'Original Audio',
+                musicId: data.musicId || null,
+                type: data.type || 'THREAD',
+                mediaUrls,
+                mediaType: data.mediaType || 'IMAGE',
+                tags: Array.isArray(data.tags) ? data.tags : [],
+                hashtags: Array.isArray(data.hashtags) ? data.hashtags : [],
+                visibility: data.visibility || 'PUBLIC',
+                targetCommunities: Array.isArray(data.targetCommunities) ? data.targetCommunities : [],
+                audioUrl: data.audioUrl || null,
+                businessProfileId: data.businessProfileId || null,
+                commentsEnabled: data.commentsEnabled !== undefined ? !!data.commentsEnabled : true,
+            };
+
+            if (pollId) {
+                blogData.poll = {
+                    connect: { id_tenantId: { id: pollId, tenantId } },
+                };
+            }
+
+            const blog = await (this.prisma.client as any).blog.create({
+                data: blogData,
+                include: {
+                    poll: {
+                        include: {
+                            options: { include: { _count: { select: { votes: true } } } },
+                        },
+                    },
+                },
+            });
+
+            if (data.tags && data.tags.length > 0) {
+                for (const taggedUserId of data.tags) {
+                    try {
+                        await firstValueFrom(this.http.post('http://notification-service:3005/notifications/send', {
+                            userId: taggedUserId,
+                            title: 'You were tagged in a blog',
+                            body: `A new blog post titled "${blog.title}" tagged you.`,
+                            type: 'CHAT',
+                        }));
+                    } catch (e: any) {
+                        console.error('Failed to notify tagged user', taggedUserId, e?.message);
                     }
                 }
             }
-        });
 
-        // Notify tagged users
-        if (data.tags && data.tags.length > 0) {
-            for (const taggedUserId of data.tags) {
-                try {
-                    await firstValueFrom(this.http.post('http://notification-service:3005/notifications/send', {
-                        userId: taggedUserId,
-                        title: 'You were tagged in a blog',
-                        body: `A new blog post titled "${blog.title}" tagged you.`,
-                        type: 'CHAT' // Reuse CHAT type or add BLOG type
-                    }));
-                } catch (e) {
-                    console.error('Failed to notify tagged user', taggedUserId, e.message);
-                }
+            return blog;
+        } catch (err: any) {
+            // Surface the actual underlying reason to the client so the mobile
+            // app's "Publish Failed" alert is actionable instead of a generic
+            // "internal server error".
+            const code = err?.code;
+            const meta = err?.meta;
+            console.error('[createBlog] failed', {
+                code,
+                meta,
+                msg: err?.message,
+                tenantId,
+                authorId,
+                payloadKeys: Object.keys(data || {}),
+            });
+            if (err instanceof BadRequestException) throw err;
+            // Prisma's "Unknown argument" usually means schema drift — surface it.
+            if (typeof err?.message === 'string' && err.message.includes('Unknown arg')) {
+                throw new BadRequestException(
+                    'Server schema mismatch while saving the post. Please try again in a moment.',
+                );
             }
+            throw new InternalServerErrorException(
+                err?.message || 'Failed to save the flare/thread. Please try again.',
+            );
         }
-
-        return blog;
     }
 
     async getBlog(id: string) {

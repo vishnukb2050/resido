@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ImageSourcePropType } from 'react-native';
 import { resolveMediaUrl, withCacheBust } from '../utils/mediaUrl';
 
@@ -9,6 +9,11 @@ type WorkspaceBubbleProps = {
     imageUri?: string | null;
     fallbackSource?: ImageSourcePropType;
     cacheBust?: number;
+    /**
+     * Optional initial / abbreviation to display when no image is available
+     * (or the image fails to load). Defaults to the first character of `label`.
+     */
+    initial?: string;
 };
 
 export function WorkspaceBubble({
@@ -18,17 +23,41 @@ export function WorkspaceBubble({
     imageUri,
     fallbackSource,
     cacheBust,
+    initial,
 }: WorkspaceBubbleProps) {
     const resolved = imageUri ? resolveMediaUrl(imageUri) : null;
     const uri = resolved ? withCacheBust(resolved, cacheBust) : null;
-    const source: ImageSourcePropType = uri
-        ? { uri }
-        : fallbackSource || require('../../assets/icon.png');
+    const [failed, setFailed] = useState(false);
+
+    // Reset failure state whenever the underlying URL changes so a fresh
+    // profile upload gets a chance to load even if a previous one failed.
+    useEffect(() => {
+        setFailed(false);
+    }, [uri]);
+
+    const showImage = !!uri && !failed;
+    const fallback: ImageSourcePropType | null = fallbackSource ?? null;
+    const initialChar = (initial || label || '?').trim().charAt(0).toUpperCase() || '?';
 
     return (
         <TouchableOpacity style={[styles.wsBubble, isActive && styles.wsBubbleActive]} onPress={onPress}>
             <View style={[styles.wsBubbleImgBox, isActive && styles.wsBubbleImgBoxActive]}>
-                <Image source={source} style={styles.wsBubbleImg} resizeMode="cover" />
+                {showImage ? (
+                    <Image
+                        source={{ uri: uri as string }}
+                        style={styles.wsBubbleImg}
+                        resizeMode="cover"
+                        onError={() => setFailed(true)}
+                    />
+                ) : fallback ? (
+                    <Image source={fallback} style={styles.wsBubbleImg} resizeMode="cover" />
+                ) : (
+                    <View style={[styles.wsBubbleImg, styles.initialBox, isActive && styles.initialBoxActive]}>
+                        <Text style={[styles.initialText, isActive && styles.initialTextActive]}>
+                            {initialChar}
+                        </Text>
+                    </View>
+                )}
             </View>
             <Text style={[styles.wsBubbleLabel, isActive && styles.wsBubbleLabelActive]} numberOfLines={1}>
                 {label}
@@ -60,6 +89,14 @@ const styles = StyleSheet.create({
         borderWidth: 3,
     },
     wsBubbleImg: { width: '100%', height: '100%', borderRadius: 22.5 },
+    initialBox: {
+        backgroundColor: '#8b5cf6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    initialBoxActive: { backgroundColor: '#7c3aed' },
+    initialText: { color: '#ffffff', fontWeight: '900', fontSize: 18 },
+    initialTextActive: { fontSize: 28 },
     wsBubbleLabel: { color: '#7A6B9C', fontSize: 10, fontWeight: '700', marginTop: 8 },
     wsBubbleLabelActive: { color: '#8b5cf6', fontSize: 12, fontWeight: '900' },
 });
