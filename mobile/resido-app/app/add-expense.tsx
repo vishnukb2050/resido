@@ -1,2 +1,2 @@
-import AddTransactionScreen from '../src/screens/AddTransactionScreen';
-export default function Page() { return <AddTransactionScreen />; }
+import AddExpenseScreen from '../src/screens/AddExpenseScreen';
+export default function Page() { return <AddExpenseScreen />; }

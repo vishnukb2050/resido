@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
-import { threadApi, authApi } from '../../services/api';
+import { threadApi, authApi, businessApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
 import { WorkspaceBubble } from '../WorkspaceBubble';
@@ -47,6 +47,35 @@ const styles = StyleSheet.create({
     psSearchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: '#2D2445', fontWeight: '600' },
     psSearchIconsRight: { paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: 'rgba(91, 75, 138, 0.1)' },
     psBookmarkBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#E8E2F2', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.1)' },
+    psSuggestDropdown: {
+        position: 'absolute',
+        top: 54,
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#E2D9F2',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 12,
+        overflow: 'hidden',
+        zIndex: 9999,
+    },
+    psSuggestItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F4EEFC',
+    },
+    psSuggestIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    psSuggestName: { fontSize: 13, fontWeight: '800', color: '#2D2445' },
+    psSuggestType: { fontSize: 10, color: '#9A8EBA', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
 
     // Community Body
     communityBody: { paddingHorizontal: 20 },
@@ -153,6 +182,61 @@ export default function DefaultDashboard() {
 
     const [items, setItems] = React.useState<any[]>([]);
     const [loadingActivity, setLoadingActivity] = React.useState(false);
+
+    // ── Header Search (services / business profiles) ────────────────────────
+    // The MySpace/Community header search lets the user start typing a service
+    // category or business profile name and pick from a live suggestion list.
+    // Picking a suggestion navigates to /service-search with the right params.
+    const [headerSearch, setHeaderSearch] = React.useState('');
+    const [headerSuggestions, setHeaderSuggestions] = React.useState<Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }>>([]);
+    const [showHeaderSuggest, setShowHeaderSuggest] = React.useState(false);
+    const [loadingSuggest, setLoadingSuggest] = React.useState(false);
+
+    React.useEffect(() => {
+        const q = headerSearch.trim();
+        if (q.length < 2) {
+            setHeaderSuggestions([]);
+            return;
+        }
+        let cancelled = false;
+        setLoadingSuggest(true);
+        const timer = setTimeout(async () => {
+            try {
+                const { data } = await businessApi.suggestProfiles(q, 10);
+                if (cancelled) return;
+                const items: Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }> = [];
+                (data?.categories || []).slice(0, 5).forEach((name: string) => {
+                    items.push({ type: 'category', name });
+                });
+                (data?.profiles || []).slice(0, 5).forEach((p: any) => {
+                    items.push({ type: 'profile', name: p.name, profileId: p.id });
+                });
+                (data?.services || []).slice(0, 5).forEach((s: any) => {
+                    items.push({ type: 'service', name: s.name, profileId: s.profileId });
+                });
+                setHeaderSuggestions(items.slice(0, 10));
+            } catch {
+                setHeaderSuggestions([]);
+            } finally {
+                if (!cancelled) setLoadingSuggest(false);
+            }
+        }, 280);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [headerSearch]);
+
+    const onPickHeaderSuggestion = (item: { type: 'category' | 'profile' | 'service'; name: string; profileId?: string }) => {
+        setShowHeaderSuggest(false);
+        setHeaderSearch('');
+        if (item.type === 'profile' && item.profileId) {
+            router.push({ pathname: '/business-detail', params: { id: item.profileId } });
+            return;
+        }
+        if (item.type === 'category') {
+            router.push({ pathname: '/service-search', params: { category: item.name } });
+            return;
+        }
+        router.push({ pathname: '/service-search', params: { query: item.name } });
+    };
 
     const timeAgo = (dateStr: string) => {
         const now = new Date();
@@ -438,19 +522,100 @@ export default function DefaultDashboard() {
                         )}
 
                         {/* Search Bar (Floating Style) */}
-                        <View style={styles.psSearchSection}>
-                            <View style={[styles.psSearchBar, { backgroundColor: isMySpace ? lightLavender : theme.surface }]}>
-                                <Ionicons name="search" size={20} color={darkLavender} />
-                                <TextInput 
-                                    placeholder="Search for the services needed" 
-                                    style={[styles.psSearchInput, { color: '#2D2445' }]}
-                                    placeholderTextColor="#7A6B9C"
-                                />
-                                <View style={styles.psSearchIconsRight}>
-                                    <Ionicons name="clipboard-outline" size={20} color={darkLavender} />
+                        <View style={[styles.psSearchSection, { zIndex: 50 }]}>
+                            <View style={{ flex: 1 }}>
+                                <View style={[styles.psSearchBar, { backgroundColor: isMySpace ? lightLavender : theme.surface }]}>
+                                    <Ionicons name="search" size={20} color={darkLavender} />
+                                    <TextInput
+                                        placeholder="Search by profile name or category"
+                                        style={[styles.psSearchInput, { color: '#2D2445' }]}
+                                        placeholderTextColor="#7A6B9C"
+                                        value={headerSearch}
+                                        onChangeText={(text) => {
+                                            setHeaderSearch(text);
+                                            setShowHeaderSuggest(true);
+                                        }}
+                                        onFocus={() => setShowHeaderSuggest(true)}
+                                        onSubmitEditing={() => {
+                                            const q = headerSearch.trim();
+                                            setShowHeaderSuggest(false);
+                                            if (q.length > 0) {
+                                                router.push({ pathname: '/service-search', params: { query: q } });
+                                                setHeaderSearch('');
+                                            }
+                                        }}
+                                        returnKeyType="search"
+                                    />
+                                    {headerSearch.length > 0 ? (
+                                        <TouchableOpacity onPress={() => { setHeaderSearch(''); setShowHeaderSuggest(false); }}>
+                                            <Ionicons name="close-circle" size={18} color="#7A6B9C" />
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={styles.psSearchIconsRight}>
+                                            <Ionicons name="clipboard-outline" size={20} color={darkLavender} />
+                                        </View>
+                                    )}
                                 </View>
+
+                                {/* Live suggestions dropdown */}
+                                {showHeaderSuggest && headerSearch.trim().length >= 2 && (
+                                    <View style={styles.psSuggestDropdown}>
+                                        {loadingSuggest && headerSuggestions.length === 0 ? (
+                                            <View style={{ padding: 16, alignItems: 'center' }}>
+                                                <ActivityIndicator color={darkLavender} size="small" />
+                                            </View>
+                                        ) : headerSuggestions.length === 0 ? (
+                                            <View style={{ padding: 16, alignItems: 'center' }}>
+                                                <Text style={{ color: '#7A6B9C', fontSize: 12, fontWeight: '600' }}>
+                                                    No matches. Press search to look anywhere.
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 260 }}>
+                                                {headerSuggestions.map((it, idx) => (
+                                                    <TouchableOpacity
+                                                        key={`${it.type}-${idx}-${it.name}`}
+                                                        style={styles.psSuggestItem}
+                                                        onPress={() => onPickHeaderSuggestion(it)}
+                                                    >
+                                                        <View style={[styles.psSuggestIcon, {
+                                                            backgroundColor:
+                                                                it.type === 'category' ? 'rgba(139,92,246,0.12)'
+                                                                : it.type === 'profile' ? 'rgba(16,185,129,0.12)'
+                                                                : 'rgba(245,158,11,0.12)',
+                                                        }]}>
+                                                            <Ionicons
+                                                                name={
+                                                                    it.type === 'category' ? 'grid-outline'
+                                                                    : it.type === 'profile' ? 'business-outline'
+                                                                    : 'construct-outline'
+                                                                }
+                                                                size={16}
+                                                                color={
+                                                                    it.type === 'category' ? '#8b5cf6'
+                                                                    : it.type === 'profile' ? '#10b981'
+                                                                    : '#f59e0b'
+                                                                }
+                                                            />
+                                                        </View>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.psSuggestName} numberOfLines={1}>{it.name}</Text>
+                                                            <Text style={styles.psSuggestType}>
+                                                                {it.type === 'category' ? 'Category'
+                                                                    : it.type === 'profile' ? 'Business Profile'
+                                                                    : 'Service'}
+                                                            </Text>
+                                                        </View>
+                                                        <Ionicons name="chevron-forward" size={14} color="#9A8EBA" />
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        )}
+                                    </View>
+                                )}
                             </View>
-                            <TouchableOpacity 
+
+                            <TouchableOpacity
                                 style={[styles.psBookmarkBtn, { backgroundColor: isMySpace ? darkLavender : theme.primary }]}
                                 onPress={() => router.push('/business-scanner')}
                             >

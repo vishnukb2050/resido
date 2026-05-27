@@ -165,6 +165,8 @@ export class BusinessService {
         const limit = Math.min(Math.max(params.limit ?? 50, 1), 100);
         const offset = Math.max(params.offset ?? 0, 0);
         const hasGeo = lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng);
+        const hasAdmin = !!(pincode || district || state);
+        const hasLocationContext = hasGeo || hasAdmin;
         const searchRadiusKm = radius && radius > 0 ? radius : 10;
 
         const textFilter = this.buildTextSearchFilter(query);
@@ -176,6 +178,16 @@ export class BusinessService {
             ...(category ? { category: { contains: category, mode: 'insensitive' } } : {}),
             ...(textFilter ? textFilter : {}),
         };
+
+        // Strict visibility: when the caller has not supplied ANY location
+        // context (no pincode/district/state and no lat/lng), only providers
+        // who explicitly opted into nationwide visibility (PAN_INDIA) should
+        // appear. This prevents a profile created for a single district
+        // (e.g. Ernakulam) from being visible to users in other districts
+        // who haven't told us where they are.
+        if (!hasLocationContext) {
+            baseWhere.serviceAreaType = 'PAN_INDIA';
+        }
 
         if (hasGeo) {
             const queryPattern = query?.trim() ? `%${query.trim()}%` : null;

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import * as fs from 'fs';
@@ -696,49 +696,166 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
-    async addIncome(userId: string, data: { source: string, amount: number, date: string }) {
+    async addIncome(
+        userId: string,
+        data: { source: string; amount: number; date: string; description?: string; receiptUrl?: string },
+    ) {
+        if (!data?.source?.trim()) throw new BadRequestException('Income source is required');
+        if (!data?.amount || Number.isNaN(Number(data.amount))) {
+            throw new BadRequestException('Amount must be a number');
+        }
         return this.prisma.userClient.personalIncome.create({
-            data: { 
-                source: data.source,
-                amount: data.amount,
-                date: new Date(data.date),
-                userId 
-            }
+            data: {
+                source: data.source.trim(),
+                amount: Number(data.amount),
+                description: data.description?.trim() || null,
+                receiptUrl: data.receiptUrl || null,
+                date: data.date ? new Date(data.date) : new Date(),
+                userId,
+            },
         });
     }
 
-    async addExpense(userId: string, data: { amount: number, category: string, date: string, paymentMethod: string, description?: string, billUrl?: string }) {
-        return this.prisma.userClient.personalExpense.create({
-            data: { 
-                amount: data.amount,
-                category: data.category,
-                date: new Date(data.date),
-                paymentMethod: data.paymentMethod,
-                description: data.description,
-                billUrl: data.billUrl,
-                userId 
-            }
+    async updateIncome(
+        userId: string,
+        id: string,
+        data: { source?: string; amount?: number; date?: string; description?: string; receiptUrl?: string | null },
+    ) {
+        const existing = await this.prisma.userRead.personalIncome.findFirst({ where: { id, userId } });
+        if (!existing) throw new NotFoundException('Income entry not found');
+
+        return this.prisma.userClient.personalIncome.update({
+            where: { id },
+            data: {
+                ...(data.source !== undefined ? { source: String(data.source).trim() } : {}),
+                ...(data.amount !== undefined ? { amount: Number(data.amount) } : {}),
+                ...(data.date !== undefined ? { date: new Date(data.date) } : {}),
+                ...(data.description !== undefined ? { description: data.description?.trim() || null } : {}),
+                ...(data.receiptUrl !== undefined ? { receiptUrl: data.receiptUrl || null } : {}),
+            },
         });
+    }
+
+    async deleteIncome(userId: string, id: string) {
+        const existing = await this.prisma.userRead.personalIncome.findFirst({ where: { id, userId } });
+        if (!existing) throw new NotFoundException('Income entry not found');
+        await this.prisma.userClient.personalIncome.delete({ where: { id } });
+        return { success: true, id };
+    }
+
+    async addExpense(
+        userId: string,
+        data: { amount: number; category: string; date: string; paymentMethod: string; description?: string; billUrl?: string },
+    ) {
+        if (!data?.amount || Number.isNaN(Number(data.amount))) {
+            throw new BadRequestException('Amount must be a number');
+        }
+        if (!data?.category?.trim()) throw new BadRequestException('Category is required');
+        if (!data?.paymentMethod?.trim()) throw new BadRequestException('Payment method is required');
+
+        return this.prisma.userClient.personalExpense.create({
+            data: {
+                amount: Number(data.amount),
+                category: data.category.trim(),
+                date: data.date ? new Date(data.date) : new Date(),
+                paymentMethod: data.paymentMethod.trim(),
+                description: data.description?.trim() || null,
+                billUrl: data.billUrl || null,
+                userId,
+            },
+        });
+    }
+
+    async updateExpense(
+        userId: string,
+        id: string,
+        data: {
+            amount?: number;
+            category?: string;
+            date?: string;
+            paymentMethod?: string;
+            description?: string | null;
+            billUrl?: string | null;
+        },
+    ) {
+        const existing = await this.prisma.userRead.personalExpense.findFirst({ where: { id, userId } });
+        if (!existing) throw new NotFoundException('Expense entry not found');
+
+        return this.prisma.userClient.personalExpense.update({
+            where: { id },
+            data: {
+                ...(data.amount !== undefined ? { amount: Number(data.amount) } : {}),
+                ...(data.category !== undefined ? { category: String(data.category).trim() } : {}),
+                ...(data.date !== undefined ? { date: new Date(data.date) } : {}),
+                ...(data.paymentMethod !== undefined ? { paymentMethod: String(data.paymentMethod).trim() } : {}),
+                ...(data.description !== undefined ? { description: data.description?.trim() || null } : {}),
+                ...(data.billUrl !== undefined ? { billUrl: data.billUrl || null } : {}),
+            },
+        });
+    }
+
+    async deleteExpense(userId: string, id: string) {
+        const existing = await this.prisma.userRead.personalExpense.findFirst({ where: { id, userId } });
+        if (!existing) throw new NotFoundException('Expense entry not found');
+        await this.prisma.userClient.personalExpense.delete({ where: { id } });
+        return { success: true, id };
     }
 
     async getFinanceReport(userId: string, period: string, startDate?: string, endDate?: string) {
-        let where: any = { userId };
-        
-        if (period === 'WEEK') {
-            const start = new Date();
-            start.setDate(start.getDate() - 7);
-            where.date = { gte: start };
-        } else if (period === 'MONTH') {
-            const start = new Date();
-            start.setMonth(start.getMonth() - 1);
-            where.date = { gte: start };
-        } else if (period === 'CUSTOM' && startDate && endDate) {
-            where.date = { gte: new Date(startDate), lte: new Date(endDate) };
+        const where: any = { userId };
+        const now = new Date();
+
+        switch ((period || '').toUpperCase()) {
+            case 'DAY': {
+                // Specific calendar day, defaulting to today. `startDate` is the chosen day.
+                const target = startDate ? new Date(startDate) : new Date();
+                const dayStart = new Date(target);
+                dayStart.setHours(0, 0, 0, 0);
+                const dayEnd = new Date(target);
+                dayEnd.setHours(23, 59, 59, 999);
+                where.date = { gte: dayStart, lte: dayEnd };
+                break;
+            }
+            case 'WEEK': {
+                const start = new Date();
+                start.setDate(start.getDate() - 7);
+                where.date = { gte: start };
+                break;
+            }
+            case 'MONTH': {
+                // If startDate is supplied, treat as the first day of the chosen month;
+                // otherwise default to the current calendar month.
+                const anchor = startDate ? new Date(startDate) : now;
+                const monthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1, 0, 0, 0, 0);
+                const monthEnd = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0, 23, 59, 59, 999);
+                where.date = { gte: monthStart, lte: monthEnd };
+                break;
+            }
+            case 'YEAR': {
+                const start = new Date(now.getFullYear(), 0, 1);
+                const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+                where.date = { gte: start, lte: end };
+                break;
+            }
+            case 'CUSTOM': {
+                if (startDate && endDate) {
+                    const s = new Date(startDate);
+                    s.setHours(0, 0, 0, 0);
+                    const e = new Date(endDate);
+                    e.setHours(23, 59, 59, 999);
+                    where.date = { gte: s, lte: e };
+                }
+                break;
+            }
+            case 'ALL':
+            default:
+                // No date filter — return everything.
+                break;
         }
 
         const [incomes, expenses] = await Promise.all([
             this.prisma.userRead.personalIncome.findMany({ where, orderBy: { date: 'desc' } }),
-            this.prisma.userRead.personalExpense.findMany({ where, orderBy: { date: 'desc' } })
+            this.prisma.userRead.personalExpense.findMany({ where, orderBy: { date: 'desc' } }),
         ]);
 
         const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
@@ -748,10 +865,10 @@ export class ProfileService implements OnModuleInit {
             summary: {
                 totalIncome,
                 totalExpense,
-                balance: totalIncome - totalExpense
+                balance: totalIncome - totalExpense,
             },
             incomes,
-            expenses
+            expenses,
         };
     }
 }

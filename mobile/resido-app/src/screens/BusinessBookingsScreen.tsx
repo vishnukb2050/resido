@@ -31,6 +31,11 @@ export default function BusinessBookingsScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
+    // Live suggestions (category / business profile / service) for the search box.
+    const [suggestions, setSuggestions] = useState<Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }>>([]);
+    const [showSuggest, setShowSuggest] = useState(false);
+    const [loadingSuggest, setLoadingSuggest] = useState(false);
+
     useEffect(() => {
         loadTabData();
     }, [activeTab]);
@@ -45,6 +50,45 @@ export default function BusinessBookingsScreen() {
             fetchSearchProfiles();
         }
     }, [debouncedQuery, selectedLocation, userLocation, activeTab]);
+
+    // Live profile/category suggestions while typing in the Search tab.
+    useEffect(() => {
+        if (activeTab !== 'SEARCH') return;
+        const q = searchQuery.trim();
+        if (q.length < 2) {
+            setSuggestions([]);
+            return;
+        }
+        let cancelled = false;
+        setLoadingSuggest(true);
+        const timer = setTimeout(async () => {
+            try {
+                const { data } = await businessApi.suggestProfiles(q, 10);
+                if (cancelled) return;
+                const items: Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }> = [];
+                (data?.categories || []).slice(0, 5).forEach((name: string) => items.push({ type: 'category', name }));
+                (data?.profiles || []).slice(0, 5).forEach((p: any) => items.push({ type: 'profile', name: p.name, profileId: p.id }));
+                (data?.services || []).slice(0, 5).forEach((s: any) => items.push({ type: 'service', name: s.name, profileId: s.profileId }));
+                setSuggestions(items.slice(0, 10));
+            } catch {
+                setSuggestions([]);
+            } finally {
+                if (!cancelled) setLoadingSuggest(false);
+            }
+        }, 280);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [searchQuery, activeTab]);
+
+    const onPickSuggestion = (item: { type: 'category' | 'profile' | 'service'; name: string; profileId?: string }) => {
+        setShowSuggest(false);
+        if (item.type === 'profile' && item.profileId) {
+            // Open the picked profile directly.
+            router.push({ pathname: '/business-detail', params: { id: item.profileId } });
+            return;
+        }
+        // For category / service: set the search text so the list reloads.
+        setSearchQuery(item.name);
+    };
 
     const loadTabData = async () => {
         setLoading(true);
@@ -412,20 +456,80 @@ export default function BusinessBookingsScreen() {
                     ) : (
                         <View style={{ flex: 1 }}>
                             {/* Search bar inside the Search tab */}
-                            <View style={styles.searchSection}>
-                                <Ionicons name="search" size={20} color="#94a3b8" />
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search by profile name or category..."
-                                    placeholderTextColor="#64748b"
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                />
-                                {searchQuery ? (
-                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                        <Ionicons name="close-circle" size={18} color="#94a3b8" />
-                                    </TouchableOpacity>
-                                ) : null}
+                            <View style={{ zIndex: 50 }}>
+                                <View style={styles.searchSection}>
+                                    <Ionicons name="search" size={20} color="#94a3b8" />
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder="Search by profile name or category..."
+                                        placeholderTextColor="#64748b"
+                                        value={searchQuery}
+                                        onChangeText={(t) => { setSearchQuery(t); setShowSuggest(true); }}
+                                        onFocus={() => setShowSuggest(true)}
+                                    />
+                                    {searchQuery ? (
+                                        <TouchableOpacity onPress={() => { setSearchQuery(''); setShowSuggest(false); }}>
+                                            <Ionicons name="close-circle" size={18} color="#94a3b8" />
+                                        </TouchableOpacity>
+                                    ) : null}
+                                </View>
+
+                                {/* Live suggestions dropdown */}
+                                {showSuggest && searchQuery.trim().length >= 2 && (
+                                    <View style={styles.suggestDropdown}>
+                                        {loadingSuggest && suggestions.length === 0 ? (
+                                            <View style={{ padding: 16, alignItems: 'center' }}>
+                                                <ActivityIndicator color="#8b5cf6" size="small" />
+                                            </View>
+                                        ) : suggestions.length === 0 ? (
+                                            <View style={{ padding: 16, alignItems: 'center' }}>
+                                                <Text style={{ color: '#7A6B9C', fontSize: 12, fontWeight: '600' }}>
+                                                    No matches yet — keep typing.
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 260 }}>
+                                                {suggestions.map((it, idx) => (
+                                                    <TouchableOpacity
+                                                        key={`${it.type}-${idx}-${it.name}`}
+                                                        style={styles.suggestItem}
+                                                        onPress={() => onPickSuggestion(it)}
+                                                    >
+                                                        <View style={[styles.suggestIcon, {
+                                                            backgroundColor:
+                                                                it.type === 'category' ? 'rgba(139,92,246,0.12)'
+                                                                : it.type === 'profile' ? 'rgba(16,185,129,0.12)'
+                                                                : 'rgba(245,158,11,0.12)',
+                                                        }]}>
+                                                            <Ionicons
+                                                                name={
+                                                                    it.type === 'category' ? 'grid-outline'
+                                                                    : it.type === 'profile' ? 'business-outline'
+                                                                    : 'construct-outline'
+                                                                }
+                                                                size={16}
+                                                                color={
+                                                                    it.type === 'category' ? '#8b5cf6'
+                                                                    : it.type === 'profile' ? '#10b981'
+                                                                    : '#f59e0b'
+                                                                }
+                                                            />
+                                                        </View>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.suggestName} numberOfLines={1}>{it.name}</Text>
+                                                            <Text style={styles.suggestType}>
+                                                                {it.type === 'category' ? 'Category'
+                                                                    : it.type === 'profile' ? 'Business Profile'
+                                                                    : 'Service'}
+                                                            </Text>
+                                                        </View>
+                                                        <Ionicons name="chevron-forward" size={14} color="#9A8EBA" />
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        )}
+                                    </View>
+                                )}
                             </View>
                             <View style={[styles.searchSection, { marginTop: 0, marginBottom: 8 }]}>
                                 <Ionicons name="location" size={18} color="#94a3b8" />
@@ -525,5 +629,36 @@ const styles = StyleSheet.create({
 
     // Search bar
     searchSection: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderLeftWidth: 1, borderRightWidth: 1, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#D4C9E8', marginHorizontal: 16, marginTop: 8, marginBottom: 8, borderRadius: 14, paddingHorizontal: 16, height: 50 },
-    searchInput: { flex: 1, marginLeft: 12, color: '#2D2445', fontSize: 14, fontWeight: '600' }
+    searchInput: { flex: 1, marginLeft: 12, color: '#2D2445', fontSize: 14, fontWeight: '600' },
+
+    // Live suggestions dropdown
+    suggestDropdown: {
+        position: 'absolute',
+        top: 60,
+        left: 16,
+        right: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#E2D9F2',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 12,
+        overflow: 'hidden',
+        zIndex: 9999,
+    },
+    suggestItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F4EEFC',
+    },
+    suggestIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    suggestName: { fontSize: 13, fontWeight: '800', color: '#2D2445' },
+    suggestType: { fontSize: 10, color: '#9A8EBA', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
 });

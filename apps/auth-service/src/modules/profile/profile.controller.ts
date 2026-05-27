@@ -215,9 +215,33 @@ export class ProfileController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Patch('finance/income/:id')
+    async updateIncome(@Req() req: any, @Param('id') id: string, @Body() data: any) {
+        return this.profileService.updateIncome(req.user.userId, id, data);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete('finance/income/:id')
+    async deleteIncome(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.deleteIncome(req.user.userId, id);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Post('finance/expense')
     async addExpense(@Req() req: any, @Body() data: any) {
         return this.profileService.addExpense(req.user.userId, data);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch('finance/expense/:id')
+    async updateExpense(@Req() req: any, @Param('id') id: string, @Body() data: any) {
+        return this.profileService.updateExpense(req.user.userId, id, data);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete('finance/expense/:id')
+    async deleteExpense(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.deleteExpense(req.user.userId, id);
     }
 
     @UseGuards(JwtAuthGuard)

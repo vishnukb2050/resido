@@ -1,9 +1,12 @@
 #!/bin/sh
 set -e
 
-# Sync prisma schema on startup
-echo "🔄 Syncing Prisma schema with database..."
-npx prisma db push --accept-data-loss --skip-generate
+# IMPORTANT: Do NOT run `prisma db push` here.
+# complaint-service shares the same `resido_core` database as resident-service,
+# but its Prisma schema is a subset. A `db push --accept-data-loss` from this
+# service would DROP tables/columns owned by other services. Schema migrations
+# for the shared `resido_core` DB are owned by resident-service, which runs
+# `prisma db push` automatically on every deployment.
 
 echo "🚀 Starting application..."
 node dist/main

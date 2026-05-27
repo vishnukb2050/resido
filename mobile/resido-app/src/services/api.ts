@@ -84,6 +84,7 @@ export const authApi = {
     getClientStaff: (id: string) => api.get(`/clients/${id}/staff`),
     addClientStaff: (id: string, data: any) => api.post(`/clients/${id}/staff`, data),
     removeClientStaff: (id: string, membershipId: string) => api.delete(`/clients/${id}/staff/${membershipId}`),
+    deleteClient: (id: string, data: { confirmName: string }) => api.delete(`/clients/${id}`, { data }),
     syncContacts: (phones: string[]) => api.post('/auth/sync-contacts', { phones }),
     searchUsers: (query: string) => api.get(`/profile/users/search?query=${query}`),
     createMember: (data: any) => api.post('/members', data),
@@ -302,8 +303,12 @@ export const mySpaceApi = {
     getSharedNotes: () => api.get('/profile/notes/shared'),
     getSharedDocuments: () => api.get('/profile/documents/shared'),
 
-    addIncome: (data: { source: string, amount: number, date: string }) => api.post('/profile/finance/income', data),
+    addIncome: (data: { source: string, amount: number, date: string, description?: string, receiptUrl?: string }) => api.post('/profile/finance/income', data),
+    updateIncome: (id: string, data: { source?: string, amount?: number, date?: string, description?: string, receiptUrl?: string | null }) => api.patch(`/profile/finance/income/${id}`, data),
+    deleteIncome: (id: string) => api.delete(`/profile/finance/income/${id}`),
     addExpense: (data: { amount: number, category: string, date: string, paymentMethod: string, description?: string, billUrl?: string }) => api.post('/profile/finance/expense', data),
+    updateExpense: (id: string, data: { amount?: number, category?: string, date?: string, paymentMethod?: string, description?: string | null, billUrl?: string | null }) => api.patch(`/profile/finance/expense/${id}`, data),
+    deleteExpense: (id: string) => api.delete(`/profile/finance/expense/${id}`),
     getFinanceReport: (params: { period: string, startDate?: string, endDate?: string }) => api.get('/profile/finance/report', { params }),
 };
 

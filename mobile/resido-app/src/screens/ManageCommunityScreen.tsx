@@ -46,6 +46,11 @@ export default function ManageCommunityScreen() {
     const [createPhotoUri, setCreatePhotoUri] = useState<string | null>(null);
     const [creatingCommunity, setCreatingCommunity] = useState(false);
 
+    // Delete Community Verification State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmName, setDeleteConfirmName] = useState('');
+    const [deletingCommunity, setDeletingCommunity] = useState(false);
+
     // ── Fetch Staff for Editing Workspace ─────────────────────────────
     const fetchStaff = async (tenantId: string) => {
         setLoadingStaff(true);
@@ -262,6 +267,78 @@ export default function ManageCommunityScreen() {
         } finally {
             setCreatingCommunity(false);
         }
+    };
+
+    // ── Delete Community (with name + native confirmation) ────────────
+    const performDeleteCommunity = async () => {
+        if (!editingWorkspace) return;
+        const expected = (editingWorkspace.tenantName || '').trim();
+        if (!deleteConfirmName.trim()) {
+            Alert.alert('Confirmation required', 'Please type the community name to confirm.');
+            return;
+        }
+        if (deleteConfirmName.trim().toLowerCase() !== expected.toLowerCase()) {
+            Alert.alert(
+                'Name does not match',
+                `Please type "${expected}" exactly to confirm permanent deletion.`,
+            );
+            return;
+        }
+
+        setDeletingCommunity(true);
+        try {
+            await authApi.deleteClient(editingWorkspace.tenantId, {
+                confirmName: deleteConfirmName.trim(),
+            });
+
+            // Reset active workspace if it was the deleted one.
+            const auth = useAuthStore.getState();
+            if (auth.activeWorkspace?.tenantId === editingWorkspace.tenantId) {
+                auth.setActiveWorkspace(null as any, auth.token || '');
+            }
+
+            // Refresh workspaces and exit the editor view.
+            await fetchWorkspacesList();
+            setShowDeleteModal(false);
+            setDeleteConfirmName('');
+            setEditingWorkspace(null);
+
+            Alert.alert(
+                'Community deleted',
+                `"${expected}" has been permanently deleted.`,
+            );
+        } catch (err: any) {
+            const status = err?.response?.status;
+            const serverMsg =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Failed to delete community.';
+            Alert.alert(
+                'Delete failed',
+                `${serverMsg}${status ? ` (HTTP ${status})` : ''}`,
+            );
+        } finally {
+            setDeletingCommunity(false);
+        }
+    };
+
+    const handleDeleteCommunity = () => {
+        if (!editingWorkspace) return;
+        Alert.alert(
+            'Delete this community?',
+            `This will permanently delete "${editingWorkspace.tenantName}", all admin staff accounts and every member's access to it. This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Continue',
+                    style: 'destructive',
+                    onPress: () => {
+                        setDeleteConfirmName('');
+                        setShowDeleteModal(true);
+                    },
+                },
+            ],
+        );
     };
 
     // ── Render List of Communities (Dashboard) ─────────────────────────
@@ -521,7 +598,7 @@ export default function ManageCommunityScreen() {
                         <Text style={styles.emptyText}>No admin staff configured.</Text>
                     </View>
                 ) : (
-                    <View style={styles.staffListContainer}>
+                    <View style={[styles.staffListContainer, { marginBottom: 32 }]}>
                         {staffList.map((member) => (
                             <View key={member.id} style={[styles.staffCard, { backgroundColor: theme.surface }]}>
                                 <Image 
@@ -545,6 +622,27 @@ export default function ManageCommunityScreen() {
                                 </TouchableOpacity>
                             </View>
                         ))}
+                    </View>
+                )}
+
+                {/* 4. DANGER ZONE — Permanently delete this community */}
+                {String(editingWorkspace.role || '').toUpperCase() === 'APARTMENT_ADMIN' && (
+                    <View style={styles.dangerZone}>
+                        <View style={styles.dangerHeader}>
+                            <Ionicons name="warning-outline" size={18} color="#b91c1c" />
+                            <Text style={styles.dangerTitle}>Danger Zone</Text>
+                        </View>
+                        <Text style={styles.dangerSub}>
+                            Permanently deleting this community removes all admin staff accounts and revokes every member's access. Existing posts, attendance records and chats tied to this community will become inaccessible. This action cannot be undone.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.dangerBtn}
+                            onPress={handleDeleteCommunity}
+                            disabled={deletingCommunity}
+                        >
+                            <Ionicons name="trash-outline" size={18} color="#ffffff" />
+                            <Text style={styles.dangerBtnText}>Delete this community</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
 
@@ -616,6 +714,97 @@ export default function ManageCommunityScreen() {
                                 )}
                             </TouchableOpacity>
                         </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* DELETE COMMUNITY CONFIRMATION MODAL */}
+            <Modal
+                visible={showDeleteModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => {
+                    if (!deletingCommunity) {
+                        setShowDeleteModal(false);
+                        setDeleteConfirmName('');
+                    }
+                }}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: '#FFF6F6' }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Ionicons name="alert-circle" size={22} color="#b91c1c" />
+                                <Text style={[styles.modalTitle, { color: '#7f1d1d' }]}>Delete Community</Text>
+                            </View>
+                            <TouchableOpacity
+                                disabled={deletingCommunity}
+                                onPress={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteConfirmName('');
+                                }}
+                            >
+                                <Ionicons name="close" size={24} color="#7f1d1d" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.deleteWarn}>
+                            You are about to permanently delete{'\n'}
+                            <Text style={styles.deleteWarnName}>"{editingWorkspace?.tenantName}"</Text>.
+                            {'\n\n'}
+                            All admin staff, member access, and links to this community will be removed. This cannot be undone.
+                        </Text>
+
+                        <Text style={styles.deleteFieldLabel}>
+                            Type <Text style={styles.deleteFieldHi}>{editingWorkspace?.tenantName}</Text> to confirm
+                        </Text>
+                        <TextInput
+                            style={styles.deleteInput}
+                            value={deleteConfirmName}
+                            onChangeText={setDeleteConfirmName}
+                            placeholder="Community name"
+                            placeholderTextColor="#fca5a5"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            editable={!deletingCommunity}
+                        />
+
+                        <TouchableOpacity
+                            style={[
+                                styles.deleteConfirmBtn,
+                                (deletingCommunity ||
+                                    deleteConfirmName.trim().toLowerCase() !==
+                                        (editingWorkspace?.tenantName || '').trim().toLowerCase()) && {
+                                    opacity: 0.55,
+                                },
+                            ]}
+                            onPress={performDeleteCommunity}
+                            disabled={
+                                deletingCommunity ||
+                                deleteConfirmName.trim().toLowerCase() !==
+                                    (editingWorkspace?.tenantName || '').trim().toLowerCase()
+                            }
+                        >
+                            {deletingCommunity ? (
+                                <ActivityIndicator color="#ffffff" />
+                            ) : (
+                                <>
+                                    <Ionicons name="trash" size={18} color="#ffffff" />
+                                    <Text style={styles.deleteConfirmBtnText}>Delete Permanently</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.deleteCancelBtn}
+                            disabled={deletingCommunity}
+                            onPress={() => {
+                                setShowDeleteModal(false);
+                                setDeleteConfirmName('');
+                            }}
+                        >
+                            <Text style={styles.deleteCancelText}>Cancel</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -762,5 +951,63 @@ const styles = StyleSheet.create({
         padding: 18,
         marginTop: 20
     },
-    submitCreateText: { color: '#2D2445', fontWeight: '900', fontSize: 15 }
+    submitCreateText: { color: '#2D2445', fontWeight: '900', fontSize: 15 },
+
+    // Danger Zone (per-community)
+    dangerZone: {
+        marginTop: 24,
+        padding: 20,
+        borderRadius: 16,
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+    },
+    dangerHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    dangerTitle: { fontSize: 13, fontWeight: '900', color: '#b91c1c', textTransform: 'uppercase', letterSpacing: 0.5 },
+    dangerSub: { fontSize: 12, color: '#7f1d1d', lineHeight: 18, marginBottom: 16, fontWeight: '500' },
+    dangerBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#dc2626',
+        borderRadius: 12,
+        paddingVertical: 14,
+    },
+    dangerBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 14 },
+
+    // Delete confirmation modal
+    deleteWarn: { fontSize: 13, color: '#7f1d1d', lineHeight: 20, marginVertical: 8, fontWeight: '500' },
+    deleteWarnName: { fontSize: 15, fontWeight: '900', color: '#7f1d1d' },
+    deleteFieldLabel: { marginTop: 10, fontSize: 12, color: '#7f1d1d', fontWeight: '700' },
+    deleteFieldHi: { fontWeight: '900', color: '#b91c1c' },
+    deleteInput: {
+        marginTop: 8,
+        backgroundColor: '#ffffff',
+        borderWidth: 1.5,
+        borderColor: '#FCA5A5',
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: '#7f1d1d',
+        fontWeight: '700',
+    },
+    deleteConfirmBtn: {
+        marginTop: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#dc2626',
+        borderRadius: 12,
+        paddingVertical: 14,
+    },
+    deleteConfirmBtnText: { color: '#ffffff', fontWeight: '900', fontSize: 14 },
+    deleteCancelBtn: {
+        marginTop: 8,
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    deleteCancelText: { color: '#7f1d1d', fontWeight: '700', fontSize: 13 },
 });

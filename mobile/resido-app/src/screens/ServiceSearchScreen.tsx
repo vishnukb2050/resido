@@ -4,7 +4,7 @@ import {
     TextInput, SafeAreaView, Image, Dimensions, StatusBar
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, Modal } from 'react-native';
 import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -43,8 +43,20 @@ const POPULAR_SERVICES = [
 
 export default function ServiceSearchScreen() {
     const router = useRouter();
-    const [activeCat, setActiveCat] = useState('all');
-    const [searchQuery, setSearchQuery] = useState('');
+    const routeParams = useLocalSearchParams<{ query?: string; category?: string }>();
+    const initialQuery = typeof routeParams?.query === 'string' ? routeParams.query : '';
+    const initialCategoryParam = typeof routeParams?.category === 'string' ? routeParams.category : '';
+    // Map a category name (e.g. "Plumbing") to its internal id; default to 'all'.
+    const initialCatId = React.useMemo(() => {
+        if (!initialCategoryParam) return 'all';
+        const match = CATEGORIES.find(
+            c => c.name.toLowerCase() === initialCategoryParam.toLowerCase(),
+        );
+        return match ? match.id : 'all';
+    }, [initialCategoryParam]);
+
+    const [activeCat, setActiveCat] = useState(initialCatId);
+    const [searchQuery, setSearchQuery] = useState(initialQuery);
     const [searchLocation, setSearchLocation] = useState('');
     const [selectedLocationName, setSelectedLocationName] = useState('');
     const [locationResults, setLocationResults] = useState<any[]>([]);
@@ -459,6 +471,19 @@ export default function ServiceSearchScreen() {
         }
     };
 
+    // True whenever the user has narrowed the catalog in any way — category,
+    // search query, custom location pin or admin area. In this state we hide
+    // the marketing/promo blocks (Popular Services, verified banner, post-a-
+    // job, features row) and show only filtered Search Results.
+    const isSearching = (
+        activeCat !== 'all' ||
+        debouncedQuery.trim().length > 0 ||
+        !!selectedLocationName ||
+        !!selectedLocation ||
+        !!selectedPin ||
+        !!userLocation
+    );
+
     const fetchProfiles = async () => {
         setLoading(true);
         try {
@@ -703,56 +728,66 @@ export default function ServiceSearchScreen() {
                     </View>
                 )}
 
-                <View style={styles.verifiedBanner}>
-                    <View style={styles.verifiedIconContainer}>
-                        <View style={styles.shieldIcon}>
-                            <Ionicons name="shield-checkmark" size={20} color="#fff" />
-                        </View>
-                    </View>
-                    <View style={styles.verifiedTextContent}>
-                        <Text style={styles.verifiedTitle}>Verified & Trusted Professionals</Text>
-                        <Text style={styles.verifiedSubtitle}>Background verified • Quality service • On-time</Text>
-                    </View>
-                    <View style={styles.verifiedBadgeContainer}>
-                        <MaterialCommunityIcons name="certificate" size={40} color="#1d4ed8" />
-                        <View style={styles.checkInner}>
-                            <Ionicons name="checkmark" size={14} color="#fff" />
-                        </View>
-                    </View>
-                </View>
-
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Popular Services</Text>
-                    <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
-                </View>
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
-                    style={styles.popularScroll}
-                    contentContainerStyle={styles.popularContent}
-                >
-                    {POPULAR_SERVICES.map(item => (
-                        <TouchableOpacity key={item.id} style={styles.popularCard}>
-                            <Image source={{ uri: item.image }} style={styles.popularImage} />
-                            <View style={styles.popularIconOverlay}>
-                                <MaterialCommunityIcons name={item.icon as any} size={18} color="#1d4ed8" />
-                            </View>
-                            <View style={styles.popularInfo}>
-                                <Text style={styles.popularName}>{item.name}</Text>
-                                <View style={styles.ratingRow}>
-                                    <Ionicons name="star" size={12} color="#f59e0b" />
-                                    <Text style={styles.ratingText}>{item.rating} ({item.reviews})</Text>
+                {!isSearching && (
+                    <>
+                        <View style={styles.verifiedBanner}>
+                            <View style={styles.verifiedIconContainer}>
+                                <View style={styles.shieldIcon}>
+                                    <Ionicons name="shield-checkmark" size={20} color="#fff" />
                                 </View>
                             </View>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                            <View style={styles.verifiedTextContent}>
+                                <Text style={styles.verifiedTitle}>Verified & Trusted Professionals</Text>
+                                <Text style={styles.verifiedSubtitle}>Background verified • Quality service • On-time</Text>
+                            </View>
+                            <View style={styles.verifiedBadgeContainer}>
+                                <MaterialCommunityIcons name="certificate" size={40} color="#1d4ed8" />
+                                <View style={styles.checkInner}>
+                                    <Ionicons name="checkmark" size={14} color="#fff" />
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Popular Services</Text>
+                            <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
+                        </View>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.popularScroll}
+                            contentContainerStyle={styles.popularContent}
+                        >
+                            {POPULAR_SERVICES.map(item => (
+                                <TouchableOpacity key={item.id} style={styles.popularCard}>
+                                    <Image source={{ uri: item.image }} style={styles.popularImage} />
+                                    <View style={styles.popularIconOverlay}>
+                                        <MaterialCommunityIcons name={item.icon as any} size={18} color="#1d4ed8" />
+                                    </View>
+                                    <View style={styles.popularInfo}>
+                                        <Text style={styles.popularName}>{item.name}</Text>
+                                        <View style={styles.ratingRow}>
+                                            <Ionicons name="star" size={12} color="#f59e0b" />
+                                            <Text style={styles.ratingText}>{item.rating} ({item.reviews})</Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </>
+                )}
 
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>
-                        {activeCat === 'all' && !searchLocation ? 'Top Professionals' : 'Search Results'}
+                        {isSearching ? 'Search Results' : 'Nationwide Providers'}
                     </Text>
-                    <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
+                    {isSearching ? (
+                        <Text style={[styles.viewAll, { color: '#64748b', fontWeight: '600' }]}>
+                            {profiles.length} result{profiles.length === 1 ? '' : 's'}
+                        </Text>
+                    ) : (
+                        <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
+                    )}
                 </View>
 
                 {loading ? (
@@ -809,36 +844,44 @@ export default function ServiceSearchScreen() {
                                 </TouchableOpacity>
                             ))
                         ) : (
-                            <View style={{ padding: 40, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginTop: 10 }}>
+                            <View style={{ padding: 40, alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 10 }}>
                                 <Ionicons name="business-outline" size={48} color="#94a3b8" style={{ marginBottom: 12 }} />
-                                <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 4 }}>No Providers Found</Text>
+                                <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 4 }}>No Providers in this Area</Text>
                                 <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 18 }}>
-                                    No business profiles are currently registered under this category in your selected area.
+                                    {selectedLocationName
+                                        ? `No professionals are registered for "${activeCat !== 'all' ? CATEGORIES.find(c => c.id === activeCat)?.name + ' in ' : ''}${selectedLocationName}". Try a different area or category.`
+                                        : isSearching
+                                            ? 'No professionals match your filters. Try changing the category or selecting a different location.'
+                                            : 'Pick an area or use "Near Me" to discover nearby professionals.'}
                                 </Text>
                             </View>
                         )}
                     </View>
                 )}
 
-                <View style={styles.featuresRow}>
-                    <FeatureItem icon="shield-checkmark-outline" label="Verified" sub="Background verified" />
-                    <FeatureItem icon="star-outline" label="Ratings" sub="Real customer reviews" />
-                    <FeatureItem icon="shield-outline" label="Secure" sub="Safe & trusted payments" />
-                    <FeatureItem icon="headset-outline" label="Support" sub="24/7 customer support" />
-                </View>
+                {!isSearching && (
+                    <>
+                        <View style={styles.featuresRow}>
+                            <FeatureItem icon="shield-checkmark-outline" label="Verified" sub="Background verified" />
+                            <FeatureItem icon="star-outline" label="Ratings" sub="Real customer reviews" />
+                            <FeatureItem icon="shield-outline" label="Secure" sub="Safe & trusted payments" />
+                            <FeatureItem icon="headset-outline" label="Support" sub="24/7 customer support" />
+                        </View>
 
-                <View style={styles.postJobCard}>
-                    <View style={styles.postJobIcon}>
-                        <Ionicons name="pricetag" size={24} color="#1d4ed8" />
-                    </View>
-                    <View style={styles.postJobText}>
-                        <Text style={styles.postJobTitle}>Post a Job for Free</Text>
-                        <Text style={styles.postJobSubtitle}>Tell us what you need, professionals will reach out to you.</Text>
-                    </View>
-                    <TouchableOpacity style={styles.postJobBtn}>
-                        <Text style={styles.postJobBtnText}>Post a Job</Text>
-                    </TouchableOpacity>
-                </View>
+                        <View style={styles.postJobCard}>
+                            <View style={styles.postJobIcon}>
+                                <Ionicons name="pricetag" size={24} color="#1d4ed8" />
+                            </View>
+                            <View style={styles.postJobText}>
+                                <Text style={styles.postJobTitle}>Post a Job for Free</Text>
+                                <Text style={styles.postJobSubtitle}>Tell us what you need, professionals will reach out to you.</Text>
+                            </View>
+                            <TouchableOpacity style={styles.postJobBtn}>
+                                <Text style={styles.postJobBtnText}>Post a Job</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </>
+                )}
 
                 <View style={{ height: 120 }} />
             </ScrollView>

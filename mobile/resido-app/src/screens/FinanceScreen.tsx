@@ -34,9 +34,20 @@ export default function FinanceScreen() {
     };
 
     const summary = report?.summary || { totalIncome: 0, totalExpense: 0, balance: 0 };
-    const transactions = [...(report?.incomes || []), ...(report?.expenses || [])]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const incomes = (report?.incomes || []).map((i: any) => ({ ...i, _kind: 'INCOME' as const }));
+    const expenses = (report?.expenses || []).map((e: any) => ({ ...e, _kind: 'EXPENSE' as const }));
+    const transactions = [...incomes, ...expenses]
+        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 5);
+
+    const openEdit = (tx: any) => {
+        const payload = encodeURIComponent(JSON.stringify(tx));
+        if (tx._kind === 'INCOME') {
+            router.push({ pathname: '/add-income', params: { id: tx.id, data: payload } });
+        } else {
+            router.push({ pathname: '/add-expense', params: { id: tx.id, data: payload } });
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -115,25 +126,32 @@ export default function FinanceScreen() {
                                 <Text style={styles.emptyText}>No transactions yet</Text>
                             ) : (
                                 transactions.map((tx: any) => (
-                                    <View key={tx.id} style={styles.txCard}>
+                                    <TouchableOpacity
+                                        key={`${tx._kind}-${tx.id}`}
+                                        style={styles.txCard}
+                                        activeOpacity={0.85}
+                                        onPress={() => openEdit(tx)}
+                                    >
                                         <View style={[styles.txIconBox, { backgroundColor: '#F4EEFC' }]}>
-                                            <FontAwesome5 
-                                                name={tx.source ? 'wallet' : 'shopping-basket'} 
-                                                size={18} 
-                                                color={tx.source ? '#10b981' : '#ef4444'} 
+                                            <FontAwesome5
+                                                name={tx._kind === 'INCOME' ? 'wallet' : 'shopping-basket'}
+                                                size={18}
+                                                color={tx._kind === 'INCOME' ? '#10b981' : '#ef4444'}
                                             />
                                         </View>
                                         <View style={styles.txInfo}>
                                             <Text style={styles.txTitle}>{tx.source || tx.category}</Text>
-                                            <Text style={styles.txCategory}>{tx.source ? 'Income' : tx.paymentMethod}</Text>
+                                            <Text style={styles.txCategory}>
+                                                {tx._kind === 'INCOME' ? 'Income' : (tx.paymentMethod || 'Expense')}
+                                            </Text>
                                         </View>
                                         <View style={styles.txRight}>
-                                            <Text style={[styles.txAmount, { color: tx.source ? '#10b981' : '#ef4444' }]}>
-                                                {tx.source ? '+' : '-'} ₹ {tx.amount.toLocaleString()}
+                                            <Text style={[styles.txAmount, { color: tx._kind === 'INCOME' ? '#10b981' : '#ef4444' }]}>
+                                                {tx._kind === 'INCOME' ? '+' : '-'} ₹ {Number(tx.amount).toLocaleString()}
                                             </Text>
                                             <Text style={styles.txDate}>{new Date(tx.date).toLocaleDateString()}</Text>
                                         </View>
-                                    </View>
+                                    </TouchableOpacity>
                                 ))
                             )}
                         </View>

@@ -46,13 +46,15 @@ model User {
 }
 
 model PersonalIncome {
-  id        String   @id @default(cuid())
-  userId    String
-  source    String
-  amount    Float
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  source      String
+  amount      Float
+  description String?
+  receiptUrl  String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 

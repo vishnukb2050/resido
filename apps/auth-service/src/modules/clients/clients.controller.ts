@@ -55,4 +55,13 @@ export class ClientsController {
     toggleClient(@Param('id') id: string, @Body() body: { isActive: boolean }) {
         return this.clientsService.toggleClient(id, body.isActive);
     }
+
+    @Delete(':id')
+    deleteClient(
+        @Param('id') id: string,
+        @Body() body: { confirmName?: string },
+        @Req() req: any,
+    ) {
+        return this.clientsService.deleteClient(id, body, req.user);
+    }
 }

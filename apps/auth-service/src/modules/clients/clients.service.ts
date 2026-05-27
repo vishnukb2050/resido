@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
@@ -350,6 +350,94 @@ export class ClientsService {
                 id: membershipId
             }
         });
+    }
+
+    /**
+     * Permanently delete a community (client/tenant) and its directly-owned
+     * registry records: staff accounts, workspace memberships and member rows.
+     * The caller must be an APARTMENT_ADMIN of this tenant and must type the
+     * exact community name into `confirmName` as a destructive-action guard.
+     */
+    async deleteClient(
+        clientId: string,
+        dto: { confirmName?: string },
+        currentUser?: { userId?: string; role?: string; type?: string },
+    ) {
+        if (!clientId) {
+            throw new BadRequestException('Community id is required.');
+        }
+        if (!dto?.confirmName || !dto.confirmName.trim()) {
+            throw new BadRequestException(
+                'Please type the community name to confirm deletion.',
+            );
+        }
+
+        const client = await this.prisma.masterRead.client.findUnique({
+            where: { id: clientId },
+        });
+        if (!client) {
+            throw new NotFoundException('Community not found.');
+        }
+
+        if (dto.confirmName.trim().toLowerCase() !== client.name.trim().toLowerCase()) {
+            throw new BadRequestException(
+                'Community name does not match. Please type the exact name to confirm deletion.',
+            );
+        }
+
+        // Authorization: only an active APARTMENT_ADMIN of this tenant can delete it.
+        // (Superadmin staff accounts authenticate with type='staff' and are also allowed.)
+        const isSuperStaff = currentUser?.type === 'staff';
+        if (!isSuperStaff) {
+            if (!currentUser?.userId) {
+                throw new ForbiddenException('You must be signed in to delete a community.');
+            }
+            const adminMembership = await this.prisma.userRead.workspaceMembership.findFirst({
+                where: {
+                    userId: currentUser.userId,
+                    tenantId: clientId,
+                    role: 'APARTMENT_ADMIN' as Role,
+                    isActive: true,
+                },
+            });
+            if (!adminMembership) {
+                throw new ForbiddenException(
+                    'Only the community admin can delete this community.',
+                );
+            }
+        }
+
+        // Best-effort cascade cleanup of related rows that don't auto-cascade.
+        // Wrapped in try/catch so a failure in one table doesn't block deletion
+        // of the master Client record itself.
+        try {
+            await this.prisma.userClient.workspaceMembership.deleteMany({
+                where: { tenantId: clientId },
+            });
+        } catch (err: any) {
+            console.warn('[deleteClient] workspaceMembership cleanup failed:', err?.message);
+        }
+        try {
+            await this.prisma.coreClient.member.deleteMany({
+                where: { tenantId: clientId },
+            });
+        } catch (err: any) {
+            console.warn('[deleteClient] core members cleanup failed:', err?.message);
+        }
+        try {
+            await this.prisma.masterClient.staffAccount.deleteMany({
+                where: { clientId },
+            });
+        } catch (err: any) {
+            console.warn('[deleteClient] staffAccount cleanup failed:', err?.message);
+        }
+
+        await this.prisma.masterClient.client.delete({ where: { id: clientId } });
+
+        return {
+            success: true,
+            message: `Community "${client.name}" has been permanently deleted.`,
+        };
     }
 
     private slugify(name: string): string {

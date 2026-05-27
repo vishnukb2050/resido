@@ -345,10 +345,11 @@ export default function EventsScreen() {
                             selectedDayBackgroundColor: theme.primary,
                             selectedDayTextColor:       '#ffffff',
                             todayTextColor:             theme.primary,
-                            dayTextColor:               '#fff',
-                            textDisabledColor:          'rgba(255,255,255,0.15)',
+                                // Off-white background requires dark date numbers.
+                                dayTextColor:               '#2D2445',
+                                textDisabledColor:          'rgba(45, 36, 69, 0.35)',
                             dotColor:                   theme.primary,
-                            monthTextColor:             '#fff',
+                                monthTextColor:             '#2D2445',
                             arrowColor:                 theme.primary,
                         }}
                         markedDates={markedDates}

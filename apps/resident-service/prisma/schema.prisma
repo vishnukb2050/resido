@@ -568,7 +568,10 @@ model Blog {
   targetCommunities String[] // Tenant IDs for COMMUNITY visibility
   audioUrl    String?  // URL to custom background audio
   commentsEnabled Boolean @default(true)
-  
+
+  // Optional pin to the author's business profile (flares/threads).
+  businessProfileId String?
+
   // Interaction Counts
   likesCount    Int @default(0)
   commentsCount Int @default(0)
@@ -588,6 +591,7 @@ model Blog {
 
   @@unique([id, tenantId])
   @@index([tenantId])
+  @@index([businessProfileId])
   @@map("blogs")
 }
 
