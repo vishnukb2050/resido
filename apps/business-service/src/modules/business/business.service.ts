@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@resido/business-client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationResolverService } from './location-resolver.service';
@@ -85,10 +85,35 @@ function expandPlaceAliases(name?: string): string[] {
 
 @Injectable()
 export class BusinessService {
+    private readonly logger = new Logger(BusinessService.name);
+
     constructor(
         private prisma: PrismaService,
         private locationResolver: LocationResolverService,
     ) {}
+
+    /**
+     * Build the SQL fragment that tests whether ANY value inside the
+     * `serviceAreaValues` text[] column matches one of the alias variants we
+     * computed for the searcher's location. Uses explicit per-variant equality
+     * (joined with OR via Prisma.join) instead of relying on `ANY($1::text[])`
+     * with a JS-array parameter — Prisma's raw-query parameter binder is
+     * unreliable with native text[] interpolation, which silently produced
+     * zero matches in the old code.
+     */
+    private buildServiceAreaMatch(
+        areaType: 'STATE' | 'DISTRICT' | 'PINCODE',
+        variants: string[],
+    ): Prisma.Sql | typeof Prisma.empty {
+        if (!variants.length) return Prisma.empty;
+        const equality = variants.map(
+            (v) => Prisma.sql`LOWER(btrim(saev)) = ${v.toLowerCase()}`,
+        );
+        return Prisma.sql`OR (b."serviceAreaType" = ${areaType} AND EXISTS (
+            SELECT 1 FROM unnest(b."serviceAreaValues") saev
+            WHERE ${Prisma.join(equality, ' OR ')}
+        ))`;
+    }
 
     async createProfile(userId: string, tenantId: string, data: any) {
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
@@ -224,6 +249,12 @@ export class BusinessService {
 
         // Expand to every known alias so a searcher who reports
         // "Thiruvananthapuram" still matches a profile that listed "Trivandrum".
+        //
+        // `serviceAreaValues: { has: x }` is an exact-array-element match, so
+        // we add one OR clause per alias for each scope. We deliberately keep
+        // exact-case here because business-profile creation normalises stored
+        // values via `.trim()`. Case-insensitive matching is reserved for the
+        // hasGeo branch (raw SQL with LOWER(btrim(...))).
         if (tState) {
             const stateAliases = expandPlaceAliases(tState);
             stateAliases.forEach((s) => {
@@ -309,17 +340,28 @@ export class BusinessService {
             const queryPattern = query?.trim() ? `%${query.trim()}%` : null;
             const categoryPattern = category ? `%${category}%` : null;
 
-            // Lower-cased + alias-expanded variants. These are compared against
-            // LOWER(btrim(stored value)) so search is fully case/whitespace
-            // tolerant. We materialise them as Postgres text[] literals via the
-            // Prisma parameter binding (Prisma maps a JS string[] to text[]).
-            const stateVariants = state
-                ? expandPlaceAliases(state).map((s) => s.toLowerCase())
-                : [];
-            const districtVariants = district
-                ? expandPlaceAliases(district).map((s) => s.toLowerCase())
-                : [];
-            const pincodeVariants = pincode ? [String(pincode).toLowerCase()] : [];
+            // Alias-expanded variants. We pass these to the matcher as discrete
+            // string parameters (not as a single text[] param), because Prisma's
+            // raw-query parameter binder does not reliably project a JS array
+            // into a Postgres text[] — the previous `ANY(${arr}::text[])` form
+            // silently produced zero matches for stored districts like
+            // ['Kollam','Ernakulam'].
+            const stateVariants = state ? expandPlaceAliases(state) : [];
+            const districtVariants = district ? expandPlaceAliases(district) : [];
+            const pincodeVariants = pincode ? [String(pincode).trim()] : [];
+
+            const stateMatchSql = this.buildServiceAreaMatch('STATE', stateVariants);
+            const districtMatchSql = this.buildServiceAreaMatch('DISTRICT', districtVariants);
+            const pincodeMatchSql = this.buildServiceAreaMatch('PINCODE', pincodeVariants);
+
+            this.logger.debug(
+                `listProfiles[geo] lat=${lat} lng=${lng} radius=${searchRadiusKm}km ` +
+                `category=${category ?? '-'} query=${query ?? '-'} ` +
+                `state=${state ?? '-'} district=${district ?? '-'} pincode=${pincode ?? '-'} ` +
+                `stateVariants=${JSON.stringify(stateVariants)} ` +
+                `districtVariants=${JSON.stringify(districtVariants)} ` +
+                `pincodeVariants=${JSON.stringify(pincodeVariants)}`,
+            );
 
             const rows = await this.prisma.$queryRaw<{ id: string; distance_km: number | null; has_slots: boolean }[]>`
                 WITH matched AS (
@@ -356,27 +398,9 @@ export class BusinessService {
                     )` : Prisma.empty}
                     AND (
                         b."serviceAreaType" = 'PAN_INDIA'
-                        ${stateVariants.length
-                            ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND EXISTS (
-                                SELECT 1
-                                FROM unnest(b."serviceAreaValues") v
-                                WHERE LOWER(btrim(v)) = ANY(${stateVariants}::text[])
-                            ))`
-                            : Prisma.empty}
-                        ${districtVariants.length
-                            ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND EXISTS (
-                                SELECT 1
-                                FROM unnest(b."serviceAreaValues") v
-                                WHERE LOWER(btrim(v)) = ANY(${districtVariants}::text[])
-                            ))`
-                            : Prisma.empty}
-                        ${pincodeVariants.length
-                            ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND EXISTS (
-                                SELECT 1
-                                FROM unnest(b."serviceAreaValues") v
-                                WHERE LOWER(btrim(v)) = ANY(${pincodeVariants}::text[])
-                            ))`
-                            : Prisma.empty}
+                        ${stateMatchSql}
+                        ${districtMatchSql}
+                        ${pincodeMatchSql}
                         ${pincode ? Prisma.sql`OR (b.location ILIKE ${'%' + pincode + '%'})` : Prisma.empty}
                         OR (
                             b.latitude IS NOT NULL AND b.longitude IS NOT NULL
@@ -402,6 +426,8 @@ export class BusinessService {
                 ORDER BY "isVerified" DESC, has_slots DESC, distance_km ASC NULLS LAST, "createdAt" DESC
                 LIMIT ${limit} OFFSET ${offset}
             `;
+
+            this.logger.debug(`listProfiles[geo] matched ${rows.length} row(s)`);
 
             const ids = rows.map((r) => r.id);
             if (ids.length === 0) {
@@ -441,27 +467,9 @@ export class BusinessService {
                 )` : Prisma.empty}
                 AND (
                     b."serviceAreaType" = 'PAN_INDIA'
-                    ${stateVariants.length
-                        ? Prisma.sql`OR (b."serviceAreaType" = 'STATE' AND EXISTS (
-                            SELECT 1
-                            FROM unnest(b."serviceAreaValues") v
-                            WHERE LOWER(btrim(v)) = ANY(${stateVariants}::text[])
-                        ))`
-                        : Prisma.empty}
-                    ${districtVariants.length
-                        ? Prisma.sql`OR (b."serviceAreaType" = 'DISTRICT' AND EXISTS (
-                            SELECT 1
-                            FROM unnest(b."serviceAreaValues") v
-                            WHERE LOWER(btrim(v)) = ANY(${districtVariants}::text[])
-                        ))`
-                        : Prisma.empty}
-                    ${pincodeVariants.length
-                        ? Prisma.sql`OR (b."serviceAreaType" = 'PINCODE' AND EXISTS (
-                            SELECT 1
-                            FROM unnest(b."serviceAreaValues") v
-                            WHERE LOWER(btrim(v)) = ANY(${pincodeVariants}::text[])
-                        ))`
-                        : Prisma.empty}
+                    ${stateMatchSql}
+                    ${districtMatchSql}
+                    ${pincodeMatchSql}
                     ${pincode ? Prisma.sql`OR (b.location ILIKE ${'%' + pincode + '%'})` : Prisma.empty}
                     OR (
                         b.latitude IS NOT NULL AND b.longitude IS NOT NULL
