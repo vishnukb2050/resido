@@ -518,7 +518,15 @@ export default function BusinessDetailScreen() {
                     </View>
                 )}
 
-                {/* Slots Strip Calendar & Booking */}
+                {/* Slots Strip Calendar & Booking
+                  *
+                  * Only render this whole section when the business profile
+                  * has at least one booking slot configured. If the owner
+                  * never enabled booking (e.g. listing-only profile), we
+                  * shouldn't tease customers with a "Book an Appointment"
+                  * section that has no slots to pick from.
+                  */}
+                {profile.slots && profile.slots.length > 0 && (
                 <View 
                     style={styles.section}
                     onLayout={(event) => {
@@ -615,6 +623,7 @@ export default function BusinessDetailScreen() {
                         </View>
                     )}
                 </View>
+                )}
                 
                 <View style={{ height: 60 }} />
             </ScrollView>

@@ -363,6 +363,7 @@ export class BusinessService {
                 `pincodeVariants=${JSON.stringify(pincodeVariants)}`,
             );
 
+            try {
             const rows = await this.prisma.$queryRaw<{ id: string; distance_km: number | null; has_slots: boolean }[]>`
                 WITH matched AS (
                     SELECT
@@ -493,6 +494,12 @@ export class BusinessService {
 
             const total = Number(totalResult[0]?.count ?? 0);
             return { items: ordered, total, hasMore: offset + ordered.length < total };
+            } catch (geoErr: any) {
+                this.logger.warn(
+                    `listProfiles[geo] PostGIS query failed (${geoErr?.message ?? geoErr}); ` +
+                    'falling back to district/state/pincode matching via Prisma.',
+                );
+            }
         }
 
         const where: Prisma.BusinessProfileWhereInput = {

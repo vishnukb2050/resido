@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     View, Text, TouchableOpacity, StyleSheet, ScrollView, 
-    TextInput, SafeAreaView, Image, Dimensions, StatusBar
+    TextInput, SafeAreaView, Image, Dimensions, StatusBar, Keyboard,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -12,7 +12,7 @@ import BottomNav from '../components/BottomNav';
 import OSMMap from '../components/OSMMap';
 import { authApi, businessApi, unpackBusinessProfileList } from '../services/api';
 
-const { width } = Dimensions.get('window');
+const { width, height: windowHeight } = Dimensions.get('window');
 
 const CATEGORIES = [
     { id: 'all', name: 'All', icon: 'apps', color: '#1d4ed8' },
@@ -83,6 +83,14 @@ export default function ServiceSearchScreen() {
 
     const [debouncedQuery, setDebouncedQuery] = React.useState(searchQuery);
     const [suggestItems, setSuggestItems] = React.useState<any[]>([]);
+    const locationInputRef = React.useRef<TextInput>(null);
+    const serviceSearchInputRef = React.useRef<TextInput>(null);
+
+    const dismissKeyboard = () => {
+        Keyboard.dismiss();
+        locationInputRef.current?.blur();
+        serviceSearchInputRef.current?.blur();
+    };
 
     React.useEffect(() => {
         const t = setTimeout(() => setDebouncedQuery(searchQuery), 350);
@@ -301,6 +309,7 @@ export default function ServiceSearchScreen() {
     };
 
     const onSelectMapPlace = (place: any) => {
+        dismissKeyboard();
         setMapSearchQuery(place.display_name);
         const latDelta = (searchRadius * 2.5) / 111;
         setMapRegion({
@@ -340,8 +349,12 @@ export default function ServiceSearchScreen() {
             return;
         }
 
+        dismissKeyboard();
+        setShowGlobalDropdown(false);
+        setLocationResults([]);
+
         console.log('Selected location:', loc.placeName, 'Lat:', loc.latitude, 'Lng:', loc.longitude);
-        setSearchLocation(''); // Clear search input to avoid confusion
+        setSearchLocation('');
         
         if (loc.isState) {
             setSelectedLocationName(`State: ${loc.state}`);
@@ -366,7 +379,6 @@ export default function ServiceSearchScreen() {
             });
         }
         
-        setShowGlobalDropdown(false);
         // Keep LIST view for broad state/district picks so results are visible;
         // only switch to MAP for a specific place (pincode) where fine-tuning helps.
         if (!loc.isState && !loc.isDistrict) {
@@ -528,7 +540,12 @@ export default function ServiceSearchScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+            >
                 
                 <View style={styles.header}>
                     <View style={{ flex: 1 }}>
@@ -549,17 +566,21 @@ export default function ServiceSearchScreen() {
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBar}>
                         <Ionicons name="search" size={20} color="#be185d" />
-                        <TextInput 
-                            placeholder="Search services or professionals..." 
+                        <TextInput
+                            ref={serviceSearchInputRef}
+                            placeholder="Search services or professionals..."
                             style={styles.searchInput}
                             placeholderTextColor="#94a3b8"
                             value={searchQuery}
+                            returnKeyType="search"
+                            blurOnSubmit
                             onChangeText={(text) => {
                                 setSearchQuery(text);
                                 setShowTopDropdown(true);
                             }}
                             onFocus={() => setShowTopDropdown(true)}
                             onBlur={() => setTimeout(() => setShowTopDropdown(false), 400)}
+                            onSubmitEditing={dismissKeyboard}
                         />
                         {searchQuery ? (
                             <TouchableOpacity onPress={() => {
@@ -617,61 +638,70 @@ export default function ServiceSearchScreen() {
                         </View>
                     )}
                     
-                    <View style={{ zIndex: 100 }}>
-                        {selectedLocationName ? (
-                            <View style={styles.selectedAreaHeader}>
-                                <View style={styles.selectedAreaBadge}>
-                                    <Ionicons name="location" size={16} color="#1d4ed8" />
-                                    <Text style={styles.selectedAreaText}>{selectedLocationName}</Text>
-                                    <TouchableOpacity onPress={() => {
-                                        setSelectedLocationName('');
-                                        setSelectedLocation(null);
-                                    }}>
-                                        <Ionicons name="close-circle" size={16} color="#94a3b8" style={{ marginLeft: 8 }} />
-                                    </TouchableOpacity>
+                    {viewMode !== 'MAP' && (
+                        <View style={{ zIndex: 100 }}>
+                            {selectedLocationName ? (
+                                <View style={styles.selectedAreaHeader}>
+                                    <View style={styles.selectedAreaBadge}>
+                                        <Ionicons name="location" size={16} color="#1d4ed8" />
+                                        <Text style={styles.selectedAreaText}>{selectedLocationName}</Text>
+                                        <TouchableOpacity onPress={() => {
+                                            setSelectedLocationName('');
+                                            setSelectedLocation(null);
+                                        }}>
+                                            <Ionicons name="close-circle" size={16} color="#94a3b8" style={{ marginLeft: 8 }} />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
+                            ) : null}
+                            <View style={[styles.searchBar, { marginTop: selectedLocationName ? 8 : 12 }]}>
+                                <Ionicons name="location" size={18} color="#be185d" />
+                                <TextInput
+                                    ref={locationInputRef}
+                                    placeholder="Search by area/location..."
+                                    style={styles.searchInput}
+                                    placeholderTextColor="#94a3b8"
+                                    value={searchLocation}
+                                    onChangeText={handleLocationSearch}
+                                    onFocus={() => setShowGlobalDropdown(true)}
+                                    onBlur={() => setTimeout(() => setShowGlobalDropdown(false), 400)}
+                                    returnKeyType="search"
+                                    blurOnSubmit
+                                    onSubmitEditing={dismissKeyboard}
+                                />
+                                <TouchableOpacity style={styles.nearMeBtn} onPress={handleUseCurrentLocation}>
+                                    <MaterialCommunityIcons name="google-maps" size={18} color="#1d4ed8" />
+                                    <Text style={styles.nearMeText}>Near Me</Text>
+                                </TouchableOpacity>
                             </View>
-                        ) : null}
-                        <View style={[styles.searchBar, { marginTop: selectedLocationName ? 8 : 12 }]}>
-                            <Ionicons name="location" size={18} color="#be185d" />
-                            <TextInput 
-                                placeholder="Search by area/location..." 
-                                style={styles.searchInput}
-                                placeholderTextColor="#94a3b8"
-                                value={searchLocation}
-                                onChangeText={handleLocationSearch}
-                                onBlur={() => setTimeout(() => setShowGlobalDropdown(false), 400)}
-                            />
-                            <TouchableOpacity style={styles.nearMeBtn} onPress={handleUseCurrentLocation}>
-                                <MaterialCommunityIcons name="google-maps" size={18} color="#1d4ed8" />
-                                <Text style={styles.nearMeText}>Near Me</Text>
-                            </TouchableOpacity>
                         </View>
-                    </View>
+                    )}
                 </View>
 
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
-                    style={styles.catScroll}
-                    contentContainerStyle={styles.catContent}
-                >
-                    {CATEGORIES.map(cat => (
-                        <TouchableOpacity 
-                            key={cat.id} 
-                            style={styles.catItem}
-                            onPress={() => setActiveCat(cat.id)}
-                        >
-                            <View style={[styles.catIcon, { backgroundColor: cat.color }, activeCat === cat.id && styles.catIconActive]}>
-                                <MaterialCommunityIcons name={cat.icon as any} size={26} color="#fff" />
-                            </View>
-                            <Text style={styles.catName}>{cat.name}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                {viewMode !== 'MAP' && (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.catScroll}
+                        contentContainerStyle={styles.catContent}
+                    >
+                        {CATEGORIES.map(cat => (
+                            <TouchableOpacity
+                                key={cat.id}
+                                style={styles.catItem}
+                                onPress={() => setActiveCat(cat.id)}
+                            >
+                                <View style={[styles.catIcon, { backgroundColor: cat.color }, activeCat === cat.id && styles.catIconActive]}>
+                                    <MaterialCommunityIcons name={cat.icon as any} size={26} color="#fff" />
+                                </View>
+                                <Text style={styles.catName}>{cat.name}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                )}
 
                 {viewMode === 'MAP' && (
-                    <View style={styles.mapViewContainer}>
+                    <View style={[styles.mapViewContainer, { height: Math.min(windowHeight * 0.58, 520) }]}>
                         <OSMMap
                             style={styles.map}
                             region={mapRegion}
@@ -716,9 +746,10 @@ export default function ServiceSearchScreen() {
                             <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#1d4ed8" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
-                            style={styles.mapDoneBtn} 
+                        <TouchableOpacity
+                            style={styles.mapDoneBtn}
                             onPress={() => {
+                                dismissKeyboard();
                                 setViewMode('LIST');
                                 fetchProfiles();
                             }}
@@ -798,7 +829,20 @@ export default function ServiceSearchScreen() {
                 ) : (
                     <View style={styles.prosList}>
                         {profiles.length > 0 ? (
-                            profiles.map((pro: any) => (
+                            profiles.map((pro: any) => {
+                                // Lowest priced billable service for this profile.
+                                // Show "Starts ₹X" only when at least one service
+                                // has a real, positive price; otherwise omit the
+                                // badge entirely so we never render a "₹---" or
+                                // "₹0" placeholder.
+                                const positiveServicePrices = (pro.services || [])
+                                    .map((s: any) => Number(s?.price))
+                                    .filter((n: number) => Number.isFinite(n) && n > 0);
+                                const minPrice = positiveServicePrices.length
+                                    ? Math.min(...positiveServicePrices)
+                                    : null;
+
+                                return (
                                 <TouchableOpacity 
                                     key={pro.id} 
                                     style={styles.proCard}
@@ -832,17 +876,16 @@ export default function ServiceSearchScreen() {
                                             </View>
                                         ) : null}
                                     </View>
-                                    <View style={styles.proRight}>
-                                        <View style={styles.proRatingRow}>
-                                            <Ionicons name="star" size={14} color="#f59e0b" />
-                                            <Text style={styles.proRatingText}>4.5 <Text style={styles.proReviews}>(24)</Text></Text>
+                                    {minPrice != null && (
+                                        <View style={styles.proRight}>
+                                            <View style={styles.priceBadge}>
+                                                <Text style={styles.priceText}>Starts ₹{minPrice.toLocaleString()}</Text>
+                                            </View>
                                         </View>
-                                        <View style={styles.priceBadge}>
-                                            <Text style={styles.priceText}>Starts ₹{pro.services?.[0]?.price || '---'}</Text>
-                                        </View>
-                                    </View>
+                                    )}
                                 </TouchableOpacity>
-                            ))
+                                );
+                            })
                         ) : (
                             <View style={{ padding: 40, alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 10 }}>
                                 <Ionicons name="business-outline" size={48} color="#94a3b8" style={{ marginBottom: 12 }} />
@@ -888,14 +931,17 @@ export default function ServiceSearchScreen() {
 
             <BottomNav activeTab="Home" />
 
-            {showGlobalDropdown && locationResults.length > 0 && (
+            {showGlobalDropdown && viewMode !== 'MAP' && locationResults.length > 0 && (
                 <View style={[styles.dropdownContainer, { top: 180, left: 20, right: 20 }]}>
                     <ScrollView keyboardShouldPersistTaps="handled">
                         {locationResults.slice(0, visibleCount).map((loc, idx) => (
                             <TouchableOpacity 
                                 key={idx} 
                                 style={styles.dropdownItem}
-                                onPress={() => onSelectLocation(loc)}
+                                onPress={() => {
+                                    dismissKeyboard();
+                                    onSelectLocation(loc);
+                                }}
                             >
                                 <Ionicons name={loc.isNoResult ? "help-circle-outline" : "location-outline"} size={16} color={loc.isNoResult ? "#94a3b8" : "#1d4ed8"} />
                                 <View style={{ marginLeft: 10, flex: 1 }}>

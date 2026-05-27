@@ -27,6 +27,11 @@ async function main() {
 
     await enablePostGIS(process.env.USER_WRITE_URL, 'User DB');
     await enablePostGIS(geoUrl, 'Geo DB');
+    // business-service GPS search (ST_Distance / ST_DWithin) runs against resido_core.
+    const coreUrl =
+        process.env.CORE_WRITE_URL ||
+        (process.env.RDS_WRITE_URL ? `${process.env.RDS_WRITE_URL}/resido_core?schema=public` : null);
+    await enablePostGIS(coreUrl, 'Core DB (business profiles)');
 }
 
 main();

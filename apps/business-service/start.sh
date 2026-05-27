@@ -9,5 +9,8 @@ set -e
 # Schema migrations for the shared `resido_core` DB are owned by resident-service,
 # which runs `prisma db push` automatically on every deployment.
 
-echo "🚀 Starting application..."
+echo "Enabling PostGIS on resido_core (required for GPS business search)..."
+node enable-postgis.js || true
+
+echo "Starting application..."
 node dist/main
