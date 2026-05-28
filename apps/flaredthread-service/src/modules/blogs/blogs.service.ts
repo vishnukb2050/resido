@@ -50,7 +50,11 @@ export class BlogsService {
                 this.http.get(`http://auth-service:3001/follow/followers/${viewerId}`)
             );
             const rows: any[] = Array.isArray(res?.data) ? res.data : [];
-            return new Set(rows.map(r => r?.followerId).filter(Boolean));
+            return new Set<string>(
+                rows
+                    .map((r) => r?.followerId)
+                    .filter((id): id is string => typeof id === 'string' && id.length > 0),
+            );
         } catch (err: any) {
             console.warn('[visibility] failed to fetch followers of viewer', viewerId, err?.message);
             return new Set();
@@ -407,8 +411,10 @@ export class BlogsService {
                     ).catch(() => ({ data: [] as any[] })),
                     this.fetchFollowersOf(viewerId),
                 ]);
-                const followingSet = new Set(
-                    ((following as any)?.data || []).map((r: any) => r?.followingId).filter(Boolean),
+                const followingSet = new Set<string>(
+                    ((following as any)?.data || [])
+                        .map((r: any) => r?.followingId as string | undefined)
+                        .filter((id): id is string => typeof id === 'string' && id.length > 0),
                 );
                 const allowed = this.canSee(
                     blog.visibility,
