@@ -21,6 +21,10 @@ model User {
   role        Role     @default(RESIDENT)
   profileName String?  @unique
   phoneVisibility VisibilityType @default(COMMUNITY)
+  // Who can see this user's full profile (bio, contact, threads/flares, etc.).
+  // GLOBAL allows anyone (free follow). The other three require a follow
+  // request that the owner approves before granting access.
+  profileVisibility ProfileVisibility @default(GLOBAL)
   instagram    String?
   linkedin     String?
   website      String?
@@ -37,12 +41,39 @@ model User {
   jobProfile           JobProfile?
   followers            Follow[] @relation("following")
   following            Follow[] @relation("follower")
+  followRequestsSent     FollowRequest[] @relation("requester")
+  followRequestsReceived FollowRequest[] @relation("target")
   incomes              PersonalIncome[]
   expenses             PersonalExpense[]
   noteShares           NoteShare[]
   documentShares       DocumentShare[]
 
   @@map("users")
+}
+
+enum ProfileVisibility {
+  GLOBAL
+  CONTACTS
+  COMMUNITY
+  FOLLOWERS
+}
+
+// A pending request from one user to follow another. When the target's
+// profileVisibility is GLOBAL we skip this and create the Follow directly.
+// On accept, a row is removed and a Follow record is created; on reject
+// the row is simply removed.
+model FollowRequest {
+  id          String   @id @default(cuid())
+  requesterId String
+  targetId    String
+  createdAt   DateTime @default(now())
+
+  requester User @relation("requester", fields: [requesterId], references: [id])
+  target    User @relation("target",    fields: [targetId],    references: [id])
+
+  @@unique([requesterId, targetId])
+  @@index([targetId])
+  @@map("follow_requests")
 }
 
 model PersonalIncome {
@@ -78,10 +109,16 @@ model PersonalExpense {
   @@map("personal_expenses")
 }
 
+/// Who can see this user's phone number. The mobile UI exposes three
+/// options — PUBLIC, COMMUNITY, FOLLOWERS — but GROUPS and CONTACTS are
+/// kept as deprecated values so existing rows continue to load (they
+/// are treated as "restricted" by the API gating logic).
 enum VisibilityType {
   COMMUNITY
   GROUPS
   CONTACTS
+  PUBLIC
+  FOLLOWERS
 }
 
 model JobProfile {

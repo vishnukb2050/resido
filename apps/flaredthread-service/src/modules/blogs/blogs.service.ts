@@ -6,6 +6,11 @@ import { firstValueFrom } from 'rxjs';
 
 import { StorageService } from '../storage/storage.service';
 
+// Allowed post visibility values. Anything else from the client is coerced
+// to PUBLIC on create so we never silently store an unknown bucket that
+// would then bypass our visibility filters at read time.
+const VALID_VISIBILITIES = new Set(['PUBLIC', 'CONTACTS', 'FOLLOWERS']);
+
 @Injectable()
 export class BlogsService {
     constructor(
@@ -14,6 +19,73 @@ export class BlogsService {
         private storage: StorageService,
         private flareGateway: FlareGateway
     ) {}
+
+    /** Batch fetch of each author's profileVisibility from auth-service. */
+    private async fetchAuthorVisibilities(authorIds: string[]): Promise<Record<string, string>> {
+        const unique = Array.from(new Set(authorIds.filter(Boolean)));
+        if (unique.length === 0) return {};
+        try {
+            const res = await firstValueFrom(
+                this.http.get(
+                    `http://auth-service:3001/profile/users/visibilities/batch?ids=${encodeURIComponent(unique.join(','))}`,
+                ),
+            );
+            return (res?.data || {}) as Record<string, string>;
+        } catch (err: any) {
+            console.warn('[visibility] failed to fetch author visibilities', err?.message);
+            return {};
+        }
+    }
+
+    /**
+     * Returns the set of user IDs that follow `viewerId`. Used to enforce
+     * CONTACTS-visibility: a post tagged CONTACTS is only visible to people
+     * the author has followed back (synced contacts auto-follow each other,
+     * so mutual-follow is our best proxy for "in author's contact list").
+     */
+    private async fetchFollowersOf(viewerId: string): Promise<Set<string>> {
+        if (!viewerId) return new Set();
+        try {
+            const res = await firstValueFrom(
+                this.http.get(`http://auth-service:3001/follow/followers/${viewerId}`)
+            );
+            const rows: any[] = Array.isArray(res?.data) ? res.data : [];
+            return new Set(rows.map(r => r?.followerId).filter(Boolean));
+        } catch (err: any) {
+            console.warn('[visibility] failed to fetch followers of viewer', viewerId, err?.message);
+            return new Set();
+        }
+    }
+
+    /**
+     * Whether `viewerId` is allowed to see a post by `authorId` with the
+     * given visibility. Used by single-blog fetches; list endpoints inline
+     * the same logic for batch efficiency.
+     */
+    private canSee(
+        visibility: string | null | undefined,
+        authorId: string,
+        viewerId: string | undefined,
+        viewerFollowing: Set<string>,
+        viewerFollowers: Set<string>,
+        businessProfileId?: string | null,
+    ): boolean {
+        // The author can always see their own posts.
+        if (viewerId && viewerId === authorId) return true;
+        // Public posts and posts attached to a public business profile are
+        // always visible (the business page is meant to surface them).
+        if (visibility === 'PUBLIC' || !!businessProfileId) return true;
+        if (visibility === 'FOLLOWERS') {
+            return viewerFollowing.has(authorId);
+        }
+        if (visibility === 'CONTACTS') {
+            // Viewer must follow the author AND the author must follow the
+            // viewer back — the contact-sync auto-follow pairs the two
+            // accounts only when each side has the other's phone number.
+            return viewerFollowing.has(authorId) && viewerFollowers.has(authorId);
+        }
+        return false;
+    }
 
     /**
      * Resolves a stored media value to a fully-qualified, browser-loadable URL.
@@ -74,7 +146,9 @@ export class BlogsService {
             where.authorId = userId;
         } else if (feedType === 'FOLLOWING') {
             where.authorId = { in: followingIds };
-            // Enforce visibility: only show what the author intended for followers/contacts
+            // First-pass DB filter: drop anything not intended for a follower
+            // audience. CONTACTS results are further narrowed below to only
+            // authors who follow the viewer back.
             where.visibility = { in: ['PUBLIC', 'FOLLOWERS', 'CONTACTS'] };
         } else if (feedType === 'SAVED') {
             where.__ignoreTenant = true;
@@ -92,7 +166,7 @@ export class BlogsService {
             where.visibility = 'PUBLIC';
         }
 
-        const blogs = await this.prisma.reader.blog.findMany({
+        let blogs = await this.prisma.reader.blog.findMany({
             where,
             orderBy: { createdAt: 'desc' },
             include: {
@@ -112,6 +186,45 @@ export class BlogsService {
                 }
             }
         });
+
+        // Second-pass visibility enforcement — runs two checks:
+        //   1) per-post visibility (PUBLIC / FOLLOWERS / CONTACTS)
+        //   2) author's profileVisibility — a CONTACTS-only profile's posts
+        //      are hidden from anyone who can't view that profile, even if
+        //      the post itself is PUBLIC.
+        // Skipped for MY/RESHARE/SAVED feeds and business-profile pages.
+        if (
+            userId &&
+            !businessProfileId &&
+            feedType !== 'MY' &&
+            feedType !== 'RESHARE' &&
+            feedType !== 'SAVED'
+        ) {
+            const followers = await this.fetchFollowersOf(userId);
+            const followingSet = new Set(followingIds);
+            const authorIds = blogs.map((b: any) => b.authorId).filter(Boolean);
+            const authorVisibilities = await this.fetchAuthorVisibilities(authorIds);
+
+            blogs = blogs.filter((b: any) => {
+                // (a) per-post visibility
+                if (!this.canSee(
+                    b.visibility, b.authorId, userId,
+                    followingSet, followers, b.businessProfileId,
+                )) {
+                    return false;
+                }
+                // (b) author profile-visibility gate (skip for self & business posts)
+                if (b.businessProfileId || b.authorId === userId) return true;
+                const authorVis = authorVisibilities[b.authorId] || 'GLOBAL';
+                if (authorVis === 'GLOBAL') return true;
+                if (authorVis === 'FOLLOWERS') return followingSet.has(b.authorId);
+                if (authorVis === 'CONTACTS') return followingSet.has(b.authorId) && followers.has(b.authorId);
+                // COMMUNITY is enforced at the profile screen; for now treat
+                // it as visible-in-feed so posts surface within shared
+                // workspaces (the post still respects its own visibility).
+                return true;
+            });
+        }
 
         if (!userId) return blogs.map(b => this.decorateMedia(b));
 
@@ -195,7 +308,9 @@ export class BlogsService {
                 mediaType: data.mediaType || 'IMAGE',
                 tags: Array.isArray(data.tags) ? data.tags : [],
                 hashtags: Array.isArray(data.hashtags) ? data.hashtags : [],
-                visibility: data.visibility || 'PUBLIC',
+                visibility: VALID_VISIBILITIES.has(String(data.visibility))
+                    ? data.visibility
+                    : 'PUBLIC',
                 targetCommunities: Array.isArray(data.targetCommunities) ? data.targetCommunities : [],
                 audioUrl: data.audioUrl || null,
                 businessProfileId: data.businessProfileId || null,
@@ -262,7 +377,7 @@ export class BlogsService {
         }
     }
 
-    async getBlog(id: string) {
+    async getBlog(id: string, viewerId?: string) {
         const blog = await (this.prisma.reader as any).blog.findFirst({
             where: { id, __ignoreTenant: true },
             include: {
@@ -280,6 +395,37 @@ export class BlogsService {
             }
         });
         if (!blog) return null;
+
+        // Anyone with the post ID could otherwise read a CONTACTS / FOLLOWERS
+        // post just by guessing the URL — enforce the same visibility rules
+        // used by the feed for single fetches too.
+        if (viewerId && viewerId !== blog.authorId && !blog.businessProfileId) {
+            if (blog.visibility === 'CONTACTS' || blog.visibility === 'FOLLOWERS') {
+                const [following, followers] = await Promise.all([
+                    firstValueFrom(
+                        this.http.get(`http://auth-service:3001/follow/following/${viewerId}`),
+                    ).catch(() => ({ data: [] as any[] })),
+                    this.fetchFollowersOf(viewerId),
+                ]);
+                const followingSet = new Set(
+                    ((following as any)?.data || []).map((r: any) => r?.followingId).filter(Boolean),
+                );
+                const allowed = this.canSee(
+                    blog.visibility,
+                    blog.authorId,
+                    viewerId,
+                    followingSet,
+                    followers,
+                    blog.businessProfileId,
+                );
+                if (!allowed) {
+                    throw new NotFoundException('Blog not found');
+                }
+            } else if (blog.visibility !== 'PUBLIC') {
+                throw new NotFoundException('Blog not found');
+            }
+        }
+
         return this.decorateMedia(blog);
     }
 

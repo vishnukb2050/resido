@@ -42,8 +42,9 @@ export class BlogsController {
     }
 
     @Get(':id')
-    getBlog(@Param('id') id: string) {
-        return this.blogsService.getBlog(id);
+    getBlog(@Req() req: any, @Param('id') id: string) {
+        const userId = req.headers['x-user-id'] as string;
+        return this.blogsService.getBlog(id, userId);
     }
 
     @Patch(':id')

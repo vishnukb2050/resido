@@ -20,6 +20,7 @@ export default function EditProfileScreen() {
     const { user, updateUser } = useAuthStore();
     const [loading, setLoading] = useState(false);
     const [isVisibilityModalVisible, setIsVisibilityModalVisible] = useState(false);
+    const [isPhoneVisibilityModalVisible, setIsPhoneVisibilityModalVisible] = useState(false);
     const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
     const [formData, setFormData] = useState({
@@ -33,6 +34,16 @@ export default function EditProfileScreen() {
         linkedin: user?.linkedin || '',
         website: user?.website || '',
         visibility: 'Greenwoods Residents',
+        // Profile-level visibility — controls who can see this user's full
+        // profile and posts. GLOBAL = free follow (no approval needed),
+        // others = follow request must be approved.
+        profileVisibility: (user as any)?.profileVisibility || 'GLOBAL',
+        // Independent visibility for just the phone number. PUBLIC = anyone
+        // viewing your profile sees it; COMMUNITY = only community members;
+        // FOLLOWERS = only people who follow you.
+        phoneVisibility: ((user as any)?.phoneVisibility === 'PUBLIC' || (user as any)?.phoneVisibility === 'FOLLOWERS' || (user as any)?.phoneVisibility === 'COMMUNITY')
+            ? (user as any).phoneVisibility
+            : 'COMMUNITY',
         // Only seed from the actual user record. Avoid using a public placeholder
         // (i.pravatar) because the save flow would then POST that URL back as the
         // user's profile photo, leaving the bubble showing the stock avatar
@@ -99,12 +110,15 @@ export default function EditProfileScreen() {
                 name: formData.name,
                 profileName: formData.username,
                 email: formData.email,
-                phone: formData.phone,
+                // phone is intentionally omitted — it's the OTP-verified
+                // identifier and cannot be changed from this screen.
                 description: formData.bio,
                 instagram: formData.instagram,
                 linkedin: formData.linkedin,
                 website: formData.website,
                 location: formData.location,
+                profileVisibility: formData.profileVisibility,
+                phoneVisibility: formData.phoneVisibility,
                 profilePhoto: uploadedPhotoUrl
             };
 
@@ -215,13 +229,49 @@ export default function EditProfileScreen() {
                         <View style={styles.inputLabelRow}>
                             <Ionicons name="call-outline" size={16} color="#64748b" />
                             <Text style={styles.inputLabel}>Phone Number</Text>
+                            <View style={{
+                                marginLeft: 8, flexDirection: 'row', alignItems: 'center',
+                                backgroundColor: '#F4EEFC', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+                            }}>
+                                <Ionicons name="lock-closed" size={10} color="#8b5cf6" style={{ marginRight: 3 }} />
+                                <Text style={{ fontSize: 9, color: '#8b5cf6', fontWeight: '800', letterSpacing: 0.3 }}>
+                                    OTP VERIFIED
+                                </Text>
+                            </View>
                         </View>
-                        <TextInput 
-                            style={styles.input} 
+                        <TextInput
+                            style={[styles.input, { backgroundColor: '#F8F5FF', color: '#7A6B9C' }]}
                             value={formData.phone}
+                            editable={false}
                             keyboardType="phone-pad"
-                            onChangeText={t => setFormData({...formData, phone: t})}
                         />
+                        <Text style={{ fontSize: 11, color: '#9A8EBA', marginTop: 6, marginLeft: 2 }}>
+                            Your phone is locked to your account. Contact support to change it.
+                        </Text>
+
+                        {/* Per-field visibility for the phone number */}
+                        <TouchableOpacity
+                            style={[styles.preferenceCard, { marginTop: 12 }]}
+                            onPress={() => setIsPhoneVisibilityModalVisible(true)}
+                        >
+                            <View style={styles.prefIconBox}>
+                                <Ionicons name="eye-outline" size={20} color="#8b5cf6" />
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 16 }}>
+                                <Text style={styles.prefTitle}>Phone Visibility</Text>
+                                <Text style={styles.prefSub}>Who can see this number on your profile</Text>
+                            </View>
+                            <View style={styles.prefDropdown}>
+                                <Text style={styles.prefValue}>
+                                    {({
+                                        PUBLIC: 'Public',
+                                        COMMUNITY: 'My communities',
+                                        FOLLOWERS: 'Followers only',
+                                    }[formData.phoneVisibility as string]) || 'My communities'}
+                                </Text>
+                                <Ionicons name="chevron-down" size={16} color="#64748b" />
+                            </View>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.inputGroup}>
@@ -321,7 +371,14 @@ export default function EditProfileScreen() {
                             <Text style={styles.prefSub}>Choose who can see your profile</Text>
                         </View>
                         <TouchableOpacity style={styles.prefDropdown} onPress={() => setIsVisibilityModalVisible(true)}>
-                            <Text style={styles.prefValue}>{formData.visibility}</Text>
+                            <Text style={styles.prefValue}>
+                                {({
+                                    GLOBAL: 'Global',
+                                    CONTACTS: 'Contacts only',
+                                    COMMUNITY: 'My communities',
+                                    FOLLOWERS: 'Followers only',
+                                }[formData.profileVisibility as string]) || 'Global'}
+                            </Text>
                             <Ionicons name="chevron-down" size={16} color="#64748b" />
                         </TouchableOpacity>
 
@@ -363,37 +420,43 @@ export default function EditProfileScreen() {
                                 <Ionicons name="close" size={24} color="#2D2445" />
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.modalSub}>Choose who can see your profile and contact information</Text>
-                        
-                        {['Community', 'Contacts', 'Groups', 'Followers', 'Global'].map((option) => {
-                            const selectedOptions = formData.visibility ? formData.visibility.split(',').map(o => o.trim()) : [];
-                            const isSelected = selectedOptions.includes(option);
-                            
+                        <Text style={styles.modalSub}>
+                            Global = anyone can follow you instantly. The other options require new
+                            followers to send a request you can accept or reject. Restricted profiles
+                            only show your name & photo to people without access — your posts,
+                            threads and flares stay hidden from them.
+                        </Text>
+
+                        {([
+                            { value: 'GLOBAL',    label: 'Global',           desc: 'Anyone can view & follow your profile freely' },
+                            { value: 'CONTACTS',  label: 'Contacts only',    desc: 'Only your synced contacts can view & follow' },
+                            { value: 'COMMUNITY', label: 'My communities',   desc: 'Only members of your communities can view & follow' },
+                            { value: 'FOLLOWERS', label: 'Followers only',   desc: 'Only people who follow you can view your details' },
+                        ]).map((option) => {
+                            const isSelected = formData.profileVisibility === option.value;
                             return (
-                                <TouchableOpacity 
-                                    key={option}
+                                <TouchableOpacity
+                                    key={option.value}
                                     style={styles.modalOption}
                                     onPress={() => {
-                                        let updated;
-                                        if (isSelected) {
-                                            updated = selectedOptions.filter(o => o !== option);
-                                        } else {
-                                            // If Global is selected, it clears others, or vice versa? 
-                                            // Let's just allow combining them.
-                                            updated = [...selectedOptions, option];
-                                        }
-                                        setFormData({ ...formData, visibility: updated.join(', ') });
+                                        setFormData({ ...formData, profileVisibility: option.value });
+                                        setIsVisibilityModalVisible(false);
                                     }}
                                 >
-                                    <Text style={[
-                                        styles.modalOptionText, 
-                                        isSelected && { color: '#8b5cf6', fontWeight: '800' }
-                                    ]}>
-                                        {option}
-                                    </Text>
+                                    <View style={{ flex: 1, marginRight: 12 }}>
+                                        <Text style={[
+                                            styles.modalOptionText,
+                                            isSelected && { color: '#8b5cf6', fontWeight: '800' },
+                                        ]}>
+                                            {option.label}
+                                        </Text>
+                                        <Text style={{ fontSize: 11, color: '#7A6B9C', marginTop: 2 }}>
+                                            {option.desc}
+                                        </Text>
+                                    </View>
                                     <View style={[
                                         styles.checkbox,
-                                        isSelected && { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }
+                                        isSelected && { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
                                     ]}>
                                         {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
                                     </View>
@@ -404,6 +467,76 @@ export default function EditProfileScreen() {
                         <TouchableOpacity 
                             style={[styles.saveBtn, { marginTop: 20 }]} 
                             onPress={() => setIsVisibilityModalVisible(false)}
+                        >
+                            <Text style={styles.saveBtnText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Phone Visibility Modal */}
+            <Modal
+                visible={isPhoneVisibilityModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setIsPhoneVisibilityModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setIsPhoneVisibilityModalVisible(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Phone Visibility</Text>
+                            <TouchableOpacity onPress={() => setIsPhoneVisibilityModalVisible(false)}>
+                                <Ionicons name="close" size={24} color="#2D2445" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.modalSub}>
+                            Pick who can see your phone number on your profile. This is independent
+                            of your overall profile visibility.
+                        </Text>
+
+                        {([
+                            { value: 'PUBLIC',    label: 'Public',          desc: 'Anyone viewing your profile can see your phone' },
+                            { value: 'COMMUNITY', label: 'My communities',  desc: 'Only members of your communities can see it' },
+                            { value: 'FOLLOWERS', label: 'Followers only',  desc: 'Only people who follow you can see it' },
+                        ]).map((option) => {
+                            const isSelected = formData.phoneVisibility === option.value;
+                            return (
+                                <TouchableOpacity
+                                    key={option.value}
+                                    style={styles.modalOption}
+                                    onPress={() => {
+                                        setFormData({ ...formData, phoneVisibility: option.value });
+                                        setIsPhoneVisibilityModalVisible(false);
+                                    }}
+                                >
+                                    <View style={{ flex: 1, marginRight: 12 }}>
+                                        <Text style={[
+                                            styles.modalOptionText,
+                                            isSelected && { color: '#8b5cf6', fontWeight: '800' },
+                                        ]}>
+                                            {option.label}
+                                        </Text>
+                                        <Text style={{ fontSize: 11, color: '#7A6B9C', marginTop: 2 }}>
+                                            {option.desc}
+                                        </Text>
+                                    </View>
+                                    <View style={[
+                                        styles.checkbox,
+                                        isSelected && { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+                                    ]}>
+                                        {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                        <TouchableOpacity
+                            style={[styles.saveBtn, { marginTop: 20 }]}
+                            onPress={() => setIsPhoneVisibilityModalVisible(false)}
                         >
                             <Text style={styles.saveBtnText}>Done</Text>
                         </TouchableOpacity>

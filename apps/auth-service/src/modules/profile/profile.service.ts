@@ -297,17 +297,25 @@ export class ProfileService implements OnModuleInit {
             profilePhotoUrl = uploadResult.fileUrl;
         }
 
+        // The phone number is the OTP-verified identity for an account, so
+        // we never accept changes from this endpoint. Re-verification would
+        // need a dedicated change-number flow.
+        const allowedPhoneVisibility = ['PUBLIC', 'COMMUNITY', 'FOLLOWERS'];
         const user = await this.prisma.userClient.user.update({
             where: { id: userId },
             data: {
                 name: data.name || undefined,
                 email: data.email || undefined,
-                phone: data.phone || undefined,
                 age: data.age && !isNaN(parseInt(data.age)) ? parseInt(data.age) : undefined,
                 description: data.description || undefined,
                 profilePhoto: profilePhotoUrl || undefined,
                 profileName: data.profileName || undefined,
-                phoneVisibility: data.phoneVisibility || undefined,
+                phoneVisibility: data.phoneVisibility && allowedPhoneVisibility.includes(data.phoneVisibility)
+                    ? data.phoneVisibility
+                    : undefined,
+                profileVisibility: data.profileVisibility && ['GLOBAL', 'CONTACTS', 'COMMUNITY', 'FOLLOWERS'].includes(data.profileVisibility)
+                    ? data.profileVisibility
+                    : undefined,
                 instagram: data.instagram || undefined,
                 linkedin: data.linkedin || undefined,
                 website: data.website || undefined,
@@ -695,19 +703,61 @@ export class ProfileService implements OnModuleInit {
     }
 
 
+    /**
+     * Smart follow:
+     *   - target.profileVisibility === GLOBAL  → create the Follow immediately
+     *     (returns `{ status: 'FOLLOWING' }`).
+     *   - any restricted visibility            → create a FollowRequest and
+     *     wait for the target user to accept (returns `{ status: 'REQUESTED' }`).
+     * If the requester is already following the target, returns FOLLOWING.
+     * If a pending request already exists, returns REQUESTED.
+     */
     async followUser(followerId: string, followingId: string) {
-        if (followerId === followingId) return;
-        return this.prisma.userClient.follow.upsert({
-            where: { followerId_followingId: { followerId, followingId } },
-            create: { followerId, followingId },
-            update: {}
+        if (!followerId || !followingId || followerId === followingId) {
+            return { status: 'SELF' as const };
+        }
+
+        const target = await this.prisma.userRead.user.findUnique({
+            where: { id: followingId },
+            select: { id: true, profileVisibility: true },
         });
+        if (!target) throw new NotFoundException('User not found');
+
+        const existingFollow = await this.prisma.userRead.follow.findUnique({
+            where: { followerId_followingId: { followerId, followingId } },
+        });
+        if (existingFollow) return { status: 'FOLLOWING' as const };
+
+        if ((target as any).profileVisibility === 'GLOBAL') {
+            await this.prisma.userClient.follow.create({
+                data: { followerId, followingId },
+            });
+            return { status: 'FOLLOWING' as const };
+        }
+
+        // Restricted visibility — require an accepted follow request.
+        await (this.prisma.userClient as any).followRequest.upsert({
+            where: { requesterId_targetId: { requesterId: followerId, targetId: followingId } },
+            create: { requesterId: followerId, targetId: followingId },
+            update: {},
+        });
+        return { status: 'REQUESTED' as const };
     }
 
+    /**
+     * Removes the follow relation and any pending request between the two
+     * users. Idempotent — safe to call even if nothing exists.
+     */
     async unfollowUser(followerId: string, followingId: string) {
-        return this.prisma.userClient.follow.deleteMany({
-            where: { followerId, followingId }
-        });
+        await Promise.all([
+            this.prisma.userClient.follow.deleteMany({
+                where: { followerId, followingId },
+            }),
+            (this.prisma.userClient as any).followRequest.deleteMany({
+                where: { requesterId: followerId, targetId: followingId },
+            }),
+        ]);
+        return { status: 'NOT_FOLLOWING' as const };
     }
 
     async getFollowing(userId: string) {
@@ -716,6 +766,216 @@ export class ProfileService implements OnModuleInit {
             include: { following: true }
         });
         return following.map(f => f.following);
+    }
+
+    async getFollowers(userId: string) {
+        const followers = await this.prisma.userRead.follow.findMany({
+            where: { followingId: userId },
+            include: { follower: true },
+        });
+        return followers.map(f => f.follower);
+    }
+
+    /**
+     * Batch lookup of `profileVisibility` for a set of user IDs. Used by the
+     * blog service to gate per-author so a CONTACTS-only profile's posts
+     * don't leak into the feed of someone who can't view that profile.
+     */
+    async getProfileVisibilities(userIds: string[]): Promise<Record<string, string>> {
+        if (!Array.isArray(userIds) || userIds.length === 0) return {};
+        const unique = Array.from(new Set(userIds.filter(Boolean)));
+        const users = await this.prisma.userRead.user.findMany({
+            where: { id: { in: unique } },
+            select: { id: true, profileVisibility: true },
+        });
+        return users.reduce((acc, u: any) => {
+            acc[u.id] = u.profileVisibility || 'GLOBAL';
+            return acc;
+        }, {} as Record<string, string>);
+    }
+
+    async getFollowCounts(userId: string) {
+        const [followersCount, followingCount] = await Promise.all([
+            this.prisma.userRead.follow.count({ where: { followingId: userId } }),
+            this.prisma.userRead.follow.count({ where: { followerId: userId } }),
+        ]);
+        return { followersCount, followingCount };
+    }
+
+    /**
+     * What's the relationship between `viewerId` and `targetId`?
+     *   - SELF: same user.
+     *   - FOLLOWING: an accepted Follow row exists.
+     *   - REQUESTED: a pending FollowRequest exists.
+     *   - NOT_FOLLOWING: nothing.
+     */
+    async getFollowStatus(viewerId: string, targetId: string) {
+        if (!viewerId || !targetId) return { status: 'NOT_FOLLOWING' as const };
+        if (viewerId === targetId) return { status: 'SELF' as const };
+        const [follow, request] = await Promise.all([
+            this.prisma.userRead.follow.findUnique({
+                where: { followerId_followingId: { followerId: viewerId, followingId: targetId } },
+            }),
+            (this.prisma.userRead as any).followRequest.findUnique({
+                where: { requesterId_targetId: { requesterId: viewerId, targetId } },
+            }),
+        ]);
+        if (follow) return { status: 'FOLLOWING' as const };
+        if (request) return { status: 'REQUESTED' as const };
+        return { status: 'NOT_FOLLOWING' as const };
+    }
+
+    /** Pending follow requests waiting on `userId`'s approval. */
+    async listIncomingFollowRequests(userId: string) {
+        const rows = await (this.prisma.userRead as any).followRequest.findMany({
+            where: { targetId: userId },
+            include: {
+                requester: {
+                    select: {
+                        id: true, name: true, profileName: true, profilePhoto: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        return rows.map((r: any) => ({
+            id: r.id,
+            createdAt: r.createdAt,
+            requester: {
+                ...r.requester,
+                profilePhoto: this.storageService.resolvePublicMediaUrl(r.requester?.profilePhoto),
+            },
+        }));
+    }
+
+    /** Approving an incoming follow request promotes it into a Follow row. */
+    async acceptFollowRequest(userId: string, requestId: string) {
+        const req = await (this.prisma.userRead as any).followRequest.findUnique({
+            where: { id: requestId },
+        });
+        if (!req) throw new NotFoundException('Follow request not found');
+        if (req.targetId !== userId) {
+            throw new BadRequestException('You can only accept requests sent to you');
+        }
+        await this.prisma.userClient.$transaction([
+            (this.prisma.userClient as any).follow.upsert({
+                where: { followerId_followingId: { followerId: req.requesterId, followingId: req.targetId } },
+                create: { followerId: req.requesterId, followingId: req.targetId },
+                update: {},
+            }),
+            (this.prisma.userClient as any).followRequest.delete({ where: { id: requestId } }),
+        ]);
+        return { status: 'ACCEPTED' as const };
+    }
+
+    async rejectFollowRequest(userId: string, requestId: string) {
+        const req = await (this.prisma.userRead as any).followRequest.findUnique({
+            where: { id: requestId },
+        });
+        if (!req) throw new NotFoundException('Follow request not found');
+        if (req.targetId !== userId) {
+            throw new BadRequestException('You can only reject requests sent to you');
+        }
+        await (this.prisma.userClient as any).followRequest.delete({ where: { id: requestId } });
+        return { status: 'REJECTED' as const };
+    }
+
+    /**
+     * Public profile view for any user. Visibility is gated by
+     * `profileVisibility`:
+     *   - GLOBAL    → always full
+     *   - FOLLOWERS → viewer must follow target
+     *   - CONTACTS  → mutual follow (target also follows viewer)
+     *   - COMMUNITY → viewer and target share at least one workspace
+     *
+     * When restricted, only the bare-minimum identity (name, profileName,
+     * profilePhoto) is returned along with `isRestricted: true` and the
+     * current `followStatus` so the client can render the gated UI.
+     */
+    async getPublicProfile(targetId: string, viewerId?: string) {
+        const target = await this.prisma.userRead.user.findUnique({
+            where: { id: targetId },
+            include: { workspaceMemberships: true },
+        });
+        if (!target) throw new NotFoundException('User not found');
+
+        const profileVisibility = (target as any).profileVisibility || 'GLOBAL';
+        const isSelf = !!viewerId && viewerId === targetId;
+        const counts = await this.getFollowCounts(targetId);
+        const followStatus = viewerId
+            ? await this.getFollowStatus(viewerId, targetId)
+            : { status: 'NOT_FOLLOWING' as const };
+
+        let allowed = isSelf || profileVisibility === 'GLOBAL';
+        if (!allowed && viewerId) {
+            if (profileVisibility === 'FOLLOWERS') {
+                allowed = followStatus.status === 'FOLLOWING';
+            } else if (profileVisibility === 'CONTACTS') {
+                const reverse = await this.prisma.userRead.follow.findUnique({
+                    where: { followerId_followingId: { followerId: targetId, followingId: viewerId } },
+                });
+                allowed = followStatus.status === 'FOLLOWING' && !!reverse;
+            } else if (profileVisibility === 'COMMUNITY') {
+                const viewerTenants = await this.prisma.userRead.workspaceMembership.findMany({
+                    where: { userId: viewerId, isActive: true },
+                    select: { tenantId: true },
+                });
+                const tenantIds = new Set(viewerTenants.map((m) => m.tenantId));
+                allowed = (target.workspaceMemberships || []).some((m) => tenantIds.has(m.tenantId));
+            }
+        }
+
+        const baseIdentity = {
+            id: target.id,
+            name: target.name,
+            profileName: target.profileName,
+            profilePhoto: this.storageService.resolvePublicMediaUrl(target.profilePhoto),
+            profileVisibility,
+            ...counts,
+            followStatus: followStatus.status,
+            isRestricted: !allowed,
+        };
+
+        // Phone has its own visibility (PUBLIC / COMMUNITY / FOLLOWERS).
+        // Even when the broader profile is visible, the phone is only shown
+        // when the viewer satisfies the phone visibility rule.
+        const phoneVis = (target as any).phoneVisibility || 'COMMUNITY';
+        let canSeePhone = isSelf || phoneVis === 'PUBLIC';
+        if (!canSeePhone && viewerId) {
+            if (phoneVis === 'FOLLOWERS') {
+                canSeePhone = followStatus.status === 'FOLLOWING';
+            } else if (phoneVis === 'COMMUNITY') {
+                const viewerTenants = await this.prisma.userRead.workspaceMembership.findMany({
+                    where: { userId: viewerId, isActive: true },
+                    select: { tenantId: true },
+                });
+                const tenantIds = new Set(viewerTenants.map((m) => m.tenantId));
+                canSeePhone = (target.workspaceMemberships || []).some((m) => tenantIds.has(m.tenantId));
+            }
+            // Deprecated GROUPS / CONTACTS values → treat as restricted.
+        }
+
+        if (!allowed) {
+            // Restricted profile preview — still surface phone if its own
+            // visibility permits it (rare but possible: a user with a
+            // contacts-only profile who set phone to PUBLIC).
+            return canSeePhone ? { ...baseIdentity, phone: target.phone, phoneVisibility: phoneVis } : { ...baseIdentity, phoneVisibility: phoneVis };
+        }
+
+        return {
+            ...baseIdentity,
+            phone: canSeePhone ? target.phone : undefined,
+            phoneVisibility: phoneVis,
+            email: target.email,
+            age: target.age,
+            description: target.description,
+            location: target.location,
+            instagram: target.instagram,
+            linkedin: target.linkedin,
+            website: target.website,
+            createdAt: target.createdAt,
+            workspaceMemberships: target.workspaceMemberships,
+        };
     }
 
     async getUserWithMembership(userId: string) {

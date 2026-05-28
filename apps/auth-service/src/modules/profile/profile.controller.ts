@@ -108,6 +108,72 @@ export class ProfileController {
         return this.profileService.getFollowing(req.user.userId);
     }
 
+    // ─── New follow surfaces ────────────────────────────────────────────────
+
+    @UseGuards(JwtAuthGuard)
+    @Get('followers')
+    async getMyFollowers(@Req() req: any) {
+        return this.profileService.getFollowers(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('follow/counts/:id')
+    async getFollowCounts(@Param('id') id: string) {
+        return this.profileService.getFollowCounts(id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('follow/followers/:id')
+    async getUserFollowers(@Param('id') id: string) {
+        return this.profileService.getFollowers(id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('follow/following/:id')
+    async getUserFollowing(@Param('id') id: string) {
+        return this.profileService.getFollowing(id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('follow/status/:id')
+    async getFollowStatus(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.getFollowStatus(req.user.userId, id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('follow-requests')
+    async listFollowRequests(@Req() req: any) {
+        return this.profileService.listIncomingFollowRequests(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('follow-requests/:requestId/accept')
+    async acceptFollowRequest(@Req() req: any, @Param('requestId') requestId: string) {
+        return this.profileService.acceptFollowRequest(req.user.userId, requestId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('follow-requests/:requestId/reject')
+    async rejectFollowRequest(@Req() req: any, @Param('requestId') requestId: string) {
+        return this.profileService.rejectFollowRequest(req.user.userId, requestId);
+    }
+
+    // Public profile view for any user (with visibility gating).
+    @UseGuards(JwtAuthGuard)
+    @Get('users/:id')
+    async getPublicProfile(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.getPublicProfile(id, req.user.userId);
+    }
+
+    // Internal/batch endpoint used by other services (flaredthread-service)
+    // to gate feeds by each author's profileVisibility. Returns a
+    // `{ userId: 'GLOBAL' | 'CONTACTS' | 'COMMUNITY' | 'FOLLOWERS' }` map.
+    @Get('users/visibilities/batch')
+    async getProfileVisibilities(@Query('ids') ids: string) {
+        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
+        return this.profileService.getProfileVisibilities(list);
+    }
+
     @UseGuards(JwtAuthGuard)
     @Get('storage/presigned-url')
     async getPresignedUrl(

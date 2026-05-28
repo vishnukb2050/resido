@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollVi
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { authApi } from '../services/api';
 import BottomNav from '../components/BottomNav';
 import { resolveMediaUrl, withCacheBust } from '../utils/mediaUrl';
 
@@ -12,12 +13,33 @@ export default function ProfileScreen() {
     const router = useRouter();
     const { user } = useAuthStore();
     const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+    const [counts, setCounts] = useState<{ followersCount: number; followingCount: number }>({
+        followersCount: 0,
+        followingCount: 0,
+    });
+    const [pendingRequestCount, setPendingRequestCount] = useState<number>(0);
 
-    // Refresh image cache every time we come back to this screen
+    // Refresh image cache + counts every time we come back to this screen.
     useFocusEffect(
         React.useCallback(() => {
             setImageTimestamp(Date.now());
-        }, [])
+            (async () => {
+                if (!user?.id) return;
+                try {
+                    const [{ data: c }, { data: reqs }] = await Promise.all([
+                        authApi.getFollowCounts(user.id),
+                        authApi.listFollowRequests(),
+                    ]);
+                    setCounts({
+                        followersCount: c?.followersCount || 0,
+                        followingCount: c?.followingCount || 0,
+                    });
+                    setPendingRequestCount(Array.isArray(reqs) ? reqs.length : 0);
+                } catch (e) {
+                    console.warn('Failed to fetch follow counts/requests', e);
+                }
+            })();
+        }, [user?.id])
     );
 
     return (
@@ -62,11 +84,24 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.metricsRow}>
-                        <MetricItem value="3" label="Communities" />
+                        <MetricItem
+                            value={String(counts.followersCount)}
+                            label="Followers"
+                            onPress={() => user?.id && router.push({ pathname: '/follow-list', params: { userId: user.id, tab: 'followers' } })}
+                        />
                         <View style={styles.metricSeparator} />
-                        <MetricItem value="128" label="Connections" />
+                        <MetricItem
+                            value={String(counts.followingCount)}
+                            label="Following"
+                            onPress={() => user?.id && router.push({ pathname: '/follow-list', params: { userId: user.id, tab: 'following' } })}
+                        />
                         <View style={styles.metricSeparator} />
-                        <MetricItem value="15" label="Posts" />
+                        <MetricItem
+                            value={String(pendingRequestCount)}
+                            label="Requests"
+                            onPress={() => router.push('/follow-requests')}
+                            highlighted={pendingRequestCount > 0}
+                        />
                     </View>
                 </View>
 
@@ -100,12 +135,18 @@ export default function ProfileScreen() {
     );
 }
 
-function MetricItem({ value, label }: any) {
-    return (
+function MetricItem({ value, label, onPress, highlighted }: any) {
+    const content = (
         <View style={styles.metricItem}>
-            <Text style={styles.metricValue}>{value}</Text>
-            <Text style={styles.metricLabel}>{label}</Text>
+            <Text style={[styles.metricValue, highlighted && { color: '#8b5cf6' }]}>{value}</Text>
+            <Text style={[styles.metricLabel, highlighted && { color: '#8b5cf6' }]}>{label}</Text>
         </View>
+    );
+    if (!onPress) return content;
+    return (
+        <TouchableOpacity activeOpacity={0.7} onPress={onPress} style={{ flex: 1 }}>
+            {content}
+        </TouchableOpacity>
     );
 }
 

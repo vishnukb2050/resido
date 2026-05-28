@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../../store/authStore';
 import { threadApi, authApi, businessApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -175,9 +176,21 @@ const styles = StyleSheet.create({
     activityCardBody: { marginTop: 4 },
     activityTitle: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
     activityContent: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
-    activityMediaWrapper: { width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', marginTop: 12, position: 'relative' },
+    activityMediaWrapper: { width: '100%', height: 220, borderRadius: 12, overflow: 'hidden', marginTop: 12, position: 'relative', backgroundColor: '#000' },
     activityMedia: { width: '100%', height: '100%' },
-    playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
+    playOverlay: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 18, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    flareTapHint: { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
+    flareTapHintText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+
+    // Expanded flare modal
+    flareExpandOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', alignItems: 'center', justifyContent: 'center' },
+    flareExpandStage: { width: '100%', flex: 1, alignItems: 'center', justifyContent: 'center' },
+    flareExpandVideo: { width: '100%', aspectRatio: 9 / 16, maxHeight: '90%' },
+    flareExpandClose: { position: 'absolute', top: 50, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+    flareExpandInfo: { position: 'absolute', bottom: 40, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 14, padding: 12 },
+    flareExpandAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+    flareExpandAuthor: { color: '#fff', fontSize: 14, fontWeight: '900' },
+    flareExpandTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600', marginTop: 2 },
     activityEmptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 20, backgroundColor: 'rgba(91, 75, 138, 0.02)', borderRadius: 20, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(91, 75, 138, 0.2)' },
     activityEmptyText: { fontSize: 15, fontWeight: '800', marginTop: 10 },
     activityEmptySub: { fontSize: 12, textAlign: 'center', marginTop: 6, lineHeight: 18 },
@@ -203,6 +216,12 @@ export default function DefaultDashboard() {
 
     const [items, setItems] = React.useState<any[]>([]);
     const [loadingActivity, setLoadingActivity] = React.useState(false);
+
+    // Inline flare player: previews autoplay muted in each card; tapping a
+    // flare's media expands it into a full-screen modal that plays with
+    // sound on, without leaving the MySpace screen.
+    const [expandedFlare, setExpandedFlare] = React.useState<any | null>(null);
+    const expandedVideoRef = React.useRef<Video>(null);
 
     // ── Header Search (services / business profiles) ────────────────────────
     // The MySpace/Community header search lets the user start typing a service
@@ -276,7 +295,7 @@ export default function DefaultDashboard() {
     const fetchRecentActivity = async () => {
         try {
             setLoadingActivity(true);
-            
+
             // 1. Fetch following list
             let following: string[] = [];
             try {
@@ -285,13 +304,17 @@ export default function DefaultDashboard() {
             } catch (err) {
                 console.warn('Failed to fetch following users:', err);
             }
+            const followingSet = new Set(following);
 
-            // 2. Fetch following + public threads & flares
+            // 2. Fetch following + public threads & flares in parallel.
+            // The backend's FOLLOWING feed already includes Contacts-only
+            // posts you have permission to see (because you are in the
+            // author's contact list).
             const promises = [
                 threadApi.getThreads({ feedType: 'FOLLOWING', followingIds: following }).catch(() => ({ data: [] })),
                 threadApi.getThreads({ feedType: 'PUBLIC' }).catch(() => ({ data: [] })),
                 threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: following }).catch(() => ({ data: [] })),
-                threadApi.getFlares({ feedType: 'PUBLIC' }).catch(() => ({ data: [] }))
+                threadApi.getFlares({ feedType: 'PUBLIC' }).catch(() => ({ data: [] })),
             ];
 
             const [followingThreadsRes, publicThreadsRes, followingFlaresRes, publicFlaresRes] = await Promise.all(promises);
@@ -307,11 +330,17 @@ export default function DefaultDashboard() {
             // Remove duplicates by ID
             const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
 
-            // Prioritize: Contacts -> Followers -> Public -> Recent
+            // "For You" priority — mirrors the For You tab in /flares + /thread:
+            //   3 = Contacts (visibility is CONTACTS; backend already gated to
+            //       posts where I'm in the author's contact list)
+            //   2 = Following (I follow the author, OR visibility is FOLLOWERS
+            //       which the backend gates to people I follow)
+            //   1 = Public (everyone else)
+            // Within each tier, newest first.
             unique.sort((a, b) => {
                 const getPriority = (item: any) => {
                     if (item.visibility === 'CONTACTS') return 3;
-                    if (item.visibility === 'FOLLOWERS') return 2;
+                    if (item.visibility === 'FOLLOWERS' || followingSet.has(item.authorId)) return 2;
                     return 1;
                 };
 
@@ -656,7 +685,6 @@ export default function DefaultDashboard() {
                                         <MSFeatureCard icon="settings" title="Manage Community" bg="#ec4899" onPress={() => router.push('/manage-community')} />
                                         <MSFeatureCard icon="storefront" title="Business" bg="#10b981" onPress={() => router.push('/business-profiles')} />
                                         <MSFeatureCard icon="calendar" title="Events" bg="#3b82f6" onPress={() => router.push('/events')} />
-                                        <MSFeatureCard icon="construct" title="Services" bg="#f59e0b" onPress={() => router.push('/service-search')} />
                                         <MSFeatureCard icon="wallet" title="Finance" bg="#0ea5e9" onPress={() => router.push('/finance')} />
                                         <MSFeatureCard icon="journal" title="Notes" bg="#a855f7" onPress={() => router.push('/notes')} />
                                         <MSFeatureCard icon="folder" title="Docs" bg="#2d3748" onPress={() => router.push('/documents')} />
@@ -693,12 +721,27 @@ export default function DefaultDashboard() {
                                     </TouchableOpacity>
                                 </View>
 
+                                {/* Explore Services Banner — replaces the small "Services" tile so
+                                    it gets the same visual prominence as "Manage Your Business". */}
+                                <View style={[styles.psBusinessBanner, { backgroundColor: '#f59e0b', borderColor: 'transparent' }]}>
+                                    <View style={styles.psBannerContent}>
+                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="construct" size={26} color="#fff" /></View>
+                                        <View style={styles.psBannerTextCol}>
+                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Explore Services</Text>
+                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.8)' }]}>Find trusted local businesses & book appointments</Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/service-search')}>
+                                        <Text style={[styles.psBannerBtnText, { color: '#f59e0b' }]}>Explore Services</Text>
+                                    </TouchableOpacity>
+                                </View>
+
                                 {/* Recent Activity Feed */}
                                 <View style={styles.activitySection}>
                                     <View style={styles.activityHeader}>
                                         <View>
-                                            <Text style={[styles.activityTitleMain, { color: mySpaceText }]}>Recent Feed</Text>
-                                            <Text style={[styles.activitySubMain, { color: mySpaceSubText }]}>Updates from your contacts, followers & community</Text>
+                                            <Text style={[styles.activityTitleMain, { color: mySpaceText }]}>For You</Text>
+                                            <Text style={[styles.activitySubMain, { color: mySpaceSubText }]}>Contacts first, then people you follow, then the wider community</Text>
                                         </View>
                                         {loadingActivity && <ActivityIndicator size="small" color={darkLavender} />}
                                     </View>
@@ -714,16 +757,22 @@ export default function DefaultDashboard() {
                                             <View key={item.id} style={[styles.activityCard, { backgroundColor: mySpaceBg === '#000000' ? '#111827' : '#ffffff', borderColor: 'rgba(91, 75, 138, 0.1)' }]}>
                                                 {/* Header */}
                                                 <View style={styles.activityCardHeader}>
-                                                    <Image source={{ uri: item.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.activityAvatar} />
-                                                    <View style={styles.activityAuthorInfo}>
-                                                        <View style={styles.activityAuthorRow}>
-                                                            <Text style={[styles.activityAuthorName, { color: mySpaceText }]}>{item.authorName || 'Anonymous'}</Text>
-                                                            {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#be185d" style={{ marginLeft: 4 }} />}
+                                                    <TouchableOpacity
+                                                        activeOpacity={0.8}
+                                                        onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
+                                                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                                                    >
+                                                        <Image source={{ uri: item.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.activityAvatar} />
+                                                        <View style={styles.activityAuthorInfo}>
+                                                            <View style={styles.activityAuthorRow}>
+                                                                <Text style={[styles.activityAuthorName, { color: mySpaceText }]}>{item.authorName || 'Anonymous'}</Text>
+                                                                {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#be185d" style={{ marginLeft: 4 }} />}
+                                                            </View>
+                                                            <Text style={[styles.activityMeta, { color: mySpaceSubText }]}>
+                                                                {item.location || 'Resido'} • {timeAgo(item.createdAt)}
+                                                            </Text>
                                                         </View>
-                                                        <Text style={[styles.activityMeta, { color: mySpaceSubText }]}>
-                                                            {item.location || 'Resido'} • {timeAgo(item.createdAt)}
-                                                        </Text>
-                                                    </View>
+                                                    </TouchableOpacity>
                                                     {/* Type specifier & Visibility badge */}
                                                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
                                                         <View style={[styles.activityTypeBadge, { backgroundColor: item.itemType === 'FLARE' ? '#fdf2f8' : '#f0fdf4', borderColor: item.itemType === 'FLARE' ? '#fbcfe8' : '#bbf7d0' }]}>
@@ -753,31 +802,62 @@ export default function DefaultDashboard() {
                                                 </View>
 
                                                 {/* Body */}
-                                                <TouchableOpacity 
-                                                    onPress={() => {
-                                                        if (item.itemType === 'FLARE') {
-                                                            router.push({ pathname: '/flares', params: { initialId: item.id } });
-                                                        } else {
+                                                <View style={styles.activityCardBody}>
+                                                    <TouchableOpacity
+                                                        activeOpacity={0.85}
+                                                        onPress={() => {
+                                                            if (item.itemType === 'FLARE') return;
                                                             router.push(`/thread/${item.id}`);
-                                                        }
-                                                    }}
-                                                    style={styles.activityCardBody}
-                                                >
-                                                    {item.title ? <Text style={[styles.activityTitle, { color: mySpaceText }]}>{item.title}</Text> : null}
-                                                    {item.content ? <Text style={[styles.activityContent, { color: mySpaceSubText }]} numberOfLines={3}>{item.content}</Text> : null}
-                                                    
+                                                        }}
+                                                    >
+                                                        {item.title ? <Text style={[styles.activityTitle, { color: mySpaceText }]}>{item.title}</Text> : null}
+                                                        {item.content ? <Text style={[styles.activityContent, { color: mySpaceSubText }]} numberOfLines={3}>{item.content}</Text> : null}
+                                                    </TouchableOpacity>
+
                                                     {/* Optional media preview */}
-                                                    {item.mediaUrls && item.mediaUrls.length > 0 && (
-                                                        <View style={styles.activityMediaWrapper}>
-                                                            <Image source={{ uri: item.mediaUrls[0] }} style={styles.activityMedia} />
-                                                            {item.itemType === 'FLARE' && (
-                                                                <View style={styles.playOverlay}>
-                                                                    <Ionicons name="play-circle" size={36} color="#fff" />
-                                                                </View>
-                                                            )}
-                                                        </View>
-                                                    )}
-                                                </TouchableOpacity>
+                                                    {item.mediaUrls && item.mediaUrls.length > 0 && (() => {
+                                                        const mediaSrc = resolveMediaUrl(item.mediaUrls[0]) || item.mediaUrls[0];
+                                                        const isFlare = item.itemType === 'FLARE';
+                                                        return (
+                                                            <TouchableOpacity
+                                                                activeOpacity={0.9}
+                                                                style={styles.activityMediaWrapper}
+                                                                onPress={() => {
+                                                                    if (isFlare) {
+                                                                        setExpandedFlare({ ...item, _mediaUrl: mediaSrc });
+                                                                    } else {
+                                                                        router.push(`/thread/${item.id}`);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {isFlare ? (
+                                                                    <Video
+                                                                        source={{ uri: mediaSrc, overrideFileExtension: 'mp4' } as any}
+                                                                        style={styles.activityMedia}
+                                                                        resizeMode={ResizeMode.COVER}
+                                                                        shouldPlay
+                                                                        isMuted
+                                                                        isLooping
+                                                                        useNativeControls={false}
+                                                                    />
+                                                                ) : (
+                                                                    <Image source={{ uri: mediaSrc }} style={styles.activityMedia} />
+                                                                )}
+                                                                {isFlare && (
+                                                                    <>
+                                                                        <View style={styles.playOverlay}>
+                                                                            <Ionicons name="volume-mute" size={32} color="#fff" />
+                                                                        </View>
+                                                                        <View style={styles.flareTapHint}>
+                                                                            <Ionicons name="expand" size={12} color="#fff" style={{ marginRight: 4 }} />
+                                                                            <Text style={styles.flareTapHintText}>Tap to play with sound</Text>
+                                                                        </View>
+                                                                    </>
+                                                                )}
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })()}
+                                                </View>
                                             </View>
                                         ))
                                     )}
@@ -811,6 +891,69 @@ export default function DefaultDashboard() {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Expanded flare player — opens in place inside MySpace with
+                sound on, looping playback. Tap outside / close icon to dismiss. */}
+            <Modal
+                visible={!!expandedFlare}
+                animationType="fade"
+                transparent
+                statusBarTranslucent
+                onRequestClose={() => setExpandedFlare(null)}
+            >
+                <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.95)" />
+                <Pressable
+                    style={styles.flareExpandOverlay}
+                    onPress={() => setExpandedFlare(null)}
+                >
+                    {expandedFlare ? (
+                        <Pressable
+                            style={styles.flareExpandStage}
+                            onPress={() => {
+                                // Tap inside the video swallows the outer close
+                                // press but doesn't bubble — keep the modal open.
+                            }}
+                        >
+                            <Video
+                                ref={expandedVideoRef}
+                                source={{ uri: expandedFlare._mediaUrl, overrideFileExtension: 'mp4' } as any}
+                                style={styles.flareExpandVideo}
+                                resizeMode={ResizeMode.CONTAIN}
+                                shouldPlay
+                                isMuted={false}
+                                volume={1.0}
+                                isLooping
+                                useNativeControls
+                            />
+                            <View style={styles.flareExpandInfo}>
+                                <Image
+                                    source={{ uri: expandedFlare.authorAvatar || 'https://i.pravatar.cc/100' }}
+                                    style={styles.flareExpandAvatar}
+                                />
+                                <View style={{ flex: 1, marginLeft: 10 }}>
+                                    <Text style={styles.flareExpandAuthor} numberOfLines={1}>
+                                        {expandedFlare.authorName || 'Anonymous'}
+                                    </Text>
+                                    {expandedFlare.title ? (
+                                        <Text style={styles.flareExpandTitle} numberOfLines={2}>
+                                            {expandedFlare.title}
+                                        </Text>
+                                    ) : null}
+                                </View>
+                            </View>
+                        </Pressable>
+                    ) : null}
+
+                    <TouchableOpacity
+                        style={styles.flareExpandClose}
+                        onPress={() => setExpandedFlare(null)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Ionicons name="close" size={26} color="#fff" />
+                    </TouchableOpacity>
+                </Pressable>
+            </Modal>
+
             <BottomNav activeTab="Home" />
         </SafeAreaView>
     );
