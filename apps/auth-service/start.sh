@@ -35,10 +35,10 @@ npx prisma generate --schema=prisma/geo/schema.prisma
 
 # 3. Wait until the core schema is ready before we accept traffic.
 #    resident-service is responsible for pushing the resido_core schema on
-#    its own startup; we just poll for the presence of a table that only
-#    appears after that push completes (users.linkBusinessProfile is the
-#    most recent column and a reliable readiness signal).
-node wait-for-core-schema.js || echo "⚠️  Continuing without core readiness — first writes may briefly fail until resident-service finishes its push."
+#    its own startup; we poll for the presence of the tables we know we
+#    need to query (business_profiles / blogs / members). See
+#    wait-for-core-schema.js for the exact probe + timeout behaviour.
+node wait-for-core-schema.js || echo "⚠️  Continuing without core readiness — first queries may briefly fail until resident-service finishes its push."
 
 # 4. Enable PostGIS for the geo DB.
 echo "🐘 Enabling PostGIS..."
