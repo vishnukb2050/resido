@@ -1,0 +1,43 @@
+{
+    "family": "resido-${ENV}-resident-service",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "1024",
+    "memory": "2048",
+    "executionRoleArn": "${TASK_EXECUTION_ROLE}",
+    "taskRoleArn": "${TASK_ROLE}",
+    "runtimePlatform": { "operatingSystemFamily": "LINUX", "cpuArchitecture": "X86_64" },
+    "containerDefinitions": [
+        {
+            "name": "resident-service",
+            "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/resident-service:${IMAGE_TAG}",
+            "essential": true,
+            "portMappings": [
+                { "containerPort": 3002, "protocol": "tcp", "name": "http", "appProtocol": "http" }
+            ],
+            "environment": [
+                { "name": "NODE_ENV", "value": "production" },
+                { "name": "PORT", "value": "3002" },
+                { "name": "RUN_PRISMA_PUSH", "value": "false" }
+            ],
+            "secrets": [
+                { "name": "CORE_WRITE_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/core-write-url" },
+                { "name": "CORE_READ_URL",  "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/core-read-url"  },
+                { "name": "JWT_SECRET",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret"     }
+            ],
+            "healthCheck": {
+                "command": ["CMD-SHELL", "wget -q --spider http://localhost:3002/health || exit 1"],
+                "interval": 30, "timeout": 5, "retries": 3, "startPeriod": 30
+            },
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "${LOG_GROUP}",
+                    "awslogs-region": "${AWS_REGION}",
+                    "awslogs-stream-prefix": "resident-service",
+                    "awslogs-create-group": "true"
+                }
+            }
+        }
+    ]
+}

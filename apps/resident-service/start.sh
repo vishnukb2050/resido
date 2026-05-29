@@ -8,9 +8,14 @@ set -e
 # intentionally do NOT run `db push` because their schemas are subsets and a
 # push from them would drop tables/columns owned by other services.
 
-echo "🔄 [resident-service] Syncing Prisma schema with resido_core ..."
-npx prisma db push --accept-data-loss --skip-generate
-echo "✅ [resident-service] Schema sync complete."
+if [ "${RUN_PRISMA_PUSH:-true}" = "true" ]; then
+    echo "🔄 [resident-service] Syncing Prisma schema with resido_core ..."
+    npx prisma db push --accept-data-loss --skip-generate
+    echo "✅ [resident-service] Schema sync complete."
+else
+    echo "⏭  [resident-service] Skipping prisma db push (RUN_PRISMA_PUSH=false)."
+    echo "   Migrations are applied by the db-migrate ECS task before deploy."
+fi
 
 echo "🚀 Starting application..."
 node dist/main

@@ -1,0 +1,41 @@
+{
+    "family": "resido-${ENV}-db-migrate",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "${TASK_EXECUTION_ROLE}",
+    "taskRoleArn": "${TASK_ROLE}",
+    "runtimePlatform": { "operatingSystemFamily": "LINUX", "cpuArchitecture": "X86_64" },
+    "containerDefinitions": [
+        {
+            "name": "db-migrate",
+            "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/auth-service:${IMAGE_TAG}",
+            "essential": true,
+            "command": [
+                "/bin/sh",
+                "-c",
+                "set -e; echo '==== migrate: resido_master ===='; npx prisma migrate deploy --schema=prisma/master/schema.prisma; echo '==== migrate: resido_users ===='; npx prisma migrate deploy --schema=prisma/user/schema.prisma; echo '==== migrate: resido_core (canonical schema mirrored from resident-service) ===='; npx prisma migrate deploy --schema=prisma/core/schema.prisma; echo '==== migrate: resido_geodata ===='; GEO_WRITE_URL=${GEO_WRITE_URL:-$RDS_WRITE_URL/resido_geodata?schema=public} npx prisma migrate deploy --schema=prisma/geo/schema.prisma; echo '==== enable PostGIS on resido_geodata ===='; node enable-postgis.js || true; echo '==== migrations completed successfully ===='"
+            ],
+            "environment": [
+                { "name": "NODE_ENV", "value": "production" }
+            ],
+            "secrets": [
+                { "name": "MASTER_WRITE_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/master-write-url" },
+                { "name": "USER_WRITE_URL",   "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/user-write-url"   },
+                { "name": "CORE_WRITE_URL",   "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/core-write-url"   },
+                { "name": "GEO_WRITE_URL",    "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/geo-write-url"    },
+                { "name": "RDS_WRITE_URL",    "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/rds-write-url"    }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "${LOG_GROUP}",
+                    "awslogs-region": "${AWS_REGION}",
+                    "awslogs-stream-prefix": "db-migrate",
+                    "awslogs-create-group": "true"
+                }
+            }
+        }
+    ]
+}

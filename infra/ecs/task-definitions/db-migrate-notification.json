@@ -1,0 +1,37 @@
+{
+    "family": "resido-${ENV}-db-migrate-notification",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "${TASK_EXECUTION_ROLE}",
+    "taskRoleArn": "${TASK_ROLE}",
+    "runtimePlatform": { "operatingSystemFamily": "LINUX", "cpuArchitecture": "X86_64" },
+    "containerDefinitions": [
+        {
+            "name": "db-migrate-notification",
+            "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/notification-service:${IMAGE_TAG}",
+            "essential": true,
+            "command": [
+                "/bin/sh",
+                "-c",
+                "set -e; echo '════ migrate: resido_notifications ════'; npx prisma migrate deploy --schema=prisma/schema.prisma; echo '════ done ════'"
+            ],
+            "environment": [
+                { "name": "NODE_ENV", "value": "production" }
+            ],
+            "secrets": [
+                { "name": "NOTIFICATION_WRITE_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/notification-write-url" }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "${LOG_GROUP}",
+                    "awslogs-region": "${AWS_REGION}",
+                    "awslogs-stream-prefix": "db-migrate-notification",
+                    "awslogs-create-group": "true"
+                }
+            }
+        }
+    ]
+}
