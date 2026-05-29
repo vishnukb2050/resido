@@ -127,12 +127,13 @@ export class BlogsService {
     async listBlogs(
         type?: 'THREAD' | 'FLARE',
         userId?: string,
-        feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR' = 'PUBLIC',
+        feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR' | 'HASHTAG' = 'PUBLIC',
         followingIds: string[] = [],
         tenantId?: string,
         category?: string,
         businessProfileId?: string,
         authorId?: string,
+        hashtag?: string,
     ) {
         const where: any = {
             isActive: true,
@@ -147,7 +148,22 @@ export class BlogsService {
             where.__ignoreTenant = true;
         }
 
-        if (feedType === 'AUTHOR') {
+        // Normalise once so HASHTAG handling and the post-feed filter below
+        // can both reuse the canonical form (stored as lower-case-ish in DB).
+        const normalizedHashtag = typeof hashtag === 'string'
+            ? hashtag.replace(/^#+/, '').trim().toLowerCase()
+            : '';
+
+        if (feedType === 'HASHTAG') {
+            // Cross-tenant hashtag feed: a hashtag is a global concept, not
+            // scoped to one workspace, so we ignore the tenant filter. The
+            // per-post and author visibility passes below still gate what
+            // the viewer is allowed to see (PUBLIC always, FOLLOWERS/CONTACTS
+            // only when the viewer qualifies).
+            if (!normalizedHashtag) return [];
+            where.hashtags = { has: normalizedHashtag };
+            where.__ignoreTenant = true;
+        } else if (feedType === 'AUTHOR') {
             // Public profile / "posts by this user" view. Caller passes
             // authorId; per-post visibility is still enforced in the
             // second pass below (a non-follower won't see FOLLOWERS posts,
@@ -323,7 +339,26 @@ export class BlogsService {
                 mediaUrls,
                 mediaType: data.mediaType || 'IMAGE',
                 tags: Array.isArray(data.tags) ? data.tags : [],
-                hashtags: Array.isArray(data.hashtags) ? data.hashtags : [],
+                // Normalise hashtags to lower-case, leading-# stripped, deduped,
+                // capped at a sensible length. Storing in canonical form means
+                // the HASHTAG feed (`hashtags: { has: tag }`) and the suggest
+                // endpoint (which builds counts in memory) agree on the same
+                // representation and case-insensitive matching just works.
+                hashtags: (() => {
+                    if (!Array.isArray(data.hashtags)) return [];
+                    const seen = new Set<string>();
+                    const out: string[] = [];
+                    for (const raw of data.hashtags) {
+                        if (typeof raw !== 'string') continue;
+                        const tag = raw.replace(/^#+/, '').trim().toLowerCase();
+                        if (!tag || tag.length > 50) continue;
+                        if (seen.has(tag)) continue;
+                        seen.add(tag);
+                        out.push(tag);
+                        if (out.length >= 12) break;
+                    }
+                    return out;
+                })(),
                 visibility: VALID_VISIBILITIES.has(String(data.visibility))
                     ? data.visibility
                     : 'PUBLIC',
@@ -477,6 +512,70 @@ export class BlogsService {
 
     async generateUploadUrl(tenantId: string, userId: string, fileName: string, contentType: string, blogType: 'THREAD' | 'FLARE', mediaType: 'IMAGE' | 'VIDEO') {
         return this.storage.generatePresignedUrl(fileName, contentType, tenantId, userId, blogType, mediaType);
+    }
+
+    /**
+     * Suggest matching hashtags for the search dropdowns on ThreadScreen /
+     * FlaresScreen. Hashtags are stored as a Postgres `text[]` on each Blog
+     * row (`hashtags String[]`), so we pull a window of recently-active
+     * posts, flatten + dedupe their tags, and return up to 12 that match
+     * the prefix/substring `q`. Restricting by `type` keeps THREAD-only
+     * tags out of the FLARE picker and vice versa.
+     *
+     * Returned shape is intentionally a flat list:
+     *   [{ tag: 'summer', count: 42 }, ...]
+     * sorted by count desc, then alphabetically.
+     */
+    async suggestHashtags(q: string, type?: 'THREAD' | 'FLARE') {
+        const query = (q || '').replace(/^#+/, '').trim().toLowerCase();
+        if (!query || query.length < 1) return [];
+
+        const where: any = {
+            isActive: true,
+            hashtags: { isEmpty: false },
+            // Hashtags are global by nature — a #summer post in another
+            // workspace should still surface when the user searches for it.
+            __ignoreTenant: true,
+            // Only consider PUBLIC posts when feeding the suggest dropdown
+            // so we never leak a hashtag that was only used inside a
+            // FOLLOWERS-only or CONTACTS-only post.
+            visibility: 'PUBLIC',
+        };
+        if (type) where.type = type;
+
+        // Pull a recent window. We dedupe in memory so we don't depend on a
+        // Prisma `distinct` against an array column (which Postgres can't
+        // express directly without a custom raw query).
+        const rows = await this.prisma.reader.blog.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            select: { hashtags: true },
+            take: 500,
+        });
+
+        const counts = new Map<string, number>();
+        for (const row of rows) {
+            const tags: string[] = Array.isArray((row as any).hashtags) ? (row as any).hashtags : [];
+            for (const raw of tags) {
+                if (typeof raw !== 'string') continue;
+                const tag = raw.replace(/^#+/, '').trim().toLowerCase();
+                if (!tag) continue;
+                if (!tag.includes(query)) continue;
+                counts.set(tag, (counts.get(tag) || 0) + 1);
+            }
+        }
+
+        return Array.from(counts.entries())
+            .map(([tag, count]) => ({ tag, count }))
+            .sort((a, b) => {
+                if (b.count !== a.count) return b.count - a.count;
+                // Prefer prefix matches over substring matches when counts tie.
+                const aPrefix = a.tag.startsWith(query) ? 0 : 1;
+                const bPrefix = b.tag.startsWith(query) ? 0 : 1;
+                if (aPrefix !== bPrefix) return aPrefix - bPrefix;
+                return a.tag.localeCompare(b.tag);
+            })
+            .slice(0, 12);
     }
 
     async toggleLike(blogId: string, userId: string, tenantId: string) {

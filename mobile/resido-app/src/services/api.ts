@@ -271,11 +271,11 @@ export const accountingApi = {
 
 // Thread & Flare APIs
 export const threadApi = {
-    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string; businessProfileId?: string }) => {
+    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED' | 'HASHTAG' | 'AUTHOR'; followingIds?: string[]; category?: string; businessProfileId?: string; hashtag?: string; authorId?: string }) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/threads', { params: p });
     },
-    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED'; followingIds?: string[]; category?: string; businessProfileId?: string }) => {
+    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED' | 'HASHTAG' | 'AUTHOR'; followingIds?: string[]; category?: string; businessProfileId?: string; hashtag?: string; authorId?: string }) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/flares', { params: p });
     },
@@ -288,6 +288,19 @@ export const threadApi = {
         api.get('/threads', { params: { feedType: 'AUTHOR', authorId } }),
     getAuthorFlares: (authorId: string) =>
         api.get('/flares', { params: { feedType: 'AUTHOR', authorId } }),
+    // Hashtag-filtered feed. The backend ignores the tenant scope for this
+    // call so public posts from other communities also show up.
+    getThreadsByHashtag: (tag: string, followingIds?: string[]) =>
+        api.get('/threads', { params: { feedType: 'HASHTAG', hashtag: tag, followingIds: (followingIds || []).join(',') } }),
+    getFlaresByHashtag: (tag: string, followingIds?: string[]) =>
+        api.get('/flares', { params: { feedType: 'HASHTAG', hashtag: tag, followingIds: (followingIds || []).join(',') } }),
+    // Hashtag suggestions for the search dropdowns. `type` narrows the
+    // suggested tags to THREAD-only or FLARE-only so each screen's
+    // search popover only surfaces tags it can actually navigate to.
+    suggestHashtags: (q: string, type: 'THREAD' | 'FLARE') => {
+        const path = type === 'FLARE' ? '/flares/hashtags/suggest' : '/threads/hashtags/suggest';
+        return api.get(path, { params: { q, type } });
+    },
     getThread: (id: string) => api.get(`/blogs/${id}`),
     createThread: (data: any) => api.post('/threads', data),
     createFlare: (data: any) => api.post('/flares', data),

@@ -10,11 +10,12 @@ export class BlogsController {
     @Get()
     listBlogs(
         @Req() req: any, 
-        @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR', 
+        @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR' | 'HASHTAG', 
         @Query('followingIds') followingIds: string,
         @Query('category') category?: string,
         @Query('businessProfileId') businessProfileId?: string,
         @Query('authorId') authorId?: string,
+        @Query('hashtag') hashtag?: string,
     ) {
         const userId = req.headers['x-user-id'] as string;
         const tenantId = req.tenantId as string;
@@ -22,7 +23,33 @@ export class BlogsController {
         // Determine type from path
         const path = req.url || '';
         const type = path.includes('threads') ? 'THREAD' : path.includes('flares') ? 'FLARE' : undefined;
-        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId, category, businessProfileId, authorId);
+        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId, category, businessProfileId, authorId, hashtag);
+    }
+
+    /**
+     * Returns up to 12 distinct hashtags that match the given prefix /
+     * substring across recently published posts, optionally narrowed to
+     * THREAD or FLARE so the search popovers on each screen surface only
+     * the relevant tags. Used by ThreadScreen / FlaresScreen to power the
+     * "search a hashtag" dropdown — selecting one of these strings then
+     * issues `feedType=HASHTAG` to filter the feed itself.
+     */
+    @Get('hashtags/suggest')
+    suggestHashtags(
+        @Req() req: any,
+        @Query('q') q: string,
+        @Query('type') type?: 'THREAD' | 'FLARE',
+    ) {
+        // The route is mounted under threads/flares/blogs. When the client
+        // hits `/threads/hashtags/suggest` we infer the THREAD scope even
+        // if they didn't pass ?type — same for flares.
+        const path: string = req.url || '';
+        const inferred: 'THREAD' | 'FLARE' | undefined = path.includes('/threads/')
+            ? 'THREAD'
+            : path.includes('/flares/')
+                ? 'FLARE'
+                : undefined;
+        return this.blogsService.suggestHashtags(q, type || inferred);
     }
 
     @Post('upload-url')
