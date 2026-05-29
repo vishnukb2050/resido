@@ -204,21 +204,28 @@ export default function ManageBusinessScreen() {
                                     <Text style={styles.manageBookingsBtnText}>Manage Bookings</Text>
                                 </TouchableOpacity>
 
+                                {/* Two-tab strip: live view count + tappable Reports.
+                                    Replaces the old Services/Views/Leads triad —
+                                    owners now get analytics they can actually
+                                    drill into. */}
                                 <View style={styles.statsRow}>
                                     <View style={styles.statBox}>
-                                        <Text style={styles.statValue}>{profile.services?.length || 0}</Text>
-                                        <Text style={styles.statLabel}>Services</Text>
-                                    </View>
-                                    <View style={styles.statDivider} />
-                                    <View style={styles.statBox}>
-                                        <Text style={styles.statValue}>0</Text>
+                                        <Ionicons name="eye" size={16} color="#8b5cf6" style={{ marginBottom: 4 }} />
+                                        <Text style={styles.statValue}>{profile.viewCount || 0}</Text>
                                         <Text style={styles.statLabel}>Views</Text>
                                     </View>
                                     <View style={styles.statDivider} />
-                                    <View style={styles.statBox}>
-                                        <Text style={styles.statValue}>0</Text>
-                                        <Text style={styles.statLabel}>Leads</Text>
-                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.statBox}
+                                        onPress={(e) => {
+                                            e.stopPropagation?.();
+                                            router.push({ pathname: '/business-reports', params: { profileId: profile.id } });
+                                        }}
+                                    >
+                                        <Ionicons name="document-text" size={16} color="#10b981" style={{ marginBottom: 4 }} />
+                                        <Text style={[styles.statValue, { color: '#10b981' }]}>Open</Text>
+                                        <Text style={styles.statLabel}>Reports</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </TouchableOpacity>
                         ))}

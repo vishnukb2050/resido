@@ -7,6 +7,7 @@ import {
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
 import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -17,6 +18,7 @@ export default function FolderViewScreen() {
     const readOnly = isShared === 'true';
     const [files, setFiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [menuFile, setMenuFile] = useState<any | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -36,33 +38,47 @@ export default function FolderViewScreen() {
         }
     };
 
-    // 3-dot menu on a single file: Share or Delete.
+    // 3-dot menu on a single file: Share or Delete. Uses the shared
+    // bottom-sheet ActionMenu so colors/list format stay consistent
+    // with notes and folder menus.
     const openFileMenu = (file: any) => {
-        const options: any[] = [{ text: 'Cancel', style: 'cancel' }];
-        options.push({
-            text: 'Share',
-            onPress: () =>
-                router.push({
-                    pathname: '/share-doc',
-                    params: {
-                        id: file.id,
-                        folderId: id,
-                        name: file.title || file.name,
-                        isFolder: 'false',
-                        size: file.size
-                            ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
-                            : '',
-                    },
-                }),
-        });
+        setMenuFile(file);
+    };
+
+    const buildFileMenuItems = (file: any): ActionMenuItem[] => {
+        const items: ActionMenuItem[] = [
+            {
+                key: 'share',
+                label: 'Share with people',
+                subtitle: 'Choose specific profiles, contacts or groups',
+                icon: 'share-social',
+                variant: 'primary',
+                onPress: () =>
+                    router.push({
+                        pathname: '/share-doc',
+                        params: {
+                            id: file.id,
+                            folderId: id,
+                            name: file.title || file.name,
+                            isFolder: 'false',
+                            size: file.size
+                                ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
+                                : '',
+                        },
+                    }),
+            },
+        ];
         if (!readOnly) {
-            options.push({
-                text: 'Delete',
-                style: 'destructive',
+            items.push({
+                key: 'delete',
+                label: 'Delete document',
+                subtitle: 'This document will be permanently removed',
+                icon: 'trash',
+                variant: 'destructive',
                 onPress: () => confirmDeleteFile(file),
             });
         }
-        Alert.alert(file.title || file.name || 'Document', 'What would you like to do?', options);
+        return items;
     };
 
     const confirmDeleteFile = (file: any) => {
@@ -201,6 +217,14 @@ export default function FolderViewScreen() {
                     <Ionicons name="cloud-upload" size={26} color="#fff" />
                 </TouchableOpacity>
             )}
+
+            <ActionMenu
+                visible={!!menuFile}
+                title={menuFile?.title || menuFile?.name || 'Document'}
+                subtitle={menuFile?.size ? `${(menuFile.size / 1024 / 1024).toFixed(2)} MB` : undefined}
+                items={menuFile ? buildFileMenuItems(menuFile) : []}
+                onClose={() => setMenuFile(null)}
+            />
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>

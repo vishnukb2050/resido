@@ -228,33 +228,83 @@ export default function DefaultDashboard() {
     // category or business profile name and pick from a live suggestion list.
     // Picking a suggestion navigates to /service-search with the right params.
     const [headerSearch, setHeaderSearch] = React.useState('');
-    const [headerSuggestions, setHeaderSuggestions] = React.useState<Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }>>([]);
+    // Each suggestion carries a `type` so we can route it correctly:
+    //   - category / service → /service-search
+    //   - profile             → /business-detail
+    //   - user                → /user-profile (which gates visibility)
+    const [headerSuggestions, setHeaderSuggestions] = React.useState<Array<{
+        type: 'category' | 'profile' | 'service' | 'user';
+        name: string;
+        profileId?: string;
+        userId?: string;
+        avatar?: string | null;
+        handle?: string | null;
+        visibility?: string;
+        linkBusinessProfile?: boolean;
+        businessProfileCount?: number;
+    }>>([]);
     const [showHeaderSuggest, setShowHeaderSuggest] = React.useState(false);
     const [loadingSuggest, setLoadingSuggest] = React.useState(false);
 
     React.useEffect(() => {
-        const q = headerSearch.trim();
-        if (q.length < 2) {
+        const raw = headerSearch.trim();
+        if (raw.length < 2) {
             setHeaderSuggestions([]);
             return;
         }
+        // A leading "@" is a strong signal the user is searching by
+        // profile handle. Strip it before hitting the user search so
+        // `@johndoe` matches the handle `johndoe`, and remember the
+        // hint so we promote user matches to the top of the list.
+        const handleHint = raw.startsWith('@');
+        const userQuery = handleHint ? raw.slice(1).trim() : raw;
+        const lcQuery = raw.toLowerCase();
         let cancelled = false;
         setLoadingSuggest(true);
         const timer = setTimeout(async () => {
             try {
-                const { data } = await businessApi.suggestProfiles(q, 10);
+                const [bizRes, userRes] = await Promise.all([
+                    businessApi.suggestProfiles(raw, 10).catch(() => ({ data: {} })),
+                    // Higher limit so a handle search like `@jo` can show
+                    // every John before being capped at 5.
+                    authApi.searchUsersPublic(userQuery || raw, 10).catch(() => ({ data: [] })),
+                ]);
                 if (cancelled) return;
-                const items: Array<{ type: 'category' | 'profile' | 'service'; name: string; profileId?: string }> = [];
-                (data?.categories || []).slice(0, 5).forEach((name: string) => {
-                    items.push({ type: 'category', name });
+                const bizData: any = bizRes?.data || {};
+                const categoryItems: typeof headerSuggestions = (bizData.categories || []).slice(0, 4).map((name: string) => ({
+                    type: 'category' as const, name,
+                }));
+                const businessItems: typeof headerSuggestions = (bizData.profiles || []).slice(0, 4).map((p: any) => ({
+                    type: 'profile' as const, name: p.name, profileId: p.id,
+                }));
+                const userItems: typeof headerSuggestions = ((userRes?.data as any[]) || []).slice(0, 8).map((u: any) => ({
+                    type: 'user' as const,
+                    name: u.name || u.profileName || 'User',
+                    userId: u.id,
+                    avatar: u.profilePhoto || null,
+                    handle: u.profileName || null,
+                    visibility: u.profileVisibility || 'GLOBAL',
+                    linkBusinessProfile: !!u.linkBusinessProfile,
+                    businessProfileCount: u.businessProfileCount || 0,
+                }));
+                const serviceItems: typeof headerSuggestions = (bizData.services || []).slice(0, 3).map((s: any) => ({
+                    type: 'service' as const, name: s.name, profileId: s.profileId,
+                }));
+
+                // Promote user results to the top when the query looks
+                // like a profile-name lookup: starts with "@", OR any
+                // returned user's handle/name begins with the query.
+                const promoteUsers = handleHint || userItems.some((u) => {
+                    const n = (u.name || '').toLowerCase();
+                    const h = (u.handle || '').toLowerCase();
+                    return n.startsWith(lcQuery) || h.startsWith(lcQuery) || (handleHint ? h.startsWith(userQuery.toLowerCase()) : false);
                 });
-                (data?.profiles || []).slice(0, 5).forEach((p: any) => {
-                    items.push({ type: 'profile', name: p.name, profileId: p.id });
-                });
-                (data?.services || []).slice(0, 5).forEach((s: any) => {
-                    items.push({ type: 'service', name: s.name, profileId: s.profileId });
-                });
-                setHeaderSuggestions(items.slice(0, 10));
+
+                const ordered = promoteUsers
+                    ? [...userItems, ...categoryItems, ...businessItems, ...serviceItems]
+                    : [...categoryItems, ...businessItems, ...userItems, ...serviceItems];
+
+                setHeaderSuggestions(ordered.slice(0, 14));
             } catch {
                 setHeaderSuggestions([]);
             } finally {
@@ -264,9 +314,16 @@ export default function DefaultDashboard() {
         return () => { cancelled = true; clearTimeout(timer); };
     }, [headerSearch]);
 
-    const onPickHeaderSuggestion = (item: { type: 'category' | 'profile' | 'service'; name: string; profileId?: string }) => {
+    const onPickHeaderSuggestion = (item: { type: 'category' | 'profile' | 'service' | 'user'; name: string; profileId?: string; userId?: string }) => {
         setShowHeaderSuggest(false);
         setHeaderSearch('');
+        if (item.type === 'user' && item.userId) {
+            // Routes through UserProfileScreen which already gates visibility:
+            // restricted profiles render name + photo + a follow-request CTA;
+            // public profiles render full details.
+            router.push({ pathname: '/user-profile', params: { id: item.userId } });
+            return;
+        }
         if (item.type === 'profile' && item.profileId) {
             router.push({ pathname: '/business-detail', params: { id: item.profileId } });
             return;
@@ -577,7 +634,7 @@ export default function DefaultDashboard() {
                                 <View style={[styles.psSearchBar, { backgroundColor: isMySpace ? lightLavender : theme.surface }]}>
                                     <Ionicons name="search" size={20} color={darkLavender} />
                                     <TextInput
-                                        placeholder="Search by profile name or category"
+                                        placeholder="Search people, businesses or categories"
                                         style={[styles.psSearchInput, { color: '#2D2445' }]}
                                         placeholderTextColor="#7A6B9C"
                                         value={headerSearch}
@@ -621,44 +678,82 @@ export default function DefaultDashboard() {
                                                 </Text>
                                             </View>
                                         ) : (
-                                            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 260 }}>
-                                                {headerSuggestions.map((it, idx) => (
-                                                    <TouchableOpacity
-                                                        key={`${it.type}-${idx}-${it.name}`}
-                                                        style={styles.psSuggestItem}
-                                                        onPress={() => onPickHeaderSuggestion(it)}
-                                                    >
-                                                        <View style={[styles.psSuggestIcon, {
-                                                            backgroundColor:
-                                                                it.type === 'category' ? 'rgba(139,92,246,0.12)'
-                                                                : it.type === 'profile' ? 'rgba(16,185,129,0.12)'
-                                                                : 'rgba(245,158,11,0.12)',
-                                                        }]}>
-                                                            <Ionicons
-                                                                name={
-                                                                    it.type === 'category' ? 'grid-outline'
-                                                                    : it.type === 'profile' ? 'business-outline'
-                                                                    : 'construct-outline'
-                                                                }
-                                                                size={16}
-                                                                color={
-                                                                    it.type === 'category' ? '#8b5cf6'
-                                                                    : it.type === 'profile' ? '#10b981'
-                                                                    : '#f59e0b'
-                                                                }
-                                                            />
-                                                        </View>
-                                                        <View style={{ flex: 1 }}>
-                                                            <Text style={styles.psSuggestName} numberOfLines={1}>{it.name}</Text>
-                                                            <Text style={styles.psSuggestType}>
-                                                                {it.type === 'category' ? 'Category'
-                                                                    : it.type === 'profile' ? 'Business Profile'
-                                                                    : 'Service'}
-                                                            </Text>
-                                                        </View>
-                                                        <Ionicons name="chevron-forward" size={14} color="#9A8EBA" />
-                                                    </TouchableOpacity>
-                                                ))}
+                                            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 300 }}>
+                                                {headerSuggestions.map((it, idx) => {
+                                                    const isUser = it.type === 'user';
+                                                    const restricted = isUser && it.visibility && it.visibility !== 'GLOBAL';
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={`${it.type}-${idx}-${it.userId || it.profileId || it.name}`}
+                                                            style={styles.psSuggestItem}
+                                                            onPress={() => onPickHeaderSuggestion(it)}
+                                                        >
+                                                            {isUser && it.avatar ? (
+                                                                <Image
+                                                                    source={{ uri: it.avatar as string }}
+                                                                    style={{ width: 32, height: 32, borderRadius: 16, marginRight: 12, backgroundColor: '#E8E2F2' }}
+                                                                />
+                                                            ) : (
+                                                                <View style={[styles.psSuggestIcon, {
+                                                                    backgroundColor:
+                                                                        it.type === 'category' ? 'rgba(139,92,246,0.12)'
+                                                                        : it.type === 'profile' ? 'rgba(16,185,129,0.12)'
+                                                                        : it.type === 'user' ? 'rgba(59,130,246,0.12)'
+                                                                        : 'rgba(245,158,11,0.12)',
+                                                                }]}>
+                                                                    <Ionicons
+                                                                        name={
+                                                                            it.type === 'category' ? 'grid-outline'
+                                                                            : it.type === 'profile' ? 'business-outline'
+                                                                            : it.type === 'user' ? 'person-outline'
+                                                                            : 'construct-outline'
+                                                                        }
+                                                                        size={16}
+                                                                        color={
+                                                                            it.type === 'category' ? '#8b5cf6'
+                                                                            : it.type === 'profile' ? '#10b981'
+                                                                            : it.type === 'user' ? '#3b82f6'
+                                                                            : '#f59e0b'
+                                                                        }
+                                                                    />
+                                                                </View>
+                                                            )}
+                                                            <View style={{ flex: 1 }}>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                                                                    <Text style={styles.psSuggestName} numberOfLines={1}>{it.name}</Text>
+                                                                    {isUser && it.handle ? (
+                                                                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#3b82f6' }} numberOfLines={1}>
+                                                                            @{it.handle}
+                                                                        </Text>
+                                                                    ) : null}
+                                                                </View>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                                                                    <Text style={styles.psSuggestType}>
+                                                                        {it.type === 'category' ? 'Category'
+                                                                            : it.type === 'profile' ? 'Business Profile'
+                                                                            : it.type === 'user' ? (restricted ? 'Private profile' : 'View profile')
+                                                                            : 'Service'}
+                                                                    </Text>
+                                                                    {restricted ? (
+                                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(139,92,246,0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                                                                            <Ionicons name="lock-closed" size={9} color="#8b5cf6" />
+                                                                            <Text style={{ fontSize: 9, fontWeight: '800', color: '#8b5cf6' }}>Follow to view</Text>
+                                                                        </View>
+                                                                    ) : null}
+                                                                    {isUser && it.linkBusinessProfile && (it.businessProfileCount || 0) > 0 ? (
+                                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(245,158,11,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                                                                            <Ionicons name="briefcase" size={9} color="#f59e0b" />
+                                                                            <Text style={{ fontSize: 9, fontWeight: '800', color: '#f59e0b' }}>
+                                                                                Business{it.businessProfileCount && it.businessProfileCount > 1 ? ` (${it.businessProfileCount})` : ''}
+                                                                            </Text>
+                                                                        </View>
+                                                                    ) : null}
+                                                                </View>
+                                                            </View>
+                                                            <Ionicons name="chevron-forward" size={14} color="#9A8EBA" />
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
                                             </ScrollView>
                                         )}
                                     </View>
@@ -707,6 +802,21 @@ export default function DefaultDashboard() {
                                     </View>
                                 )}
 
+                                {/* Explore Services Banner — surfaced first so customers can
+                                    discover services before being nudged to create their own. */}
+                                <View style={[styles.psBusinessBanner, { backgroundColor: '#f59e0b', borderColor: 'transparent' }]}>
+                                    <View style={styles.psBannerContent}>
+                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="construct" size={26} color="#fff" /></View>
+                                        <View style={styles.psBannerTextCol}>
+                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Explore Services</Text>
+                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.8)' }]}>Find trusted local businesses & book appointments</Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/service-search')}>
+                                        <Text style={[styles.psBannerBtnText, { color: '#f59e0b' }]}>Explore Services</Text>
+                                    </TouchableOpacity>
+                                </View>
+
                                 {/* Business Banner */}
                                 <View style={[styles.psBusinessBanner, { backgroundColor: darkLavender, borderColor: 'transparent' }]}>
                                     <View style={styles.psBannerContent}>
@@ -718,21 +828,6 @@ export default function DefaultDashboard() {
                                     </View>
                                     <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/business-profiles')}>
                                         <Text style={[styles.psBannerBtnText, { color: darkLavender }]}>Manage Business</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                {/* Explore Services Banner — replaces the small "Services" tile so
-                                    it gets the same visual prominence as "Manage Your Business". */}
-                                <View style={[styles.psBusinessBanner, { backgroundColor: '#f59e0b', borderColor: 'transparent' }]}>
-                                    <View style={styles.psBannerContent}>
-                                        <View style={[styles.psBannerIconBox, { backgroundColor: 'rgba(255,255,255,0.2)' }]}><Ionicons name="construct" size={26} color="#fff" /></View>
-                                        <View style={styles.psBannerTextCol}>
-                                            <Text style={[styles.psBannerTitle, { color: '#fff' }]}>Explore Services</Text>
-                                            <Text style={[styles.psBannerSub, { color: 'rgba(255,255,255,0.8)' }]}>Find trusted local businesses & book appointments</Text>
-                                        </View>
-                                    </View>
-                                    <TouchableOpacity style={[styles.psBannerBtn, { backgroundColor: '#fff' }]} onPress={() => router.push('/service-search')}>
-                                        <Text style={[styles.psBannerBtnText, { color: '#f59e0b' }]}>Explore Services</Text>
                                     </TouchableOpacity>
                                 </View>
 

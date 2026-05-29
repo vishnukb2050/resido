@@ -99,7 +99,10 @@ export default function CreateBusinessProfileScreen() {
     const router = useRouter();
     const { id, initialStep, manageSlots } = useLocalSearchParams(); // If editing
     const isManageSlotsOnly = manageSlots === 'true';
-    const [step, setStep] = useState(isManageSlotsOnly ? 4 : (initialStep ? parseInt(initialStep as string) : 1));
+    const parsedInitialStep = initialStep ? parseInt(initialStep as string) : 1;
+    const [step, setStep] = useState(
+        isManageSlotsOnly ? 3 : Math.max(1, Math.min(parsedInitialStep, 4))
+    );
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(!!id);
     const [nameChecking, setNameChecking] = useState(false);
@@ -170,18 +173,6 @@ export default function CreateBusinessProfileScreen() {
         enableBooking: false,
         bookingSlots: [] as any[],
     });
-
-    // Temporary state for adding/editing a service
-    const [currentService, setCurrentService] = useState({
-        id: '',
-        name: '',
-        description: '',
-        pricingType: 'CONTACT', // FIXED, STARTING, CONTACT
-        price: '',
-        responseTime: 'Within 2 Hours',
-        isEmergency: false,
-    });
-    const [showServiceModal, setShowServiceModal] = useState(false);
 
     // Slot Booking States
     const [showSlotModal, setShowSlotModal] = useState(false);
@@ -874,10 +865,10 @@ export default function CreateBusinessProfileScreen() {
                 return;
             }
         }
-        if (step === 3) {
+        if (step === 2) {
             if (!validateStep3Location()) return;
         }
-        setStep(Math.min(step + 1, 5));
+        setStep(Math.min(step + 1, 4));
     };
     const prevStep = () => setStep(Math.max(step - 1, 1));
 
@@ -898,7 +889,7 @@ export default function CreateBusinessProfileScreen() {
         if (isManageSlotsOnly) return null;
         return (
             <View style={styles.stepperContainer}>
-                {[1, 2, 3, 4, 5].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                 <React.Fragment key={i}>
                     <View style={styles.stepWrapper}>
                         <View style={[
@@ -912,10 +903,10 @@ export default function CreateBusinessProfileScreen() {
                             )}
                         </View>
                         <Text style={[styles.stepLabel, step === i && styles.stepLabelActive]}>
-                            {i === 1 ? 'Business Info' : i === 2 ? 'Gallery & Showcase' : i === 3 ? 'Location' : i === 4 ? 'Book Service' : 'Review & Publish'}
+                            {i === 1 ? 'Business Info' : i === 2 ? 'Location' : i === 3 ? 'Book Service' : 'Review & Publish'}
                         </Text>
                     </View>
-                    {i < 5 && <View style={[styles.stepLine, step > i && styles.stepLineActive]} />}
+                    {i < 4 && <View style={[styles.stepLine, step > i && styles.stepLineActive]} />}
                 </React.Fragment>
             ))}
         </View>
@@ -1128,105 +1119,6 @@ export default function CreateBusinessProfileScreen() {
             </View>
         </View>
     );
-
-    const renderStep2 = () => {
-        return (
-            <View style={styles.stepContent}>
-                <Text style={styles.sectionTitle}>Business Gallery & Showcase</Text>
-                <Text style={styles.subText}>
-                    Showcase your work, upload photos or videos, and write descriptions with headings to wow your customers.
-                </Text>
-
-                {formData.services.length === 0 ? (
-                    <View style={{ padding: 40, backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#D4C9E8', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                        <Ionicons name="images-outline" size={48} color="#64748b" style={{ marginBottom: 12 }} />
-                        <Text style={{ color: '#2D2445', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>Your Gallery is Empty</Text>
-                        <Text style={{ color: '#7A6B9C', fontSize: 13, textAlign: 'center', marginTop: 4, paddingHorizontal: 20, lineHeight: 18 }}>
-                            Add images, videos, or highlight text sections to build a stunning profile.
-                        </Text>
-                    </View>
-                ) : (
-                    <View style={{ gap: 16, marginBottom: 20 }}>
-                        {formData.services.map((item: any, i: number) => (
-                            <View key={item.id || i.toString()} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#D4C9E8', overflow: 'hidden' }}>
-                                {item.pricingType === 'IMAGE' && item.responseTime ? (
-                                    <Image source={{ uri: item.responseTime }} style={{ width: '100%', height: 180, resizeMode: 'cover' }} />
-                                ) : item.pricingType === 'VIDEO' && item.responseTime ? (
-                                    <View style={{ width: '100%', height: 180, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Ionicons name="play-circle" size={48} color="#a78bfa" />
-                                        <Text style={{ color: '#9A8EBA', fontSize: 12, marginTop: 8 }}>Video Showcase Attached</Text>
-                                    </View>
-                                ) : null}
-
-                                <View style={{ padding: 16 }}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <View style={{ flex: 1, marginRight: 12 }}>
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                                <View style={{ backgroundColor: item.pricingType === 'IMAGE' ? 'rgba(59, 130, 246, 0.1)' : item.pricingType === 'VIDEO' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                                                    <Text style={{ fontSize: 10, color: item.pricingType === 'IMAGE' ? '#60a5fa' : item.pricingType === 'VIDEO' ? '#fbbf24' : '#34d399', fontWeight: '800' }}>
-                                                        {item.pricingType}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445' }}>{item.name}</Text>
-                                        </View>
-                                        
-                                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                                            <TouchableOpacity 
-                                                style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' }}
-                                                onPress={() => {
-                                                    setCurrentService(item);
-                                                    setShowServiceModal(true);
-                                                }}
-                                            >
-                                                <Feather name="edit-2" size={14} color="#94a3b8" />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity 
-                                                style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.1)', alignItems: 'center', justifyContent: 'center' }}
-                                                onPress={() => {
-                                                    setFormData({
-                                                        ...formData,
-                                                        services: formData.services.filter((_, idx) => idx !== i)
-                                                    });
-                                                }}
-                                            >
-                                                <Ionicons name="trash-outline" size={14} color="#ef4444" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                    
-                                    {item.description ? (
-                                        <Text style={{ fontSize: 14, color: '#9A8EBA', marginTop: 8, lineHeight: 20 }}>
-                                            {item.description}
-                                        </Text>
-                                    ) : null}
-                                </View>
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                <TouchableOpacity 
-                    style={styles.addAnotherBtn} 
-                    onPress={() => {
-                        setCurrentService({ 
-                            id: '', 
-                            name: '', 
-                            description: '', 
-                            pricingType: 'IMAGE',
-                            price: '', 
-                            responseTime: '',
-                            isEmergency: false 
-                        });
-                        setShowServiceModal(true);
-                    }}
-                >
-                    <Ionicons name="add-circle-outline" size={20} color="#8b5cf6" />
-                    <Text style={styles.addAnotherText}>Add Showcase/Gallery Item</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    };
 
     const renderStep3 = () => (
         <View style={styles.stepContent}>
@@ -2482,37 +2374,12 @@ export default function CreateBusinessProfileScreen() {
                     </View>
                 </View>
 
-                <View style={styles.summaryCard}>
-                    <View style={styles.summaryHeader}>
-                        <View style={styles.summaryIconBox}><FontAwesome5 name="tools" size={16} color="#8b5cf6" /></View>
-                        <Text style={styles.summaryTitle}>Services ({formData.services.length})</Text>
-                        <TouchableOpacity onPress={() => setStep(2)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
-                    </View>
-                    {formData.services.length === 0 ? (
-                        <Text style={[styles.subText, { fontStyle: 'italic', marginBottom: 0 }]}>No services added yet.</Text>
-                    ) : (
-                        formData.services.map((s, idx) => (
-                            <View key={idx} style={styles.sumServiceItem}>
-                                <Ionicons name="checkmark-circle" size={18} color="#8b5cf6" />
-                                <View style={{ marginLeft: 8, flex: 1 }}>
-                                    <Text style={styles.sumServiceText}>{s.name}</Text>
-                                    {s.description ? <Text style={styles.sumServiceSub}>{s.description}</Text> : null}
-                                    <Text style={[styles.sumServiceSub, { color: '#a78bfa', fontWeight: '600' }]}>
-                                        {s.pricingType === 'CONTACT' ? 'Contact for Price' : s.pricingType === 'STARTING' ? `Starting from ₹${s.price}` : `Fixed Price: ₹${s.price}`}
-                                        {s.isEmergency ? ' • Emergency Service' : ''}
-                                    </Text>
-                                </View>
-                            </View>
-                        ))
-                    )}
-                </View>
-
                 {/* Service Coverage Card */}
                 <View style={styles.summaryCard}>
                     <View style={styles.summaryHeader}>
                         <View style={styles.summaryIconBox}><Ionicons name="map" size={18} color="#8b5cf6" /></View>
                         <Text style={styles.summaryTitle}>Service Coverage</Text>
-                        <TouchableOpacity onPress={() => setStep(3)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => setStep(2)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                     </View>
                     <View style={styles.summaryRow}>
                         <Text style={styles.sumLabel}>Base Location</Text>
@@ -2574,7 +2441,7 @@ export default function CreateBusinessProfileScreen() {
                     <View style={styles.summaryHeader}>
                         <View style={styles.summaryIconBox}><Ionicons name="calendar" size={18} color="#8b5cf6" /></View>
                         <Text style={styles.summaryTitle}>Booking Settings</Text>
-                        <TouchableOpacity onPress={() => setStep(4)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => setStep(3)}><Text style={styles.editText}>Edit</Text></TouchableOpacity>
                     </View>
                     <View style={styles.summaryRow}>
                         <Text style={styles.sumLabel}>Slot Booking</Text>
@@ -3070,10 +2937,9 @@ export default function CreateBusinessProfileScreen() {
 
             <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
                 {step === 1 && renderStep1()}
-                {step === 2 && renderStep2()}
-                {step === 3 && renderStep3()}
-                {step === 4 && renderStep4()}
-                {step === 5 && renderStep5()}
+                {step === 2 && renderStep3()}
+                {step === 3 && renderStep4()}
+                {step === 4 && renderStep5()}
             </ScrollView>
 
             <View style={styles.footer}>
@@ -3125,17 +2991,17 @@ export default function CreateBusinessProfileScreen() {
                             )}
                             <TouchableOpacity 
                                 style={[styles.continueBtn, step === 1 && { flex: 1 }]} 
-                                onPress={step === 5 ? handlePublish : nextStep}
+                                onPress={step === 4 ? handlePublish : nextStep}
                                 disabled={loading}
                             >
                                 {loading ? (
                                     <ActivityIndicator color="#fff" />
                                 ) : (
                                     <Text style={styles.continueBtnText}>
-                                        {step === 5 ? 'Publish My Business Profile' : 'Save & Continue'}
+                                        {step === 4 ? 'Publish My Business Profile' : 'Save & Continue'}
                                     </Text>
                                 )}
-                                {step === 5 && !loading && <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 8 }} />}
+                                {step === 4 && !loading && <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 8 }} />}
                             </TouchableOpacity>
                         </>
                     )}
@@ -3166,143 +3032,6 @@ export default function CreateBusinessProfileScreen() {
                 () => setFormData({...formData, showTypeModal: false})
             )}
 
-            {/* Showcase Item Modal */}
-            <Modal visible={showServiceModal} transparent animationType="slide">
-                <View style={pickerStyles.modalOverlay}>
-                    <View style={[pickerStyles.modalContent, { maxHeight: '85%' }]}>
-                        <View style={pickerStyles.modalHeader}>
-                            <Text style={pickerStyles.modalTitle}>{currentService.id ? 'Edit Showcase Item' : 'Add Showcase Item'}</Text>
-                            <TouchableOpacity onPress={() => setShowServiceModal(false)}>
-                                <Ionicons name="close" size={24} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Heading / Title *</Text>
-                                <TextInput 
-                                    style={styles.input} 
-                                    placeholder="e.g., Completed Bathroom Makeover, Video Tour" 
-                                    placeholderTextColor="#94a3b8"
-                                    value={currentService.name}
-                                    onChangeText={t => setCurrentService({...currentService, name: t})}
-                                />
-                            </View>
-                            
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Media Type</Text>
-                                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                                    {[
-                                        { label: 'Photo', type: 'IMAGE', icon: 'image-outline' },
-                                        { label: 'Video', type: 'VIDEO', icon: 'videocam-outline' },
-                                        { label: 'Text Only', type: 'TEXT', icon: 'document-text-outline' },
-                                    ].map(item => {
-                                        const isSel = currentService.pricingType === item.type;
-                                        return (
-                                            <TouchableOpacity 
-                                                key={item.type}
-                                                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: isSel ? 'rgba(37, 99, 235, 0.15)' : 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: isSel ? '#1d4ed8' : 'rgba(255,255,255,0.05)', borderRadius: 12, paddingVertical: 12, gap: 6 }}
-                                                onPress={() => setCurrentService({
-                                                    ...currentService,
-                                                    pricingType: item.type,
-                                                    responseTime: currentService.pricingType === item.type ? currentService.responseTime : ''
-                                                })}
-                                            >
-                                                <Ionicons name={item.icon as any} size={16} color={isSel ? '#3b82f6' : '#64748b'} />
-                                                <Text style={{ fontSize: 13, fontWeight: '700', color: isSel ? '#3b82f6' : '#94a3b8' }}>{item.label}</Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
-                            </View>
-
-                            {currentService.pricingType !== 'TEXT' && (
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>Upload {currentService.pricingType === 'IMAGE' ? 'Photo' : 'Video'} *</Text>
-                                    <TouchableOpacity 
-                                        style={{ width: '100%', height: 160, borderRadius: 16, backgroundColor: '#ffffff', borderStyle: 'dashed', borderWidth: 2, borderColor: currentService.responseTime ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
-                                        onPress={async () => {
-                                            const mediaTypes = currentService.pricingType === 'IMAGE'
-                                                ? ImagePicker.MediaTypeOptions.Images
-                                                : ImagePicker.MediaTypeOptions.Videos;
-                                            const result = await ImagePicker.launchImageLibraryAsync({
-                                                mediaTypes,
-                                                allowsEditing: true,
-                                                quality: 0.7,
-                                            });
-                                            if (!result.canceled) {
-                                                setCurrentService({
-                                                    ...currentService,
-                                                    responseTime: result.assets[0].uri
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        {currentService.responseTime ? (
-                                            currentService.pricingType === 'IMAGE' ? (
-                                                <Image source={{ uri: currentService.responseTime }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-                                            ) : (
-                                                <View style={{ alignItems: 'center' }}>
-                                                    <Ionicons name="play-circle" size={40} color="#10b981" />
-                                                    <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '600', marginTop: 8 }}>Video Selected</Text>
-                                                    <Text style={{ color: '#7A6B9C', fontSize: 10, marginTop: 2 }}>Tap to change video</Text>
-                                                </View>
-                                            )
-                                        ) : (
-                                            <>
-                                                <Ionicons name="cloud-upload-outline" size={32} color="#64748b" />
-                                                <Text style={{ color: '#9A8EBA', fontSize: 14, fontWeight: '600', marginTop: 8 }}>
-                                                    Select {currentService.pricingType === 'IMAGE' ? 'Photo' : 'Video'}
-                                                </Text>
-                                                <Text style={{ color: '#7A6B9C', fontSize: 11, marginTop: 2 }}>
-                                                    Max file size 10MB
-                                                </Text>
-                                            </>
-                                        )}
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Description</Text>
-                                <TextInput 
-                                    style={[styles.input, styles.textArea]} 
-                                    placeholder="Write a clear, helpful description about this gallery item..." 
-                                    placeholderTextColor="#94a3b8"
-                                    multiline
-                                    value={currentService.description}
-                                    onChangeText={t => setCurrentService({...currentService, description: t})}
-                                />
-                            </View>
-
-                            <TouchableOpacity 
-                                style={[styles.continueBtn, { marginTop: 20 }]}
-                                onPress={() => {
-                                    if (!currentService.name) {
-                                        Alert.alert('Error', 'Please enter a heading/title');
-                                        return;
-                                    }
-                                    if (currentService.pricingType !== 'TEXT' && !currentService.responseTime) {
-                                        Alert.alert('Error', `Please select a ${currentService.pricingType === 'IMAGE' ? 'photo' : 'video'} to upload.`);
-                                        return;
-                                    }
-                                    const newServices = [...formData.services];
-                                    if (currentService.id) {
-                                        const idx = newServices.findIndex(s => s.id === currentService.id);
-                                        if (idx !== -1) newServices[idx] = currentService;
-                                    } else {
-                                        newServices.push({ ...currentService, id: Date.now().toString() });
-                                    }
-                                    setFormData({ ...formData, services: newServices });
-                                    setShowServiceModal(false);
-                                }}
-                            >
-                                <Text style={styles.continueBtnText}>Save Gallery Item</Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
-            
             {/* Slot Modal */}
             {renderSlotModal()}
         </SafeAreaView>

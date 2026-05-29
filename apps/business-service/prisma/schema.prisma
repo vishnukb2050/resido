@@ -45,6 +45,9 @@ model BusinessProfile {
 
   isActive        Boolean  @default(true)
   isVerified      Boolean  @default(false)
+  // Total customer-side profile views (incremented on getProfile when a
+  // non-owner opens the business detail screen).
+  viewCount       Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

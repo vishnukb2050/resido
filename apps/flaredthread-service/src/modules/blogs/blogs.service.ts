@@ -127,11 +127,12 @@ export class BlogsService {
     async listBlogs(
         type?: 'THREAD' | 'FLARE',
         userId?: string,
-        feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC',
+        feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR' = 'PUBLIC',
         followingIds: string[] = [],
         tenantId?: string,
         category?: string,
         businessProfileId?: string,
+        authorId?: string,
     ) {
         const where: any = {
             isActive: true,
@@ -146,7 +147,18 @@ export class BlogsService {
             where.__ignoreTenant = true;
         }
 
-        if (feedType === 'MY') {
+        if (feedType === 'AUTHOR') {
+            // Public profile / "posts by this user" view. Caller passes
+            // authorId; per-post visibility is still enforced in the
+            // second pass below (a non-follower won't see FOLLOWERS posts,
+            // a non-contact won't see CONTACTS posts, etc.) so we can
+            // safely include all the author's posts here at the DB level.
+            if (!authorId) return [];
+            where.authorId = authorId;
+            // Cross-tenant: a profile page is global to the user's identity,
+            // not scoped to a single community workspace.
+            where.__ignoreTenant = true;
+        } else if (feedType === 'MY') {
             where.authorId = userId;
         } else if (feedType === 'FOLLOWING') {
             where.authorId = { in: followingIds };

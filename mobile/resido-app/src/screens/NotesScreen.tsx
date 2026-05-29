@@ -7,6 +7,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
 import { mySpaceApi } from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
@@ -18,6 +19,7 @@ export default function NotesScreen() {
     const [folders, setFolders] = useState<any[]>([]);
     const [sharedItems, setSharedItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [menuFolder, setMenuFolder] = useState<any | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -41,30 +43,37 @@ export default function NotesScreen() {
         }
     };
 
-    // Show Share / Delete chooser for a folder. Delete asks for explicit
-    // confirmation and warns about page count to avoid surprise data loss.
+    // Opens the styled bottom-sheet menu. Delete still routes through an
+    // Alert for the destructive confirmation step so we don't lose the OS
+    // native "are you sure" affordance for data loss.
     const openFolderMenu = (folder: any) => {
+        setMenuFolder(folder);
+    };
+
+    const buildFolderMenuItems = (folder: any): ActionMenuItem[] => {
         const pageCount = folder._count?.pages || 0;
-        Alert.alert(
-            folder.name || 'Folder',
-            'What would you like to do?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Share',
-                    onPress: () =>
-                        router.push({
-                            pathname: '/share-note',
-                            params: { folderId: folder.id, name: folder.name, isFolder: 'true' },
-                        }),
-                },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => confirmDeleteFolder(folder, pageCount),
-                },
-            ],
-        );
+        return [
+            {
+                key: 'share',
+                label: 'Share with people',
+                subtitle: 'Choose specific profiles, contacts or groups',
+                icon: 'share-social',
+                variant: 'primary',
+                onPress: () =>
+                    router.push({
+                        pathname: '/share-note',
+                        params: { folderId: folder.id, name: folder.name, isFolder: 'true' },
+                    }),
+            },
+            {
+                key: 'delete',
+                label: 'Delete folder',
+                subtitle: pageCount > 0 ? `Removes the folder and ${pageCount} note${pageCount === 1 ? '' : 's'}` : 'This action cannot be undone',
+                icon: 'trash',
+                variant: 'destructive',
+                onPress: () => confirmDeleteFolder(folder, pageCount),
+            },
+        ];
     };
 
     const confirmDeleteFolder = (folder: any, pageCount: number) => {
@@ -275,6 +284,14 @@ export default function NotesScreen() {
                     <Ionicons name="add" size={32} color="#fff" />
                 </TouchableOpacity>
             )}
+
+            <ActionMenu
+                visible={!!menuFolder}
+                title={menuFolder?.name || 'Folder'}
+                subtitle={`${menuFolder?._count?.pages || 0} note${(menuFolder?._count?.pages || 0) === 1 ? '' : 's'}`}
+                items={menuFolder ? buildFolderMenuItems(menuFolder) : []}
+                onClose={() => setMenuFolder(null)}
+            />
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>

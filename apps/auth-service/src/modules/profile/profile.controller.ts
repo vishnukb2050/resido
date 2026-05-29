@@ -89,6 +89,18 @@ export class ProfileController {
         return this.profileService.searchUsers(req.user.userId, query);
     }
 
+    /**
+     * Public name-only search for the MySpace search dropdown. Bypasses
+     * phone-visibility gating so a contacts-only profile still appears by
+     * name; further access is gated when the user opens the profile.
+     */
+    @UseGuards(JwtAuthGuard)
+    @Get('users/search-public')
+    async searchUsersPublic(@Query('query') query: string, @Query('limit') limit?: string) {
+        const n = limit ? parseInt(limit, 10) : 10;
+        return this.profileService.searchUsersPublic(query, Number.isFinite(n) ? n : 10);
+    }
+
 
     @UseGuards(JwtAuthGuard)
     @Post('follow/:id')
@@ -174,6 +186,19 @@ export class ProfileController {
         return this.profileService.getProfileVisibilities(list);
     }
 
+    // Mobile uses this to enrich a list of business search results with
+    // the owner's lightweight identity (name, handle, photo, visibility,
+    // linkBusinessProfile). Returns `{ userId: { ...identity } }` only
+    // for users who opted into the "Link Business Profile" toggle — all
+    // other ids are absent from the map so the client can quietly skip
+    // them. Identity is non-secret (same fields as searchUsersPublic).
+    @UseGuards(JwtAuthGuard)
+    @Get('users/identities/batch')
+    async getPublicIdentitiesBatch(@Query('ids') ids: string) {
+        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
+        return this.profileService.getPublicIdentitiesBatch(list);
+    }
+
     @UseGuards(JwtAuthGuard)
     @Get('storage/presigned-url')
     async getPresignedUrl(
@@ -211,8 +236,8 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Get('notes/folders/:id')
-    async getNoteFolder(@Param('id') id: string) {
-        return this.profileService.getNoteFolder(id);
+    async getNoteFolder(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.getNoteFolder(id, req.user.userId);
     }
 
     @UseGuards(JwtAuthGuard)
@@ -253,8 +278,8 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Get('documents/folders/:id')
-    async getDocumentFolder(@Param('id') id: string) {
-        return this.profileService.getDocumentFolder(id);
+    async getDocumentFolder(@Req() req: any, @Param('id') id: string) {
+        return this.profileService.getDocumentFolder(id, req.user.userId);
     }
 
     @UseGuards(JwtAuthGuard)

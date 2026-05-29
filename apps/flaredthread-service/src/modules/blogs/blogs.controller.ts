@@ -10,10 +10,11 @@ export class BlogsController {
     @Get()
     listBlogs(
         @Req() req: any, 
-        @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE', 
+        @Query('feedType') feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR', 
         @Query('followingIds') followingIds: string,
         @Query('category') category?: string,
         @Query('businessProfileId') businessProfileId?: string,
+        @Query('authorId') authorId?: string,
     ) {
         const userId = req.headers['x-user-id'] as string;
         const tenantId = req.tenantId as string;
@@ -21,7 +22,7 @@ export class BlogsController {
         // Determine type from path
         const path = req.url || '';
         const type = path.includes('threads') ? 'THREAD' : path.includes('flares') ? 'FLARE' : undefined;
-        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId, category, businessProfileId);
+        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId, category, businessProfileId, authorId);
     }
 
     @Post('upload-url')

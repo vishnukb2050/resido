@@ -25,6 +25,14 @@ model User {
   // GLOBAL allows anyone (free follow). The other three require a follow
   // request that the owner approves before granting access.
   profileVisibility ProfileVisibility @default(GLOBAL)
+  // When true, the user has chosen to surface their business profile(s)
+  // alongside their personal profile. Search results for the user show a
+  // "Business" chip, search results for the business show the linked
+  // owner card, and the public profile screen renders the owner's
+  // business profiles. Restricted personal profiles still appear as
+  // locked to non-allowed viewers — the link only works when the
+  // viewer is allowed to see the profile in the first place.
+  linkBusinessProfile Boolean @default(false)
   instagram    String?
   linkedin     String?
   website      String?

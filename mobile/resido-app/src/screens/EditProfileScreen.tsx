@@ -44,6 +44,11 @@ export default function EditProfileScreen() {
         phoneVisibility: ((user as any)?.phoneVisibility === 'PUBLIC' || (user as any)?.phoneVisibility === 'FOLLOWERS' || (user as any)?.phoneVisibility === 'COMMUNITY')
             ? (user as any).phoneVisibility
             : 'COMMUNITY',
+        // When true, the user's personal profile and their business
+        // profile(s) are cross-linked: search results for either entity
+        // surface the other (subject to profileVisibility), and the
+        // public profile screen renders linked-business cards.
+        linkBusinessProfile: !!(user as any)?.linkBusinessProfile,
         // Only seed from the actual user record. Avoid using a public placeholder
         // (i.pravatar) because the save flow would then POST that URL back as the
         // user's profile photo, leaving the bubble showing the stock avatar
@@ -119,6 +124,7 @@ export default function EditProfileScreen() {
                 location: formData.location,
                 profileVisibility: formData.profileVisibility,
                 phoneVisibility: formData.phoneVisibility,
+                linkBusinessProfile: formData.linkBusinessProfile,
                 profilePhoto: uploadedPhotoUrl
             };
 
@@ -384,6 +390,36 @@ export default function EditProfileScreen() {
 
                     </View>
 
+                    {/* Link Business Profile toggle */}
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        style={[styles.preferenceCard, { marginTop: 12 }]}
+                        onPress={() => setFormData({ ...formData, linkBusinessProfile: !formData.linkBusinessProfile })}
+                    >
+                        <View style={[styles.prefIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+                            <Ionicons name="briefcase" size={20} color="#f59e0b" />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 16 }}>
+                            <Text style={styles.prefTitle}>Link Business Profile</Text>
+                            <Text style={styles.prefSub}>
+                                Connect your business with this profile so people who find one can see the other.
+                            </Text>
+                        </View>
+                        <View style={[
+                            styles.linkBizCheck,
+                            formData.linkBusinessProfile && styles.linkBizCheckOn,
+                        ]}>
+                            {formData.linkBusinessProfile ? (
+                                <Ionicons name="checkmark" size={16} color="#fff" />
+                            ) : null}
+                        </View>
+                    </TouchableOpacity>
+                    <Text style={styles.linkBizNote}>
+                        Visibility rules still apply — if your profile is restricted, viewers who
+                        can't see your profile will see it as locked, but they can still open
+                        your business directly.
+                    </Text>
+
                     {/* Action Buttons */}
                     <TouchableOpacity 
                         style={[styles.saveBtn, loading && { opacity: 0.7 }]}
@@ -630,7 +666,21 @@ const styles = StyleSheet.create({
     modalSub: { fontSize: 14, color: '#9A8EBA', marginBottom: 24, lineHeight: 20 },
     modalOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#EFE9F8' },
     modalOptionText: { fontSize: 16, color: '#2D2445', fontWeight: '600' },
-    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#64748b', alignItems: 'center', justifyContent: 'center' }
+    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#64748b', alignItems: 'center', justifyContent: 'center' },
+
+    // Link Business Profile toggle
+    linkBizCheck: {
+        width: 26, height: 26, borderRadius: 8, borderWidth: 2,
+        borderColor: '#D4C9E8', backgroundColor: '#fff',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    linkBizCheckOn: {
+        backgroundColor: '#f59e0b', borderColor: '#f59e0b',
+    },
+    linkBizNote: {
+        fontSize: 11, color: '#9A8EBA', marginTop: 8,
+        marginLeft: 4, lineHeight: 16, fontWeight: '500',
+    },
 });
 
 

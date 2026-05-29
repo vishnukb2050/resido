@@ -7,6 +7,7 @@ import {
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
 import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -17,6 +18,7 @@ export default function NoteFolderViewScreen() {
     const { id, name } = useLocalSearchParams();
     const [pages, setPages] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [menuNote, setMenuNote] = useState<any | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -36,34 +38,39 @@ export default function NoteFolderViewScreen() {
         }
     };
 
-    // 3-dot action sheet for a single note: share or delete.
+    // 3-dot action sheet for a single note: share or delete. Opens the
+    // shared bottom-sheet action menu with color-coded options.
     const openNoteMenu = (note: any) => {
-        Alert.alert(
-            note.title || 'Note',
-            'What would you like to do?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Share',
-                    onPress: () =>
-                        router.push({
-                            pathname: '/share-note',
-                            params: {
-                                id: note.id,
-                                folderId: id,
-                                name: note.title,
-                                isFolder: 'false',
-                            },
-                        }),
-                },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => confirmDeleteNote(note),
-                },
-            ],
-        );
+        setMenuNote(note);
     };
+
+    const buildNoteMenuItems = (note: any): ActionMenuItem[] => [
+        {
+            key: 'share',
+            label: 'Share with people',
+            subtitle: 'Choose specific profiles, contacts or groups',
+            icon: 'share-social',
+            variant: 'primary',
+            onPress: () =>
+                router.push({
+                    pathname: '/share-note',
+                    params: {
+                        id: note.id,
+                        folderId: id,
+                        name: note.title,
+                        isFolder: 'false',
+                    },
+                }),
+        },
+        {
+            key: 'delete',
+            label: 'Delete note',
+            subtitle: 'This note will be permanently removed',
+            icon: 'trash',
+            variant: 'destructive',
+            onPress: () => confirmDeleteNote(note),
+        },
+    ];
 
     const confirmDeleteNote = (note: any) => {
         Alert.alert(
@@ -172,6 +179,14 @@ export default function NoteFolderViewScreen() {
             <TouchableOpacity style={styles.fab} onPress={() => router.push({ pathname: '/create-note', params: { folderId: id } })}>
                 <Ionicons name="add" size={32} color="#fff" />
             </TouchableOpacity>
+
+            <ActionMenu
+                visible={!!menuNote}
+                title={menuNote?.title || 'Note'}
+                subtitle={menuNote?.updatedAt ? `Updated ${new Date(menuNote.updatedAt).toLocaleDateString()}` : undefined}
+                items={menuNote ? buildNoteMenuItems(menuNote) : []}
+                onClose={() => setMenuNote(null)}
+            />
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>

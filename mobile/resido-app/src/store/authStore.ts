@@ -42,7 +42,7 @@ interface AuthState {
     token: string | null;
     personalToken: string | null;
     refreshToken: string | null;
-    user: { id: string; name?: string; username?: string; email?: string; profileName?: string; phoneVisibility?: string; profileVisibility?: string; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string; location?: string; instagram?: string; linkedin?: string; website?: string } | null;
+    user: { id: string; name?: string; username?: string; email?: string; profileName?: string; phoneVisibility?: string; profileVisibility?: string; linkBusinessProfile?: boolean; phone: string; profilePhoto?: string; role?: string; age?: number; description?: string; location?: string; instagram?: string; linkedin?: string; website?: string } | null;
     workspaces: Workspace[];
     activeWorkspace: Workspace | null;
     isHydrated: boolean;

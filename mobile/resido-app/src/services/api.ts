@@ -88,6 +88,16 @@ export const authApi = {
     leaveClient: (id: string) => api.post(`/clients/${id}/leave`),
     syncContacts: (phones: string[]) => api.post('/auth/sync-contacts', { phones }),
     searchUsers: (query: string) => api.get(`/profile/users/search?query=${query}`),
+    searchUsersPublic: (query: string, limit = 10) =>
+        api.get('/profile/users/search-public', { params: { query, limit } }),
+    // Batch lookup of public identities (name, handle, photo, visibility,
+    // linkBusinessProfile). Only returns users who opted in to "Link
+    // Business Profile", so callers can use presence in the map as a
+    // shortcut for "render the linked-owner chip on this business card".
+    getPublicIdentitiesBatch: (ids: string[]) =>
+        api.get('/profile/users/identities/batch', {
+            params: { ids: (ids || []).filter(Boolean).join(',') },
+        }),
     createMember: (data: any) => api.post('/members', data),
     syncMembership: (data: any) => api.post('/auth/sync-membership', data),
     syncMembershipDeactivation: (data: { phone: string; tenantId: string; role: string }) => api.post('/auth/sync-membership-deactivation', data),
@@ -245,6 +255,11 @@ export const businessApi = {
         api.get(`/business/bookings/${bookingId}/updates`),
     deleteBookingUpdate: (bookingId: string, updateId: string) =>
         api.delete(`/business/bookings/${bookingId}/updates/${updateId}`),
+    // Analytics — view-count + owner-only booking report
+    trackProfileView: (profileId: string) =>
+        api.post(`/business/profiles/${profileId}/view`),
+    getBookingReport: (profileId: string, params?: { from?: string; to?: string }) =>
+        api.get(`/business/profiles/${profileId}/report`, { params }),
 };
 
 // Accounting APIs
@@ -266,6 +281,13 @@ export const threadApi = {
     },
     getBusinessPosts: (businessProfileId: string) =>
         api.get('/blogs', { params: { businessProfileId } }),
+    // Public profile timeline: returns the author's threads + flares with
+    // per-post visibility still enforced server-side (so a non-follower
+    // never sees a FOLLOWERS post even though it's filtered by authorId).
+    getAuthorThreads: (authorId: string) =>
+        api.get('/threads', { params: { feedType: 'AUTHOR', authorId } }),
+    getAuthorFlares: (authorId: string) =>
+        api.get('/flares', { params: { feedType: 'AUTHOR', authorId } }),
     getThread: (id: string) => api.get(`/blogs/${id}`),
     createThread: (data: any) => api.post('/threads', data),
     createFlare: (data: any) => api.post('/flares', data),

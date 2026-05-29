@@ -202,4 +202,30 @@ export class BusinessController {
     ) {
         return this.businessService.getProfileBookings(userId, profileId);
     }
+
+    /**
+     * Increments the public profile view counter. Owners viewing their own
+     * profile are skipped by the service.
+     */
+    @Post('profiles/:profileId/view')
+    trackProfileView(
+        @Headers('x-user-id') userId: string,
+        @Param('profileId') profileId: string,
+    ) {
+        return this.businessService.trackProfileView(profileId, userId || undefined);
+    }
+
+    /**
+     * Owner-only booking report — supports an inclusive [from, to] date
+     * window (YYYY-MM-DD). Defaults to the trailing 30 days when omitted.
+     */
+    @Get('profiles/:profileId/report')
+    getBookingReport(
+        @Headers('x-user-id') userId: string,
+        @Param('profileId') profileId: string,
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+    ) {
+        return this.businessService.getBookingReport(userId, profileId, { from, to });
+    }
 }

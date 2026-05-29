@@ -316,6 +316,12 @@ export class ProfileService implements OnModuleInit {
                 profileVisibility: data.profileVisibility && ['GLOBAL', 'CONTACTS', 'COMMUNITY', 'FOLLOWERS'].includes(data.profileVisibility)
                     ? data.profileVisibility
                     : undefined,
+                // Persist the "Link Business Profile" toggle. Skip silently if
+                // the field is absent so an unrelated profile edit doesn't
+                // accidentally turn the link off.
+                linkBusinessProfile: typeof data.linkBusinessProfile === 'boolean'
+                    ? data.linkBusinessProfile
+                    : undefined,
                 instagram: data.instagram || undefined,
                 linkedin: data.linkedin || undefined,
                 website: data.website || undefined,
@@ -626,6 +632,72 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
+    /**
+     * Identity-only user search for global dropdowns (MySpace search bar
+     * etc.). Returns just the public identity – `name`, `profileName`,
+     * `profilePhoto`, `profileVisibility` – without phone visibility
+     * gating. Any further access controls (bio, contact, posts) are
+     * enforced by `getPublicProfile` when the viewer actually opens the
+     * profile. This matches the spec: "if the profile is contacts-only,
+     * non-contacts should only see the profile name".
+     */
+    async searchUsersPublic(query: string, limit = 10) {
+        const q = (query || '').trim();
+        if (q.length < 2) return [];
+
+        const users = await this.prisma.userRead.user.findMany({
+            where: {
+                isActive: true,
+                OR: [
+                    { name: { contains: q, mode: 'insensitive' } },
+                    { profileName: { contains: q, mode: 'insensitive' } },
+                ],
+            },
+            select: {
+                id: true,
+                name: true,
+                profileName: true,
+                profilePhoto: true,
+                profileVisibility: true,
+                linkBusinessProfile: true,
+            },
+            take: Math.max(1, Math.min(50, limit)),
+        });
+
+        // For users who opted in to "Link Business Profile", attach a
+        // lightweight count of their active business profiles so the
+        // search dropdown can show a "Owns business" chip without an
+        // extra round-trip.
+        const linkedIds = users
+            .filter((u: any) => u.linkBusinessProfile)
+            .map((u: any) => u.id);
+        let bizCountByUser: Record<string, number> = {};
+        if (linkedIds.length) {
+            try {
+                const rows = await this.prisma.coreRead.businessProfile.groupBy({
+                    by: ['userId'],
+                    where: { userId: { in: linkedIds }, isActive: true },
+                    _count: { id: true },
+                });
+                bizCountByUser = Object.fromEntries(
+                    rows.map((r: any) => [r.userId, r._count?.id || 0]),
+                );
+            } catch {
+                bizCountByUser = {};
+            }
+        }
+
+        return users.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            profileName: u.profileName,
+            profilePhoto: this.storageService.resolvePublicMediaUrl(u.profilePhoto),
+            profileVisibility: u.profileVisibility || 'GLOBAL',
+            linkBusinessProfile: !!u.linkBusinessProfile,
+            businessProfileCount: u.linkBusinessProfile ? (bizCountByUser[u.id] || 0) : 0,
+        }));
+    }
+
     async searchUsers(searcherId: string, query: string) {
         if (!query || query.length < 3) return [];
 
@@ -794,6 +866,44 @@ export class ProfileService implements OnModuleInit {
         }, {} as Record<string, string>);
     }
 
+    /**
+     * Batch lookup of lightweight public identities, scoped strictly to
+     * users who opted into the "Link Business Profile" toggle. Used by
+     * the mobile app to render an "owned by …" chip on business search
+     * results without N+1 round-trips.
+     *
+     * Returns `{ [userId]: { id, name, profileName, profilePhoto,
+     * profileVisibility, linkBusinessProfile: true } }`. Users who did
+     * not opt in are omitted from the result so the caller can use
+     * presence in the map as a shortcut for "should I render the chip".
+     */
+    async getPublicIdentitiesBatch(userIds: string[]): Promise<Record<string, any>> {
+        if (!Array.isArray(userIds) || userIds.length === 0) return {};
+        const unique = Array.from(new Set(userIds.filter(Boolean)));
+        if (unique.length === 0) return {};
+        const users = await this.prisma.userRead.user.findMany({
+            where: { id: { in: unique }, isActive: true, linkBusinessProfile: true },
+            select: {
+                id: true,
+                name: true,
+                profileName: true,
+                profilePhoto: true,
+                profileVisibility: true,
+            },
+        });
+        return users.reduce((acc: Record<string, any>, u: any) => {
+            acc[u.id] = {
+                id: u.id,
+                name: u.name,
+                profileName: u.profileName,
+                profilePhoto: this.storageService.resolvePublicMediaUrl(u.profilePhoto),
+                profileVisibility: u.profileVisibility || 'GLOBAL',
+                linkBusinessProfile: true,
+            };
+            return acc;
+        }, {});
+    }
+
     async getFollowCounts(userId: string) {
         const [followersCount, followingCount] = await Promise.all([
             this.prisma.userRead.follow.count({ where: { followingId: userId } }),
@@ -925,12 +1035,15 @@ export class ProfileService implements OnModuleInit {
             }
         }
 
+        const linkBusinessProfile = !!(target as any).linkBusinessProfile;
+
         const baseIdentity = {
             id: target.id,
             name: target.name,
             profileName: target.profileName,
             profilePhoto: this.storageService.resolvePublicMediaUrl(target.profilePhoto),
             profileVisibility,
+            linkBusinessProfile,
             ...counts,
             followStatus: followStatus.status,
             isRestricted: !allowed,
@@ -955,11 +1068,56 @@ export class ProfileService implements OnModuleInit {
             // Deprecated GROUPS / CONTACTS values → treat as restricted.
         }
 
+        // Resolve linked business profiles. We expose a lightweight summary
+        // (id, name, category, logo, location, slot-count) so the UI can
+        // render a compact card and route to /business-detail. We still
+        // surface the chip on restricted profiles so a non-allowed viewer
+        // knows "this person runs a business" and can open it, but we never
+        // leak business contact details through the user payload.
+        let linkedBusinessProfiles: any[] = [];
+        if (linkBusinessProfile) {
+            try {
+                const businesses = await this.prisma.coreRead.businessProfile.findMany({
+                    where: { userId: target.id, isActive: true },
+                    select: {
+                        id: true,
+                        businessName: true,
+                        category: true,
+                        logo: true,
+                        area: true,
+                        location: true,
+                        isVerified: true,
+                        slots: { select: { id: true }, take: 1 },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                });
+                linkedBusinessProfiles = businesses.map((b: any) => ({
+                    id: b.id,
+                    businessName: b.businessName,
+                    category: b.category,
+                    logo: this.storageService.resolvePublicMediaUrl(b.logo),
+                    area: b.area || b.location || null,
+                    isVerified: b.isVerified,
+                    hasSlots: (b.slots?.length ?? 0) > 0,
+                }));
+            } catch (err: any) {
+                this.logger.warn?.(`[getPublicProfile] linked-business lookup failed: ${err?.message}`);
+            }
+        }
+
         if (!allowed) {
             // Restricted profile preview — still surface phone if its own
             // visibility permits it (rare but possible: a user with a
-            // contacts-only profile who set phone to PUBLIC).
-            return canSeePhone ? { ...baseIdentity, phone: target.phone, phoneVisibility: phoneVis } : { ...baseIdentity, phoneVisibility: phoneVis };
+            // contacts-only profile who set phone to PUBLIC). We also
+            // include the linked business profiles list (the businesses
+            // are public artifacts on their own) so a viewer who can't
+            // see the personal profile can still open the linked shop.
+            return {
+                ...baseIdentity,
+                phoneVisibility: phoneVis,
+                ...(canSeePhone ? { phone: target.phone } : {}),
+                linkedBusinessProfiles,
+            };
         }
 
         return {
@@ -975,6 +1133,7 @@ export class ProfileService implements OnModuleInit {
             website: target.website,
             createdAt: target.createdAt,
             workspaceMemberships: target.workspaceMemberships,
+            linkedBusinessProfiles,
         };
     }
 
@@ -1007,11 +1166,51 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
-    async getNoteFolder(folderId: string) {
-        return this.prisma.userRead.noteFolder.findUnique({
+    async getNoteFolder(folderId: string, viewerId?: string) {
+        const folder = await this.prisma.userRead.noteFolder.findUnique({
             where: { id: folderId },
             include: { pages: { orderBy: { createdAt: 'desc' } } }
         });
+        if (!folder) throw new NotFoundException('Folder not found.');
+
+        // Role-based access: only the owner or someone the folder/pages were
+        // explicitly shared with (targetType=CONTACT, targetId=viewerId) may
+        // read it. This guards the case where a recipient opens the folder
+        // from "Shared with Me" and prevents non-recipients from accessing
+        // by guessing/leaking a folder id.
+        if (viewerId && folder.userId !== viewerId) {
+            const folderShared = await this.prisma.userRead.noteShare.findFirst({
+                where: {
+                    folderId,
+                    targetType: 'CONTACT',
+                    targetId: viewerId,
+                },
+            });
+            if (!folderShared) {
+                // Maybe the viewer was granted access to individual pages only —
+                // filter the folder.pages down to those.
+                const pageIds = folder.pages.map((p: any) => p.id);
+                const sharedPages = pageIds.length
+                    ? await this.prisma.userRead.noteShare.findMany({
+                          where: {
+                              pageId: { in: pageIds },
+                              targetType: 'CONTACT',
+                              targetId: viewerId,
+                          },
+                          select: { pageId: true },
+                      })
+                    : [];
+                if (sharedPages.length === 0) {
+                    throw new ForbiddenException('You do not have access to this folder.');
+                }
+                const allowed = new Set(sharedPages.map((s: any) => s.pageId));
+                return {
+                    ...folder,
+                    pages: folder.pages.filter((p: any) => allowed.has(p.id)),
+                };
+            }
+        }
+        return folder;
     }
 
     async createNotePage(userId: string, folderId: string | undefined, title: string, content: string, color?: string) {
@@ -1121,11 +1320,46 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
-    async getDocumentFolder(folderId: string) {
-        return this.prisma.userRead.documentFolder.findUnique({
+    async getDocumentFolder(folderId: string, viewerId?: string) {
+        const folder = await this.prisma.userRead.documentFolder.findUnique({
             where: { id: folderId },
             include: { files: { orderBy: { createdAt: 'desc' } } }
         });
+        if (!folder) throw new NotFoundException('Folder not found.');
+
+        // Role-based access: owner or explicit share recipient (CONTACT.targetId)
+        // can read. If only individual files were shared, return just those.
+        if (viewerId && folder.userId !== viewerId) {
+            const folderShared = await this.prisma.userRead.documentShare.findFirst({
+                where: {
+                    folderId,
+                    targetType: 'CONTACT',
+                    targetId: viewerId,
+                },
+            });
+            if (!folderShared) {
+                const fileIds = folder.files.map((f: any) => f.id);
+                const sharedFiles = fileIds.length
+                    ? await this.prisma.userRead.documentShare.findMany({
+                          where: {
+                              fileId: { in: fileIds },
+                              targetType: 'CONTACT',
+                              targetId: viewerId,
+                          },
+                          select: { fileId: true },
+                      })
+                    : [];
+                if (sharedFiles.length === 0) {
+                    throw new ForbiddenException('You do not have access to this folder.');
+                }
+                const allowed = new Set(sharedFiles.map((s: any) => s.fileId));
+                return {
+                    ...folder,
+                    files: folder.files.filter((f: any) => allowed.has(f.id)),
+                };
+            }
+        }
+        return folder;
     }
 
     async addDocumentFile(

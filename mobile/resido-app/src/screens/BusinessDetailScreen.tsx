@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { businessApi, threadApi } from '../services/api';
+import { authApi, businessApi, threadApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import * as SecureStore from 'expo-secure-store';
 import { Video, ResizeMode } from 'expo-av';
@@ -27,6 +27,11 @@ export default function BusinessDetailScreen() {
     // Data states
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    // Lightweight owner identity (only populated when the owner has
+    // opted into "Link Business Profile"). Powers the linked-owner row
+    // on the business detail screen; tapping it routes to the public
+    // user profile (which itself is gated by profileVisibility).
+    const [ownerIdentity, setOwnerIdentity] = useState<any | null>(null);
     const [slots, setSlots] = useState<any[]>([]);
     const [slotsLoading, setSlotsLoading] = useState(false);
     const [businessPosts, setBusinessPosts] = useState<any[]>([]);
@@ -48,7 +53,6 @@ export default function BusinessDetailScreen() {
     const [selectedSlot, setSelectedSlot] = useState<any>(null);
     const [selectedInterval, setSelectedInterval] = useState<string>('');
     const [bookingModalVisible, setBookingModalVisible] = useState(false);
-    const [guestCount, setGuestCount] = useState(1);
     const [userName, setUserName] = useState('');
     const [userPhone, setUserPhone] = useState('');
     const [notes, setNotes] = useState('');
@@ -116,6 +120,24 @@ export default function BusinessDetailScreen() {
             setLoading(true);
             const { data } = await businessApi.getProfile(id as string);
             setProfile(data);
+            // Fire-and-forget view tracking. The backend skips the increment
+            // when the viewer is the profile owner, so no client-side guard
+            // needed here.
+            if (data?.id) {
+                businessApi.trackProfileView(data.id).catch(() => {});
+            }
+            // Hydrate linked owner identity (rendered only if the owner
+            // opted into "Link Business Profile" — empty map otherwise).
+            if (data?.userId) {
+                try {
+                    const { data: ids } = await authApi.getPublicIdentitiesBatch([data.userId]);
+                    setOwnerIdentity(ids?.[data.userId] || null);
+                } catch (idErr) {
+                    setOwnerIdentity(null);
+                }
+            } else {
+                setOwnerIdentity(null);
+            }
         } catch (error) {
             console.error('Failed to fetch business profile:', error);
             Alert.alert('Error', 'Failed to load business profile. It may have been removed.');
@@ -257,10 +279,21 @@ export default function BusinessDetailScreen() {
         }
     };
 
+    const getIntervalAvailability = (slot: any, interval: string) => {
+        const key = (interval || '').trim();
+        const meta = slot?.timeSlotAvailability?.[key];
+        if (meta) return meta;
+        return { booked: 0, capacity: slot?.maxPersons || 1, full: false };
+    };
+
     const handleSelectSlot = (slot: any, time: string) => {
+        const availability = getIntervalAvailability(slot, time);
+        if (availability.full) {
+            Alert.alert('Slot is full', 'This time slot is already fully booked. Please choose another time.');
+            return;
+        }
         setSelectedSlot(slot);
         setSelectedInterval(time);
-        setGuestCount(1);
         setBookingModalVisible(true);
     };
 
@@ -279,7 +312,7 @@ export default function BusinessDetailScreen() {
             const bookingPayload = {
                 bookingDate: selectedDate,
                 timeSlot: selectedInterval,
-                persons: guestCount,
+                persons: 1,
                 userName: userName.trim(),
                 userPhone: userPhone.trim(),
                 notes: notes.trim(),
@@ -322,9 +355,6 @@ export default function BusinessDetailScreen() {
             </SafeAreaView>
         );
     }
-
-    // Filter gallery items from profile services
-    const galleryItems = profile.services?.filter((s: any) => s.pricingType === 'IMAGE' || s.pricingType === 'VIDEO') || [];
 
     return (
         <SafeAreaView style={styles.container}>
@@ -419,7 +449,43 @@ export default function BusinessDetailScreen() {
                 {/* Main Information */}
                 <View style={styles.infoSection}>
                     <Text style={styles.businessTitle}>{profile.businessName}</Text>
-                    
+
+                    {ownerIdentity ? (
+                        <TouchableOpacity
+                            style={styles.ownerLinkCard}
+                            activeOpacity={0.85}
+                            onPress={() => router.push({ pathname: '/user-profile', params: { id: ownerIdentity.id } })}
+                        >
+                            {ownerIdentity.profilePhoto ? (
+                                <Image source={{ uri: ownerIdentity.profilePhoto }} style={styles.ownerLinkAvatar} />
+                            ) : (
+                                <View style={[styles.ownerLinkAvatar, { backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' }]}>
+                                    <Ionicons name="person" size={18} color="#8b5cf6" />
+                                </View>
+                            )}
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={styles.ownerLinkLabel}>Owned by · Tap to view</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                    <Text style={styles.ownerLinkName} numberOfLines={1}>
+                                        {ownerIdentity.name || `@${ownerIdentity.profileName}` || 'owner'}
+                                    </Text>
+                                    {ownerIdentity.profileVisibility && ownerIdentity.profileVisibility !== 'GLOBAL' ? (
+                                        <View style={styles.ownerLinkLockChip}>
+                                            <Ionicons name="lock-closed" size={9} color="#8b5cf6" />
+                                            <Text style={styles.ownerLinkLockText}>Private</Text>
+                                        </View>
+                                    ) : null}
+                                </View>
+                                {ownerIdentity.profileVisibility && ownerIdentity.profileVisibility !== 'GLOBAL' ? (
+                                    <Text style={styles.ownerLinkHint} numberOfLines={2}>
+                                        Send a follow request to see their full profile.
+                                    </Text>
+                                ) : null}
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color="#C4B5DC" />
+                        </TouchableOpacity>
+                    ) : null}
+
                     {profile.slots && profile.slots.length > 0 ? (
                         <TouchableOpacity 
                             style={styles.topBookBtn} 
@@ -456,43 +522,6 @@ export default function BusinessDetailScreen() {
                         </View>
                     </View>
                 </View>
-
-                {/* Showcase Showcase Gallery (Step 2 Visual Items) */}
-                {galleryItems.length > 0 ? (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionHeaderTitle}>Showcase Gallery</Text>
-                        <ScrollView 
-                            horizontal 
-                            showsHorizontalScrollIndicator={false} 
-                            contentContainerStyle={styles.galleryScroll}
-                        >
-                            {galleryItems.map((item: any, idx: number) => (
-                                <View key={item.id || idx.toString()} style={styles.galleryCard}>
-                                    <View style={styles.galleryMediaBox}>
-                                        {item.pricingType === 'IMAGE' && item.responseTime ? (
-                                            <Image source={{ uri: item.responseTime }} style={styles.galleryMedia} />
-                                        ) : item.pricingType === 'VIDEO' ? (
-                                            <View style={styles.videoPlaceholder}>
-                                                <Ionicons name="play-circle" size={48} color="#a084ca" />
-                                                <Text style={styles.videoText}>Video Showcase</Text>
-                                            </View>
-                                        ) : (
-                                            <View style={styles.imagePlaceholder}>
-                                                <Ionicons name="image-outline" size={48} color="#475569" />
-                                            </View>
-                                        )}
-                                    </View>
-                                    <View style={styles.galleryMeta}>
-                                        <Text style={styles.galleryItemTitle} numberOfLines={1}>{item.name}</Text>
-                                        {item.description ? (
-                                            <Text style={styles.galleryItemDesc} numberOfLines={2}>{item.description}</Text>
-                                        ) : null}
-                                    </View>
-                                </View>
-                            ))}
-                        </ScrollView>
-                    </View>
-                ) : null}
 
                 {/* Business posts (flares + threads pinned to this profile) */}
                 {(postsLoading || businessPosts.length > 0) && (
@@ -709,16 +738,37 @@ export default function BusinessDetailScreen() {
                                         
                                         <View style={styles.intervalsWrap}>
                                             {slot.timeSlots && slot.timeSlots.length > 0 ? (
-                                                slot.timeSlots.map((interval: string) => (
-                                                    <TouchableOpacity
-                                                        key={interval}
-                                                        style={styles.intervalBtn}
-                                                        onPress={() => handleSelectSlot(slot, interval)}
-                                                    >
-                                                        <Ionicons name="time-outline" size={14} color="#fff" style={{ marginRight: 4 }} />
-                                                        <Text style={styles.intervalText}>{interval}</Text>
-                                                    </TouchableOpacity>
-                                                ))
+                                                slot.timeSlots.map((interval: string) => {
+                                                    const availability = getIntervalAvailability(slot, interval);
+                                                    const isFull = availability.full;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={interval}
+                                                            style={[
+                                                                styles.intervalBtn,
+                                                                isFull && styles.intervalBtnFull,
+                                                            ]}
+                                                            activeOpacity={isFull ? 0.85 : 0.7}
+                                                            onPress={() => handleSelectSlot(slot, interval)}
+                                                        >
+                                                            <Ionicons
+                                                                name={isFull ? 'close-circle-outline' : 'time-outline'}
+                                                                size={14}
+                                                                color={isFull ? '#94a3b8' : '#8b5cf6'}
+                                                                style={{ marginRight: 4 }}
+                                                            />
+                                                            <Text style={[
+                                                                styles.intervalText,
+                                                                isFull && styles.intervalTextFull,
+                                                            ]}>
+                                                                {interval}
+                                                            </Text>
+                                                            {isFull ? (
+                                                                <Text style={styles.intervalFullBadge}>Full</Text>
+                                                            ) : null}
+                                                        </TouchableOpacity>
+                                                    );
+                                                })
                                             ) : (
                                                 <Text style={styles.noIntervals}>Closed</Text>
                                             )}
@@ -775,23 +825,11 @@ export default function BusinessDetailScreen() {
                                 ) : null}
                             </View>
 
-                            {/* Guest modifier */}
-                            <Text style={styles.formLabel}>Number of Guests</Text>
-                            <View style={styles.guestModifierRow}>
-                                <TouchableOpacity 
-                                    style={styles.guestBtn}
-                                    onPress={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                >
-                                    <Ionicons name="remove" size={20} color="#fff" />
-                                </TouchableOpacity>
-                                <Text style={styles.guestCountVal}>{guestCount}</Text>
-                                <TouchableOpacity 
-                                    style={styles.guestBtn}
-                                    onPress={() => setGuestCount(Math.min(selectedSlot?.maxPersons || 10, guestCount + 1))}
-                                >
-                                    <Ionicons name="add" size={20} color="#fff" />
-                                </TouchableOpacity>
-                                <Text style={styles.maxGuestText}>Max {selectedSlot?.maxPersons || 1} person(s)</Text>
+                            <View style={styles.singleBookingNote}>
+                                <Ionicons name="person-outline" size={16} color="#8b5cf6" />
+                                <Text style={styles.singleBookingNoteText}>
+                                    One booking per slot — you are reserving this time for yourself.
+                                </Text>
                             </View>
 
                             {/* Textfields */}
@@ -928,6 +966,23 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
+    // Linked-owner card just under the business title. Tapping opens
+    // the public profile (gated by profileVisibility server-side).
+    ownerLinkCard: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: '#F8F5FF', padding: 12, borderRadius: 16,
+        marginBottom: 14, borderWidth: 1, borderColor: '#E2D9F2',
+    },
+    ownerLinkAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E8E2F2' },
+    ownerLinkLabel: { fontSize: 10, color: '#8b5cf6', fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },
+    ownerLinkName: { fontSize: 14, color: '#2D2445', fontWeight: '900', flexShrink: 1 },
+    ownerLinkLockChip: {
+        flexDirection: 'row', alignItems: 'center', gap: 3,
+        backgroundColor: '#fff', borderWidth: 1, borderColor: '#D4C9E8',
+        paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,
+    },
+    ownerLinkLockText: { fontSize: 9, color: '#8b5cf6', fontWeight: '800', letterSpacing: 0.3 },
+    ownerLinkHint: { fontSize: 11, color: '#7A6B9C', fontWeight: '600', marginTop: 4 },
     specsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     specCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#D4C9E8' },
     specVal: { fontSize: 13, color: '#9A8EBA', fontWeight: '700' },
@@ -971,8 +1026,34 @@ const styles = StyleSheet.create({
     slotItemDesc: { fontSize: 12, color: '#9A8EBA', marginTop: 2 },
     intervalsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     intervalBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#D4C9E8', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+    intervalBtnFull: {
+        backgroundColor: '#F1F5F9',
+        borderColor: '#E2E8F0',
+        opacity: 0.55,
+    },
     intervalText: { color: '#2D2445', fontSize: 12, fontWeight: '800' },
+    intervalTextFull: { color: '#94a3b8', textDecorationLine: 'line-through' },
+    intervalFullBadge: {
+        marginLeft: 6,
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#ef4444',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
     noIntervals: { color: '#ef4444', fontSize: 12, fontWeight: '700' },
+    singleBookingNote: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: 'rgba(139, 92, 246, 0.08)',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(139, 92, 246, 0.2)',
+    },
+    singleBookingNoteText: { flex: 1, fontSize: 13, color: '#7A6B9C', fontWeight: '600', lineHeight: 18 },
 
     // Modal 1 booking form styles
     modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },

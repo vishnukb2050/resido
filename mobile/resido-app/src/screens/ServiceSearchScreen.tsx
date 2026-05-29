@@ -67,6 +67,11 @@ export default function ServiceSearchScreen() {
     const [showTopDropdown, setShowTopDropdown] = useState(false);
     const [mapSearchQuery, setMapSearchQuery] = useState('');
     const [profiles, setProfiles] = useState<any[]>([]);
+    // Map of business owner userId -> lightweight identity, populated by
+    // /profile/users/identities/batch after profiles load. Only owners
+    // who enabled "Link Business Profile" appear here, so presence in
+    // the map is the gate for rendering the linked-owner chip.
+    const [ownerIdentities, setOwnerIdentities] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState<'LIST' | 'MAP'>('LIST');
     const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number, radius: number } | null>(null);
@@ -578,7 +583,24 @@ export default function ServiceSearchScreen() {
             }
 
             const { data } = await businessApi.getProfiles(params);
-            setProfiles(unpackBusinessProfileList(data).items);
+            const items = unpackBusinessProfileList(data).items;
+            setProfiles(items);
+            // Hydrate "owned by …" chips. Only userIds whose owner enabled
+            // the link toggle come back, so the chip renders selectively.
+            const userIds = Array.from(new Set(
+                items.map((p: any) => p?.userId).filter(Boolean)
+            )) as string[];
+            if (userIds.length) {
+                try {
+                    const { data: ids } = await authApi.getPublicIdentitiesBatch(userIds);
+                    setOwnerIdentities(ids || {});
+                } catch (idErr) {
+                    console.warn('owner identities hydrate failed', idErr);
+                    setOwnerIdentities({});
+                }
+            } else {
+                setOwnerIdentities({});
+            }
         } catch (error) {
             console.error('Failed to fetch profiles', error);
         } finally {
@@ -1015,6 +1037,11 @@ export default function ServiceSearchScreen() {
                                     ? Math.min(...positiveServicePrices)
                                     : null;
 
+                                const owner = pro.userId ? ownerIdentities[pro.userId] : null;
+                                const ownerLocked =
+                                    !!owner &&
+                                    owner.profileVisibility &&
+                                    owner.profileVisibility !== 'GLOBAL';
                                 return (
                                 <TouchableOpacity 
                                     key={pro.id} 
@@ -1047,6 +1074,30 @@ export default function ServiceSearchScreen() {
                                                 <Ionicons name="calendar" size={10} color="#10b981" />
                                                 <Text style={{ color: '#10b981', fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>Book Online</Text>
                                             </View>
+                                        ) : null}
+                                        {owner ? (
+                                            <TouchableOpacity
+                                                style={styles.ownerChip}
+                                                activeOpacity={0.8}
+                                                onPress={(e) => {
+                                                    e.stopPropagation?.();
+                                                    router.push({ pathname: '/user-profile', params: { id: owner.id } });
+                                                }}
+                                            >
+                                                {owner.profilePhoto ? (
+                                                    <Image source={{ uri: owner.profilePhoto }} style={styles.ownerChipAvatar} />
+                                                ) : (
+                                                    <View style={[styles.ownerChipAvatar, { backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' }]}>
+                                                        <Ionicons name="person" size={10} color="#8b5cf6" />
+                                                    </View>
+                                                )}
+                                                <Text style={styles.ownerChipText} numberOfLines={1}>
+                                                    by {owner.name || `@${owner.profileName}` || 'owner'}
+                                                </Text>
+                                                {ownerLocked ? (
+                                                    <Ionicons name="lock-closed" size={10} color="#8b5cf6" style={{ marginLeft: 4 }} />
+                                                ) : null}
+                                            </TouchableOpacity>
                                         ) : null}
                                     </View>
                                     {minPrice != null && (
@@ -1228,6 +1279,14 @@ const styles = StyleSheet.create({
     proReviews: { color: '#94a3b8', fontWeight: '500' },
     priceBadge: { backgroundColor: '#f5f7ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 6 },
     priceText: { fontSize: 12, color: '#1d4ed8', fontWeight: '800' },
+    ownerChip: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: '#F4EEFC', paddingHorizontal: 8, paddingVertical: 4,
+        borderRadius: 12, marginTop: 6, alignSelf: 'flex-start',
+        borderWidth: 1, borderColor: '#E2D9F2', maxWidth: '95%',
+    },
+    ownerChipAvatar: { width: 16, height: 16, borderRadius: 8, marginRight: 6, backgroundColor: '#E8E2F2' },
+    ownerChipText: { fontSize: 11, color: '#8b5cf6', fontWeight: '800', flexShrink: 1 },
     chatBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
 
     featuresRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 10, marginBottom: 25 },

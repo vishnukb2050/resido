@@ -7,6 +7,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../components/BottomNav';
+import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
 import { mySpaceApi } from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
@@ -17,6 +18,7 @@ export default function DocumentsScreen() {
     const [sharedItems, setSharedItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [showFabMenu, setShowFabMenu] = useState(false);
+    const [menuFolder, setMenuFolder] = useState<any | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -40,29 +42,36 @@ export default function DocumentsScreen() {
         }
     };
 
-    // 3-dot chooser on a folder: Share or Delete.
+    // 3-dot chooser on a folder: Share or Delete. Uses the shared
+    // bottom-sheet ActionMenu for consistent styling/list format.
     const openFolderMenu = (folder: any) => {
+        setMenuFolder(folder);
+    };
+
+    const buildFolderMenuItems = (folder: any): ActionMenuItem[] => {
         const fileCount = folder._count?.files || 0;
-        Alert.alert(
-            folder.name || 'Folder',
-            'What would you like to do?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Share',
-                    onPress: () =>
-                        router.push({
-                            pathname: '/share-doc',
-                            params: { folderId: folder.id, name: folder.name, isFolder: 'true' },
-                        }),
-                },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => confirmDeleteFolder(folder, fileCount),
-                },
-            ],
-        );
+        return [
+            {
+                key: 'share',
+                label: 'Share with people',
+                subtitle: 'Choose specific profiles, contacts or groups',
+                icon: 'share-social',
+                variant: 'primary',
+                onPress: () =>
+                    router.push({
+                        pathname: '/share-doc',
+                        params: { folderId: folder.id, name: folder.name, isFolder: 'true' },
+                    }),
+            },
+            {
+                key: 'delete',
+                label: 'Delete folder',
+                subtitle: fileCount > 0 ? `Removes the folder and ${fileCount} document${fileCount === 1 ? '' : 's'}` : 'This action cannot be undone',
+                icon: 'trash',
+                variant: 'destructive',
+                onPress: () => confirmDeleteFolder(folder, fileCount),
+            },
+        ];
     };
 
     const confirmDeleteFolder = (folder: any, fileCount: number) => {
@@ -315,6 +324,14 @@ export default function DocumentsScreen() {
                     </TouchableOpacity>
                 </>
             )}
+
+            <ActionMenu
+                visible={!!menuFolder}
+                title={menuFolder?.name || 'Folder'}
+                subtitle={`${menuFolder?._count?.files || 0} document${(menuFolder?._count?.files || 0) === 1 ? '' : 's'}`}
+                items={menuFolder ? buildFolderMenuItems(menuFolder) : []}
+                onClose={() => setMenuFolder(null)}
+            />
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>

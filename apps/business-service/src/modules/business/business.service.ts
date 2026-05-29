@@ -624,6 +624,106 @@ export class BusinessService {
         };
     }
 
+    /**
+     * Increments the public view counter for a business profile. Owners
+     * viewing their own profile are skipped so the metric reflects genuine
+     * customer interest. Errors are swallowed to avoid breaking the
+     * customer-facing screen if the increment fails.
+     */
+    async trackProfileView(profileId: string, viewerId?: string) {
+        if (!profileId) return { ok: false };
+        try {
+            const profile = await this.prisma.businessProfile.findUnique({
+                where: { id: profileId },
+                select: { id: true, userId: true },
+            });
+            if (!profile) return { ok: false };
+            if (viewerId && profile.userId === viewerId) {
+                return { ok: true, skipped: true };
+            }
+            const updated = await this.prisma.businessProfile.update({
+                where: { id: profileId },
+                data: { viewCount: { increment: 1 } },
+                select: { viewCount: true },
+            });
+            return { ok: true, viewCount: updated.viewCount };
+        } catch (err: any) {
+            console.warn('[trackProfileView] failed', err?.message);
+            return { ok: false };
+        }
+    }
+
+    /**
+     * Owner-only booking report. Returns the bookings that fall within the
+     * inclusive `[from, to]` date window (YYYY-MM-DD strings) plus an
+     * aggregated summary keyed by `bookingDate`. When the date range is
+     * omitted we default to the trailing 30 days so the report screen
+     * always has something to show on first open.
+     */
+    async getBookingReport(
+        userId: string,
+        profileId: string,
+        opts: { from?: string; to?: string } = {},
+    ) {
+        const profile = await this.prisma.businessProfile.findFirst({
+            where: { id: profileId, userId },
+            select: { id: true, businessName: true, viewCount: true },
+        });
+        if (!profile) {
+            throw new NotFoundException('Business profile not found or you are not the owner');
+        }
+
+        const today = new Date();
+        const defaultFrom = new Date(today);
+        defaultFrom.setDate(today.getDate() - 29);
+
+        const from = (opts.from && opts.from.trim()) || defaultFrom.toISOString().split('T')[0];
+        const to   = (opts.to   && opts.to.trim())   || today.toISOString().split('T')[0];
+
+        const bookings = await this.prisma.businessBooking.findMany({
+            where: {
+                businessProfileId: profileId,
+                bookingDate: { gte: from, lte: to },
+            },
+            include: {
+                slot: { select: { id: true, name: true } },
+                updates: { orderBy: { createdAt: 'asc' } },
+            },
+            orderBy: [
+                { bookingDate: 'desc' },
+                { tokenNumber: 'asc' },
+            ],
+        });
+
+        const confirmed = bookings.filter(b => b.status === 'CONFIRMED');
+        const cancelled = bookings.filter(b => b.status === 'CANCELLED');
+
+        const byDate: Record<string, { date: string; confirmed: number; cancelled: number; persons: number }> = {};
+        for (const b of bookings) {
+            const key = b.bookingDate;
+            if (!byDate[key]) byDate[key] = { date: key, confirmed: 0, cancelled: 0, persons: 0 };
+            if (b.status === 'CONFIRMED') {
+                byDate[key].confirmed += 1;
+                byDate[key].persons += (b.persons || 0);
+            } else if (b.status === 'CANCELLED') {
+                byDate[key].cancelled += 1;
+            }
+        }
+
+        return {
+            profile,
+            range: { from, to },
+            summary: {
+                totalBookings: bookings.length,
+                confirmedBookings: confirmed.length,
+                cancelledBookings: cancelled.length,
+                totalGuests: confirmed.reduce((sum, b) => sum + (b.persons || 0), 0),
+            },
+            byDate: Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date)),
+            bookings,
+        };
+    }
+
     async updateProfile(id: string, data: any) {
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
 
@@ -929,10 +1029,51 @@ export class BusinessService {
             }
         }
 
+        // For the customer-facing booking UI we need per-time-slot
+        // availability so the client can blur out fully-booked intervals
+        // and show "this slot is full" on tap. We only compute this when a
+        // specific date is requested — listing all slots without a date
+        // would otherwise scan every confirmed booking for every interval.
+        let timeSlotAvailability: Record<string, { booked: number; capacity: number; full: boolean }> = {};
+        if (date && Array.isArray(resolvedSlots) && resolvedSlots.length > 0) {
+            try {
+                const bookings = await this.prisma.businessBooking.findMany({
+                    where: {
+                        businessProfileId: profileId,
+                        slotId: slot.id,
+                        bookingDate: date,
+                        status: 'CONFIRMED',
+                    },
+                    select: { timeSlot: true, persons: true },
+                });
+                const capacity = slot.maxPersons || 1;
+                const totalsByInterval: Record<string, number> = {};
+                for (const b of bookings) {
+                    const key = (b.timeSlot || '').trim();
+                    if (!key) continue;
+                    totalsByInterval[key] = (totalsByInterval[key] || 0) + (b.persons || 0);
+                }
+                for (const interval of resolvedSlots) {
+                    const key = (interval || '').trim();
+                    if (!key) continue;
+                    const booked = totalsByInterval[key] || 0;
+                    timeSlotAvailability[key] = {
+                        booked,
+                        capacity,
+                        full: booked >= capacity,
+                    };
+                }
+            } catch (err) {
+                // Non-fatal — fall back to no-availability metadata.
+                console.warn('[getSlotById] failed to compute timeSlotAvailability:', (err as any)?.message);
+            }
+        }
+
         return {
             ...slot,
             timeSlots: resolvedSlots,
             availableDates: resolvedDates,
+            timeSlotAvailability,
         };
     }
 
@@ -951,7 +1092,9 @@ export class BusinessService {
         }
 
         const slot = await this.getSlotById(profileId, slotId, bookingDate);
-        const requestedPersons = data.persons || 1;
+        // Customers book one reservation per time slot (1 person). Capacity
+        // (maxPersons) is how many separate bookings that interval accepts.
+        const requestedPersons = 1;
         const isRecurring = data.isRecurring || false;
         const recurringPeriod = data.recurringPeriod || null;
 
@@ -973,7 +1116,7 @@ export class BusinessService {
                 const totalBookedPersons = existingBookings.reduce((sum, b) => sum + b.persons, 0);
                 if (totalBookedPersons + requestedPersons > slot.maxPersons) {
                     throw new BadRequestException(
-                        `Time slot (${slotTime}) on ${dateStr} is fully booked. Only ${slot.maxPersons - totalBookedPersons} slot(s) left.`,
+                        `This time slot is fully booked. Please choose another time.`,
                     );
                 }
 
