@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 
 // Dashboards
@@ -12,10 +13,22 @@ import CommunityDashboard from '../components/dashboards/CommunityDashboard';
 import MemberDashboard from '../components/dashboards/MemberDashboard';
 
 export default function HomeScreen() {
-    const { activeWorkspace, isHydrated } = useAuthStore();
+    const { activeWorkspace, isHydrated, user } = useAuthStore();
+    const router = useRouter();
     const role = activeWorkspace?.role;
 
-    if (!isHydrated) {
+    // Mandatory profile setup gate. A signed-in user without a display name
+    // OR username is bounced to /onboarding-profile before they ever see any
+    // dashboard (MySpace, Admin, etc.). Covers app restarts, OS-killed
+    // sessions, and legacy accounts created before this requirement existed.
+    const needsOnboarding = !!user && (!user.name?.trim() || !user.profileName?.trim());
+    React.useEffect(() => {
+        if (isHydrated && needsOnboarding) {
+            router.replace('/onboarding-profile');
+        }
+    }, [isHydrated, needsOnboarding]);
+
+    if (!isHydrated || needsOnboarding) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color="#8b5cf6" />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
     View, Text, TouchableOpacity, StyleSheet, ScrollView, 
     TextInput, SafeAreaView, Image, Dimensions, StatusBar, Keyboard,
@@ -56,6 +56,22 @@ export default function ServiceSearchScreen() {
     }, [initialCategoryParam]);
 
     const [activeCat, setActiveCat] = useState(initialCatId);
+    // Horizontal category strip auto-scroll. We track each item's measured x/width
+    // via onLayout so we can centre the active category in the viewport instead
+    // of forcing the user to manually scroll to find their selection.
+    const catScrollRef = useRef<ScrollView | null>(null);
+    const catPositionsRef = useRef<Record<string, { x: number; w: number }>>({});
+    const scrollCategoryIntoView = useCallback((catId: string) => {
+        const pos = catPositionsRef.current[catId];
+        if (!pos || !catScrollRef.current) return;
+        const screenWidth = Dimensions.get('window').width;
+        const targetX = Math.max(0, pos.x + pos.w / 2 - screenWidth / 2);
+        catScrollRef.current.scrollTo({ x: targetX, animated: true });
+    }, []);
+    useEffect(() => {
+        const t = setTimeout(() => scrollCategoryIntoView(activeCat), 80);
+        return () => clearTimeout(t);
+    }, [activeCat, scrollCategoryIntoView]);
     const [searchQuery, setSearchQuery] = useState(initialQuery);
     const [searchLocation, setSearchLocation] = useState('');
     const [selectedLocationName, setSelectedLocationName] = useState('');
@@ -831,6 +847,7 @@ export default function ServiceSearchScreen() {
 
                 {viewMode !== 'MAP' && (
                     <ScrollView
+                        ref={catScrollRef}
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         style={styles.catScroll}
@@ -842,6 +859,14 @@ export default function ServiceSearchScreen() {
                                 <TouchableOpacity
                                     key={cat.id}
                                     style={styles.catItem}
+                                    onLayout={(e) => {
+                                        const { x, width: w } = e.nativeEvent.layout;
+                                        catPositionsRef.current[cat.id] = { x, w };
+                                        // If this item is the one that's already selected
+                                        // (e.g. arriving from search with a preset category),
+                                        // bring it into view as soon as we know its position.
+                                        if (cat.id === activeCat) scrollCategoryIntoView(cat.id);
+                                    }}
                                     onPress={() => {
                                         setActiveCat(cat.id);
                                         // Once the user picks a specific category, force a

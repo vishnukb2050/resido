@@ -13,6 +13,29 @@ import { useProfileRefresh } from '../../hooks/useProfileRefresh';
 
 const { width } = Dimensions.get('window');
 
+// Canonical service category catalog. Mirrors the list rendered on
+// /service-search so the header search can offer category suggestions
+// even when nobody has registered a business under that category yet —
+// tapping the suggestion still navigates the user to the correct
+// pre-filtered services page.
+const SERVICE_CATEGORY_CATALOG: string[] = [
+    'Plumbing',
+    'Electrical',
+    'Carpentry',
+    'Cleaning',
+    'Pest Control',
+    'Painter',
+    'AC Repair',
+    'Fashion',
+    'Jobs',
+    'Real Estate',
+    'Education',
+    'Tours and Travels',
+    'Health',
+    'Repair Service',
+    'Electronics and Appliances',
+];
+
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     container: { flex: 1 },
@@ -271,7 +294,23 @@ export default function DefaultDashboard() {
                 ]);
                 if (cancelled) return;
                 const bizData: any = bizRes?.data || {};
-                const categoryItems: typeof headerSuggestions = (bizData.categories || []).slice(0, 4).map((name: string) => ({
+                // Merge backend-known categories (those with at least one
+                // registered profile) with our local catalog matches so that
+                // searches like "health" or "education" still surface even
+                // when no business has registered under that category yet.
+                const backendCategoryNames: string[] = Array.isArray(bizData.categories) ? bizData.categories : [];
+                const localCategoryMatches: string[] = SERVICE_CATEGORY_CATALOG.filter((name) =>
+                    name.toLowerCase().includes(lcQuery),
+                );
+                const mergedCategoryNames: string[] = [];
+                const seenCategoryKeys = new Set<string>();
+                for (const name of [...backendCategoryNames, ...localCategoryMatches]) {
+                    const key = (name || '').toLowerCase().trim();
+                    if (!key || seenCategoryKeys.has(key)) continue;
+                    seenCategoryKeys.add(key);
+                    mergedCategoryNames.push(name);
+                }
+                const categoryItems: typeof headerSuggestions = mergedCategoryNames.slice(0, 6).map((name: string) => ({
                     type: 'category' as const, name,
                 }));
                 const businessItems: typeof headerSuggestions = (bizData.profiles || []).slice(0, 4).map((p: any) => ({

@@ -171,13 +171,6 @@ export default function ManageBusinessScreen() {
                                 <View style={styles.quickActionsContainer}>
                                     <TouchableOpacity 
                                         style={styles.quickActionBtn}
-                                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, initialStep: 2 } })}
-                                    >
-                                        <Ionicons name="images-outline" size={16} color="#a78bfa" />
-                                        <Text style={styles.quickActionText}>Gallery</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        style={styles.quickActionBtn}
                                         onPress={() => {
                                             setSelectedQrProfile(profile);
                                             setQrVisible(true);

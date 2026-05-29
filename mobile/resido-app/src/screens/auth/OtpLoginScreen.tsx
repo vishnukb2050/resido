@@ -16,9 +16,12 @@ export default function OtpLoginScreen() {
     const { setOtpVerified, user } = useAuthStore();
 
     React.useEffect(() => {
-        if (user) {
-            router.replace('/');
-        }
+        if (!user) return;
+        // Re-entry guard: if a returning user already finished onboarding,
+        // skip this screen entirely. If they bailed mid-onboarding (no name
+        // or username yet), send them back there instead of MySpace.
+        const needsOnboarding = !user.name?.trim() || !user.profileName?.trim();
+        router.replace(needsOnboarding ? '/onboarding-profile' : '/');
     }, [user]);
 
     const handleSendOtp = async () => {
@@ -63,12 +66,17 @@ export default function OtpLoginScreen() {
 
             setOtpVerified({ token: accessToken, refreshToken, user, workspaces });
 
-            if (workspaces.length === 0) {
-                router.replace('/');
-            } else if (workspaces.length === 1) {
-                router.replace('/');
-            } else {
+            // First-time accounts (and old accounts that never set a display
+            // name + username) MUST complete the onboarding step before
+            // landing on MySpace. The onboarding screen continues the
+            // workspace-select flow on its own once the profile is filled.
+            const needsOnboarding = !user?.name?.trim() || !user?.profileName?.trim();
+            if (needsOnboarding) {
+                router.replace('/onboarding-profile');
+            } else if (workspaces.length > 1) {
                 router.replace('/workspace-select');
+            } else {
+                router.replace('/');
             }
         } catch (err: any) {
             Alert.alert('Error', err.response?.data?.message || 'Invalid OTP');

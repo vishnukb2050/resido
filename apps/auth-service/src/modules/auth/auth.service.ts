@@ -95,6 +95,12 @@ export class AuthService {
                 name: user.name,
                 profileName: user.profileName,
                 phoneVisibility: user.phoneVisibility,
+                // Surfaced so the mobile onboarding gate can decide whether
+                // the user still needs to pick a visibility (we currently
+                // default to GLOBAL server-side, but the client UI still
+                // needs to render the current selection).
+                profileVisibility: (user as any).profileVisibility,
+                linkBusinessProfile: (user as any).linkBusinessProfile,
                 profilePhoto: this.storageService.resolvePublicMediaUrl(user.profilePhoto),
             } 
         };

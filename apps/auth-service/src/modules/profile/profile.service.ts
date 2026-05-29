@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import * as fs from 'fs';
@@ -301,33 +301,63 @@ export class ProfileService implements OnModuleInit {
         // we never accept changes from this endpoint. Re-verification would
         // need a dedicated change-number flow.
         const allowedPhoneVisibility = ['PUBLIC', 'COMMUNITY', 'FOLLOWERS'];
-        const user = await this.prisma.userClient.user.update({
-            where: { id: userId },
-            data: {
-                name: data.name || undefined,
-                email: data.email || undefined,
-                age: data.age && !isNaN(parseInt(data.age)) ? parseInt(data.age) : undefined,
-                description: data.description || undefined,
-                profilePhoto: profilePhotoUrl || undefined,
-                profileName: data.profileName || undefined,
-                phoneVisibility: data.phoneVisibility && allowedPhoneVisibility.includes(data.phoneVisibility)
-                    ? data.phoneVisibility
-                    : undefined,
-                profileVisibility: data.profileVisibility && ['GLOBAL', 'CONTACTS', 'COMMUNITY', 'FOLLOWERS'].includes(data.profileVisibility)
-                    ? data.profileVisibility
-                    : undefined,
-                // Persist the "Link Business Profile" toggle. Skip silently if
-                // the field is absent so an unrelated profile edit doesn't
-                // accidentally turn the link off.
-                linkBusinessProfile: typeof data.linkBusinessProfile === 'boolean'
-                    ? data.linkBusinessProfile
-                    : undefined,
-                instagram: data.instagram || undefined,
-                linkedin: data.linkedin || undefined,
-                website: data.website || undefined,
-                location: data.location || undefined,
+
+        // profileName is globally unique. Normalise + pre-check so we can
+        // throw a friendly ConflictException instead of leaking Prisma's
+        // P2002 stack trace to the client (which the mobile onboarding
+        // screen renders inline as "username taken").
+        let normalizedProfileName: string | undefined;
+        if (typeof data.profileName === 'string') {
+            const trimmed = data.profileName.trim().toLowerCase();
+            if (trimmed) {
+                const taken = await this.prisma.userRead.user.findFirst({
+                    where: { profileName: trimmed, NOT: { id: userId } },
+                    select: { id: true },
+                });
+                if (taken) {
+                    throw new ConflictException('That username is already taken. Try another one.');
+                }
+                normalizedProfileName = trimmed;
             }
-        });
+        }
+
+        let user;
+        try {
+            user = await this.prisma.userClient.user.update({
+                where: { id: userId },
+                data: {
+                    name: data.name || undefined,
+                    email: data.email || undefined,
+                    age: data.age && !isNaN(parseInt(data.age)) ? parseInt(data.age) : undefined,
+                    description: data.description || undefined,
+                    profilePhoto: profilePhotoUrl || undefined,
+                    profileName: normalizedProfileName,
+                    phoneVisibility: data.phoneVisibility && allowedPhoneVisibility.includes(data.phoneVisibility)
+                        ? data.phoneVisibility
+                        : undefined,
+                    profileVisibility: data.profileVisibility && ['GLOBAL', 'CONTACTS', 'COMMUNITY', 'FOLLOWERS'].includes(data.profileVisibility)
+                        ? data.profileVisibility
+                        : undefined,
+                    // Persist the "Link Business Profile" toggle. Skip silently if
+                    // the field is absent so an unrelated profile edit doesn't
+                    // accidentally turn the link off.
+                    linkBusinessProfile: typeof data.linkBusinessProfile === 'boolean'
+                        ? data.linkBusinessProfile
+                        : undefined,
+                    instagram: data.instagram || undefined,
+                    linkedin: data.linkedin || undefined,
+                    website: data.website || undefined,
+                    location: data.location || undefined,
+                }
+            });
+        } catch (err: any) {
+            // Race-condition safety net: another request may have grabbed the
+            // same username between our pre-check and the write.
+            if (err?.code === 'P2002' && Array.isArray(err?.meta?.target) && err.meta.target.includes('profileName')) {
+                throw new ConflictException('That username is already taken. Try another one.');
+            }
+            throw err;
+        }
 
         // Sync to resident-service members with same phone
         if (user.phone) {
