@@ -160,7 +160,12 @@ export default function CreateFlareScreen() {
                 audioUrl = audioResult?.fileUrl || null;
             }
 
-            const hashtagArray = hashtags.split(' ').filter(h => h.startsWith('#')).map(h => h.slice(1));
+            // Accept "#summer #event", "summer event", or "summer, event" —
+            // anything separated by whitespace, commas or `#` is one tag.
+            const hashtagArray: string[] = (hashtags || '')
+                .split(/[\s,#]+/)
+                .map(h => h.trim().toLowerCase())
+                .filter(h => h.length > 0 && h.length <= 50);
 
             const pinnedBusinessId =
                 pinToBusiness && (selectedBusinessId || (myBusinesses.length === 1 ? myBusinesses[0].id : null))

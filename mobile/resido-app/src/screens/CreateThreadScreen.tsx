@@ -30,6 +30,9 @@ export default function CreateThreadScreen() {
     const { user, workspaces } = useAuthStore();
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    // Free-form hashtag input. Saved alongside the post and used by the
+    // ThreadScreen search to power #hashtag discovery.
+    const [hashtags, setHashtags] = useState('');
     const [category, setCategory] = useState('general');
     const [mediaList, setMediaList] = useState<any[]>([]);
     const [selectedVisibilities, setSelectedVisibilities] = useState<string[]>(['PUBLIC']);
@@ -108,6 +111,14 @@ export default function CreateThreadScreen() {
                     ? selectedBusinessId || myBusinesses[0]?.id
                     : null;
 
+            // Pull hashtags out of the free-form input. We accept both
+            // `#foo bar baz` and plain `foo bar baz` forms — anything
+            // separated by whitespace, commas or # is treated as one tag.
+            const hashtagArray: string[] = (hashtags || '')
+                .split(/[\s,#]+/)
+                .map(t => t.trim().toLowerCase())
+                .filter(t => t.length > 0 && t.length <= 50);
+
             const payload: any = {
                 title: title || 'New Post',
                 content,
@@ -116,6 +127,7 @@ export default function CreateThreadScreen() {
                 mediaType: mediaList.length > 0 ? mediaList[0].type : 'IMAGE',
                 visibility: selectedVisibilities[0],
                 visibilities: selectedVisibilities,
+                hashtags: hashtagArray,
                 authorName: user?.name || 'Resident',
                 authorAvatar: user?.profilePhoto || undefined,
             };
@@ -365,6 +377,23 @@ export default function CreateThreadScreen() {
                     </View>
                 )}
 
+                {/* Hashtags */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Hashtags</Text>
+                    <TextInput
+                        style={styles.hashtagInput}
+                        placeholder="#community #news #event"
+                        placeholderTextColor="#94a3b8"
+                        value={hashtags}
+                        onChangeText={setHashtags}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                    />
+                    <Text style={styles.hashtagHint}>
+                        Separate tags with spaces. People can discover this thread by tapping a # tag.
+                    </Text>
+                </View>
+
                 {/* Categories */}
                 <Text style={styles.sectionTitle}>Select Category</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={styles.catContent}>
@@ -463,6 +492,18 @@ const styles = StyleSheet.create({
     userSubtitle: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
     
     section: { paddingHorizontal: 20, marginBottom: 20 },
+    hashtagInput: {
+        backgroundColor: '#f8fafc',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: '#1d4ed8',
+        fontWeight: '700',
+    },
+    hashtagHint: { marginTop: 6, fontSize: 11, color: '#94a3b8', fontWeight: '600' },
     visibilityGrid: { gap: 8, marginTop: 12 },
     
     titleInput: { 

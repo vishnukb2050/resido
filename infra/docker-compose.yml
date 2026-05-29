@@ -15,18 +15,11 @@ services:
       - resido-net
     restart: unless-stopped
 
-  auth-service:
-    build:
-      context: ../apps/auth-service
-      dockerfile: Dockerfile
-    container_name: resido-auth
-    env_file: .env
-    ports:
-      - '3001:3001'
-    networks:
-      - resido-net
-    restart: unless-stopped
-
+  # resident-service owns the `resido_core` Prisma schema and runs
+  # `prisma db push` on every startup. Every other service that reads/writes
+  # `resido_core` (auth, business, chat, complaint, visitor, accounting,
+  # flaredthread) depends on this container so docker starts it FIRST, giving
+  # it a head start to push the schema before its consumers wake up.
   resident-service:
     build:
       context: ../apps/resident-service
@@ -41,6 +34,20 @@ services:
       - resido-net
     restart: unless-stopped
 
+  auth-service:
+    build:
+      context: ../apps/auth-service
+      dockerfile: Dockerfile
+    container_name: resido-auth
+    env_file: .env
+    ports:
+      - '3001:3001'
+    depends_on:
+      - resident-service
+    networks:
+      - resido-net
+    restart: unless-stopped
+
   accounting-service:
     build:
       context: ../apps/accounting-service
@@ -51,6 +58,8 @@ services:
       - '3003:3003'
     environment:
       - PORT=3003
+    depends_on:
+      - resident-service
     networks:
       - resido-net
     restart: unless-stopped
@@ -65,6 +74,8 @@ services:
       - '3004:3004'
     environment:
       - PORT=3004
+    depends_on:
+      - resident-service
     networks:
       - resido-net
     restart: unless-stopped
@@ -93,6 +104,8 @@ services:
       - '3007:3007'
     environment:
       - PORT=3007
+    depends_on:
+      - resident-service
     networks:
       - resido-net
     restart: unless-stopped
@@ -107,6 +120,8 @@ services:
       - '3006:3006'
     environment:
       - PORT=3006
+    depends_on:
+      - resident-service
     networks:
       - resido-net
     restart: unless-stopped
@@ -119,6 +134,8 @@ services:
     env_file: .env
     ports:
       - '3008:3008'
+    depends_on:
+      - resident-service
     networks:
       - resido-net
     restart: unless-stopped
@@ -131,6 +148,8 @@ services:
     env_file: .env
     ports:
       - '3009:3009'
+    depends_on:
+      - resident-service
     networks:
       - resido-net
     restart: unless-stopped

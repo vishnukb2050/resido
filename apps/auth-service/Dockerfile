@@ -20,6 +20,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY start.sh ./
 COPY enable-postgis.js ./
 COPY init-geo-db.js ./
+COPY wait-for-core-schema.js ./
 RUN chmod +x start.sh
 EXPOSE 3001
 CMD ["./start.sh"]

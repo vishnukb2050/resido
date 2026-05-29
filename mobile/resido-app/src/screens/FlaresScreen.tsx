@@ -5,6 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { threadApi, authApi } from '../services/api';
 import BottomNav from '../components/BottomNav';
+import PostSearchOverlay from '../components/PostSearchOverlay';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
@@ -25,12 +26,17 @@ export default function FlaresScreen() {
     const [flares, setFlares] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    // Search overlay + hashtag pinning, mirrors ThreadScreen. While
+    // `activeHashtag` is set we ignore the tab selector and render the
+    // cross-tenant FLARE hashtag feed.
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [activeHashtag, setActiveHashtag] = useState<string | null>(null);
     const { refresh } = useLocalSearchParams();
     const router = useRouter();
 
     useEffect(() => {
         fetchInitialData();
-    }, [activeTab, refresh]);
+    }, [activeTab, refresh, activeHashtag]);
 
     const fetchInitialData = async () => {
         try {
@@ -38,10 +44,19 @@ export default function FlaresScreen() {
             
             // 1. Fetch Following IDs (if not already fetched or every time tab changes)
             let currentFollowing: string[] = followingIds;
-            if (activeTab === 'following' || activeTab === 'foryou') {
+            if (activeTab === 'following' || activeTab === 'foryou' || activeHashtag) {
                 const { data: followList } = await authApi.getFollowing();
                 currentFollowing = followList || [];
                 setFollowingIds(currentFollowing);
+            }
+
+            // Hashtag mode short-circuits the regular tab logic and pulls
+            // the cross-tenant FLARE hashtag feed. Per-post visibility is
+            // already enforced server-side.
+            if (activeHashtag) {
+                const { data } = await threadApi.getFlaresByHashtag(activeHashtag, currentFollowing);
+                setFlares(Array.isArray(data) ? data : []);
+                return;
             }
 
             // 2. Fetch Flares based on tab
@@ -260,7 +275,7 @@ export default function FlaresScreen() {
                     <Text style={styles.headerSubtitle}>Short videos from your community</Text>
                 </View>
                 <View style={styles.headerActions}>
-                    <TouchableOpacity style={styles.iconBtn}>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => setSearchOpen(true)}>
                         <Ionicons name="search" size={26} color="#fff" />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.iconBtn}>
@@ -270,6 +285,19 @@ export default function FlaresScreen() {
                     </TouchableOpacity>
                 </View>
             </View>
+
+            {activeHashtag && (
+                <View style={styles.activeHashtagBar}>
+                    <View style={styles.activeHashtagChip}>
+                        <Ionicons name="pricetag" size={14} color="#8b5cf6" />
+                        <Text style={styles.activeHashtagText}>#{activeHashtag}</Text>
+                    </View>
+                    <Text style={styles.activeHashtagSubtle}>Public flares with this hashtag</Text>
+                    <TouchableOpacity onPress={() => setActiveHashtag(null)} style={styles.activeHashtagClear}>
+                        <Ionicons name="close" size={16} color="#8b5cf6" />
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {loading && !refreshing ? (
                 <View style={styles.loaderContainer}>
@@ -283,43 +311,52 @@ export default function FlaresScreen() {
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />
                     }
                 >
-                    {/* Tabs */}
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContainer}>
-                        {TABS.map(tab => (
-                            <TouchableOpacity 
-                                key={tab.id} 
-                                style={[styles.tab, activeTab === tab.id ? styles.activeTab : styles.inactiveTab]}
-                                onPress={() => setActiveTab(tab.id)}
-                            >
-                                <MaterialCommunityIcons 
-                                    name={tab.icon as any} 
-                                    size={20} 
-                                    color={activeTab === tab.id ? "#fff" : "rgba(255,255,255,0.7)"} 
-                                />
-                                <Text style={[styles.tabLabel, activeTab === tab.id ? styles.activeTabLabel : styles.inactiveTabLabel]}>{tab.label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    {/* Tabs — hidden in hashtag mode. */}
+                    {!activeHashtag && (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContainer}>
+                            {TABS.map(tab => (
+                                <TouchableOpacity 
+                                    key={tab.id} 
+                                    style={[styles.tab, activeTab === tab.id ? styles.activeTab : styles.inactiveTab]}
+                                    onPress={() => setActiveTab(tab.id)}
+                                >
+                                    <MaterialCommunityIcons 
+                                        name={tab.icon as any} 
+                                        size={20} 
+                                        color={activeTab === tab.id ? "#fff" : "rgba(255,255,255,0.7)"} 
+                                    />
+                                    <Text style={[styles.tabLabel, activeTab === tab.id ? styles.activeTabLabel : styles.inactiveTabLabel]}>{tab.label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    )}
 
-                    {/* Recent Flares */}
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Recent Flares</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.seeAll}>See all</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <FlatList
-                        data={recentFlares}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        keyExtractor={(item: any) => item.id}
-                        renderItem={renderRecentItem}
-                        contentContainerStyle={styles.recentList}
-                    />
+                    {/* Recent Flares — hidden in hashtag mode. */}
+                    {!activeHashtag && (
+                        <>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>Recent Flares</Text>
+                                <TouchableOpacity>
+                                    <Text style={styles.seeAll}>See all</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <FlatList
+                                data={recentFlares}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                keyExtractor={(item: any) => item.id}
+                                renderItem={renderRecentItem}
+                                contentContainerStyle={styles.recentList}
+                            />
+                        </>
+                    )}
 
-                    {/* For You Grid */}
+                    {/* Section title for the grid below. In hashtag mode we
+                        label it explicitly so the user knows which feed
+                        they're scrolling. */}
                     <Text style={styles.sectionTitleGrid}>
-                        {activeTab === 'foryou' ? 'For You' : 
+                        {activeHashtag ? `#${activeHashtag}` :
+                         activeTab === 'foryou' ? 'For You' : 
                          activeTab === 'following' ? 'Following' : 
                          activeTab === 'public' ? 'Public' : 
                          activeTab === 'saved' ? 'Saved Flares' : 
@@ -342,6 +379,14 @@ export default function FlaresScreen() {
             )}
 
             <BottomNav activeTab="Flares" />
+
+            <PostSearchOverlay
+                visible={searchOpen}
+                type="FLARE"
+                onClose={() => setSearchOpen(false)}
+                onPickHashtag={(tag) => setActiveHashtag(tag)}
+                onPickUser={(u) => router.push({ pathname: '/user-profile', params: { id: u.id } })}
+            />
         </SafeAreaView>
     );
 }
@@ -354,6 +399,35 @@ const styles = StyleSheet.create({
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     iconBtn: { padding: 5 },
     avatarPlaceholder: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+
+    // Hashtag-mode chip (rendered on the dark flares background, so we
+    // use a low-opacity purple fill rather than the white surface used
+    // by ThreadScreen's bar).
+    activeHashtagBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginHorizontal: 20,
+        marginBottom: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 14,
+        backgroundColor: 'rgba(139,92,246,0.16)',
+        borderWidth: 1,
+        borderColor: 'rgba(139,92,246,0.35)',
+    },
+    activeHashtagChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    activeHashtagText: { fontSize: 12, fontWeight: '900', color: '#8b5cf6' },
+    activeHashtagSubtle: { flex: 1, fontSize: 11, fontWeight: '700', color: '#E2D9F2' },
+    activeHashtagClear: { padding: 4 },
     
     scrollContent: { paddingTop: 5 },
     tabsContainer: { paddingHorizontal: 20, gap: 10, marginBottom: 25 },

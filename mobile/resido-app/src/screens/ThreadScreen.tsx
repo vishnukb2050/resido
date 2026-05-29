@@ -7,6 +7,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../store/authStore';
 import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
+import PostSearchOverlay from '../components/PostSearchOverlay';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -40,6 +41,11 @@ export default function ThreadScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<'FORYOU' | 'FOLLOWING' | 'PUBLIC' | 'MY' | 'RESHARE' | 'SAVED'>('FORYOU');
     const [activeCategory, setActiveCategory] = useState('all');
+    // Search overlay + hashtag pinning. When `activeHashtag` is set, the
+    // tab/category UI is bypassed and we render the cross-tenant hashtag
+    // feed instead. Clearing the chip restores the previous tab.
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [activeHashtag, setActiveHashtag] = useState<string | null>(null);
     
     const router = useRouter();
     const { refresh } = useLocalSearchParams();
@@ -70,18 +76,29 @@ export default function ThreadScreen() {
         return () => {
             socket.disconnect();
         };
-    }, [activeWorkspace, activeTab, activeCategory, refresh]);
+    }, [activeWorkspace, activeTab, activeCategory, refresh, activeHashtag]);
 
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-            
+
             // 1. Fetch Following IDs
             let currentFollowing: string[] = followingIds;
-            if (activeTab === 'FOLLOWING' || activeTab === 'FORYOU') {
+            if (activeTab === 'FOLLOWING' || activeTab === 'FORYOU' || activeHashtag) {
                 const { data: followList } = await authApi.getFollowing();
                 currentFollowing = followList || [];
                 setFollowingIds(currentFollowing);
+            }
+
+            // Hashtag mode short-circuits the regular tab logic: pull the
+            // public hashtag feed (cross-tenant) plus any non-public posts
+            // by people the viewer follows / is contacts with. The server
+            // enforces visibility for each post so we don't need a
+            // second-pass check here.
+            if (activeHashtag) {
+                const { data } = await threadApi.getThreadsByHashtag(activeHashtag, currentFollowing);
+                setThreads(Array.isArray(data) ? data : []);
+                return;
             }
 
             // 2. Fetch Threads
@@ -236,14 +253,23 @@ export default function ThreadScreen() {
     const renderThreadItem = ({ item }: { item: any }) => (
         <View style={styles.threadCard}>
             <View style={styles.threadHeader}>
-                <Image source={{ uri: resolveMediaUrl(item.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.authorAvatar} />
-                <View style={styles.authorInfo}>
+                <TouchableOpacity
+                    onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
+                    activeOpacity={0.7}
+                >
+                    <Image source={{ uri: resolveMediaUrl(item.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.authorAvatar} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.authorInfo}
+                    onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
+                    activeOpacity={0.7}
+                >
                     <View style={styles.authorRow}>
                         <Text style={styles.authorName}>{item.authorName || 'Anonymous'}</Text>
                         {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#1d4ed8" style={{ marginLeft: 4 }} />}
                     </View>
                     <Text style={styles.threadMeta}>{item.location || 'Resido Community'} • {dayjs(item.createdAt).fromNow()}</Text>
-                </View>
+                </TouchableOpacity>
                 {(item.authorId === user?.id || item.isAuthor) && (
                     <TouchableOpacity onPress={() => {
                         Alert.alert(
@@ -360,9 +386,9 @@ export default function ThreadScreen() {
                     <Text style={[styles.tagText, { color: '#16a34a' }]}># {item.category || 'General'}</Text>
                 </View>
                 {item.hashtags?.map((tag: string, i: number) => (
-                    <View key={i} style={styles.tag}>
+                    <TouchableOpacity key={i} style={styles.tag} onPress={() => setActiveHashtag(tag)}>
                         <Text style={styles.tagText}># {tag}</Text>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </View>
 
@@ -396,7 +422,7 @@ export default function ThreadScreen() {
                     <Text style={styles.headerTitle}>Thread</Text>
                 </View>
                 <View style={styles.headerActions}>
-                    <TouchableOpacity style={styles.headerIcon}>
+                    <TouchableOpacity style={styles.headerIcon} onPress={() => setSearchOpen(true)}>
                         <Ionicons name="search" size={24} color="#1e293b" />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/create-thread')}>
@@ -405,43 +431,60 @@ export default function ThreadScreen() {
                 </View>
             </View>
 
-            {/* Feed Tabs */}
-            <View style={styles.tabBar}>
-                {FEED_TABS.map(tab => (
-                    <TouchableOpacity 
-                        key={tab.id} 
-                        style={[styles.tab, activeTab === tab.id && styles.activeTab]}
-                        onPress={() => setActiveTab(tab.id as any)}
-                    >
-                        <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>{tab.name}</Text>
+            {activeHashtag && (
+                <View style={styles.activeHashtagBar}>
+                    <View style={styles.activeHashtagChip}>
+                        <Ionicons name="pricetag" size={14} color="#8b5cf6" />
+                        <Text style={styles.activeHashtagText}>#{activeHashtag}</Text>
+                    </View>
+                    <Text style={styles.activeHashtagSubtle}>Showing public threads with this hashtag</Text>
+                    <TouchableOpacity onPress={() => setActiveHashtag(null)} style={styles.activeHashtagClear}>
+                        <Ionicons name="close" size={16} color="#8b5cf6" />
                     </TouchableOpacity>
-                ))}
-            </View>
+                </View>
+            )}
 
-            {/* Category Selector */}
-            <View style={styles.catWrapper}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catList}>
-                    {CATEGORIES.map(cat => (
+            {/* Feed Tabs — hidden in hashtag mode to keep the focus on the filtered list. */}
+            {!activeHashtag && (
+                <View style={styles.tabBar}>
+                    {FEED_TABS.map(tab => (
                         <TouchableOpacity 
-                            key={cat.id} 
-                            style={[styles.catPill, activeCategory === cat.id && styles.activeCatPill]}
-                            onPress={() => setActiveCategory(cat.id)}
+                            key={tab.id} 
+                            style={[styles.tab, activeTab === tab.id && styles.activeTab]}
+                            onPress={() => setActiveTab(tab.id as any)}
                         >
-                            {activeCategory === cat.id ? (
-                                <View style={styles.catIconActive}>
-                                    <Ionicons name={cat.icon as any} size={16} color="#fff" />
-                                </View>
-                            ) : (
-                                <Ionicons name={cat.icon as any} size={18} color="#64748b" style={{ marginRight: 6 }} />
-                            )}
-                            <Text style={[styles.catText, activeCategory === cat.id && styles.activeCatText]}>{cat.name}</Text>
+                            <Text style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}>{tab.name}</Text>
                         </TouchableOpacity>
                     ))}
-                </ScrollView>
-            </View>
+                </View>
+            )}
 
-            {/* Following Flares (Stories Style) - Only in FOLLOWING tab */}
-            {activeTab === 'FOLLOWING' && (
+            {/* Category Selector — also hidden in hashtag mode. */}
+            {!activeHashtag && (
+                <View style={styles.catWrapper}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catList}>
+                        {CATEGORIES.map(cat => (
+                            <TouchableOpacity 
+                                key={cat.id} 
+                                style={[styles.catPill, activeCategory === cat.id && styles.activeCatPill]}
+                                onPress={() => setActiveCategory(cat.id)}
+                            >
+                                {activeCategory === cat.id ? (
+                                    <View style={styles.catIconActive}>
+                                        <Ionicons name={cat.icon as any} size={16} color="#fff" />
+                                    </View>
+                                ) : (
+                                    <Ionicons name={cat.icon as any} size={18} color="#64748b" style={{ marginRight: 6 }} />
+                                )}
+                                <Text style={[styles.catText, activeCategory === cat.id && styles.activeCatText]}>{cat.name}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
+
+            {/* Following Flares (Stories Style) - Only in FOLLOWING tab, never in hashtag mode */}
+            {!activeHashtag && activeTab === 'FOLLOWING' && (
                 <View style={styles.storiesContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesList}>
                         <TouchableOpacity style={styles.storyItem} onPress={() => router.push('/create-flare')}>
@@ -512,6 +555,14 @@ export default function ThreadScreen() {
             >
                 <Ionicons name="add" size={32} color="#fff" />
             </TouchableOpacity>
+
+            <PostSearchOverlay
+                visible={searchOpen}
+                type="THREAD"
+                onClose={() => setSearchOpen(false)}
+                onPickHashtag={(tag) => setActiveHashtag(tag)}
+                onPickUser={(u) => router.push({ pathname: '/user-profile', params: { id: u.id } })}
+            />
         </SafeAreaView>
     );
 }
@@ -525,6 +576,34 @@ const styles = StyleSheet.create({
     headerIcon: { marginRight: 15 },
     createBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
     
+    activeHashtagBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginHorizontal: 20,
+        marginBottom: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 14,
+        backgroundColor: 'rgba(139,92,246,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(139,92,246,0.25)',
+    },
+    activeHashtagChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderWidth: 1,
+        borderColor: '#E2D9F2',
+    },
+    activeHashtagText: { fontSize: 12, fontWeight: '900', color: '#8b5cf6' },
+    activeHashtagSubtle: { flex: 1, fontSize: 11, fontWeight: '700', color: '#5b21b6' },
+    activeHashtagClear: { padding: 4 },
+
     tabBar: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15 },
     tab: { paddingVertical: 8, marginRight: 20, borderBottomWidth: 2, borderBottomColor: 'transparent' },
     activeTab: { borderBottomColor: '#1d4ed8' },

@@ -70,3 +70,53 @@ cd apps/<service-name>
 npm install
 npm run start:dev
 ```
+
+---
+
+## 🗄 Database Schema Push on Deploy
+
+Every service that owns a Prisma schema runs `prisma db push` from its
+`start.sh` on container startup, so the live database always converges to
+the code that just shipped. Concretely, on every `docker compose up` /
+`docker compose restart`:
+
+| Service              | Pushes schema(s)                                                                              | Database(s)                              |
+| -------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `auth-service`       | `prisma/master`, `prisma/user`, `prisma/geo` (NOT core)                                       | `resido_master`, `resido_users`, `resido_geodata` |
+| `resident-service`   | `prisma/schema.prisma` — **sole owner** of `resido_core`                                      | `resido_core`                            |
+| `notification-service` | `prisma/schema.prisma`                                                                       | `resido_notifications`                   |
+
+The following services **share** `resido_core` with `resident-service` and
+therefore intentionally **do not** run `db push` (their schemas are
+subsets — pushing from them would drop other services' tables):
+
+- `business-service`, `chat-service`, `complaint-service`, `visitor-service`,
+  `accounting-service`, `flaredthread-service`
+
+### Why `auth-service` doesn't push `resido_core`
+
+`auth-service` reads from `resido_core` (business profiles, members, blogs)
+through a generated Prisma client, so it still needs the `core` schema file
+at build time for `prisma generate`. But it **must not** run `db push` for
+that database — that would race `resident-service` and silently drop any
+column the auth-side schema is missing.
+
+To keep the two schema files from drifting, the auth-side copy is generated
+by a sync script:
+
+```bash
+bash infra/sync-prisma-schemas.sh           # mirror resident → auth
+bash infra/sync-prisma-schemas.sh --check   # CI guard (exits non-zero on drift)
+```
+
+Whenever you edit `apps/resident-service/prisma/schema.prisma`, run the sync
+and commit both files in the same change.
+
+### Compose start order
+
+`infra/docker-compose.yml` declares every consumer of `resido_core` as
+`depends_on: [resident-service]`. That gives the schema owner a head start so
+its `db push` is well under way before the rest of the services begin
+querying the database. `auth-service` additionally runs
+`wait-for-core-schema.js` in its `start.sh` to block on the appearance of
+`business_profiles`, `blogs`, and `members` before serving traffic.
