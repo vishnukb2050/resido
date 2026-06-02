@@ -62,7 +62,8 @@ export default function ParkingScreen() {
     const userRole = activeWorkspace?.role || 'RESIDENT';
     const isAdmin = ['APARTMENT_ADMIN', 'CARETAKER', 'ADMIN_STAFF'].includes(userRole);
     const isSecurity = userRole === 'SECURITY_STAFF';
-    const isResident = userRole === 'RESIDENT';
+    // Flat owners in a community workspace are often `MEMBER`, not `RESIDENT`.
+    const isResident = ['RESIDENT', 'MEMBER'].includes(userRole);
 
     const [adminTab, setAdminTab] = useState<'slots' | 'assign' | 'bookings'>('slots');
     const [residentTab, setResidentTab] = useState<'view' | 'history'>('view');
@@ -80,7 +81,11 @@ export default function ParkingScreen() {
     const [bookingGuestSlotId, setBookingGuestSlotId] = useState('');
     const [guestVehicleNumber, setGuestVehicleNumber] = useState('');
     const [bookingStartTime, setBookingStartTime] = useState(new Date());
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    // Android native DateTimePicker only supports `date` OR `time` — NOT
+    // `datetime`. Using mode="datetime" crashes the app instantly (native
+    // IllegalArgumentException). We mirror CreateGatepassScreen: two steps.
+    const [showBookingDatePicker, setShowBookingDatePicker] = useState(false);
+    const [showBookingTimePicker, setShowBookingTimePicker] = useState(false);
 
     // Security state variables
     const [searchQuery, setSearchQuery] = useState('');
@@ -128,9 +133,12 @@ export default function ParkingScreen() {
             if (items && items.length > 0) {
                 const p = items[0];
                 setProfile(p);
-                const wh = p.workingHours || {};
-                const loadedSlots = wh.slots || [];
-                const loadedBookings = wh.bookings || [];
+                const wh =
+                    p.workingHours && typeof p.workingHours === 'object' && !Array.isArray(p.workingHours)
+                        ? p.workingHours
+                        : {};
+                const loadedSlots = Array.isArray(wh.slots) ? wh.slots : [];
+                const loadedBookings = Array.isArray(wh.bookings) ? wh.bookings : [];
                 setSlots(loadedSlots);
                 setBookings(loadedBookings);
 
@@ -213,10 +221,11 @@ export default function ParkingScreen() {
     };
 
     // Auto-free expired bookings
-    const runAutoFree = async (currentProfile: any, currentSlots: ParkingSlot[], currentBookings: ParkingBooking[]) => {
+    const runAutoFree = async (currentProfile: any, _currentSlots: ParkingSlot[], currentBookings: ParkingBooking[]) => {
         const now = new Date();
         let updated = false;
-        const newBookings = currentBookings.map((b: any) => {
+        const safeBookings = Array.isArray(currentBookings) ? currentBookings : [];
+        const newBookings = safeBookings.map((b: any) => {
             if ((b.status === 'BOOKED' || b.status === 'ACTIVE') && new Date(b.endTime) < now) {
                 updated = true;
                 return { ...b, status: 'FREED', autoFreed: true };
@@ -226,9 +235,15 @@ export default function ParkingScreen() {
 
         if (updated) {
             try {
+                const baseWh =
+                    currentProfile.workingHours &&
+                    typeof currentProfile.workingHours === 'object' &&
+                    !Array.isArray(currentProfile.workingHours)
+                        ? currentProfile.workingHours
+                        : {};
                 const updatedWorkingHours = {
-                    ...currentProfile.workingHours,
-                    bookings: newBookings
+                    ...baseWh,
+                    bookings: newBookings,
                 };
                 await businessApi.updateProfile(currentProfile.id, {
                     workingHours: updatedWorkingHours
@@ -379,7 +394,14 @@ export default function ParkingScreen() {
     // --- Resident Operations ---
 
     const myMember = useMemo(() => {
-        return members.find(m => m.id === activeWorkspace?.memberId || m.userId === user?.id);
+        if (!members.length) return undefined;
+        const workspaceMemberId = activeWorkspace?.memberId;
+        return members.find(
+            (m) =>
+                (workspaceMemberId && m.id === workspaceMemberId) ||
+                (user?.id && m.userId === user.id) ||
+                (user?.phone && m.phone && m.phone === user.phone),
+        );
     }, [members, activeWorkspace, user]);
 
     // The Member -> Unit mapping comes through `family.unit` (Member has no
@@ -418,6 +440,35 @@ export default function ParkingScreen() {
         });
     }, [slots, bookings]);
 
+    const onBookingDateChange = (event: any, selectedDate?: Date) => {
+        setShowBookingDatePicker(false);
+        if (Platform.OS === 'android' && event?.type === 'dismissed') return;
+        if (selectedDate) {
+            setBookingStartTime((prev) => {
+                const next = new Date(prev);
+                next.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                return next;
+            });
+            // On Android, chain straight into the time picker (native cannot
+            // do datetime in one dialog).
+            if (Platform.OS === 'android') {
+                setTimeout(() => setShowBookingTimePicker(true), 300);
+            }
+        }
+    };
+
+    const onBookingTimeChange = (event: any, selectedTime?: Date) => {
+        setShowBookingTimePicker(false);
+        if (Platform.OS === 'android' && event?.type === 'dismissed') return;
+        if (selectedTime) {
+            setBookingStartTime((prev) => {
+                const next = new Date(prev);
+                next.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+                return next;
+            });
+        }
+    };
+
     const handleBookGuestSlot = async () => {
         if (!bookingGuestSlotId) {
             Alert.alert('Validation Error', 'Please select a guest slot.');
@@ -427,7 +478,13 @@ export default function ParkingScreen() {
             Alert.alert('Validation Error', 'Please enter a vehicle registration number.');
             return;
         }
-        if (!profile) return;
+        if (!profile?.id) {
+            Alert.alert(
+                'Parking Unavailable',
+                'Community parking has not been set up yet. Please ask your administrator to open Community Parking once.',
+            );
+            return;
+        }
 
         const startTimeStr = bookingStartTime.toISOString();
         const endTime = dayjs(bookingStartTime).add(4, 'hour');
@@ -448,14 +505,19 @@ export default function ParkingScreen() {
         setActionLoading(true);
         try {
             const guestSlot = slots.find(s => s.id === bookingGuestSlotId);
-            const residentName = myMember?.profileName || myMember?.name || user?.name || 'Resident';
-            const unitInfo = myMember?.unitNumber ? `Block ${myMember.unitBlockName || ''} - Unit ${myMember.unitNumber}` : 'N/A';
+            const residentName = myMember?.name || user?.name || 'Resident';
+            const unit = myMember?.family?.unit;
+            const blockLabel = unit?.block?.name;
+            const unitNumber = unit?.number;
+            const unitInfo = unitNumber
+                ? `${blockLabel ? `Block ${blockLabel} - ` : ''}Unit ${unitNumber}`
+                : 'N/A';
 
             const newBooking: ParkingBooking = {
                 id: 'bk_' + Date.now(),
                 slotId: bookingGuestSlotId,
                 slotName: guestSlot?.name || 'Guest Slot',
-                memberId: activeWorkspace?.memberId || 'N/A',
+                memberId: myMember?.id || activeWorkspace?.memberId || user?.id || 'N/A',
                 residentName,
                 unitInfo,
                 vehicleNumber: guestVehicleNumber.trim().toUpperCase(),
@@ -465,21 +527,34 @@ export default function ParkingScreen() {
             };
 
             const updatedBookings = [newBooking, ...bookings];
+            const baseWh =
+                profile.workingHours &&
+                typeof profile.workingHours === 'object' &&
+                !Array.isArray(profile.workingHours)
+                    ? profile.workingHours
+                    : {};
             const updatedWorkingHours = {
-                ...profile.workingHours,
-                bookings: updatedBookings
+                ...baseWh,
+                slots: Array.isArray(baseWh.slots) ? baseWh.slots : slots,
+                bookings: updatedBookings,
             };
 
             await businessApi.updateProfile(profile.id, {
-                workingHours: updatedWorkingHours
+                workingHours: updatedWorkingHours,
             });
             setBookings(updatedBookings);
             setGuestVehicleNumber('');
             setBookingGuestSlotId('');
             Alert.alert('Success', `Slot booked successfully for guest from ${dayjs(startTimeStr).format('hh:mm A')} to ${endTime.format('hh:mm A')}.`);
-        } catch (err) {
-            console.error(err);
-            Alert.alert('Error', 'Failed to book guest parking slot.');
+        } catch (err: any) {
+            console.error('Guest parking booking failed:', err);
+            const detail = err?.response?.data?.message || err?.message;
+            Alert.alert(
+                'Error',
+                detail
+                    ? `Failed to book guest parking slot.\n\n${Array.isArray(detail) ? detail.join('\n') : detail}`
+                    : 'Failed to book guest parking slot.',
+            );
         } finally {
             setActionLoading(false);
         }
@@ -554,8 +629,11 @@ export default function ParkingScreen() {
     }, [bookings]);
 
     const myBookingsList = useMemo(() => {
-        return bookings.filter(b => b.memberId === activeWorkspace?.memberId);
-    }, [bookings, activeWorkspace]);
+        const ids = new Set(
+            [myMember?.id, activeWorkspace?.memberId, user?.id].filter(Boolean) as string[],
+        );
+        return bookings.filter((b) => ids.has(b.memberId));
+    }, [bookings, activeWorkspace, myMember, user]);
 
     if (loading) {
         return (
@@ -874,19 +952,41 @@ export default function ParkingScreen() {
                                 placeholderTextColor={theme.textFaint}
                             />
 
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Start Time & Date</Text>
-                            <TouchableOpacity style={[styles.input, { borderColor: theme.border, justifyContent: 'center' }]} onPress={() => setShowDatePicker(true)}>
-                                <Text style={{ color: theme.textPrimary }}>{dayjs(bookingStartTime).format('YYYY-MM-DD hh:mm A')}</Text>
+                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Start Date</Text>
+                            <TouchableOpacity
+                                style={[styles.input, { borderColor: theme.border, justifyContent: 'center' }]}
+                                onPress={() => setShowBookingDatePicker(true)}
+                            >
+                                <Text style={{ color: theme.textPrimary }}>
+                                    {dayjs(bookingStartTime).format('YYYY-MM-DD')}
+                                </Text>
                             </TouchableOpacity>
-                            {showDatePicker && (
+                            {showBookingDatePicker && (
                                 <DateTimePicker
                                     value={bookingStartTime}
-                                    mode="datetime"
+                                    mode="date"
+                                    minimumDate={new Date()}
                                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    onChange={(event, selectedDate) => {
-                                        setShowDatePicker(false);
-                                        if (selectedDate) setBookingStartTime(selectedDate);
-                                    }}
+                                    onChange={onBookingDateChange}
+                                />
+                            )}
+
+                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 12 }]}>Start Time</Text>
+                            <TouchableOpacity
+                                style={[styles.input, { borderColor: theme.border, justifyContent: 'center' }]}
+                                onPress={() => setShowBookingTimePicker(true)}
+                            >
+                                <Text style={{ color: theme.textPrimary }}>
+                                    {dayjs(bookingStartTime).format('hh:mm A')}
+                                </Text>
+                            </TouchableOpacity>
+                            {showBookingTimePicker && (
+                                <DateTimePicker
+                                    value={bookingStartTime}
+                                    mode="time"
+                                    is24Hour={false}
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    onChange={onBookingTimeChange}
                                 />
                             )}
 
