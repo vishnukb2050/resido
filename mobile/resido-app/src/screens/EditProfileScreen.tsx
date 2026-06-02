@@ -161,7 +161,7 @@ export default function EditProfileScreen() {
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color="#2D2445" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, marginLeft: 16 }}>
                         <Text style={styles.headerTitle}>Edit Profile</Text>

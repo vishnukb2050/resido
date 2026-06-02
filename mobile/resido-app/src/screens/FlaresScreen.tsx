@@ -334,14 +334,14 @@ export default function FlaresScreen() {
 
             {loading && !refreshing ? (
                 <View style={styles.loaderContainer}>
-                    <ActivityIndicator size="large" color="#1d4ed8" />
+                    <ActivityIndicator size="large" color="#8b5cf6" />
                 </View>
             ) : (
                 <ScrollView 
                     showsVerticalScrollIndicator={false} 
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" />
                     }
                 >
                     {/* Tabs — hidden in hashtag mode. */}
@@ -441,8 +441,13 @@ export default function FlaresScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#000' },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 15 },
-    headerTitle: { fontSize: 32, fontWeight: '900', color: '#2D2445', marginTop: 5 },
-    headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+    // Page sits on a pitch-black backdrop so any dark-purple brand text
+    // ("#2D2445") becomes invisible. Use the bright violet ramp instead:
+    //   #C4B5FD - primary headings (highest contrast on black)
+    //   #A78BFA - secondary brand text
+    //   #fff    - overlays sitting on top of imagery
+    headerTitle: { fontSize: 32, fontWeight: '900', color: '#C4B5FD', marginTop: 5 },
+    headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     iconBtn: { padding: 5 },
     avatarPlaceholder: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
@@ -479,47 +484,48 @@ const styles = StyleSheet.create({
     scrollContent: { paddingTop: 5 },
     tabsContainer: { paddingHorizontal: 20, gap: 10, marginBottom: 25 },
     tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 14, gap: 8 },
-    activeTab: { backgroundColor: '#1d4ed8' },
+    activeTab: { backgroundColor: '#8b5cf6' },
     inactiveTab: { backgroundColor: '#1c1c1e' },
     tabLabel: { fontWeight: '700', fontSize: 15 },
-    activeTabLabel: { color: '#2D2445' },
+    activeTabLabel: { color: '#fff' },
     inactiveTabLabel: { color: 'rgba(255,255,255,0.7)' },
 
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15 },
-    sectionTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },
-    seeAll: { fontSize: 14, color: '#1d4ed8', fontWeight: '700' },
+    sectionTitle: { fontSize: 20, fontWeight: '800', color: '#C4B5FD' },
+    seeAll: { fontSize: 14, color: '#A78BFA', fontWeight: '700' },
     recentList: { paddingHorizontal: 20, gap: 12 },
     recentCard: { width: 110, height: 170, borderRadius: 18, overflow: 'hidden', backgroundColor: '#1c1c1e' },
     recentBg: { ...StyleSheet.absoluteFillObject },
     recentGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
-    createCard: { backgroundColor: '#2c2c2e', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-    createIconBg: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-    createLabel: { color: '#2D2445', fontSize: 13, fontWeight: '800', textAlign: 'center', lineHeight: 18 },
-    recentAvatarContainer: { position: 'absolute', top: 12, left: 12, borderWidth: 2, borderColor: '#1d4ed8', borderRadius: 18, padding: 1 },
+    createCard: { backgroundColor: '#2c2c2e', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)' },
+    createIconBg: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    createLabel: { color: '#C4B5FD', fontSize: 13, fontWeight: '800', textAlign: 'center', lineHeight: 18 },
+    recentAvatarContainer: { position: 'absolute', top: 12, left: 12, borderWidth: 2, borderColor: '#8b5cf6', borderRadius: 18, padding: 1 },
     recentAvatar: { width: 28, height: 28, borderRadius: 14 },
     recentInfo: { position: 'absolute', bottom: 12, left: 12 },
-    recentName: { color: '#2D2445', fontSize: 13, fontWeight: '800' },
-    recentTime: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 1 },
+    // Sits on top of darkened thumbnail imagery — white reads best.
+    recentName: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    recentTime: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1 },
 
     // Grouped Flare Styles
-    groupedCard: { borderWidth: 2, borderColor: '#1d4ed8' },
+    groupedCard: { borderWidth: 2, borderColor: '#8b5cf6' },
     stackBorder: { position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 14 },
     groupedAvatarContainer: { borderColor: '#fff' },
-    countBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: '#1d4ed8', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
-    countText: { color: '#2D2445', fontSize: 11, fontWeight: '900' },
+    countBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: '#8b5cf6', width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+    countText: { color: '#fff', fontSize: 11, fontWeight: '900' },
 
-    sectionTitleGrid: { fontSize: 20, fontWeight: '800', color: '#2D2445', paddingHorizontal: 20, marginTop: 35, marginBottom: 15 },
+    sectionTitleGrid: { fontSize: 20, fontWeight: '800', color: '#C4B5FD', paddingHorizontal: 20, marginTop: 35, marginBottom: 15 },
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 18, justifyContent: 'space-between' },
     feedCard: { width: COLUMN_WIDTH, height: COLUMN_WIDTH * 1.6, borderRadius: 22, overflow: 'hidden', marginBottom: 18, backgroundColor: '#1c1c1e' },
     feedImage: { ...StyleSheet.absoluteFillObject },
-    feedGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.1)' },
-    playIconOverlay: { position: 'absolute', top: 15, right: 15, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
+    feedGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
+    playIconOverlay: { position: 'absolute', top: 15, right: 15, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
     feedOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
     feedBottomInfo: { flex: 1, marginRight: 5 },
-    feedAuthor: { color: '#2D2445', fontSize: 14, fontWeight: '800' },
-    feedTitle: { color: '#2D2445', fontSize: 12, marginTop: 3, opacity: 0.9 },
+    feedAuthor: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    feedTitle: { color: 'rgba(255,255,255,0.92)', fontSize: 12, marginTop: 3 },
     likesContainer: { alignItems: 'center' },
-    likesText: { color: '#2D2445', fontSize: 12, fontWeight: '700', marginTop: 3 },
+    likesText: { color: '#fff', fontSize: 12, fontWeight: '700', marginTop: 3 },
     loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, marginTop: 50 },
     emptyText: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 20, fontSize: 16, fontWeight: '600' },

@@ -45,7 +45,7 @@ export default function MemberListScreen() {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{getTitle()}</Text>
                 <TouchableOpacity style={styles.addBtn} onPress={() => router.push(getAddRoute())}>

@@ -360,7 +360,7 @@ export default function BusinessDetailScreen() {
             {/* Header Navbar */}
             <View style={styles.navBar}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
                 <Text style={styles.navTitle} numberOfLines={1}>{profile.businessName}</Text>
                 <TouchableOpacity onPress={toggleSaveProfile} style={styles.navBtn}>

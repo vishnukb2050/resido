@@ -100,7 +100,7 @@ export default function NoteFolderViewScreen() {
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color="#2D2445" />
                     </TouchableOpacity>
                     <View style={{ flex: 1, marginLeft: 16 }}>
                         <Text style={styles.headerTitle}>{name || 'Folder'}</Text>

@@ -94,7 +94,7 @@ export default function CreateComplaintScreen() {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>New Request</Text>
                 <View style={{ width: 44 }} />

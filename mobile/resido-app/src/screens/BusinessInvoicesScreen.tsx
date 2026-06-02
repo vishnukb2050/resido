@@ -6,6 +6,7 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
 import { businessApi } from '../services/api';
@@ -288,11 +289,62 @@ export default function BusinessInvoicesScreen() {
             .replace(/'/g, '&#39;');
     };
 
-    // HTML Invoice Template Generator
-    const generateHtmlTemplate = (invoiceData: any) => {
-        const logoHtml = invoiceSettings.logo ? `<img src="${invoiceSettings.logo}" class="logo" />` : `<div class="placeholder-logo">${escapeHtml(invoiceSettings.businessName.slice(0, 1))}</div>`;
-        const sealHtml = invoiceSettings.seal ? `<img src="${invoiceSettings.seal}" class="seal" />` : '';
-        const signatureHtml = invoiceSettings.signature ? `<img src="${invoiceSettings.signature}" class="signature" />` : '<div style="height: 40px; border-bottom: 1px dashed #ccc; width: 150px; margin: 0 auto 5px auto;"></div>';
+    /**
+     * Expo's `Print.printToFileAsync` renders the supplied HTML in a system
+     * WebView. On Android the WebView is sandboxed and cannot load
+     * `file://...` image URIs picked from the camera roll — they render as
+     * broken images and the WebView aborts with a generic "Print failed"
+     * error before producing a PDF.
+     *
+     * To make the print step deterministic we convert any local image URI
+     * (logo / seal / signature) into a base64 `data:` URL up-front so the
+     * WebView can embed it without touching the filesystem.
+     */
+    const inlineLocalImage = async (uri?: string | null): Promise<string | null> => {
+        if (!uri) return null;
+        const trimmed = uri.trim();
+        if (!trimmed) return null;
+        if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
+            return trimmed;
+        }
+        if (trimmed.startsWith('file://') || trimmed.startsWith('content://') || trimmed.startsWith('/')) {
+            try {
+                const base64 = await FileSystem.readAsStringAsync(trimmed, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+                const ext = (trimmed.split('.').pop() || 'png').toLowerCase();
+                const mime =
+                    ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' :
+                    ext === 'webp' ? 'image/webp' :
+                    ext === 'gif' ? 'image/gif' :
+                    'image/png';
+                return `data:${mime};base64,${base64}`;
+            } catch (e) {
+                console.warn('inlineLocalImage failed for', trimmed, e);
+                return null;
+            }
+        }
+        return trimmed;
+    };
+
+    // HTML Invoice Template Generator. Now async because we may need to
+    // resolve `file://` image URIs into base64 data URLs before handing the
+    // markup to the system WebView for PDF rendering.
+    const generateHtmlTemplate = async (invoiceData: any): Promise<string> => {
+        const [logoSrc, sealSrc, signatureSrc] = await Promise.all([
+            inlineLocalImage(invoiceSettings.logo),
+            inlineLocalImage(invoiceSettings.seal),
+            inlineLocalImage(invoiceSettings.signature),
+        ]);
+
+        const businessInitial = escapeHtml((invoiceSettings.businessName || 'B').trim().slice(0, 1) || 'B');
+        const logoHtml = logoSrc
+            ? `<img src="${logoSrc}" class="logo" />`
+            : `<div class="placeholder-logo">${businessInitial}</div>`;
+        const sealHtml = sealSrc ? `<img src="${sealSrc}" class="seal" />` : '';
+        const signatureHtml = signatureSrc
+            ? `<img src="${signatureSrc}" class="signature" />`
+            : '<div style="height: 40px; border-bottom: 1px dashed #ccc; width: 150px; margin: 0 auto 5px auto;"></div>';
 
         // Render invoice rows
         const rowsHtml = invoiceData.items.map((item: any, idx: number) => `
@@ -629,21 +681,33 @@ export default function BusinessInvoicesScreen() {
                 template: invoiceSettings.template
             };
 
-            // Build HTML
-            const html = generateHtmlTemplate(invoiceData);
+            // Build HTML (async: inlines local images as base64 data URLs).
+            const html = await generateHtmlTemplate(invoiceData);
 
-            // Print HTML to local PDF file
-            const { uri } = await Print.printToFileAsync({ html });
+            // Print HTML to local PDF file. `printToFileAsync` returns a
+            // file:// URI that lives in the app cache directory.
+            const { uri } = await Print.printToFileAsync({ html, base64: false });
             console.log('PDF rendered successfully at:', uri);
 
-            // Upload PDF to S3 using storageApi
-            // Let's create a predictable name for the pdf file
+            // Upload PDF to S3/R2 using storageApi. We bubble the upload
+            // failure up rather than silently falling back to a local-only
+            // `file://` URI — that "fallback" was the cause of historic
+            // "PDF disappears after app restart" reports.
             const pdfFileName = `inv_${invoiceNumber.trim()}_${Date.now()}.pdf`;
             let remotePdfUrl = '';
             try {
-                remotePdfUrl = await storageApi.uploadFile(uri, pdfFileName, 'application/pdf', 'invoices') as string;
-            } catch (uploadErr) {
-                console.warn('Could not upload invoice PDF to remote server. Using local uri as fallback:', uploadErr);
+                remotePdfUrl = await storageApi.uploadFile(
+                    uri,
+                    pdfFileName,
+                    'application/pdf',
+                    'invoices',
+                );
+            } catch (uploadErr: any) {
+                console.warn('Could not upload invoice PDF to remote server:', uploadErr);
+                Alert.alert(
+                    'Upload Warning',
+                    `PDF was generated locally but could not be uploaded to the server.\n\n${uploadErr?.message || ''}\n\nYou can still share the local copy.`,
+                );
                 remotePdfUrl = uri;
             }
 
@@ -691,9 +755,10 @@ export default function BusinessInvoicesScreen() {
             setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
             setActiveTab('history');
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Invoice generation failed:', error);
-            Alert.alert('Error', 'Failed to generate invoice PDF.');
+            const reason = error?.message ? `\n\n${error.message}` : '';
+            Alert.alert('Error', `Failed to generate invoice PDF.${reason}`);
         } finally {
             setSaving(false);
         }
@@ -703,12 +768,17 @@ export default function BusinessInvoicesScreen() {
     const handleShareInvoice = async (invoiceRecord: any) => {
         try {
             setSaving(true);
-            const html = generateHtmlTemplate(invoiceRecord);
-            const { uri } = await Print.printToFileAsync({ html });
-            await Sharing.shareAsync(uri);
-        } catch (error) {
+            const html = await generateHtmlTemplate(invoiceRecord);
+            const { uri } = await Print.printToFileAsync({ html, base64: false });
+            await Sharing.shareAsync(uri, {
+                mimeType: 'application/pdf',
+                UTI: 'com.adobe.pdf',
+                dialogTitle: `Invoice ${invoiceRecord.id}`,
+            });
+        } catch (error: any) {
             console.error('Failed to share invoice:', error);
-            Alert.alert('Error', 'Failed to render/share invoice.');
+            const reason = error?.message ? `\n\n${error.message}` : '';
+            Alert.alert('Error', `Failed to render/share invoice.${reason}`);
         } finally {
             setSaving(false);
         }

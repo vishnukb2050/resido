@@ -56,7 +56,7 @@ export default function FinanceScreen() {
                 <View style={styles.headerTop}>
                     <View style={styles.headerTitleRow}>
                         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
-                            <Ionicons name="arrow-back" size={24} color="#fff" />
+                            <Ionicons name="arrow-back" size={24} color="#2D2445" />
                         </TouchableOpacity>
                         <View style={styles.logoBox}>
                             <FontAwesome5 name="wallet" size={24} color="#fff" />

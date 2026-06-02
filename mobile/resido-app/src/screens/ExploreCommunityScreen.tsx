@@ -15,7 +15,7 @@ export default function ExploreCommunityScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
                 {/* Back Button */}
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
 
                 {/* Hero Section */}

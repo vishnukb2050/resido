@@ -29,7 +29,7 @@ export default function ReportsScreen() {
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color="#2D2445" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>{activeTab}</Text>
                     <View style={{ width: 40 }} />

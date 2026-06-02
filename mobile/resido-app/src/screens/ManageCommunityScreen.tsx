@@ -409,7 +409,7 @@ export default function ManageCommunityScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color="#2D2445" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Manage Communities</Text>
                     <View style={{ width: 44 }} />
@@ -621,7 +621,7 @@ export default function ManageCommunityScreen() {
             <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => setEditingWorkspace(null)} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color="#2D2445" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle} numberOfLines={1}>{editingWorkspace.tenantName}</Text>
                     <View style={{ width: 44 }} />
@@ -679,7 +679,7 @@ export default function ManageCommunityScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => setEditingWorkspace(null)} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle} numberOfLines={1}>{editingWorkspace.tenantName}</Text>
                 <View style={{ width: 44 }} />

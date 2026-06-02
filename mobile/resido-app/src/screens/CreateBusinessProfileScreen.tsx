@@ -2958,7 +2958,7 @@ export default function CreateBusinessProfileScreen() {
                     }}
                     style={styles.backBtn}
                 >
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
                 <View>
                     <Text style={styles.headerTitle}>{isManageSlotsOnly ? 'Manage Booking Slots' : (id ? 'Edit' : 'Create') + ' Business Profile'}</Text>

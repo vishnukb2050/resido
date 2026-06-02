@@ -80,7 +80,7 @@ export default function CreateNoteScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} disabled={loading}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#2D2445" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{params.id ? 'Edit Note' : 'New Note'}</Text>
                 <View style={styles.headerActions}>

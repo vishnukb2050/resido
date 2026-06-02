@@ -27,7 +27,7 @@ export default function BudgetsScreen() {
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color="#2D2445" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Budgets</Text>
                     <TouchableOpacity style={styles.iconBtn}><Ionicons name="add" size={24} color="#fff" /></TouchableOpacity>
