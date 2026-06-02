@@ -151,7 +151,7 @@ export default function ScannerScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fcfcfd' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fcfcfd', padding: 40 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { color: '#1e293b', fontSize: 18, fontWeight: '900' },
     errorText: { marginTop: 20, textAlign: 'center', color: '#64748b', fontSize: 16, marginBottom: 20, fontWeight: '500' },
     primaryBtn: { backgroundColor: '#1d4ed8', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 12, marginBottom: 10, shadowColor: '#1d4ed8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },

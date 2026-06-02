@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    View, Text, StyleSheet, ScrollView, TouchableOpacity, 
-    Image, SafeAreaView, ActivityIndicator, Dimensions, 
-    Modal, TextInput, Alert, StatusBar, FlatList
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Dimensions, Modal, TextInput, Alert, StatusBar, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { authApi, businessApi, threadApi } from '../services/api';

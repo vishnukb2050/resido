@@ -200,6 +200,13 @@ export class ProfileController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Get('users/avatars/batch')
+    async getAvatarsBatch(@Query('ids') ids: string) {
+        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
+        return this.profileService.getAvatarsBatch(list);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get('storage/presigned-url')
     async getPresignedUrl(
         @Req() req: any,

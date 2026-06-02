@@ -1,10 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-    View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-    Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
-    FlatList, Modal, ActivityIndicator, Switch, Dimensions, StatusBar,
-    BackHandler, Pressable,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform, Alert, FlatList, Modal, ActivityIndicator, Switch, Dimensions, StatusBar, BackHandler, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -172,6 +168,9 @@ export default function CreateBusinessProfileScreen() {
         // Booking Settings
         enableBooking: false,
         bookingSlots: [] as any[],
+        enableBills: false,
+        invoiceSettings: null as any,
+        invoices: [] as any[],
     });
 
     // Slot Booking States
@@ -357,6 +356,11 @@ export default function CreateBusinessProfileScreen() {
                 }
             }
             
+            const wh = profile.workingHours;
+            const enableBills = wh && typeof wh === 'object' ? (wh as any).enableBills || false : false;
+            const invoiceSettings = wh && typeof wh === 'object' ? (wh as any).invoiceSettings || null : null;
+            const invoices = wh && typeof wh === 'object' ? (wh as any).invoices || [] : [];
+
             setCustomCategory(parsedCustomCategory);
             setFormData(prev => ({
                 ...prev,
@@ -364,6 +368,14 @@ export default function CreateBusinessProfileScreen() {
                 category: finalCategory,
                 enableBooking: hasSlots,
                 bookingSlots: profile.slots || [],
+                enableBills,
+                invoiceSettings,
+                invoices,
+                workingHours: wh && typeof wh === 'object' ? {
+                    from: (wh as any).from || '08:00 AM',
+                    to: (wh as any).to || '06:00 PM',
+                    days: (wh as any).days || 'Mon - Sat'
+                } : { from: '08:00 AM', to: '06:00 PM', days: 'Mon - Sat' },
                 showCategoryModal: false,
                 showExpModal: false,
                 showTypeModal: false
@@ -1386,6 +1398,21 @@ export default function CreateBusinessProfileScreen() {
                         onValueChange={(val) => setFormData({ ...formData, enableBooking: val })}
                         trackColor={{ false: '#334155', true: '#1d4ed8' }}
                         thumbColor={formData.enableBooking ? '#fff' : '#94a3b8'}
+                    />
+                </View>
+
+                <View style={[styles.summaryCard, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, marginTop: 16 }]}>
+                    <View style={{ flex: 1, marginRight: 16 }}>
+                        <Text style={[styles.label, { marginBottom: 4 }]}>Enable Bills & Invoices</Text>
+                        <Text style={{ fontSize: 13, color: '#9A8EBA' }}>
+                            {formData.enableBills ? 'Generate, view, and share client bills/invoices' : 'No billing or invoicing features'}
+                        </Text>
+                    </View>
+                    <Switch
+                        value={formData.enableBills}
+                        onValueChange={(val) => setFormData({ ...formData, enableBills: val })}
+                        trackColor={{ false: '#334155', true: '#10b981' }}
+                        thumbColor={formData.enableBills ? '#fff' : '#94a3b8'}
                     />
                 </View>
 
@@ -2559,6 +2586,12 @@ export default function CreateBusinessProfileScreen() {
             // Include all business details in the payload
             const payload = {
                 ...formData,
+                workingHours: {
+                    ...(formData.workingHours || {}),
+                    enableBills: formData.enableBills,
+                    invoiceSettings: formData.invoiceSettings,
+                    invoices: formData.invoices,
+                },
                 category: finalCategory,
                 serviceAreaType: synced.serviceAreaType,
                 serviceAreaValues: synced.serviceAreaValues,
@@ -2961,7 +2994,13 @@ export default function CreateBusinessProfileScreen() {
                                     })) : [];
                                     await businessApi.updateProfile(id as string, {
                                         enableBooking: formData.enableBooking,
-                                        slots: slotPayload
+                                        slots: slotPayload,
+                                        workingHours: {
+                                            ...(formData.workingHours || {}),
+                                            enableBills: formData.enableBills,
+                                            invoiceSettings: formData.invoiceSettings,
+                                            invoices: formData.invoices,
+                                        }
                                     });
                                     Alert.alert('✅ Saved!', 'Booking slots updated successfully.', [
                                         { text: 'OK', onPress: () => router.back() }

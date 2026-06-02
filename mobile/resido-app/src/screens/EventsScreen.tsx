@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-    View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
-    Modal, TextInput, Alert, ScrollView, ActivityIndicator, FlatList
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ScrollView, ActivityIndicator, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
@@ -825,21 +823,21 @@ function EventCard({ event, isAdmin, deleting, onDelete, viewMode }: any) {
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-    container:   { flex: 1 },
-    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 16, gap: 12 },
+    container: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, gap: 12 },
     headerTitle: { fontSize: 20, fontWeight: '900', color: '#2D2445' },
-    headerSub:   { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
-    backBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-    createBtn:   { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
+    headerSub: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 2 },
+    backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    createBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
 
     calendar: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 8 },
 
     // View mode tabs
-    viewTabs:         { flexDirection: 'row', marginHorizontal: 20, marginTop: 16, marginBottom: 4, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-    viewTab:          { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-    viewTabActive:    { backgroundColor: '#8b5cf6' },
-    viewTabText:      { fontSize: 13, fontWeight: '700', color: '#64748b' },
-    viewTabTextActive:{ color: '#2D2445', fontWeight: '900' },
+    viewTabs: { flexDirection: 'row', marginHorizontal: 20, marginTop: 16, marginBottom: 4, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    viewTab: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+    viewTabActive: { backgroundColor: '#8b5cf6' },
+    viewTabText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
+    viewTabTextActive: { color: '#2D2445', fontWeight: '900' },
 
     weekCalendar: {
         flexDirection: 'row',
@@ -937,48 +935,48 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 
-    eventsSection:    { padding: 20 },
+    eventsSection: { padding: 20 },
     sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-    dateChip:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)', flexShrink: 1 },
-    dateChipText:     { color: '#3b82f6', fontSize: 12, fontWeight: '700' },
-    eventCountText:   { fontSize: 12, color: '#64748b', fontWeight: '700', marginLeft: 8 },
+    dateChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)', flexShrink: 1 },
+    dateChipText: { color: '#3b82f6', fontSize: 12, fontWeight: '700' },
+    eventCountText: { fontSize: 12, color: '#64748b', fontWeight: '700', marginLeft: 8 },
 
     // Event card
-    eventCard:         { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 14 },
-    eventAccent:       { width: 4, backgroundColor: '#3b82f6' },
-    eventContent:      { padding: 16, flex: 1 },
-    eventTopRow:       { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
-    eventDateLabel:    { fontSize: 10, color: '#64748b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-    eventTitle:        { fontSize: 16, fontWeight: '800', color: '#2D2445' },
-    eventTimeBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    eventTimeBadgeText:{ fontSize: 11, color: '#3b82f6', fontWeight: '700' },
-    eventDesc:         { fontSize: 13, color: '#64748b', marginBottom: 10, lineHeight: 18 },
-    eventMeta:         { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
-    metaItem:          { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    metaText:          { fontSize: 12, color: '#64748b', fontWeight: '600' },
-    audienceTags:      { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-    audienceTag:       { backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
-    audienceTagText:   { fontSize: 10, color: '#60a5fa', fontWeight: '800', textTransform: 'uppercase' },
-    deleteBtn:         { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)' },
+    eventCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 14 },
+    eventAccent: { width: 4, backgroundColor: '#3b82f6' },
+    eventContent: { padding: 16, flex: 1 },
+    eventTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
+    eventDateLabel: { fontSize: 10, color: '#64748b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+    eventTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445' },
+    eventTimeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    eventTimeBadgeText: { fontSize: 11, color: '#3b82f6', fontWeight: '700' },
+    eventDesc: { fontSize: 13, color: '#64748b', marginBottom: 10, lineHeight: 18 },
+    eventMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
+    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaText: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+    audienceTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    audienceTag: { backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
+    audienceTagText: { fontSize: 10, color: '#60a5fa', fontWeight: '800', textTransform: 'uppercase' },
+    deleteBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)' },
 
     // Empty state
-    emptyState:    { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
-    emptyIconBox:  { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    emptyTitle:    { fontSize: 18, fontWeight: '800', color: '#2D2445', marginBottom: 8 },
-    emptyText:     { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20 },
-    emptyAddBtn:   { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, marginTop: 20 },
-    emptyAddBtnText:{ color: '#2D2445', fontWeight: '800', fontSize: 14 },
+    emptyState: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
+    emptyIconBox: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    emptyTitle: { fontSize: 18, fontWeight: '800', color: '#2D2445', marginBottom: 8 },
+    emptyText: { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20 },
+    emptyAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, marginTop: 20 },
+    emptyAddBtnText: { color: '#2D2445', fontWeight: '800', fontSize: 14 },
 
     // Modal
-    modalOverlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent:  { backgroundColor: '#1e293b', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '92%' },
-    modalHeader:   { marginBottom: 24 },
-    modalTitle:    { fontSize: 22, fontWeight: '900', color: '#2D2445' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '92%' },
+    modalHeader: { marginBottom: 24 },
+    modalTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445' },
     modalSubtitle: { fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 4 },
-    modalClose:    { position: 'absolute', right: 0, top: 0, padding: 4 },
+    modalClose: { position: 'absolute', right: 0, top: 0, padding: 4 },
 
-    fieldLabel:  { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 16 },
-    fieldHint:   { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 10, marginTop: -6 },
+    fieldLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 16 },
+    fieldHint: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 10, marginTop: -6 },
     noSharingText: {
         color: '#64748b',
         fontSize: 12,
@@ -987,32 +985,32 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         fontStyle: 'italic',
     },
-    input:       { backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 16, fontSize: 15, fontWeight: '600' },
-    textArea:    { height: 90, textAlignVertical: 'top' },
+    input: { backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#D4C9E8', color: '#2D2445', padding: 16, fontSize: 15, fontWeight: '600' },
+    textArea: { height: 90, textAlignVertical: 'top' },
 
-    timeRow:        { flexDirection: 'row', gap: 0 },
-    timePicker:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', borderRadius: 14, padding: 14 },
+    timeRow: { flexDirection: 'row', gap: 0 },
+    timePicker: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', borderRadius: 14, padding: 14 },
     timePickerText: { color: '#60a5fa', fontWeight: '800', fontSize: 15 },
 
-    audienceRow:     { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    audienceRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
     audienceIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    audienceLabel:   { flex: 1, fontSize: 15, fontWeight: '700', color: '#94a3b8' },
-    checkBox:        { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+    audienceLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: '#94a3b8' },
+    checkBox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
-    submitBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#3b82f6', borderRadius: 18, padding: 18, marginTop: 24, marginBottom: 8 },
+    submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#3b82f6', borderRadius: 18, padding: 18, marginTop: 24, marginBottom: 8 },
     submitText: { color: '#2D2445', fontWeight: '900', fontSize: 16 },
 
     // Time sheet
     timeSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    timeSheet:        { backgroundColor: '#1e293b', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: 400 },
-    timeSheetTitle:   { fontSize: 18, fontWeight: '900', color: '#2D2445', textAlign: 'center', marginBottom: 20 },
-    timeColumns:      { flexDirection: 'row', height: 200 },
-    timeCol:          { flex: 1 },
-    timeColDivider:   { width: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 8 },
-    timeOption:       { padding: 14, borderRadius: 10, marginBottom: 4, alignItems: 'center' },
-    timeOptionSelected:     { backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 1, borderColor: '#3b82f6' },
-    timeOptionText:         { color: '#64748b', fontWeight: '700', fontSize: 15 },
+    timeSheet: { backgroundColor: '#1e293b', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: 400 },
+    timeSheetTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445', textAlign: 'center', marginBottom: 20 },
+    timeColumns: { flexDirection: 'row', height: 200 },
+    timeCol: { flex: 1 },
+    timeColDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginHorizontal: 8 },
+    timeOption: { padding: 14, borderRadius: 10, marginBottom: 4, alignItems: 'center' },
+    timeOptionSelected: { backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 1, borderColor: '#3b82f6' },
+    timeOptionText: { color: '#64748b', fontWeight: '700', fontSize: 15 },
     timeOptionTextSelected: { color: '#2D2445' },
-    timeSheetDone:     { backgroundColor: '#3b82f6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
+    timeSheetDone: { backgroundColor: '#3b82f6', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
     timeSheetDoneText: { color: '#2D2445', fontWeight: '900', fontSize: 16 },
 });

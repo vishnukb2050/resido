@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-    View, Text, TouchableOpacity, StyleSheet, ScrollView, 
-    TextInput, SafeAreaView, Image, Dimensions, StatusBar, Keyboard,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image, Dimensions, StatusBar, Keyboard } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, Modal } from 'react-native';
@@ -1200,7 +1198,7 @@ function FeatureItem({ icon, label, sub }: any) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fcfcfd' },
     scrollContent: { paddingBottom: 20 },
-    header: { padding: 20, paddingTop: 65, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    header: { padding: 20, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     headerTitle: { fontSize: 26, fontWeight: '900', color: '#1e293b' },
     headerSubtitle: { fontSize: 14, color: '#64748b', marginTop: 2 },
     notifBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

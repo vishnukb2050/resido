@@ -1,9 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-    View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    TextInput, SafeAreaView, StatusBar, Image, FlatList,
-    ActivityIndicator, Alert
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, StatusBar, Image, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { mySpaceApi, authApi } from '../services/api';

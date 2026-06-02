@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import {
-    View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-    Image, SafeAreaView, KeyboardAvoidingView, Platform, Alert,
-    ActivityIndicator, StatusBar, Dimensions, Modal
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, StatusBar, Dimensions, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -85,7 +82,7 @@ export default function EditProfileScreen() {
 
                 // 1. Get presigned URL from correct endpoint (uses req.user.userId)
                 const { data: presignedData } = await authApi.getPresignedUrl(fileName, contentType, 'profiles');
-                const { uploadUrl, fileUrl } = presignedData;
+                const { uploadUrl, fileUrl, key: profilePhotoKey } = presignedData;
 
                 // 2. Upload directly to R2 via XHR
                 await new Promise<void>((resolve, reject) => {
@@ -109,9 +106,10 @@ export default function EditProfileScreen() {
                 });
 
                 uploadedPhotoUrl = fileUrl;
+                (formData as any).profilePhotoKey = profilePhotoKey;
             }
 
-            const dataToSubmit = {
+            const dataToSubmit: any = {
                 name: formData.name,
                 profileName: formData.username,
                 email: formData.email,
@@ -125,8 +123,11 @@ export default function EditProfileScreen() {
                 profileVisibility: formData.profileVisibility,
                 phoneVisibility: formData.phoneVisibility,
                 linkBusinessProfile: formData.linkBusinessProfile,
-                profilePhoto: uploadedPhotoUrl
+                profilePhoto: uploadedPhotoUrl,
             };
+            if ((formData as any).profilePhotoKey) {
+                dataToSubmit.profilePhotoKey = (formData as any).profilePhotoKey;
+            }
 
             const { data: updatedUser } = await authApi.updateProfile(dataToSubmit);
 
@@ -605,7 +606,7 @@ const SocialItem = ({ icon, label, value, color, isConnected }: any) => (
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },
-    header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 80 },
+    header: { padding: 20, flexDirection: 'row', alignItems: 'center', paddingTop: 12 },
 
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 20, fontWeight: '800', color: '#2D2445' },

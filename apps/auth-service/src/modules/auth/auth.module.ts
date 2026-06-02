@@ -8,6 +8,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from '../../common/strategies/jwt.strategy';
 import { FollowModule } from '../follow/follow.module';
 import { StorageModule } from '../storage/storage.module';
+import { ProfileMediaModule } from '../profile-media/profile-media.module';
 
 @Module({
     imports: [
@@ -15,6 +16,7 @@ import { StorageModule } from '../storage/storage.module';
         OtpModule,
         FollowModule,
         StorageModule,
+        ProfileMediaModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],

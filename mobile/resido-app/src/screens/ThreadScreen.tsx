@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, SafeAreaView, Dimensions, StatusBar, Share, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, Dimensions, StatusBar, Share, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { threadApi, authApi, API_URL } from '../services/api';
+import { threadApi, authApi, API_URL, unpackFeedPage } from '../services/api';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../store/authStore';
 import { io } from 'socket.io-client';
@@ -52,6 +53,9 @@ export default function ThreadScreen() {
     const { user, activeWorkspace } = useAuthStore();
 
     const [followingIds, setFollowingIds] = useState<string[]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     useEffect(() => {
         fetchInitialData();
@@ -78,52 +82,80 @@ export default function ThreadScreen() {
         };
     }, [activeWorkspace, activeTab, activeCategory, refresh, activeHashtag]);
 
+    const resolveFollowingIds = async (): Promise<string[]> => {
+        if (activeTab === 'FOLLOWING' || activeTab === 'FORYOU' || activeHashtag) {
+            const { data: followList } = await authApi.getFollowing();
+            const ids = followList || [];
+            setFollowingIds(ids);
+            return ids;
+        }
+        return followingIds;
+    };
+
+    const fetchFeedPage = async (cursor: string | null, append: boolean) => {
+        const currentFollowing = await resolveFollowingIds();
+
+        if (activeHashtag) {
+            const res = await threadApi.getThreadsByHashtag(activeHashtag, currentFollowing, cursor);
+            const page = unpackFeedPage(res.data);
+            setThreads((prev) => (append ? [...prev, ...page.items] : page.items));
+            setNextCursor(page.nextCursor);
+            setHasMore(page.hasMore);
+            return;
+        }
+
+        if (activeTab === 'FORYOU') {
+            const [fRes, pRes] = await Promise.all([
+                threadApi.getThreads({
+                    feedType: 'FOLLOWING',
+                    followingIds: currentFollowing,
+                    category: activeCategory !== 'all' ? activeCategory : undefined,
+                    limit: 15,
+                    cursor: append ? cursor : undefined,
+                }),
+                threadApi.getThreads({
+                    feedType: 'PUBLIC',
+                    category: activeCategory !== 'all' ? activeCategory : undefined,
+                    limit: 15,
+                    cursor: append ? cursor : undefined,
+                }),
+            ]);
+            const combined = [
+                ...unpackFeedPage(fRes.data).items,
+                ...unpackFeedPage(pRes.data).items,
+            ];
+            const unique = Array.from(new Map(combined.map((t) => [t.id, t])).values());
+            unique.sort((a, b) => {
+                const aIsFollowing = currentFollowing.includes(a.authorId);
+                const bIsFollowing = currentFollowing.includes(b.authorId);
+                if (aIsFollowing && !bIsFollowing) return -1;
+                if (!aIsFollowing && bIsFollowing) return 1;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+            setThreads((prev) => (append ? [...prev, ...unique] : unique));
+            setNextCursor(null);
+            setHasMore(false);
+            return;
+        }
+
+        const res = await threadApi.getThreads({
+            feedType: activeTab as any,
+            followingIds: currentFollowing,
+            category: activeCategory !== 'all' ? activeCategory : undefined,
+            limit: 15,
+            cursor: cursor || undefined,
+        });
+        const page = unpackFeedPage(res.data);
+        setThreads((prev) => (append ? [...prev, ...page.items] : page.items));
+        setNextCursor(page.nextCursor);
+        setHasMore(page.hasMore);
+    };
+
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-
-            // 1. Fetch Following IDs
-            let currentFollowing: string[] = followingIds;
-            if (activeTab === 'FOLLOWING' || activeTab === 'FORYOU' || activeHashtag) {
-                const { data: followList } = await authApi.getFollowing();
-                currentFollowing = followList || [];
-                setFollowingIds(currentFollowing);
-            }
-
-            // Hashtag mode short-circuits the regular tab logic: pull the
-            // public hashtag feed (cross-tenant) plus any non-public posts
-            // by people the viewer follows / is contacts with. The server
-            // enforces visibility for each post so we don't need a
-            // second-pass check here.
-            if (activeHashtag) {
-                const { data } = await threadApi.getThreadsByHashtag(activeHashtag, currentFollowing);
-                setThreads(Array.isArray(data) ? data : []);
-                return;
-            }
-
-            // 2. Fetch Threads
-            const { data } = await threadApi.getThreads({ 
-                feedType: activeTab as any,
-                followingIds: currentFollowing,
-                category: activeCategory !== 'all' ? activeCategory : undefined
-            });
-
-            // 3. For You Priority Logic
-            if (activeTab === 'FORYOU') {
-                const { data: publicThreads } = await threadApi.getThreads({ feedType: 'PUBLIC' });
-                const combined = [...data, ...publicThreads];
-                const unique = Array.from(new Map(combined.map(t => [t.id, t])).values());
-                unique.sort((a, b) => {
-                    const aIsFollowing = currentFollowing.includes(a.authorId);
-                    const bIsFollowing = currentFollowing.includes(b.authorId);
-                    if (aIsFollowing && !bIsFollowing) return -1;
-                    if (!aIsFollowing && bIsFollowing) return 1;
-                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-                });
-                setThreads(unique);
-            } else {
-                setThreads(data || []);
-            }
+            setNextCursor(null);
+            await fetchFeedPage(null, false);
         } catch (e) {
             console.error('Failed to fetch threads', e);
         } finally {
@@ -131,10 +163,22 @@ export default function ThreadScreen() {
         }
     };
 
+    const loadMoreThreads = async () => {
+        if (!hasMore || loadingMore || !nextCursor || activeTab === 'FORYOU') return;
+        try {
+            setLoadingMore(true);
+            await fetchFeedPage(nextCursor, true);
+        } catch (e) {
+            console.error('Failed to load more threads', e);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
     const fetchFollowingFlares = async () => {
         try {
-            const { data } = await threadApi.getFlares({ feedType: 'FOLLOWING' });
-            setFollowingFlares(data || []);
+            const { data } = await threadApi.getFlares({ feedType: 'FOLLOWING', limit: 20 });
+            setFollowingFlares(unpackFeedPage(data).items);
         } catch (e) {
             console.error('Failed to fetch following flares', e);
         }
@@ -257,7 +301,7 @@ export default function ThreadScreen() {
                     onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
                     activeOpacity={0.7}
                 >
-                    <Image source={{ uri: resolveMediaUrl(item.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.authorAvatar} />
+                    <Image source={{ uri: resolveMediaUrl(item.authorAvatarThumb || item.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.authorAvatar} />
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.authorInfo}
@@ -537,6 +581,16 @@ export default function ThreadScreen() {
                     contentContainerStyle={styles.listContent}
                     onRefresh={onRefresh}
                     refreshing={refreshing}
+                    onEndReached={loadMoreThreads}
+                    onEndReachedThreshold={0.5}
+                    initialNumToRender={8}
+                    maxToRenderPerBatch={5}
+                    windowSize={8}
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <ActivityIndicator style={{ marginVertical: 16 }} color="#1d4ed8" />
+                        ) : null
+                    }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Ionicons name="chatbubbles-outline" size={64} color="#cbd5e1" />

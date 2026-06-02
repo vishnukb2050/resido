@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, SafeAreaView, ScrollView, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, ScrollView, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { threadApi, authApi } from '../services/api';
+import { threadApi, authApi, unpackFeedPage } from '../services/api';
 import BottomNav from '../components/BottomNav';
 import PostSearchOverlay from '../components/PostSearchOverlay';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -31,6 +32,9 @@ export default function FlaresScreen() {
     // cross-tenant FLARE hashtag feed.
     const [searchOpen, setSearchOpen] = useState(false);
     const [activeHashtag, setActiveHashtag] = useState<string | null>(null);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const { refresh } = useLocalSearchParams();
     const router = useRouter();
 
@@ -38,66 +42,95 @@ export default function FlaresScreen() {
         fetchInitialData();
     }, [activeTab, refresh, activeHashtag]);
 
+    const resolveFollowingIds = async (): Promise<string[]> => {
+        if (activeTab === 'following' || activeTab === 'foryou' || activeHashtag) {
+            const { data: followList } = await authApi.getFollowing();
+            const ids = followList || [];
+            setFollowingIds(ids);
+            return ids;
+        }
+        return followingIds;
+    };
+
+    const fetchFeedPage = async (cursor: string | null, append: boolean) => {
+        const currentFollowing = await resolveFollowingIds();
+
+        if (activeHashtag) {
+            const res = await threadApi.getFlaresByHashtag(activeHashtag, currentFollowing, cursor);
+            const page = unpackFeedPage(res.data);
+            setFlares((prev) => (append ? [...prev, ...page.items] : page.items));
+            setNextCursor(page.nextCursor);
+            setHasMore(page.hasMore);
+            return;
+        }
+
+        let apiFeedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC';
+        if (activeTab === 'following') apiFeedType = 'FOLLOWING';
+        if (activeTab === 'myflares') apiFeedType = 'MY';
+        if (activeTab === 'saved') apiFeedType = 'SAVED';
+        if (activeTab === 'reshared') apiFeedType = 'RESHARE';
+
+        if (activeTab === 'foryou') {
+            const [fRes, pRes] = await Promise.all([
+                threadApi.getFlares({
+                    feedType: 'FOLLOWING',
+                    followingIds: currentFollowing,
+                    limit: 15,
+                    cursor: append ? cursor : undefined,
+                }),
+                threadApi.getFlares({ feedType: 'PUBLIC', limit: 15, cursor: append ? cursor : undefined }),
+            ]);
+            const combined = [
+                ...unpackFeedPage(fRes.data).items,
+                ...unpackFeedPage(pRes.data).items,
+            ];
+            const uniqueFlares = Array.from(new Map(combined.map((f) => [f.id, f])).values());
+            const sorted = uniqueFlares.sort((a, b) => {
+                const aIsFollowing = currentFollowing.includes(a.authorId);
+                const bIsFollowing = currentFollowing.includes(b.authorId);
+                if (aIsFollowing && !bIsFollowing) return -1;
+                if (!aIsFollowing && bIsFollowing) return 1;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+            setFlares((prev) => (append ? [...prev, ...sorted] : sorted));
+            setNextCursor(null);
+            setHasMore(false);
+            return;
+        }
+
+        const res = await threadApi.getFlares({
+            feedType: apiFeedType,
+            followingIds: currentFollowing,
+            limit: 15,
+            cursor: cursor || undefined,
+        });
+        const page = unpackFeedPage(res.data);
+        setFlares((prev) => (append ? [...prev, ...page.items] : page.items));
+        setNextCursor(page.nextCursor);
+        setHasMore(page.hasMore);
+    };
+
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-            
-            // 1. Fetch Following IDs (if not already fetched or every time tab changes)
-            let currentFollowing: string[] = followingIds;
-            if (activeTab === 'following' || activeTab === 'foryou' || activeHashtag) {
-                const { data: followList } = await authApi.getFollowing();
-                currentFollowing = followList || [];
-                setFollowingIds(currentFollowing);
-            }
-
-            // Hashtag mode short-circuits the regular tab logic and pulls
-            // the cross-tenant FLARE hashtag feed. Per-post visibility is
-            // already enforced server-side.
-            if (activeHashtag) {
-                const { data } = await threadApi.getFlaresByHashtag(activeHashtag, currentFollowing);
-                setFlares(Array.isArray(data) ? data : []);
-                return;
-            }
-
-            // 2. Fetch Flares based on tab
-            let apiFeedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' = 'PUBLIC';
-            if (activeTab === 'following') apiFeedType = 'FOLLOWING';
-            if (activeTab === 'myflares') apiFeedType = 'MY';
-            if (activeTab === 'saved') apiFeedType = 'SAVED';
-            if (activeTab === 'reshared') apiFeedType = 'RESHARE';
-            
-            const { data } = await threadApi.getFlares({ 
-                feedType: apiFeedType,
-                followingIds: currentFollowing 
-            });
-
-            // 3. For You Priority Logic (Client-side refinement)
-            if (activeTab === 'foryou') {
-                // For You includes Following + Public
-                const { data: publicFlares } = await threadApi.getFlares({ feedType: 'PUBLIC' });
-                
-                // Combine and Prioritize
-                const combined = [...data, ...publicFlares];
-                // Deduplicate by ID
-                const uniqueFlares = Array.from(new Map(combined.map(f => [f.id, f])).values());
-                
-                // Sort: Following first, then others
-                const sorted = uniqueFlares.sort((a, b) => {
-                    const aIsFollowing = currentFollowing.includes(a.authorId);
-                    const bIsFollowing = currentFollowing.includes(b.authorId);
-                    if (aIsFollowing && !bIsFollowing) return -1;
-                    if (!aIsFollowing && bIsFollowing) return 1;
-                    // Then by date
-                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-                });
-                setFlares(sorted);
-            } else {
-                setFlares(data);
-            }
+            setNextCursor(null);
+            await fetchFeedPage(null, false);
         } catch (error) {
             console.error('Failed to fetch flares', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadMoreFlares = async () => {
+        if (!hasMore || loadingMore || !nextCursor || activeTab === 'foryou') return;
+        try {
+            setLoadingMore(true);
+            await fetchFeedPage(nextCursor, true);
+        } catch (error) {
+            console.error('Failed to load more flares', error);
+        } finally {
+            setLoadingMore(false);
         }
     };
 
@@ -117,8 +150,8 @@ export default function FlaresScreen() {
                     authorId: authorId,
                     name: flare.authorName || 'Resident',
                     time: 'Just now',
-                    image: resolveMediaUrl(flare.mediaUrls?.[0]),
-                    avatar: resolveMediaUrl(flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg`,
+                    image: resolveMediaUrl(flare.thumbnailUrl || flare.previewUrl || flare.mediaUrls?.[0]),
+                    avatar: resolveMediaUrl(flare.authorAvatarThumb || flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg`,
                     count: 1,
                     allIds: [flare.id]
                 };
@@ -374,6 +407,20 @@ export default function FlaresScreen() {
                         </View>
                     )}
                     
+                    {hasMore && activeTab !== 'foryou' && (
+                        <TouchableOpacity
+                            style={styles.loadMoreBtn}
+                            onPress={loadMoreFlares}
+                            disabled={loadingMore}
+                        >
+                            {loadingMore ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.loadMoreText}>Load more</Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+
                     <View style={{ height: 120 }} />
                 </ScrollView>
             )}
@@ -476,4 +523,6 @@ const styles = StyleSheet.create({
     loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, marginTop: 50 },
     emptyText: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 20, fontSize: 16, fontWeight: '600' },
+    loadMoreBtn: { marginHorizontal: 20, marginTop: 12, paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center' },
+    loadMoreText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

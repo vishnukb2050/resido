@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { 
-    Text, View, StyleSheet, TouchableOpacity, Alert, 
-    ActivityIndicator, SafeAreaView, StatusBar, Dimensions 
-} from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -144,7 +142,7 @@ const styles = StyleSheet.create({
 
     // Mask layout
     overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-    overlayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    overlayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 },
     closeBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C4B5DC' },
     overlayTitle: { fontSize: 18, fontWeight: '900', color: '#2D2445' },
 

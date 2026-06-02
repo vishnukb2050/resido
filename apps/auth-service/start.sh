@@ -53,6 +53,20 @@ node wait-for-core-schema.js || echo "⚠️  Continuing without core readiness 
 echo "🐘 Enabling PostGIS..."
 node enable-postgis.js
 
-# 5. Start the application.
+# 5. Apply raw SQL indexes (GIN / PostGIS GIST / pg_trgm / partial). These
+#    are PostgreSQL features Prisma can't express in @@index, so they ship as
+#    .sql files mounted from infra/db-indexes/ via docker-compose. The script
+#    is idempotent (CREATE INDEX CONCURRENTLY IF NOT EXISTS) so it is safe
+#    to re-run on every container restart. Failures are logged but never
+#    abort startup.
+if [ -f /app/db-indexes/apply-indexes.js ]; then
+    echo "🧩 Applying raw SQL indexes (GIN / GIST / trigram)..."
+    node /app/db-indexes/apply-indexes.js /app/db-indexes \
+        user,master,geo,core,flaredthread,business,resident || true
+else
+    echo "⏭  /app/db-indexes/apply-indexes.js not present — skipping raw SQL indexes."
+fi
+
+# 6. Start the application.
 echo "🚀 Starting application..."
 node dist/main

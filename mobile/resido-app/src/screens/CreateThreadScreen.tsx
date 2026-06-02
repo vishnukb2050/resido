@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image, FlatList, Modal, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image, FlatList, Modal, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { threadApi, authApi, businessApi } from '../services/api';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
-import { Video as VideoCompressor } from 'react-native-compressor';
 import { useAuthStore } from '../store/authStore';
 import { uploadToR2 } from '../services/storage';
 
@@ -92,18 +92,12 @@ export default function CreateThreadScreen() {
         setLoading(true);
         try {
             const tenantScope = (useAuthStore.getState().activeWorkspace?.tenantId) || `personal_${user?.id || 'anon'}`;
-            const uploadedUrls: string[] = [];
+            const mediaAssets: Array<{ sourceKey: string; kind: 'VIDEO' | 'IMAGE' }> = [];
             for (const item of mediaList) {
-                let finalUri = item.uri;
-                if (item.type === 'VIDEO') {
-                    try {
-                        finalUri = await VideoCompressor.compress(item.uri, { compressionMethod: 'auto' });
-                    } catch (e) {
-                        console.warn('Video compression failed, using original', e);
-                    }
+                const result: any = await uploadToR2(item.uri, tenantScope, 'THREAD', item.type);
+                if (result?.sourceKey) {
+                    mediaAssets.push({ sourceKey: result.sourceKey, kind: item.type });
                 }
-                const result: any = await uploadToR2(finalUri, tenantScope, 'THREAD', item.type);
-                if (result?.fileUrl) uploadedUrls.push(result.fileUrl);
             }
 
             const pinnedBusinessId =
@@ -123,7 +117,7 @@ export default function CreateThreadScreen() {
                 title: title || 'New Post',
                 content,
                 category,
-                mediaUrls: uploadedUrls,
+                ...(mediaAssets.length > 0 ? { mediaAssets } : {}),
                 mediaType: mediaList.length > 0 ? mediaList[0].type : 'IMAGE',
                 visibility: selectedVisibilities[0],
                 visibilities: selectedVisibilities,

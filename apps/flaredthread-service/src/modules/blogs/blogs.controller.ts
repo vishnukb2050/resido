@@ -16,14 +16,28 @@ export class BlogsController {
         @Query('businessProfileId') businessProfileId?: string,
         @Query('authorId') authorId?: string,
         @Query('hashtag') hashtag?: string,
+        @Query('limit') limit?: string,
+        @Query('cursor') cursor?: string,
     ) {
         const userId = req.headers['x-user-id'] as string;
         const tenantId = req.tenantId as string;
-        const fIds = followingIds ? followingIds.split(',') : [];
-        // Determine type from path
+        const fIds = followingIds ? followingIds.split(',').filter(Boolean) : [];
         const path = req.url || '';
         const type = path.includes('threads') ? 'THREAD' : path.includes('flares') ? 'FLARE' : undefined;
-        return this.blogsService.listBlogs(type as any, userId, feedType, fIds, tenantId, category, businessProfileId, authorId, hashtag);
+        const parsedLimit = limit ? parseInt(limit, 10) : 15;
+        return this.blogsService.listBlogs(
+            type as any,
+            userId,
+            feedType,
+            fIds,
+            tenantId,
+            category,
+            businessProfileId,
+            authorId,
+            hashtag,
+            parsedLimit,
+            cursor,
+        );
     }
 
     /**

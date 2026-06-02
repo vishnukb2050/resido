@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OtpService } from '../otp/otp.service';
 import { FollowService } from '../follow/follow.service';
 import { StorageService } from '../storage/storage.service';
+import { ProfileMediaService } from '../profile-media/profile-media.service';
 import { Role } from '@resido/user-client';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class AuthService {
         private otpService: OtpService,
         private followService: FollowService,
         private storageService: StorageService,
+        private profileMedia: ProfileMediaService,
         @Inject('REDIS_CLIENT') private redis: Redis,
     ) { }
 
@@ -101,7 +103,7 @@ export class AuthService {
                 // needs to render the current selection).
                 profileVisibility: (user as any).profileVisibility,
                 linkBusinessProfile: (user as any).linkBusinessProfile,
-                profilePhoto: this.storageService.resolvePublicMediaUrl(user.profilePhoto),
+                ...this.profileMedia.resolvePhotoFields(user as any),
             } 
         };
     }

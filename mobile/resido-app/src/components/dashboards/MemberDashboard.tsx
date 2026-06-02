@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore, Workspace } from '../../store/authStore';
 import { authApi } from '../../services/api';
@@ -55,7 +56,7 @@ export default function MemberDashboard() {
     };
 
     return (
-        <View style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top']}>
             <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Premium Header */}
                 <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
@@ -168,7 +169,7 @@ export default function MemberDashboard() {
 
             </ScrollView>
             <BottomNav activeTab="Home" />
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     container: { flex: 1 },
     content: { paddingBottom: 110 },
-    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 },
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
     psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },

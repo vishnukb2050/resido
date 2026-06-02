@@ -40,8 +40,8 @@ export class StorageService {
             // Scalable Structure: tenants/tenant-id/users/user-id/blog-type/year/month/uuid.ext
             const baseFolder = blogType === 'THREAD' ? 'threads' : 'flares';
             const mediaFolder = mediaType === 'IMAGE' ? 'images' : 'videos';
-            
-            const key = `tenants/${tenantId}/users/${userId}/${baseFolder}/${mediaFolder}/${year}/${month}/${uuid}.${fileExtension}`;
+
+            const key = `tenants/${tenantId}/users/${userId}/${baseFolder}/${mediaFolder}/original/${year}/${month}/${uuid}.${fileExtension}`;
 
             const command = new PutObjectCommand({
                 Bucket: this.bucket,

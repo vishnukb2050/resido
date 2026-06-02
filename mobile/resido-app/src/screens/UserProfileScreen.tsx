@@ -1,13 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import {
-    View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView,
-    ScrollView, StatusBar, ActivityIndicator, Alert, FlatList,
-    Modal, Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, Alert, FlatList, Modal, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
-import { authApi, threadApi } from '../services/api';
+import { authApi, threadApi, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
@@ -65,8 +62,8 @@ export default function UserProfileScreen() {
                 threadApi.getAuthorThreads(id as string).catch(() => ({ data: [] })),
                 threadApi.getAuthorFlares(id as string).catch(() => ({ data: [] })),
             ]);
-            setThreads(Array.isArray(threadsRes.data) ? threadsRes.data : []);
-            setFlares(Array.isArray(flaresRes.data) ? flaresRes.data : []);
+            setThreads(unpackFeedPage(threadsRes.data).items);
+            setFlares(unpackFeedPage(flaresRes.data).items);
         } catch (err) {
             console.warn('Failed to load posts for profile', err);
         } finally {
@@ -578,7 +575,7 @@ function Row({ icon, color, label, value }: any) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },
-    heroHeader: { height: 220, backgroundColor: '#8b5cf6', paddingHorizontal: 20, paddingTop: 50 },
+    heroHeader: { height: 220, backgroundColor: '#8b5cf6', paddingHorizontal: 20, paddingTop: 12 },
     iconBtn: {
         width: 40, height: 40, borderRadius: 20,
         backgroundColor: 'rgba(255,255,255,0.25)',

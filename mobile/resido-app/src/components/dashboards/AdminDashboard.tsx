@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore, Workspace } from '../../store/authStore';
-import { authApi } from '../../services/api';
+import { authApi, businessApi } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
 import { WorkspaceBubble } from '../WorkspaceBubble';
@@ -16,6 +17,67 @@ export default function AdminDashboard() {
     const [showWS, setShowWS] = useState(false);
     const [switchingRole, setSwitchingRole] = useState(false);
     const imageTimestamp = useProfileRefresh();
+    const [loadingBilling, setLoadingBilling] = useState(false);
+
+    const handleAccessBilling = async () => {
+        if (!activeWorkspace?.tenantId) {
+            Alert.alert('Error', 'No active community selected.');
+            return;
+        }
+        setLoadingBilling(true);
+        try {
+            // Find existing billing profile for this community
+            const { data } = await businessApi.getMyProfiles();
+            const list = data || [];
+            const existing = list.find((p: any) => 
+                p.category === 'Community Billing' && 
+                p.tenantId === activeWorkspace.tenantId
+            );
+
+            if (existing) {
+                router.push({ pathname: '/business-invoices', params: { profileId: existing.id } });
+            } else {
+                // Create a shadow business profile for community billing
+                const { data: newProfile } = await businessApi.createProfile({
+                    businessName: activeWorkspace.tenantName + ' Billing',
+                    category: 'Community Billing',
+                    businessType: 'INDIVIDUAL',
+                    about: 'Billing and invoicing profile for ' + activeWorkspace.tenantName,
+                    phone: user?.phone || '',
+                    email: user?.email || '',
+                    enableBooking: false,
+                    // Prepopulate common community fees in the catalog
+                    workingHours: {
+                        from: '08:00 AM',
+                        to: '06:00 PM',
+                        days: 'Mon - Sat',
+                        enableBills: true,
+                        invoiceSettings: {
+                            logo: null,
+                            seal: null,
+                            signature: null,
+                            businessName: activeWorkspace.tenantName,
+                            gstDetails: '',
+                            dateTimeFormat: 'YYYY-MM-DD',
+                            template: 'standard',
+                            products: [
+                                { id: 'maint', name: 'Monthly Maintenance Fee', price: 2000 },
+                                { id: 'corpus', name: 'Corpus Fund Contribution', price: 5000 },
+                                { id: 'club', name: 'Club House Booking Charge', price: 1000 }
+                            ]
+                        },
+                        invoices: []
+                    }
+                });
+                router.push({ pathname: '/business-invoices', params: { profileId: newProfile.id } });
+            }
+        } catch (error) {
+            console.error('Failed to resolve community billing profile:', error);
+            Alert.alert('Error', 'Could not open billing module. Please try again.');
+        } finally {
+            setLoadingBilling(false);
+        }
+    };
 
     const handleSwitch = async (ws: Workspace) => {
         try {
@@ -56,7 +118,7 @@ export default function AdminDashboard() {
     };
 
     return (
-        <View style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top']}>
             <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
                 {/* Premium Header */}
                 <View style={[styles.psHeader, { backgroundColor: theme.background }]}>
@@ -186,6 +248,7 @@ export default function AdminDashboard() {
                         <FeatureCard icon="tennisball" title="Amenities" color="#fff" bg="#6366f1" onPress={() => router.push('/amenities')} />
                         <FeatureCard icon="settings" title="Manage Community" color="#fff" bg="#ec4899" onPress={() => router.push('/manage-community')} />
                         <FeatureCard icon="cube" title="Community Assets" color="#fff" bg="#d97706" onPress={() => router.push('/admin-assets')} />
+                        <FeatureCard icon="car-sport" title="Community Parking" color="#fff" bg="#8b5cf6" onPress={() => router.push('/parking')} />
                     </View>
                 </View>
 
@@ -197,12 +260,23 @@ export default function AdminDashboard() {
                         <FeatureCard icon="trending-down" title="Comm. Expense" color="#fff" bg="#f43f5e" onPress={() => router.push('/admin-finance')} />
                         <FeatureCard icon="pie-chart" title="Finance Report" color="#fff" bg="#3b82f6" onPress={() => router.push('/admin-finance')} />
                         <FeatureCard icon="alert-circle" title="Dues Report" color="#fff" bg="#f59e0b" onPress={() => router.push('/admin-maintenance')} />
+                        <FeatureCard icon="document-text" title="Bills & Invoices" color="#fff" bg="#10b981" onPress={handleAccessBilling} />
                     </View>
                 </View>
 
             </ScrollView>
+            {loadingBilling && (
+                <Modal transparent animationType="fade" visible={loadingBilling}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 16, alignItems: 'center', gap: 12 }}>
+                            <ActivityIndicator size="large" color="#10b981" />
+                            <Text style={{ fontSize: 14, fontWeight: '700', color: '#2D2445' }}>Loading Invoices...</Text>
+                        </View>
+                    </View>
+                </Modal>
+            )}
             <BottomNav activeTab="Home" />
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -245,7 +319,7 @@ const styles = StyleSheet.create({
     content: { paddingBottom: 110 },
     
     // Premium Header
-    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 },
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
     psLogoBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
     psWorkspaceImg: { width: '100%', height: '100%', borderRadius: 12 },

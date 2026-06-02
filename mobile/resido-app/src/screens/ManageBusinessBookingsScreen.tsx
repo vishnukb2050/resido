@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View, Text, StyleSheet, TouchableOpacity, ScrollView,
-    SafeAreaView, ActivityIndicator, RefreshControl, Alert,
-    Linking, StatusBar, Dimensions, Modal, TextInput, Image,
-    KeyboardAvoidingView, Platform, Pressable,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert, Linking, StatusBar, Dimensions, Modal, TextInput, Image, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { businessApi, authApi } from '../services/api';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import dayjs from 'dayjs';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +35,12 @@ export default function ManageBusinessBookingsScreen() {
     const [updateMessage, setUpdateMessage] = useState('');
     const [updatePhoto, setUpdatePhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [posting, setPosting] = useState(false);
+
+    // Date filters state
+    const [startDate, setStartDate] = useState<Date | null>(null);
+    const [endDate, setEndDate] = useState<Date | null>(null);
+    const [showStartPicker, setShowStartPicker] = useState(false);
+    const [showEndPicker, setShowEndPicker] = useState(false);
 
     useEffect(() => {
         if (profileId) {
@@ -221,10 +225,26 @@ export default function ManageBusinessBookingsScreen() {
     };
 
     const filteredBookings = bookings.filter((b) => {
-        if (activeTab === 'CANCELLED') return b.status === 'CANCELLED';
-        // ACTIVE and DETAILS both show confirmed bookings; DETAILS is just a
-        // chronological roster view for the owner.
-        return b.status === 'CONFIRMED';
+        if (activeTab === 'CANCELLED') {
+            if (b.status !== 'CANCELLED') return false;
+        } else {
+            // ACTIVE and DETAILS both show confirmed bookings; DETAILS is just a
+            // chronological roster view for the owner.
+            if (b.status !== 'CONFIRMED') return false;
+        }
+
+        if (b.bookingDate) {
+            const bDate = dayjs(b.bookingDate);
+            if (startDate) {
+                const start = dayjs(startDate).startOf('day');
+                if (bDate.isBefore(start)) return false;
+            }
+            if (endDate) {
+                const end = dayjs(endDate).endOf('day');
+                if (bDate.isAfter(end)) return false;
+            }
+        }
+        return true;
     });
 
     // Group bookings by date for the "Details" view so the owner can scan
@@ -457,6 +477,72 @@ export default function ManageBusinessBookingsScreen() {
                     <Text style={[styles.tabText, activeTab === 'CANCELLED' && styles.activeTabText]}>Cancelled</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Date range filter strip */}
+            <View style={styles.filterDatesContainer}>
+                <View style={styles.filterDatesRow}>
+                    <TouchableOpacity style={styles.filterDateBtn} onPress={() => setShowStartPicker(true)}>
+                        <Ionicons name="calendar-outline" size={14} color="#8b5cf6" />
+                        <Text style={styles.filterDateText}>
+                            {startDate ? dayjs(startDate).format('YYYY-MM-DD') : 'Start Date'}
+                        </Text>
+                        {startDate && (
+                            <TouchableOpacity 
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    setStartDate(null);
+                                }}
+                                style={{ marginLeft: 6 }}
+                            >
+                                <Ionicons name="close" size={14} color="#ef4444" />
+                            </TouchableOpacity>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.filterDateBtn} onPress={() => setShowEndPicker(true)}>
+                        <Ionicons name="calendar-outline" size={14} color="#8b5cf6" />
+                        <Text style={styles.filterDateText}>
+                            {endDate ? dayjs(endDate).format('YYYY-MM-DD') : 'End Date'}
+                        </Text>
+                        {endDate && (
+                            <TouchableOpacity 
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    setEndDate(null);
+                                }}
+                                style={{ marginLeft: 6 }}
+                            >
+                                <Ionicons name="close" size={14} color="#ef4444" />
+                            </TouchableOpacity>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* Date Pickers Modals */}
+            {showStartPicker && (
+                <DateTimePicker
+                    value={startDate || new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, selectedDate) => {
+                        setShowStartPicker(false);
+                        if (selectedDate) setStartDate(selectedDate);
+                    }}
+                />
+            )}
+
+            {showEndPicker && (
+                <DateTimePicker
+                    value={endDate || new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, selectedDate) => {
+                        setShowEndPicker(false);
+                        if (selectedDate) setEndDate(selectedDate);
+                    }}
+                />
+            )}
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -877,4 +963,8 @@ const styles = StyleSheet.create({
         borderRadius: 14,
     },
     modalSubmitText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    filterDatesContainer: { paddingHorizontal: 16, marginBottom: 8 },
+    filterDatesRow: { flexDirection: 'row', gap: 12, marginVertical: 8 },
+    filterDateBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F4EEFC', borderWidth: 1, borderColor: '#C4B5DC', borderRadius: 10, paddingVertical: 10, gap: 6 },
+    filterDateText: { fontSize: 12, fontWeight: '700', color: '#7A6B9C' },
 });

@@ -106,33 +106,10 @@ export const uploadToR2 = async (
         const fileName = hasValidExt ? originalName : `${originalName}.${ext}`;
         const contentType = mediaType === 'VIDEO' ? 'video/mp4' : 'image/jpeg';
         
-        let finalUri = fileUri;
+        // Upload original — server-side worker transcodes to 480p/720p/1080p + HLS/DASH.
+        const finalUri = fileUri;
 
-        // 1. Optional Compression for speed
-        if (mediaType === 'VIDEO') {
-            console.log('Checking video for compression...');
-            try {
-                // In a real app, we might check file size here. For now, let's use a faster compression setting.
-                finalUri = await Video.compress(
-                    fileUri,
-                    {
-                        compressionMethod: 'manual',
-                        bitrate: 2000000, // 2Mbps for 720p is good speed/quality balance
-                        maxSize: 1280,
-                        minimumFileSizeForCompress: 5 * 1024 * 1024, // Skip if < 5MB
-                    },
-                    (progress) => {
-                        if (onProgress) onProgress(progress * 0.2); // Compression is first 20%
-                    }
-                );
-                console.log('Video ready for upload:', finalUri);
-            } catch (compressError) {
-                console.warn('Video compression failed, using original file:', compressError);
-                finalUri = fileUri;
-            }
-        }
-
-        // 2. Get pre-signed URL
+        // Get pre-signed URL
         // Standardize on /blogs prefix for consistency across gateway and service
         const { data } = await api.post('/blogs/upload-url', {
             fileName,
@@ -142,9 +119,9 @@ export const uploadToR2 = async (
             mediaType
         });
 
-        const { uploadUrl, fileUrl } = data;
+        const { uploadUrl, fileUrl, key } = data;
 
-        // 3. Upload to S3 using XHR (Safest for binary PUT in React Native)
+        // Upload to S3 using XHR (Safest for binary PUT in React Native)
         await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', uploadUrl);
@@ -154,7 +131,7 @@ export const uploadToR2 = async (
                 xhr.upload.onprogress = (event) => {
                     if (event.lengthComputable) {
                         const uploadProgress = event.loaded / event.total;
-                        onProgress(0.2 + (uploadProgress * 0.8));
+                        onProgress(uploadProgress);
                     }
                 };
             }
@@ -177,7 +154,7 @@ export const uploadToR2 = async (
                 .catch(reject);
         });
 
-        return { fileUrl };
+        return { fileUrl, sourceKey: key };
     } catch (error) {
         console.error('R2 upload failed:', error);
         throw error;

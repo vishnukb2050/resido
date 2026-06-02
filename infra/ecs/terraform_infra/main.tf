@@ -24,6 +24,7 @@ locals {
     "visitor-service",
     "complaint-service",
     "flaredthread-service",
+    "media-worker",
     "business-service",
   ]
 

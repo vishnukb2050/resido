@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, Modal, FlatList, Pressable, ActivityIndicator, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../../store/authStore';
-import { threadApi, authApi, businessApi } from '../../services/api';
+import { threadApi, authApi, businessApi, unpackFeedPage } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomNav from '../BottomNav';
 import { WorkspaceBubble } from '../WorkspaceBubble';
@@ -43,7 +44,7 @@ const styles = StyleSheet.create({
     psWrapper: { flex: 1 },
     
     // Premium Header
-    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+    psHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 },
     psBrandInfo: { flexDirection: 'row', alignItems: 'center' },
     psLogoBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', overflow: 'hidden' },
     psWorkspaceImg: { width: '100%', height: '100%' },
@@ -407,16 +408,22 @@ export default function DefaultDashboard() {
             // posts you have permission to see (because you are in the
             // author's contact list).
             const promises = [
-                threadApi.getThreads({ feedType: 'FOLLOWING', followingIds: following }).catch(() => ({ data: [] })),
-                threadApi.getThreads({ feedType: 'PUBLIC' }).catch(() => ({ data: [] })),
-                threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: following }).catch(() => ({ data: [] })),
-                threadApi.getFlares({ feedType: 'PUBLIC' }).catch(() => ({ data: [] })),
+                threadApi.getThreads({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
+                threadApi.getThreads({ feedType: 'PUBLIC', limit: 10 }).catch(() => ({ data: { items: [] } })),
+                threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
+                threadApi.getFlares({ feedType: 'PUBLIC', limit: 10 }).catch(() => ({ data: { items: [] } })),
             ];
 
             const [followingThreadsRes, publicThreadsRes, followingFlaresRes, publicFlaresRes] = await Promise.all(promises);
 
-            const allThreads = [...(followingThreadsRes.data || []), ...(publicThreadsRes.data || [])];
-            const allFlares = [...(followingFlaresRes.data || []), ...(publicFlaresRes.data || [])];
+            const allThreads = [
+                ...unpackFeedPage(followingThreadsRes.data).items,
+                ...unpackFeedPage(publicThreadsRes.data).items,
+            ];
+            const allFlares = [
+                ...unpackFeedPage(followingFlaresRes.data).items,
+                ...unpackFeedPage(publicFlaresRes.data).items,
+            ];
 
             const threadsWithType = allThreads.map((t: any) => ({ ...t, itemType: 'THREAD' }));
             const flaresWithType = allFlares.map((f: any) => ({ ...f, itemType: 'FLARE' }));
@@ -1018,6 +1025,7 @@ export default function DefaultDashboard() {
                                         <DashboardIcon icon="document-text" label="Rules & Regulations" color="#fff" bg="#64748b" onPress={() => router.push('/rules')} />
                                         <DashboardIcon icon="megaphone" label="Notice Board" color="#fff" bg="#8b5cf6" onPress={() => router.push('/notices')} />
                                         <DashboardIcon icon="tennisball" label="Amenities" color="#fff" bg="#0ea5e9" onPress={() => router.push('/amenities')} />
+                                        <DashboardIcon icon="car-sport" label="Parking" color="#fff" bg="#8b5cf6" onPress={() => router.push('/parking')} />
                                     </View>
                                 </View>
                             </View>

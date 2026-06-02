@@ -57,6 +57,9 @@ model BusinessProfile {
   @@index([userId])
   @@index([tenantId])
   @@index([category])
+  @@index([userId, isActive, createdAt(sort: Desc)])
+  @@index([tenantId, isActive])
+  @@index([isActive, serviceAreaType])
   @@map("business_profiles")
 }
 
@@ -70,7 +73,8 @@ model ServiceItem {
   price             Float?
   responseTime      String?
   isEmergency       Boolean         @default(false)
-  
+
+  @@index([businessProfileId])
   @@map("business_services")
 }
 
@@ -101,6 +105,7 @@ model BusinessSlot {
   bookings               BusinessBooking[]
 
   @@index([businessProfileId])
+  @@index([businessProfileId, isActive])
   @@map("business_slots")
 }
 
@@ -134,6 +139,9 @@ model BusinessBooking {
   @@index([slotId])
   @@index([userId])
   @@index([businessProfileId, bookingDate])
+  @@index([businessProfileId, slotId, bookingDate, timeSlot, status])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([businessProfileId, bookingDate, tokenNumber])
   @@map("business_bookings")
 }
 

@@ -24,5 +24,6 @@ model LocationMaster {
   @@index([pincode])
   @@index([district])
   @@index([state])
+  @@index([state, district])
   @@map("location_master")
 }

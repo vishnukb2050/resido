@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-    View, Text, FlatList, TextInput, TouchableOpacity,
-    StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView, Image, StatusBar, Alert
-} from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, StatusBar, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 import { authApi, chatApi, API_URL, SOCKET_URL } from '../services/api';
@@ -241,7 +239,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         try {
             const { data: persisted } = await chatApi.sendMessage(conversationId, {
                 content: body.content,
-                type: body.type,
+                type: body.type as any,
                 mediaUrl: body.mediaUrl,
                 poll: body.poll,
             });
@@ -447,7 +445,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fcfcfd' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, paddingVertical: 12, paddingTop: 65, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, paddingVertical: 12, paddingTop: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
     headerAvatar: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
     headerTitle: { fontSize: 15, fontWeight: '800', color: '#1e293b' },

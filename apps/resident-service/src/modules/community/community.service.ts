@@ -643,9 +643,36 @@ export class CommunityService {
     }
 
     // ─── Members ────────────────────────────────────────────────
+    // Returns enough metadata for downstream features (parking, billing,
+    // staff mgmt) to map a Member back to their User (userId) and to
+    // their unit/block via the family relationship. Extra fields are
+    // optional on the client; consumers should treat unit info as
+    // possibly-null (e.g. caretakers/admin staff don't have a family).
     async getMembers() {
         return this.prisma.reader.member.findMany({
-            select: { id: true, name: true, phone: true, role: true }
+            select: {
+                id: true,
+                userId: true,
+                name: true,
+                phone: true,
+                role: true,
+                profilePhoto: true,
+                familyId: true,
+                family: {
+                    select: {
+                        id: true,
+                        unit: {
+                            select: {
+                                id: true,
+                                number: true,
+                                floor: true,
+                                blockId: true,
+                                block: { select: { id: true, name: true } },
+                            },
+                        },
+                    },
+                },
+            },
         });
     }
 

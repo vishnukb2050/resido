@@ -269,13 +269,44 @@ export const accountingApi = {
     getMonthlyReport: (year: number, month: number) => api.get('/accounting/reports/monthly', { params: { year, month } }),
 };
 
+export type FeedListParams = {
+    feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED' | 'HASHTAG' | 'AUTHOR';
+    followingIds?: string[];
+    category?: string;
+    businessProfileId?: string;
+    hashtag?: string;
+    authorId?: string;
+    limit?: number;
+    cursor?: string | null;
+};
+
+/** Normalise paginated feed `{ items, nextCursor, hasMore }` or legacy array responses. */
+export function unpackFeedPage(data: unknown): {
+    items: any[];
+    nextCursor: string | null;
+    hasMore: boolean;
+} {
+    if (data && typeof data === 'object' && Array.isArray((data as any).items)) {
+        const d = data as { items: any[]; nextCursor?: string | null; hasMore?: boolean };
+        return {
+            items: d.items,
+            nextCursor: d.nextCursor ?? null,
+            hasMore: !!d.hasMore,
+        };
+    }
+    if (Array.isArray(data)) {
+        return { items: data, nextCursor: null, hasMore: false };
+    }
+    return { items: [], nextCursor: null, hasMore: false };
+}
+
 // Thread & Flare APIs
 export const threadApi = {
-    getThreads: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED' | 'HASHTAG' | 'AUTHOR'; followingIds?: string[]; category?: string; businessProfileId?: string; hashtag?: string; authorId?: string }) => {
+    getThreads: (params?: FeedListParams) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/threads', { params: p });
     },
-    getFlares: (params?: { feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED' | 'HASHTAG' | 'AUTHOR'; followingIds?: string[]; category?: string; businessProfileId?: string; hashtag?: string; authorId?: string }) => {
+    getFlares: (params?: FeedListParams) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/flares', { params: p });
     },
@@ -290,10 +321,26 @@ export const threadApi = {
         api.get('/flares', { params: { feedType: 'AUTHOR', authorId } }),
     // Hashtag-filtered feed. The backend ignores the tenant scope for this
     // call so public posts from other communities also show up.
-    getThreadsByHashtag: (tag: string, followingIds?: string[]) =>
-        api.get('/threads', { params: { feedType: 'HASHTAG', hashtag: tag, followingIds: (followingIds || []).join(',') } }),
-    getFlaresByHashtag: (tag: string, followingIds?: string[]) =>
-        api.get('/flares', { params: { feedType: 'HASHTAG', hashtag: tag, followingIds: (followingIds || []).join(',') } }),
+    getThreadsByHashtag: (tag: string, followingIds?: string[], cursor?: string | null) =>
+        api.get('/threads', {
+            params: {
+                feedType: 'HASHTAG',
+                hashtag: tag,
+                followingIds: (followingIds || []).join(','),
+                limit: 15,
+                cursor: cursor || undefined,
+            },
+        }),
+    getFlaresByHashtag: (tag: string, followingIds?: string[], cursor?: string | null) =>
+        api.get('/flares', {
+            params: {
+                feedType: 'HASHTAG',
+                hashtag: tag,
+                followingIds: (followingIds || []).join(','),
+                limit: 15,
+                cursor: cursor || undefined,
+            },
+        }),
     // Hashtag suggestions for the search dropdowns. `type` narrows the
     // suggested tags to THREAD-only or FLARE-only so each screen's
     // search popover only surfaces tags it can actually navigate to.

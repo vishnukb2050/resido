@@ -36,6 +36,7 @@ model Block {
   units       Unit[]
 
   @@index([tenantId])
+  @@index([tenantId, apartmentId])
   @@map("blocks")
 }
 
@@ -53,6 +54,7 @@ model Unit {
   paymentSplitShares PaymentSplitShare[]
 
   @@index([tenantId])
+  @@index([tenantId, blockId])
   @@map("units")
 }
 
@@ -95,6 +97,7 @@ model Family {
   createdAt DateTime @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, unitId])
   @@map("families")
 }
 
@@ -140,6 +143,9 @@ model Member {
   amenityBookings       AmenityBooking[]
 
   @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, familyId])
+  @@index([tenantId, role, isActive])
   @@unique([tenantId, phone])
   @@map("members")
 }
@@ -158,6 +164,7 @@ model Notice {
   updatedAt       DateTime @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
   @@map("notices")
 }
 
@@ -186,6 +193,7 @@ model PollOption {
   votes    PollVote[]
 
   @@index([tenantId])
+  @@index([pollId])
   @@map("poll_options")
 }
 
@@ -199,6 +207,7 @@ model PollVote {
   votedAt  DateTime   @default(now())
 
   @@index([tenantId])
+  @@index([memberId])
   @@unique([optionId, memberId])
   @@map("poll_votes")
 }
@@ -228,6 +237,7 @@ model GroupMember {
   member   Member @relation(fields: [memberId], references: [id])
 
   @@index([tenantId])
+  @@index([memberId])
   @@unique([groupId, memberId])
   @@map("group_members")
 }
@@ -245,6 +255,7 @@ model Notification {
   member    Member   @relation(fields: [memberId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, memberId, isRead, createdAt(sort: Desc)])
   @@map("notifications")
 }
 
@@ -267,6 +278,9 @@ model Complaint {
   updatedAt     DateTime       @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([tenantId, memberId, createdAt(sort: Desc)])
+  @@index([tenantId, assignedTo, createdAt(sort: Desc)])
   @@map("complaints")
 }
 
@@ -291,6 +305,9 @@ model Visitor {
   createdAt     DateTime     @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([tenantId, memberId, createdAt(sort: Desc)])
   @@unique([tenantId, passCode])
   @@map("visitors")
 }
@@ -314,6 +331,7 @@ model Event {
   updatedAt     DateTime       @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, startDate])
   @@map("events")
 }
 
@@ -353,6 +371,7 @@ model Gallery {
   updatedAt   DateTime @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, folderId])
   @@map("gallery")
 }
 
@@ -417,6 +436,8 @@ model DocPermission {
   createdAt   DateTime @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, memberId])
+  @@index([tenantId, groupId])
   @@map("doc_permissions")
 }
 
@@ -503,6 +524,8 @@ model FinanceTransaction {
   updatedAt     DateTime        @updatedAt
 
   @@index([tenantId, memberId])
+  @@index([tenantId, memberId, date(sort: Desc)])
+  @@index([tenantId, memberId, type, date(sort: Desc)])
   @@map("finance_transactions")
 }
 
@@ -592,6 +615,11 @@ model Blog {
   @@unique([id, tenantId])
   @@index([tenantId])
   @@index([businessProfileId])
+  @@index([tenantId, isActive, type, visibility, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([isActive, visibility, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, isActive, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([businessProfileId, isActive, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([parentId, authorId, tenantId])
   @@map("blogs")
 }
 
@@ -655,6 +683,7 @@ model BlogComment {
   @@unique([id, tenantId])
   @@index([blogId, tenantId])
   @@index([tenantId])
+  @@index([blogId, tenantId, createdAt(sort: Desc)])
   @@map("blog_comments")
 }
 
@@ -670,6 +699,7 @@ model BlogInteraction {
   @@unique([id, tenantId])
   @@unique([blogId, userId, type, tenantId])
   @@index([tenantId])
+  @@index([userId, type, tenantId, createdAt(sort: Desc)])
   @@map("blog_interactions")
 }
 
@@ -1010,6 +1040,8 @@ model AmenityBooking {
   member      Member   @relation(fields: [memberId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, amenityId, bookingDate, timeSlot, status])
+  @@index([tenantId, memberId, createdAt(sort: Desc)])
   @@map("amenity_bookings")
 }
 
@@ -1033,6 +1065,9 @@ model CommunityTransaction {
   maintenanceBill   MaintenanceBill? @relation(fields: [maintenanceBillId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([tenantId, type, date(sort: Desc)])
+  @@index([tenantId, category, date(sort: Desc)])
   @@map("community_transactions")
 }
 
@@ -1118,6 +1153,9 @@ model MaintenanceBill {
 
   @@unique([unitId, month, year])
   @@index([tenantId])
+  @@index([tenantId, year, month])
+  @@index([tenantId, unitId, year(sort: Desc), month(sort: Desc)])
+  @@index([tenantId, status, dueDate])
   @@map("maintenance_bills")
 }
 
@@ -1167,6 +1205,7 @@ model PaymentSplitShare {
 
   @@unique([splitId, unitId])
   @@index([tenantId])
+  @@index([tenantId, unitId, status])
   @@map("payment_split_shares")
 }
 

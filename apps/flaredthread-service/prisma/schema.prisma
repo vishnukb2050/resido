@@ -52,11 +52,49 @@ model Blog {
 
   comments    BlogComment[]
   interactions BlogInteraction[]
+  mediaAssets  MediaAsset[]
+
+  mediaStatus   MediaProcessingStatus @default(READY)
+  mediaAssetIds String[]              @default([])
 
   @@unique([id, tenantId])
   @@index([tenantId])
   @@index([businessProfileId])
+  @@index([tenantId, mediaStatus])
+  @@index([tenantId, isActive, type, visibility, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([isActive, visibility, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, isActive, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([businessProfileId, isActive, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([parentId, authorId, tenantId])
   @@map("blogs")
+}
+
+model MediaAsset {
+  id               String                @id @default(cuid())
+  tenantId         String
+  ownerUserId      String
+  blogId           String?
+  blog             Blog?                 @relation(fields: [blogId, tenantId], references: [id, tenantId])
+  kind             MediaKind
+  sourceKey        String
+  status           MediaProcessingStatus @default(PENDING)
+  errorMessage     String?
+  durationSec      Float?
+  width            Int?
+  height           Int?
+  thumbnailKey     String?
+  posterKey        String?
+  hlsManifestKey   String?
+  dashManifestKey  String?
+  renditions       Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status])
+  @@index([blogId, tenantId])
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@map("media_assets")
 }
 
 model BlogPoll {
@@ -119,6 +157,7 @@ model BlogComment {
   @@unique([id, tenantId])
   @@index([blogId, tenantId])
   @@index([tenantId])
+  @@index([blogId, tenantId, createdAt(sort: Desc)])
   @@map("blog_comments")
 }
 
@@ -134,6 +173,7 @@ model BlogInteraction {
   @@unique([id, tenantId])
   @@unique([blogId, userId, type, tenantId])
   @@index([tenantId])
+  @@index([userId, type, tenantId, createdAt(sort: Desc)])
   @@map("blog_interactions")
 }
 
@@ -157,4 +197,17 @@ enum BlogVisibility {
     PUBLIC
     CONTACTS
     FOLLOWERS
+}
+
+enum MediaProcessingStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum MediaKind {
+  VIDEO
+  IMAGE
 }

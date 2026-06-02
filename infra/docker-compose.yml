@@ -42,6 +42,12 @@ services:
     env_file: .env
     ports:
       - '3001:3001'
+    environment:
+      - MEDIA_WORKER_SECRET=${MEDIA_WORKER_SECRET:-resido-media-dev-secret}
+    volumes:
+      # Raw-SQL indexes (GIN / PostGIS GIST / trigram / partial). Applied
+      # by start.sh after `prisma db push` and `enable-postgis.js`.
+      - ./db-indexes:/app/db-indexes:ro
     depends_on:
       - resident-service
     networks:
@@ -134,11 +140,35 @@ services:
     env_file: .env
     ports:
       - '3008:3008'
+    environment:
+      - MEDIA_WORKER_SECRET=${MEDIA_WORKER_SECRET:-resido-media-dev-secret}
     depends_on:
       - resident-service
     networks:
       - resido-net
     restart: unless-stopped
+
+  media-worker:
+    build:
+      context: ../apps/media-worker
+      dockerfile: Dockerfile
+    container_name: resido-media-worker
+    env_file: .env
+    environment:
+      - FLAREDTHREAD_URL=http://flaredthread-service:3008
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - MEDIA_WORKER_SECRET=${MEDIA_WORKER_SECRET:-resido-media-dev-secret}
+    depends_on:
+      - flaredthread-service
+      - auth-service
+    networks:
+      - resido-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
 
   business-service:
     build:

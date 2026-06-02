@@ -74,7 +74,7 @@ export default function CommunityMembersScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f8fafc' },
-    header: { padding: 20, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    header: { padding: 20, paddingTop: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     title: { fontSize: 24, fontWeight: '800', color: '#1e293b' },
     subTitle: { fontSize: 13, color: '#1d4ed8', fontWeight: '600', marginTop: 2 },
     card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 16, elevation: 1 },

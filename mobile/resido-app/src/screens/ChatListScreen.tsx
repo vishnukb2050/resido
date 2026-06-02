@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as Contacts from 'expo-contacts';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, ScrollView, Image, StatusBar, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, ScrollView, Image, StatusBar, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { chatApi, authApi, SOCKET_URL } from '../services/api';
 import { useAuthStore } from '../store/authStore';
@@ -373,7 +374,7 @@ function ChatItem({ item, onPress }: any) {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fff' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, paddingTop: 65, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, paddingTop: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
     content: { flex: 1, backgroundColor: '#fff' },
     searchContainer: { paddingHorizontal: 20, marginTop: 15 },

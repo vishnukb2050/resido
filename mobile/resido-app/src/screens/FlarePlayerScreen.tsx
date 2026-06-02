@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Image, Share, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Video, ResizeMode } from 'expo-av';
+import { AdaptiveVideoPlayer } from '../components/AdaptiveVideoPlayer';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { io } from 'socket.io-client';
-import { threadApi, API_URL } from '../services/api';
+import { threadApi, API_URL, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import CommentSheet from '../components/CommentSheet';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -49,12 +49,14 @@ export default function FlarePlayerScreen() {
             let fetchedFlares: any[] = [];
             
             if (type === 'FORYOU') {
-                // Combine Following + Public with Priority
-                const { data: followingFlares } = await threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: fIds });
-                const { data: publicFlares } = await threadApi.getFlares({ feedType: 'PUBLIC' });
-                
-                const combined = [...followingFlares, ...publicFlares];
-                // Deduplicate
+                const [followingRes, publicRes] = await Promise.all([
+                    threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: fIds, limit: 20 }),
+                    threadApi.getFlares({ feedType: 'PUBLIC', limit: 20 }),
+                ]);
+                const combined = [
+                    ...unpackFeedPage(followingRes.data).items,
+                    ...unpackFeedPage(publicRes.data).items,
+                ];
                 fetchedFlares = Array.from(new Map(combined.map(f => [f.id, f])).values());
                 
                 // Sort: Following first, then by date
@@ -66,11 +68,12 @@ export default function FlarePlayerScreen() {
                     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
                 });
             } else {
-                const { data } = await threadApi.getFlares({ 
-                    feedType: type as any, 
-                    followingIds: fIds 
+                const { data } = await threadApi.getFlares({
+                    feedType: type as any,
+                    followingIds: fIds,
+                    limit: 20,
                 });
-                fetchedFlares = data;
+                fetchedFlares = unpackFeedPage(data).items;
             }
 
             setFlares(fetchedFlares);
@@ -164,7 +167,6 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
     const [displaySaves, setDisplaySaves] = useState(flare.savesCount || 0);
     const [showHeart, setShowHeart] = useState(false);
     const lastTap = useRef<number>(0);
-    const video = useRef<Video>(null);
     const [showComments, setShowComments] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -320,24 +322,16 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                 style={StyleSheet.absoluteFill} 
                 onPress={handleDoubleTap}
             >
-                <Video
-                    ref={video}
+                <AdaptiveVideoPlayer
                     style={styles.video}
-                    source={flare.mediaUrls?.[0] ? ({ uri: resolveMediaUrl(flare.mediaUrls[0]) || flare.mediaUrls[0], overrideFileExtension: 'mp4' } as any) : undefined}
-                    useNativeControls={false}
-                    resizeMode={ResizeMode.COVER}
-                    isLooping
-                    shouldPlay={isActive}
-                    onPlaybackStatusUpdate={status => {
-                        setStatus(() => status);
-                        // Correctly handle status types
-                        if (status.isLoaded && status.didJustFinish && !status.isLooping) {
-                            onFinish();
-                        }
-                    }}
-                    onError={(error) => {
-                        console.error('Video load error:', error);
-                    }}
+                    playback={flare.playback}
+                    posterUrl={flare.thumbnailUrl || flare.previewUrl}
+                    fallbackUrl={flare.mediaUrls?.[0]}
+                    mediaStatus={flare.mediaStatus}
+                    isActive={isActive}
+                    loop
+                    onFinish={onFinish}
+                    onStatusUpdate={setStatus}
                 />
             </TouchableOpacity>
 
@@ -362,7 +356,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                     })}
                 >
                     <Image 
-                        source={{ uri: resolveMediaUrl(flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg` }} 
+                        source={{ uri: resolveMediaUrl(flare.authorAvatarThumb || flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg` }} 
                         style={styles.authorAvatar} 
                     />
                     <TouchableOpacity style={styles.plusBtn}>

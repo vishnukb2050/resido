@@ -19,6 +19,7 @@ model Conversation {
   members   ConversationMember[]
   messages  Message[]
 
+  @@index([groupId])
   @@map("conversations")
 }
 
@@ -31,6 +32,7 @@ model ConversationMember {
   lastReadAt     DateTime?
 
   @@unique([conversationId, memberId])
+  @@index([memberId])
   @@map("conversation_members")
 }
 
@@ -48,6 +50,8 @@ model Message {
 
   conversation   Conversation @relation(fields: [conversationId], references: [id])
 
+  @@index([conversationId, isDeleted, createdAt])
+  @@index([conversationId, createdAt(sort: Desc)])
   @@map("messages")
 }
 

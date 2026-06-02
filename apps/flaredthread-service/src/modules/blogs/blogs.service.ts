@@ -5,6 +5,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
 import { StorageService } from '../storage/storage.service';
+import { MediaService } from '../media/media.service';
 
 // Allowed post visibility values. Anything else from the client is coerced
 // to PUBLIC on create so we never silently store an unknown bucket that
@@ -17,10 +18,41 @@ export class BlogsService {
         private prisma: PrismaService,
         private http: HttpService,
         private storage: StorageService,
-        private flareGateway: FlareGateway
+        private flareGateway: FlareGateway,
+        private mediaService: MediaService,
     ) {}
 
     /** Batch fetch of each author's profileVisibility from auth-service. */
+    private async fetchAuthorAvatars(
+        authorIds: string[],
+    ): Promise<Record<string, { profilePhoto: string | null; profilePhotoThumb: string | null }>> {
+        const unique = Array.from(new Set(authorIds.filter(Boolean)));
+        if (unique.length === 0) return {};
+        try {
+            const res = await firstValueFrom(
+                this.http.get(
+                    `http://auth-service:3001/profile/users/avatars/batch?ids=${encodeURIComponent(unique.join(','))}`,
+                ),
+            );
+            return (res?.data || {}) as Record<string, { profilePhoto: string | null; profilePhotoThumb: string | null }>;
+        } catch (err: any) {
+            console.warn('[avatars] failed to fetch author avatars', err?.message);
+            return {};
+        }
+    }
+
+    private enrichBlogsWithAuthorAvatars(blogs: any[], avatars: Record<string, any>) {
+        return blogs.map((b) => {
+            const a = avatars[b.authorId];
+            if (!a) return b;
+            return {
+                ...b,
+                authorAvatar: a.profilePhoto || b.authorAvatar,
+                authorAvatarThumb: a.profilePhotoThumb || a.profilePhoto || b.authorAvatar,
+            };
+        });
+    }
+
     private async fetchAuthorVisibilities(authorIds: string[]): Promise<Record<string, string>> {
         const unique = Array.from(new Set(authorIds.filter(Boolean)));
         if (unique.length === 0) return {};
@@ -112,16 +144,174 @@ export class BlogsService {
         return this.storage.buildPublicUrl(trimmed);
     }
 
-    private decorateMedia<T extends { mediaUrls?: string[] | null; audioUrl?: string | null; authorAvatar?: string | null }>(blog: T): T {
+    private decorateMedia<T extends {
+        mediaUrls?: string[] | null;
+        audioUrl?: string | null;
+        authorAvatar?: string | null;
+        thumbnailUrl?: string | null;
+        posterUrl?: string | null;
+        playback?: { hlsUrl?: string; dashUrl?: string; duration?: number } | null;
+        mediaStatus?: string;
+    }>(blog: T): T {
         const resolvedMedia = (blog.mediaUrls || []).map(u => this.resolveMediaValue(u)).filter(Boolean) as string[];
         const resolvedAudio = blog.audioUrl ? this.resolveMediaValue(blog.audioUrl) : null;
         const resolvedAvatar = blog.authorAvatar ? this.resolveMediaValue(blog.authorAvatar) : null;
+        const thumb = (blog as any).thumbnailUrl
+            ? this.resolveMediaValue((blog as any).thumbnailUrl)
+            : resolvedMedia[0] || null;
+        const poster = (blog as any).posterUrl
+            ? this.resolveMediaValue((blog as any).posterUrl)
+            : thumb;
+        const playback = (blog as any).playback
+            ? {
+                ...(blog as any).playback,
+                hlsUrl: (blog as any).playback.hlsUrl
+                    ? this.resolveMediaValue((blog as any).playback.hlsUrl)
+                    : undefined,
+                dashUrl: (blog as any).playback.dashUrl
+                    ? this.resolveMediaValue((blog as any).playback.dashUrl)
+                    : undefined,
+            }
+            : null;
         return {
             ...blog,
             mediaUrls: resolvedMedia,
             audioUrl: resolvedAudio,
             authorAvatar: resolvedAvatar,
+            thumbnailUrl: thumb,
+            posterUrl: poster,
+            previewUrl: poster || thumb,
+            playback,
+            mediaStatus: (blog as any).mediaStatus || 'READY',
         } as T;
+    }
+
+    private decodeFeedCursor(raw?: string): { createdAt: Date; id: string } | null {
+        if (!raw) return null;
+        try {
+            const json = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+            if (!json?.id || !json?.createdAt) return null;
+            return { id: String(json.id), createdAt: new Date(json.createdAt) };
+        } catch {
+            return null;
+        }
+    }
+
+    private encodeFeedCursor(blog: { id: string; createdAt: Date }) {
+        return Buffer.from(
+            JSON.stringify({ id: blog.id, createdAt: blog.createdAt.toISOString() }),
+            'utf8',
+        ).toString('base64url');
+    }
+
+    private applyFeedCursor(where: any, cursor: { createdAt: Date; id: string } | null) {
+        if (!cursor) return where;
+        return {
+            AND: [
+                where,
+                {
+                    OR: [
+                        { createdAt: { lt: cursor.createdAt } },
+                        {
+                            AND: [
+                                { createdAt: cursor.createdAt },
+                                { id: { lt: cursor.id } },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+    }
+
+    private blogListInclude(userId?: string) {
+        return {
+            poll: {
+                include: {
+                    options: {
+                        include: {
+                            _count: { select: { votes: true } },
+                        },
+                    },
+                    votes: userId ? { where: { userId } } : false,
+                },
+            },
+            mediaAssets: true,
+        };
+    }
+
+    private buildPlaybackFromAssets(assets: any[] | undefined) {
+        const primary = assets?.[0];
+        if (!primary) return null;
+        const renditions = (primary.renditions as any[]) || [];
+        const pickMp4Key =
+            renditions.find((r) => r.height === 720)?.mp4Key ||
+            renditions.find((r) => r.height === 480)?.mp4Key ||
+            renditions[0]?.mp4Key;
+        const mp4Fallback = pickMp4Key ? this.storage.buildPublicUrl(pickMp4Key) : undefined;
+        return {
+            hlsUrl: primary.hlsManifestKey
+                ? this.storage.buildPublicUrl(primary.hlsManifestKey)
+                : undefined,
+            dashUrl: primary.dashManifestKey
+                ? this.storage.buildPublicUrl(primary.dashManifestKey)
+                : undefined,
+            mp4Url: mp4Fallback,
+            duration: primary.durationSec ?? undefined,
+        };
+    }
+
+    private toFeedItem(blog: any) {
+        const assets = blog.mediaAssets || [];
+        const primary = assets[0];
+        const thumbKey = primary?.thumbnailKey || primary?.posterKey;
+        const thumbFromAsset = thumbKey ? this.storage.buildPublicUrl(thumbKey) : null;
+
+        const d = this.decorateMedia({
+            ...blog,
+            mediaStatus: blog.mediaStatus || 'READY',
+            thumbnailUrl: thumbFromAsset || blog.mediaUrls?.[0],
+            posterUrl: primary?.posterKey ? this.storage.buildPublicUrl(primary.posterKey) : thumbFromAsset,
+            playback: this.buildPlaybackFromAssets(assets),
+        });
+        return {
+            id: d.id,
+            type: d.type,
+            title: d.title,
+            content: d.content,
+            authorId: d.authorId,
+            authorName: d.authorName,
+            authorAvatar: d.authorAvatar,
+            authorAvatarThumb: (blog as any).authorAvatarThumb || d.authorAvatar,
+            thumbnailUrl: (d as any).thumbnailUrl,
+            previewUrl: (d as any).previewUrl,
+            mediaUrls: d.mediaUrls,
+            mediaType: d.mediaType,
+            mediaStatus: (d as any).mediaStatus || 'READY',
+            playback: (d as any).playback || null,
+            visibility: d.visibility,
+            hashtags: d.hashtags,
+            category: d.category,
+            location: d.location,
+            likesCount: d.likesCount,
+            commentsCount: d.commentsCount,
+            resharesCount: d.resharesCount,
+            savesCount: d.savesCount,
+            createdAt: d.createdAt,
+            liked: !!d.liked,
+            saved: !!d.saved,
+            reshared: !!d.reshared,
+            isLiked: !!d.liked,
+            poll: d.poll,
+            audioUrl: d.audioUrl,
+            musicName: d.musicName,
+            commentsEnabled: d.commentsEnabled,
+            businessProfileId: d.businessProfileId,
+        };
+    }
+
+    private emptyFeedPage() {
+        return { items: [] as any[], nextCursor: null as string | null, hasMore: false };
     }
 
     async listBlogs(
@@ -134,6 +324,8 @@ export class BlogsService {
         businessProfileId?: string,
         authorId?: string,
         hashtag?: string,
+        limit = 15,
+        cursor?: string,
     ) {
         const where: any = {
             isActive: true,
@@ -155,24 +347,12 @@ export class BlogsService {
             : '';
 
         if (feedType === 'HASHTAG') {
-            // Cross-tenant hashtag feed: a hashtag is a global concept, not
-            // scoped to one workspace, so we ignore the tenant filter. The
-            // per-post and author visibility passes below still gate what
-            // the viewer is allowed to see (PUBLIC always, FOLLOWERS/CONTACTS
-            // only when the viewer qualifies).
-            if (!normalizedHashtag) return [];
+            if (!normalizedHashtag) return this.emptyFeedPage();
             where.hashtags = { has: normalizedHashtag };
             where.__ignoreTenant = true;
         } else if (feedType === 'AUTHOR') {
-            // Public profile / "posts by this user" view. Caller passes
-            // authorId; per-post visibility is still enforced in the
-            // second pass below (a non-follower won't see FOLLOWERS posts,
-            // a non-contact won't see CONTACTS posts, etc.) so we can
-            // safely include all the author's posts here at the DB level.
-            if (!authorId) return [];
+            if (!authorId) return this.emptyFeedPage();
             where.authorId = authorId;
-            // Cross-tenant: a profile page is global to the user's identity,
-            // not scoped to a single community workspace.
             where.__ignoreTenant = true;
         } else if (feedType === 'MY') {
             where.authorId = userId;
@@ -194,93 +374,120 @@ export class BlogsService {
             where.authorId = userId;
             where.parentId = { not: null };
         } else {
-            // PUBLIC feed - Global visibility
             where.visibility = 'PUBLIC';
         }
 
-        let blogs = await this.prisma.reader.blog.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            include: {
-                poll: {
-                    include: {
-                        options: {
-                            include: {
-                                _count: {
-                                    select: { votes: true }
-                                }
-                            }
-                        },
-                        votes: userId ? {
-                            where: { userId }
-                        } : false
-                    }
-                }
-            }
-        });
+        const pageSize = Math.min(Math.max(Number(limit) || 15, 1), 20);
+        const needCount = pageSize + 1;
+        const skipVisibilityPass =
+            !userId ||
+            !!businessProfileId ||
+            feedType === 'MY' ||
+            feedType === 'RESHARE' ||
+            feedType === 'SAVED';
 
-        // Second-pass visibility enforcement — runs two checks:
-        //   1) per-post visibility (PUBLIC / FOLLOWERS / CONTACTS)
-        //   2) author's profileVisibility — a CONTACTS-only profile's posts
-        //      are hidden from anyone who can't view that profile, even if
-        //      the post itself is PUBLIC.
-        // Skipped for MY/RESHARE/SAVED feeds and business-profile pages.
-        if (
-            userId &&
-            !businessProfileId &&
-            feedType !== 'MY' &&
-            feedType !== 'RESHARE' &&
-            feedType !== 'SAVED'
-        ) {
-            const followers = await this.fetchFollowersOf(userId);
-            const followingSet = new Set(followingIds);
-            const authorIds = blogs.map((b: any) => b.authorId).filter(Boolean);
-            const authorVisibilities = await this.fetchAuthorVisibilities(authorIds);
-
-            blogs = blogs.filter((b: any) => {
-                // (a) per-post visibility
-                if (!this.canSee(
-                    b.visibility, b.authorId, userId,
-                    followingSet, followers, b.businessProfileId,
-                )) {
-                    return false;
-                }
-                // (b) author profile-visibility gate (skip for self & business posts)
-                if (b.businessProfileId || b.authorId === userId) return true;
-                const authorVis = authorVisibilities[b.authorId] || 'GLOBAL';
-                if (authorVis === 'GLOBAL') return true;
-                if (authorVis === 'FOLLOWERS') return followingSet.has(b.authorId);
-                if (authorVis === 'CONTACTS') return followingSet.has(b.authorId) && followers.has(b.authorId);
-                // COMMUNITY is enforced at the profile screen; for now treat
-                // it as visible-in-feed so posts surface within shared
-                // workspaces (the post still respects its own visibility).
-                return true;
-            });
+        let followers = new Set<string>();
+        let followingSet = new Set(followingIds);
+        if (userId && !skipVisibilityPass) {
+            followers = await this.fetchFollowersOf(userId);
+            followingSet = new Set(followingIds);
         }
 
-        if (!userId) return blogs.map(b => this.decorateMedia(b));
+        const collected: any[] = [];
+        let scanCursor = this.decodeFeedCursor(cursor);
+        const maxScans = 6;
 
-        // Fetch user's interactions (likes) for these blogs
-        const blogIds = blogs.map(b => b.id);
-        const interactions = await (this.prisma.reader as any).blogInteraction.findMany({
-            where: {
-                blogId: { in: blogIds },
-                userId: userId,
-                type: { in: ['LIKE', 'SAVE', 'RESHARE'] },
-                tenantId // Ensure interaction is for this tenant
+        for (let scan = 0; scan < maxScans && collected.length < needCount; scan++) {
+            const batch = await this.prisma.reader.blog.findMany({
+                where: this.applyFeedCursor(where, scanCursor),
+                orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+                take: Math.max(pageSize * 3, 30),
+                include: this.blogListInclude(userId) as any,
+            });
+
+            if (!batch.length) break;
+
+            scanCursor = {
+                createdAt: batch[batch.length - 1].createdAt,
+                id: batch[batch.length - 1].id,
+            };
+
+            let visible = batch;
+            if (!skipVisibilityPass && userId) {
+                const authorIds = batch.map((b: any) => b.authorId).filter(Boolean);
+                const authorVisibilities = await this.fetchAuthorVisibilities(authorIds);
+                visible = batch.filter((b: any) => {
+                    if (!this.canSee(
+                        b.visibility, b.authorId, userId,
+                        followingSet, followers, b.businessProfileId,
+                    )) {
+                        return false;
+                    }
+                    if (b.businessProfileId || b.authorId === userId) return true;
+                    const authorVis = authorVisibilities[b.authorId] || 'GLOBAL';
+                    if (authorVis === 'GLOBAL') return true;
+                    if (authorVis === 'FOLLOWERS') return followingSet.has(b.authorId);
+                    if (authorVis === 'CONTACTS') {
+                        return followingSet.has(b.authorId) && followers.has(b.authorId);
+                    }
+                    return true;
+                });
             }
-        });
 
-        const likedBlogIds = new Set(interactions.filter((i: any) => i.type === 'LIKE').map((i: any) => i.blogId));
-        const savedBlogIds = new Set(interactions.filter((i: any) => i.type === 'SAVE').map((i: any) => i.blogId));
-        const resharedBlogIds = new Set(interactions.filter((i: any) => i.type === 'RESHARE').map((i: any) => i.blogId));
+            collected.push(...visible);
+            if (batch.length < Math.max(pageSize * 3, 30)) break;
+        }
 
-        return blogs.map(blog => this.decorateMedia({
-            ...blog,
-            liked: likedBlogIds.has(blog.id),
-            saved: savedBlogIds.has(blog.id),
-            reshared: resharedBlogIds.has(blog.id)
-        }));
+        const hasMore = collected.length > pageSize;
+        const page = collected.slice(0, pageSize);
+        const authorIds = [...new Set(page.map((b: any) => b.authorId).filter(Boolean))] as string[];
+        const avatars = await this.fetchAuthorAvatars(authorIds);
+        const pageWithAvatars = this.enrichBlogsWithAuthorAvatars(page, avatars);
+
+        if (!userId) {
+            return {
+                items: pageWithAvatars.map((b) => this.toFeedItem(b)),
+                nextCursor: hasMore && page.length ? this.encodeFeedCursor(page[page.length - 1]) : null,
+                hasMore,
+            };
+        }
+
+        const blogIds = pageWithAvatars.map((b) => b.id);
+        const interactions = blogIds.length
+            ? await (this.prisma.reader as any).blogInteraction.findMany({
+                where: {
+                    blogId: { in: blogIds },
+                    userId,
+                    type: { in: ['LIKE', 'SAVE', 'RESHARE'] },
+                    tenantId,
+                },
+            })
+            : [];
+
+        const likedBlogIds = new Set(
+            interactions.filter((i: any) => i.type === 'LIKE').map((i: any) => i.blogId),
+        );
+        const savedBlogIds = new Set(
+            interactions.filter((i: any) => i.type === 'SAVE').map((i: any) => i.blogId),
+        );
+        const resharedBlogIds = new Set(
+            interactions.filter((i: any) => i.type === 'RESHARE').map((i: any) => i.blogId),
+        );
+
+        const items = pageWithAvatars.map((blog) =>
+            this.toFeedItem({
+                ...blog,
+                liked: likedBlogIds.has(blog.id),
+                saved: savedBlogIds.has(blog.id),
+                reshared: resharedBlogIds.has(blog.id),
+            }),
+        );
+
+        return {
+            items,
+            nextCursor: hasMore && pageWithAvatars.length ? this.encodeFeedCursor(pageWithAvatars[pageWithAvatars.length - 1]) : null,
+            hasMore,
+        };
     }
 
     async createBlog(authorId: string, data: any, tenantId: string) {
@@ -374,6 +581,14 @@ export class BlogsService {
                 };
             }
 
+            const hasMediaAssets =
+                Array.isArray(data.mediaAssets) && data.mediaAssets.length > 0;
+
+            if (hasMediaAssets) {
+                blogData.mediaUrls = [];
+                blogData.mediaStatus = 'PROCESSING';
+            }
+
             const blog = await (this.prisma.client as any).blog.create({
                 data: blogData,
                 include: {
@@ -382,8 +597,27 @@ export class BlogsService {
                             options: { include: { _count: { select: { votes: true } } } },
                         },
                     },
+                    mediaAssets: true,
                 },
             });
+
+            if (hasMediaAssets) {
+                await this.mediaService.attachMediaAssetsToBlog(
+                    tenantId,
+                    authorId,
+                    blog.id,
+                    blog.type === 'FLARE' ? 'FLARE' : 'THREAD',
+                    data.mediaAssets.map((m: any) => ({
+                        sourceKey: m.sourceKey || m.key,
+                        kind: m.kind === 'IMAGE' ? 'IMAGE' : 'VIDEO',
+                    })),
+                );
+                const refreshed = await (this.prisma.client as any).blog.findFirst({
+                    where: { id: blog.id, tenantId },
+                    include: { poll: true, mediaAssets: true },
+                });
+                if (refreshed) return refreshed;
+            }
 
             if (data.tags && data.tags.length > 0) {
                 for (const taggedUserId of data.tags) {

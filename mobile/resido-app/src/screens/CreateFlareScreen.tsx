@@ -145,8 +145,8 @@ export default function CreateFlareScreen() {
                 'VIDEO',
                 (progress) => setUploadProgress(progress * 0.8)
             );
-            const videoUrl: string | undefined = uploadResult?.fileUrl;
-            if (!videoUrl) throw new Error('Video upload did not return a public URL');
+            const sourceKey: string | undefined = uploadResult?.sourceKey;
+            if (!sourceKey) throw new Error('Video upload did not return a storage key');
 
             let audioUrl: string | null = null;
             if (selectedAudio) {
@@ -177,7 +177,7 @@ export default function CreateFlareScreen() {
                 content: title.trim() || 'Flare Content',
                 type: 'FLARE',
                 mediaType: 'VIDEO',
-                mediaUrls: [videoUrl],
+                mediaAssets: [{ sourceKey, kind: 'VIDEO' }],
                 authorName: user?.name || 'Resident',
                 authorAvatar: user?.profilePhoto || undefined,
                 musicName: selectedAudio ? selectedAudio.name : selectedMusic.name,

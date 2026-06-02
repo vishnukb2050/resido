@@ -17,7 +17,8 @@ model User {
   name        String?
   age         Int?
   description String?
-  profilePhoto String?
+  profilePhoto      String?
+  profilePhotoThumb String?
   role        Role     @default(RESIDENT)
   profileName String?  @unique
   phoneVisibility VisibilityType @default(COMMUNITY)
@@ -56,6 +57,7 @@ model User {
   noteShares           NoteShare[]
   documentShares       DocumentShare[]
 
+  @@index([isActive, linkBusinessProfile])
   @@map("users")
 }
 
@@ -81,6 +83,7 @@ model FollowRequest {
 
   @@unique([requesterId, targetId])
   @@index([targetId])
+  @@index([targetId, createdAt(sort: Desc)])
   @@map("follow_requests")
 }
 
@@ -97,6 +100,7 @@ model PersonalIncome {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([userId, date(sort: Desc)])
   @@map("personal_incomes")
 }
 
@@ -114,6 +118,7 @@ model PersonalExpense {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([userId, date(sort: Desc)])
   @@map("personal_expenses")
 }
 
@@ -172,6 +177,7 @@ model JobProfile {
   @@index([district])
   @@index([state])
   @@index([businessName])
+  @@index([isActive, category])
   @@map("job_profiles")
 }
 
@@ -199,6 +205,9 @@ model WorkspaceMembership {
 
   @@unique([userId, tenantId, role])
   @@index([userId, tenantId])
+  @@index([userId, isActive])
+  @@index([tenantId])
+  @@index([tenantId, role])
   @@map("workspace_memberships")
 }
 
@@ -227,6 +236,7 @@ model NoteFolder {
   pages  NotePage[]
   shares NoteShare[]
 
+  @@index([userId, updatedAt(sort: Desc)])
   @@map("note_folders")
 }
 
@@ -258,6 +268,9 @@ model NoteShare {
   page   NotePage?   @relation(fields: [pageId], references: [id])
   user   User        @relation(fields: [userId], references: [id])
 
+  @@index([targetType, targetId, createdAt(sort: Desc)])
+  @@index([folderId, targetType, targetId])
+  @@index([pageId, targetType, targetId])
   @@map("note_shares")
 }
 
@@ -270,6 +283,7 @@ model SavedScan {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([userId, createdAt(sort: Desc)])
   @@map("saved_scans")
 }
 
@@ -283,6 +297,8 @@ model Follow {
   following   User     @relation("following", fields: [followingId], references: [id])
 
   @@unique([followerId, followingId])
+  @@index([followingId])
+  @@index([followerId])
   @@map("follows")
 }
 
@@ -299,6 +315,7 @@ model DocumentFolder {
   files  DocumentFile[]
   shares DocumentShare[]
 
+  @@index([userId, updatedAt(sort: Desc)])
   @@map("document_folders")
 }
 
@@ -333,6 +350,9 @@ model DocumentShare {
   file   DocumentFile?   @relation(fields: [fileId], references: [id])
   user   User            @relation(fields: [userId], references: [id])
 
+  @@index([targetType, targetId, createdAt(sort: Desc)])
+  @@index([folderId, targetType, targetId])
+  @@index([fileId, targetType, targetId])
   @@map("document_shares")
 }
 

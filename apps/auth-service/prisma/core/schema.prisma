@@ -108,6 +108,7 @@ model Family {
   createdAt DateTime @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, unitId])
   @@map("families")
 }
 
@@ -153,6 +154,9 @@ model Member {
   amenityBookings       AmenityBooking[]
 
   @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, familyId])
+  @@index([tenantId, role, isActive])
   @@unique([tenantId, phone])
   @@map("members")
 }
@@ -605,6 +609,11 @@ model Blog {
   @@unique([id, tenantId])
   @@index([tenantId])
   @@index([businessProfileId])
+  @@index([tenantId, isActive, type, visibility, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([isActive, visibility, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, isActive, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([businessProfileId, isActive, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([parentId, authorId, tenantId])
   @@map("blogs")
 }
 
@@ -755,6 +764,9 @@ model BusinessProfile {
   @@index([userId])
   @@index([tenantId])
   @@index([category])
+  @@index([userId, isActive, createdAt(sort: Desc)])
+  @@index([tenantId, isActive])
+  @@index([isActive, serviceAreaType])
   @@map("business_profiles")
 }
 

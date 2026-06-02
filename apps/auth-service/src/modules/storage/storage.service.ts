@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class StorageService {
@@ -22,8 +23,16 @@ export class StorageService {
     }
 
     async getPresignedUrl(fileName: string, contentType: string, tenantId: string, userId: string, resourceType: string = 'uploads') {
-        // Structured Key: resido/<tenant-id>/<resource-type>/<user-id>/<timestamp>-<filename>
-        const key = `resido/${tenantId}/${resourceType}/${userId}/${Date.now()}_${fileName}`;
+        let key: string;
+        if (resourceType === 'profiles') {
+            const fileExtension = (fileName.split('.').pop() || 'jpg').toLowerCase();
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            key = `resido/${tenantId}/profiles/${userId}/original/${year}/${month}/${uuidv4()}.${fileExtension}`;
+        } else {
+            key = `resido/${tenantId}/${resourceType}/${userId}/${Date.now()}_${fileName}`;
+        }
         
         const command = new PutObjectCommand({
             Bucket: this.bucketName,

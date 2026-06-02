@@ -10,11 +10,13 @@ import { StorageModule } from './modules/storage/storage.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { FollowModule } from './modules/follow/follow.module';
+import { ProfileMediaModule } from './modules/profile-media/profile-media.module';
 
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         PrismaModule,
+        ProfileMediaModule,
         CacheModule,
         OtpModule,
         AuthModule,

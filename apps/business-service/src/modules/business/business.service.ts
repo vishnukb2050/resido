@@ -333,7 +333,14 @@ export class BusinessService {
         // appear. This prevents a profile created for a single district
         // (e.g. Ernakulam) from being visible to users in other districts
         // who haven't told us where they are.
-        if (!hasLocationContext) {
+        //
+        // EXCEPTION: when the caller explicitly scopes to a single tenant
+        // (`tenantId`), they are looking up that community's own shadow
+        // profiles (Community Parking, Community Billing, etc.). These are
+        // intentionally created without geo coordinates, so the PAN_INDIA
+        // visibility gate would hide them on every reload. The tenantId is
+        // itself a strong scope, so visibility doesn't need a second guard.
+        if (!hasLocationContext && !tenantId) {
             baseWhere.serviceAreaType = 'PAN_INDIA';
         }
 

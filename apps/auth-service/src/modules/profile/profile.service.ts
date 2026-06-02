@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { ProfileMediaService } from '../profile-media/profile-media.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -54,8 +55,14 @@ export class ProfileService implements OnModuleInit {
 
     constructor(
         private prisma: PrismaService,
-        private storageService: StorageService
+        private storageService: StorageService,
+        private profileMedia: ProfileMediaService,
     ) { }
+
+    private withResolvedPhotos<T extends { profilePhoto?: string | null; profilePhotoThumb?: string | null }>(row: T) {
+        const photos = this.profileMedia.resolvePhotoFields(row);
+        return { ...row, ...photos };
+    }
 
     private canonicalDistrictKey(district: string): string {
         const trimmed = (district || '').trim();
@@ -270,31 +277,38 @@ export class ProfileService implements OnModuleInit {
         if (!user) {
             throw new NotFoundException('User profile not found');
         }
-        return {
-            ...user,
-            profilePhoto: this.storageService.resolvePublicMediaUrl(user.profilePhoto),
-        };
+        return this.withResolvedPhotos(user);
     }
 
     async updateProfile(userId: string, data: any, file?: any) {
-        let profilePhotoUrl = data.profilePhoto;
+        const userWithMembership = await this.prisma.userRead.user.findUnique({
+            where: { id: userId },
+            include: { workspaceMemberships: { take: 1 } },
+        });
+        const tenantId =
+            (userWithMembership as any)?.workspaceMemberships?.[0]?.tenantId || 'global';
+
+        let profilePhotoStored: string | undefined = data.profilePhoto;
+        let shouldProcessPhoto = false;
 
         if (file) {
-            // Get user's first membership for structured key
-            const userWithMembership = await this.prisma.userRead.user.findUnique({
-                where: { id: userId },
-                include: { workspaceMemberships: { take: 1 } }
-            });
-
-            const tenantId = (userWithMembership as any)?.workspaceMemberships?.[0]?.tenantId || 'global';
-
             const uploadResult = await this.storageService.uploadFile(
                 file,
                 tenantId,
                 userId,
-                'profiles'
+                'profiles',
             );
-            profilePhotoUrl = uploadResult.fileUrl;
+            profilePhotoStored = uploadResult.key;
+            shouldProcessPhoto = true;
+        } else if (typeof data.profilePhotoKey === 'string' && data.profilePhotoKey.startsWith('resido/')) {
+            profilePhotoStored = data.profilePhotoKey;
+            shouldProcessPhoto = true;
+        } else if (profilePhotoStored) {
+            const key = this.profileMedia.extractStorageKey(profilePhotoStored);
+            if (key) {
+                profilePhotoStored = key;
+                shouldProcessPhoto = true;
+            }
         }
 
         // The phone number is the OTP-verified identity for an account, so
@@ -330,7 +344,8 @@ export class ProfileService implements OnModuleInit {
                     email: data.email || undefined,
                     age: data.age && !isNaN(parseInt(data.age)) ? parseInt(data.age) : undefined,
                     description: data.description || undefined,
-                    profilePhoto: profilePhotoUrl || undefined,
+                    profilePhoto: profilePhotoStored || undefined,
+                    profilePhotoThumb: shouldProcessPhoto ? null : undefined,
                     profileName: normalizedProfileName,
                     phoneVisibility: data.phoneVisibility && allowedPhoneVisibility.includes(data.phoneVisibility)
                         ? data.phoneVisibility
@@ -382,10 +397,11 @@ export class ProfileService implements OnModuleInit {
             }
         }
 
-        return {
-            ...user,
-            profilePhoto: this.storageService.resolvePublicMediaUrl(user.profilePhoto),
-        };
+        if (shouldProcessPhoto && user.profilePhoto) {
+            await this.profileMedia.enqueueAfterPhotoUpdate(userId, tenantId, user.profilePhoto);
+        }
+
+        return this.withResolvedPhotos(user);
     }
 
     async getJobProfile(userId: string) {
@@ -688,6 +704,7 @@ export class ProfileService implements OnModuleInit {
                 name: true,
                 profileName: true,
                 profilePhoto: true,
+                profilePhotoThumb: true,
                 profileVisibility: true,
                 linkBusinessProfile: true,
             },
@@ -721,7 +738,7 @@ export class ProfileService implements OnModuleInit {
             id: u.id,
             name: u.name,
             profileName: u.profileName,
-            profilePhoto: this.storageService.resolvePublicMediaUrl(u.profilePhoto),
+            ...this.profileMedia.resolvePhotoFields(u),
             profileVisibility: u.profileVisibility || 'GLOBAL',
             linkBusinessProfile: !!u.linkBusinessProfile,
             businessProfileCount: u.linkBusinessProfile ? (bizCountByUser[u.id] || 0) : 0,
@@ -918,6 +935,7 @@ export class ProfileService implements OnModuleInit {
                 name: true,
                 profileName: true,
                 profilePhoto: true,
+                profilePhotoThumb: true,
                 profileVisibility: true,
             },
         });
@@ -926,12 +944,17 @@ export class ProfileService implements OnModuleInit {
                 id: u.id,
                 name: u.name,
                 profileName: u.profileName,
-                profilePhoto: this.storageService.resolvePublicMediaUrl(u.profilePhoto),
+                ...this.profileMedia.resolvePhotoFields(u),
                 profileVisibility: u.profileVisibility || 'GLOBAL',
                 linkBusinessProfile: true,
             };
             return acc;
         }, {});
+    }
+
+    /** Batch avatar URLs for feed enrichment (flaredthread-service). */
+    async getAvatarsBatch(userIds: string[]) {
+        return this.profileMedia.getAvatarsBatch(userIds);
     }
 
     async getFollowCounts(userId: string) {
@@ -1071,7 +1094,7 @@ export class ProfileService implements OnModuleInit {
             id: target.id,
             name: target.name,
             profileName: target.profileName,
-            profilePhoto: this.storageService.resolvePublicMediaUrl(target.profilePhoto),
+            ...this.profileMedia.resolvePhotoFields(target as any),
             profileVisibility,
             linkBusinessProfile,
             ...counts,

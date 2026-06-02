@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
-    Alert, ActivityIndicator, TextInput, ScrollView, StyleSheet as RNStyleSheet
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, TextInput, ScrollView, StyleSheet as RNStyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
@@ -709,7 +707,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     header: { 
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
-        paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
+        paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16,
         borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)'
     },
     backBtn: { 
