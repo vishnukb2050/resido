@@ -15,6 +15,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY start.sh ./
-RUN chmod +x start.sh
+COPY prisma-deploy.sh ./
+RUN chmod +x start.sh prisma-deploy.sh
 EXPOSE 3004
 CMD ["./start.sh"]

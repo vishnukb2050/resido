@@ -18,9 +18,11 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY start.sh ./
+COPY prisma-deploy.sh ./
+COPY ensure-databases.js ./
 COPY enable-postgis.js ./
 COPY init-geo-db.js ./
 COPY wait-for-core-schema.js ./
-RUN chmod +x start.sh
+RUN chmod +x start.sh prisma-deploy.sh
 EXPOSE 3001
 CMD ["./start.sh"]

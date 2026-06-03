@@ -49,6 +49,7 @@ model Block {
   units       Unit[]
 
   @@index([tenantId])
+  @@index([tenantId, apartmentId])
   @@map("blocks")
 }
 
@@ -66,6 +67,7 @@ model Unit {
   paymentSplitShares PaymentSplitShare[]
 
   @@index([tenantId])
+  @@index([tenantId, blockId])
   @@map("units")
 }
 
@@ -175,6 +177,7 @@ model Notice {
   updatedAt       DateTime @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
   @@map("notices")
 }
 
@@ -203,6 +206,7 @@ model PollOption {
   votes    PollVote[]
 
   @@index([tenantId])
+  @@index([pollId])
   @@map("poll_options")
 }
 
@@ -216,6 +220,7 @@ model PollVote {
   votedAt  DateTime   @default(now())
 
   @@index([tenantId])
+  @@index([memberId])
   @@unique([optionId, memberId])
   @@map("poll_votes")
 }
@@ -245,6 +250,7 @@ model GroupMember {
   member   Member @relation(fields: [memberId], references: [id])
 
   @@index([tenantId])
+  @@index([memberId])
   @@unique([groupId, memberId])
   @@map("group_members")
 }
@@ -262,6 +268,7 @@ model Notification {
   member    Member   @relation(fields: [memberId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, memberId, isRead, createdAt(sort: Desc)])
   @@map("notifications")
 }
 
@@ -284,6 +291,9 @@ model Complaint {
   updatedAt     DateTime       @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([tenantId, memberId, createdAt(sort: Desc)])
+  @@index([tenantId, assignedTo, createdAt(sort: Desc)])
   @@map("complaints")
 }
 
@@ -308,6 +318,9 @@ model Visitor {
   createdAt     DateTime     @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([tenantId, memberId, createdAt(sort: Desc)])
   @@unique([tenantId, passCode])
   @@map("visitors")
 }
@@ -331,6 +344,7 @@ model Event {
   updatedAt     DateTime       @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, startDate])
   @@map("events")
 }
 
@@ -370,6 +384,7 @@ model Gallery {
   updatedAt   DateTime @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, folderId])
   @@map("gallery")
 }
 
@@ -434,6 +449,8 @@ model DocPermission {
   createdAt   DateTime @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, memberId])
+  @@index([tenantId, groupId])
   @@map("doc_permissions")
 }
 
@@ -520,6 +537,8 @@ model FinanceTransaction {
   updatedAt     DateTime        @updatedAt
 
   @@index([tenantId, memberId])
+  @@index([tenantId, memberId, date(sort: Desc)])
+  @@index([tenantId, memberId, type, date(sort: Desc)])
   @@map("finance_transactions")
 }
 
@@ -677,6 +696,7 @@ model BlogComment {
   @@unique([id, tenantId])
   @@index([blogId, tenantId])
   @@index([tenantId])
+  @@index([blogId, tenantId, createdAt(sort: Desc)])
   @@map("blog_comments")
 }
 
@@ -692,6 +712,7 @@ model BlogInteraction {
   @@unique([id, tenantId])
   @@unique([blogId, userId, type, tenantId])
   @@index([tenantId])
+  @@index([userId, type, tenantId, createdAt(sort: Desc)])
   @@map("blog_interactions")
 }
 
@@ -764,9 +785,6 @@ model BusinessProfile {
   @@index([userId])
   @@index([tenantId])
   @@index([category])
-  @@index([userId, isActive, createdAt(sort: Desc)])
-  @@index([tenantId, isActive])
-  @@index([isActive, serviceAreaType])
   @@map("business_profiles")
 }
 
@@ -861,6 +879,7 @@ model BusinessBookingUpdate {
 // ─── Visitors (Entry/Exit) ────────────────────────────────────
 model VisitorEntry {
   id          String    @id @default(cuid())
+  tenantId    String
   visitorName String
   phone       String?
   purpose     String?
@@ -875,11 +894,14 @@ model VisitorEntry {
   gatepassId  String?   // Link to gatepass if used
   createdAt   DateTime  @default(now())
 
+  @@index([tenantId])
+  @@index([tenantId, inTime(sort: Desc)])
   @@map("visitor_entries")
 }
 
 model Gatepass {
   id              String   @id @default(cuid())
+  tenantId        String
   visitorName     String
   phone           String?
   personsCount    Int      @default(1)
@@ -895,7 +917,25 @@ model Gatepass {
   approvedBy      String?  // security member id
   createdAt       DateTime @default(now())
 
+  @@index([tenantId])
+  @@index([tenantId, residentId, createdAt(sort: Desc)])
   @@map("gatepasses")
+}
+
+// ─── Cleaning Log (daily housekeeping by cleaning staff) ──────
+model CleaningLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  loggedBy  String   // global user id of the cleaning staff
+  date      DateTime @default(now())
+  areas     String[] // cleaned area labels
+  notes     String?
+  photoUrls String[] // S3 keys / URLs
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("cleaning_logs")
 }
 
 enum GatepassStatus {
@@ -1035,6 +1075,8 @@ model AmenityBooking {
   member      Member   @relation(fields: [memberId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, amenityId, bookingDate, timeSlot, status])
+  @@index([tenantId, memberId, createdAt(sort: Desc)])
   @@map("amenity_bookings")
 }
 
@@ -1058,6 +1100,9 @@ model CommunityTransaction {
   maintenanceBill   MaintenanceBill? @relation(fields: [maintenanceBillId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([tenantId, type, date(sort: Desc)])
+  @@index([tenantId, category, date(sort: Desc)])
   @@map("community_transactions")
 }
 
@@ -1143,6 +1188,9 @@ model MaintenanceBill {
 
   @@unique([unitId, month, year])
   @@index([tenantId])
+  @@index([tenantId, year, month])
+  @@index([tenantId, unitId, year(sort: Desc), month(sort: Desc)])
+  @@index([tenantId, status, dueDate])
   @@map("maintenance_bills")
 }
 
@@ -1192,6 +1240,7 @@ model PaymentSplitShare {
 
   @@unique([splitId, unitId])
   @@index([tenantId])
+  @@index([tenantId, unitId, status])
   @@map("payment_split_shares")
 }
 

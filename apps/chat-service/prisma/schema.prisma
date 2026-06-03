@@ -1,4 +1,7 @@
-// chat-service Prisma schema (per-tenant DB)
+// chat-service Prisma schema.
+// Single shared `resido_chat` database for ALL communities. Rows are isolated
+// by `tenantId` (the community/client id), matching the rest of the platform
+// (resido_core uses the same tenantId model). No database-per-community.
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/@resido/chat-client"
@@ -6,11 +9,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("TENANT_DATABASE_URL")
+  url      = env("CHAT_WRITE_URL")
 }
 
 model Conversation {
   id        String               @id @default(cuid())
+  tenantId  String
   type      ConversationType     @default(DIRECT)
   name      String?              // For group chats
   groupId   String?              // Link to resident-service group
@@ -19,12 +23,15 @@ model Conversation {
   members   ConversationMember[]
   messages  Message[]
 
-  @@index([groupId])
+  @@index([tenantId])
+  @@index([tenantId, groupId])
+  @@index([tenantId, createdAt(sort: Desc)])
   @@map("conversations")
 }
 
 model ConversationMember {
   id             String       @id @default(cuid())
+  tenantId       String
   conversationId String
   memberId       String
   conversation   Conversation @relation(fields: [conversationId], references: [id])
@@ -32,12 +39,13 @@ model ConversationMember {
   lastReadAt     DateTime?
 
   @@unique([conversationId, memberId])
-  @@index([memberId])
+  @@index([tenantId, memberId])
   @@map("conversation_members")
 }
 
 model Message {
   id             String       @id @default(cuid())
+  tenantId       String
   conversationId String
   senderId       String
   type           MessageType  @default(TEXT)
@@ -50,13 +58,14 @@ model Message {
 
   conversation   Conversation @relation(fields: [conversationId], references: [id])
 
-  @@index([conversationId, isDeleted, createdAt])
+  @@index([tenantId, conversationId, isDeleted, createdAt])
   @@index([conversationId, createdAt(sort: Desc)])
   @@map("messages")
 }
 
 model Poll {
   id          String   @id @default(cuid())
+  tenantId    String
   question    String
   options     PollOption[]
   votes       PollVote[]
@@ -64,6 +73,7 @@ model Poll {
   createdAt   DateTime @default(now())
   messages    Message[]
 
+  @@index([tenantId])
   @@map("polls")
 }
 
@@ -79,14 +89,16 @@ model PollOption {
 
 model PollVote {
   id          String   @id @default(cuid())
+  tenantId    String
   pollId      String
   optionId    String
   userId      String
-  
+
   poll        Poll       @relation(fields: [pollId], references: [id])
   option      PollOption @relation(fields: [optionId], references: [id])
 
   @@unique([pollId, userId])
+  @@index([tenantId])
   @@map("poll_votes")
 }
 

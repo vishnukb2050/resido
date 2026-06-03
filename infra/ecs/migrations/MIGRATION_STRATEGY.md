@@ -6,7 +6,7 @@
 | ------------------ | --------------------------------------------------------- | ------------------------------------------------------ |
 | Local dev          | `prisma db push --accept-data-loss` (fine)                | `prisma migrate dev --name <change>` (commit the diff) |
 | EC2 / docker-compose | `prisma db push --accept-data-loss` from `start.sh`     | `prisma migrate deploy` from `start.sh`                |
-| ECS Fargate (prod) | n/a                                                       | One-off **`db-migrate`** ECS task → `prisma migrate deploy` |
+| ECS Fargate (prod) | One-off **`db-migrate`** → `prisma migrate deploy` (baselines in git) | Same; add new folders via `migrate dev` |
 
 The dangerous knob is `--accept-data-loss`. It tells Prisma "I authorise
 you to drop anything that isn't in the new schema." On a production DB
@@ -55,8 +55,13 @@ of what changed. Consequences:
 
 ### Step 1 — Baseline every production DB
 
+**Status:** baseline `0_init` migrations are committed under
+`apps/auth-service/prisma/{master,user,core,geo}/migrations/` and
+`apps/notification-service/prisma/migrations/`. Regenerate with
+`bash infra/ecs/scripts/generate-baseline-migrations.sh` only when resetting history.
+
 For each of `resido_master`, `resido_users`, `resido_core`,
-`resido_geodata`, and every tenant DB:
+`resido_geodata`, and every tenant DB (if not already baselined):
 
 ```bash
 # 1. Generate the initial migration locally from the current schema.

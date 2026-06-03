@@ -24,12 +24,12 @@ export class ChatController {
 
         // Explicit GROUP type or a name supplied with >2 members => create an ad-hoc group.
         if (body.groupId) {
-            return this.chatService.getOrCreateGroupConversation(req.tenantDbName, body.groupId, ids, body.name || 'Group');
+            return this.chatService.getOrCreateGroupConversation(req.tenantId, body.groupId, ids, body.name || 'Group');
         }
         if (body.type === 'GROUP' || (body.name && ids.length >= 2 && body.type !== 'DIRECT' && ids.length > 2)) {
-            return this.chatService.createAdhocGroup(req.tenantDbName, body.name || 'Group', ids);
+            return this.chatService.createAdhocGroup(req.tenantId, body.name || 'Group', ids);
         }
-        return this.chatService.getOrCreateDirectConversation(req.tenantDbName, ids);
+        return this.chatService.getOrCreateDirectConversation(req.tenantId, ids);
     }
 
     @Get('conversations')
@@ -39,7 +39,7 @@ export class ChatController {
         @Query('skip') skip = '0',
         @Query('take') take = '30',
     ) {
-        return this.chatService.getConversations(req.tenantDbName, memberId, +skip, +take);
+        return this.chatService.getConversations(req.tenantId, memberId, +skip, +take);
     }
 
     @Get('conversations/:id/messages')
@@ -51,9 +51,9 @@ export class ChatController {
         @Query('take') take = '50',
     ) {
         // Don't let a user read history of a conversation they're not in.
-        const allowed = await this.chatService.isConversationMember(req.tenantDbName, conversationId, userId);
+        const allowed = await this.chatService.isConversationMember(req.tenantId, conversationId, userId);
         if (!allowed) throw new ForbiddenException('Not a member of this conversation');
-        return this.chatService.getMessages(req.tenantDbName, conversationId, +skip, +take, userId);
+        return this.chatService.getMessages(req.tenantId, conversationId, +skip, +take, userId);
     }
 
     /**
@@ -70,9 +70,9 @@ export class ChatController {
         @Body() body: { content?: string; type?: string; mediaUrl?: string; poll?: any },
     ) {
         if (!senderId) throw new BadRequestException('Missing sender');
-        const allowed = await this.chatService.isConversationMember(req.tenantDbName, conversationId, senderId);
+        const allowed = await this.chatService.isConversationMember(req.tenantId, conversationId, senderId);
         if (!allowed) throw new ForbiddenException('Not a member of this conversation');
-        const message = await this.chatService.createMessage(req.tenantDbName, {
+        const message = await this.chatService.createMessage(req.tenantId, {
             conversationId,
             senderId,
             content: body.content,
@@ -91,6 +91,6 @@ export class ChatController {
         @Headers('x-user-id') userId: string,
         @Body() body: { optionId: string },
     ) {
-        return this.chatService.votePoll(req.tenantDbName, pollId, body.optionId, userId);
+        return this.chatService.votePoll(req.tenantId, pollId, body.optionId, userId);
     }
 }

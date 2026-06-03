@@ -28,11 +28,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         const token = client.handshake.auth?.token;
         const tenantId = client.handshake.auth?.tenantId;
         const memberId = client.handshake.auth?.memberId;
-        const dbName = client.handshake.auth?.dbName;
 
-        // Authenticate the socket: a valid JWT is required, and the tenant/db
-        // the client claims must match the token so a user can't attach to
-        // another tenant's database.
+        // Authenticate the socket: a valid JWT is required, and the tenant the
+        // client claims must match the token so a user can't attach to another
+        // community's chat data (all communities share resido_chat; rows are
+        // isolated by tenantId).
         let payload: any;
         try {
             payload = this.jwtService.verify(token, {
@@ -44,15 +44,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             return;
         }
 
-        if (!tenantId || !memberId || !dbName) {
+        if (!tenantId || !memberId) {
             client.disconnect(true);
             return;
         }
-        // Require the token to actually carry tenant/db claims and to match the
-        // handshake — a token without them must NOT be able to attach to an
-        // arbitrary tenant DB.
-        if (!payload.tenantId || !payload.dbName) {
-            console.warn('[ws] rejected connection: token missing tenant/db claims');
+        if (!payload.tenantId) {
+            console.warn('[ws] rejected connection: token missing tenantId');
             client.disconnect(true);
             return;
         }
@@ -61,13 +58,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             client.disconnect(true);
             return;
         }
-        if (payload.dbName !== dbName) {
-            console.warn('[ws] rejected connection: db mismatch');
-            client.disconnect(true);
-            return;
-        }
 
-        client.data.dbName = dbName;
         client.data.tenantId = tenantId;
         client.data.memberId = memberId;
         client.data.userId = payload.sub;
@@ -77,7 +68,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         // carry a userId) can reach this client without a global broadcast.
         client.join(`user:${memberId}`);
         if (payload.sub) client.join(`user:${payload.sub}`);
-        console.log(`Client connected: ${memberId} in tenant ${tenantId} (${dbName})`);
+        console.log(`Client connected: ${memberId} in tenant ${tenantId}`);
     }
 
     handleDisconnect(client: Socket) {
@@ -89,10 +80,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         @ConnectedSocket() client: Socket,
         @MessageBody() data: { conversationId: string },
     ) {
-        const { dbName, memberId } = client.data;
-        if (!dbName || !memberId) return { error: 'Unauthorized' };
+        const { tenantId, memberId } = client.data;
+        if (!tenantId || !memberId) return { error: 'Unauthorized' };
         // Only let a client subscribe to conversations it actually belongs to.
-        const allowed = await this.chatService.isConversationMember(dbName, data.conversationId, memberId);
+        const allowed = await this.chatService.isConversationMember(tenantId, data.conversationId, memberId);
         if (!allowed) return { error: 'Forbidden' };
         client.join(`conversation:${data.conversationId}`);
         return { event: 'joined', data: data.conversationId };
@@ -114,14 +105,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             }
         },
     ) {
-        const { dbName, memberId } = client.data;
-        if (!dbName || !memberId) return { error: 'Unauthorized' };
+        const { tenantId, memberId } = client.data;
+        if (!tenantId || !memberId) return { error: 'Unauthorized' };
 
         // Reject sends to conversations the client isn't a member of.
-        const allowed = await this.chatService.isConversationMember(dbName, data.conversationId, memberId);
+        const allowed = await this.chatService.isConversationMember(tenantId, data.conversationId, memberId);
         if (!allowed) return { error: 'Forbidden' };
 
-        const message = await this.chatService.createMessage(dbName, {
+        const message = await this.chatService.createMessage(tenantId, {
             conversationId: data.conversationId,
             senderId: memberId,
             content: data.content,

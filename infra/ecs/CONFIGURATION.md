@@ -126,17 +126,17 @@ aws secretsmanager put-secret-value --secret-id resido/$ENV/INTERNAL_SERVICE_SEC
 
 ## 5. After first apply — bootstrap data (one-off)
 
-### 5a. Create the extra logical databases
+### 5a. Create the extra logical databases — AUTOMATED
 
-RDS only auto-creates `resido_master`. Create the rest once:
+RDS auto-creates only `resido_master`. The other four
+(`resido_users`, `resido_core`, `resido_geodata`, `resido_notifications`, `resido_chat`) are
+created **automatically** by the `db-migrate` ECS task, which runs
+`node ensure-databases.js` (inside the VPC, before `prisma migrate deploy`).
+So `release.yml` with `run_migrate: true` creates the databases AND their tables
+in one pass. No manual `psql` needed.
 
-```bash
-RDS_URL=$(aws secretsmanager get-secret-value --secret-id resido/$ENV/RDS_WRITE_URL --query SecretString --output text)
-psql "$RDS_URL" -c "CREATE DATABASE resido_users;"
-psql "$RDS_URL" -c "CREATE DATABASE resido_core;"
-psql "$RDS_URL" -c "CREATE DATABASE resido_geodata;"
-psql "$RDS_URL" -c "CREATE DATABASE resido_notifications;"
-```
+> Manual fallback (only if you skip the migrate task): connect to the server's
+> `postgres` DB and run `CREATE DATABASE resido_users;` etc.
 
 ### 5b. Run schema migrations
 
@@ -228,12 +228,9 @@ aws ecs update-service --cluster resido-$ENV-cluster \
 - [ ] `CORS_ORIGINS` set for prod (or intentionally left open).
 - [ ] Decided on read-replica `*_READ_URL` (now or later).
 - [ ] `MEDIA_WORKER_SECRET` and Redis URL present in secrets (media transcoding).
-- [ ] **Schema sync before first ECS deploy:** there are no checked-in `prisma/migrations` yet.
-  Either (a) one-time `RUN_PRISMA_PUSH=true` on **resident-service** so `start.sh` runs
-  `prisma db push` against `resido_core`, or (b) run `npx prisma db push` from
-  `apps/resident-service` against the target DB manually. Required for new columns
-  (`VisitorEntry.tenantId`, `Gatepass.tenantId`, `CleaningLog`). On a DB that already
-  has visitor rows without `tenantId`, backfill tenant IDs before enforcing NOT NULL.
+- [ ] **Migrations in git:** baseline `0_init` SQL is under `apps/auth-service/prisma/*/migrations/`
+  and `apps/notification-service/prisma/migrations/`. Pipeline **`release.yml`** with
+  `run_migrate: true` runs `migrate deploy` before deploy (see `migrations/FIRST_DEPLOY.md`).
 - [ ] `service_overrides` / `service_desired_count_default` sized for the env.
 
 ---

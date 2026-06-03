@@ -18,22 +18,20 @@ interface CreateMessageDto {
 export class ChatService {
     constructor(private tenantPrisma: TenantPrismaService) {}
 
-    async getOrCreateDirectConversation(dbName: string, memberIds: string[]) {
+    async getOrCreateDirectConversation(tenantId: string, memberIds: string[]) {
         // Normalize / de-dup. A DIRECT chat must have exactly two distinct members.
         const ids = Array.from(new Set(memberIds.filter(Boolean)));
         if (ids.length < 2) {
             throw new Error('Direct conversation requires two distinct members');
         }
         const [a, b] = ids.slice(0, 2).sort();
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
+        const prisma = this.tenantPrisma.getWriteClient();
 
-        // Find an existing DIRECT conversation that contains BOTH members and is between
-        // exactly two participants. The previous `every: in [a,b]` query was satisfied by
-        // conversations that only contained ONE of the two — which caused duplicates and
-        // sometimes returned the wrong conversation. Use an explicit AND of two `some`
-        // predicates plus a member-count check.
+        // Find an existing DIRECT conversation in THIS tenant that contains BOTH
+        // members and is between exactly two participants.
         const candidates = await prisma.conversation.findMany({
             where: {
+                tenantId,
                 type: 'DIRECT',
                 AND: [
                     { members: { some: { memberId: a } } },
@@ -47,25 +45,27 @@ export class ChatService {
 
         return prisma.conversation.create({
             data: {
+                tenantId,
                 type: 'DIRECT',
-                members: { create: [a, b].map((id) => ({ memberId: id })) },
+                members: { create: [a, b].map((id) => ({ tenantId, memberId: id })) },
             },
             include: { members: true },
         });
     }
 
-    async getOrCreateGroupConversation(dbName: string, groupId: string, memberIds: string[], name: string) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        const existing = await prisma.conversation.findFirst({ where: { groupId }, include: { members: true } });
+    async getOrCreateGroupConversation(tenantId: string, groupId: string, memberIds: string[], name: string) {
+        const prisma = this.tenantPrisma.getWriteClient();
+        const existing = await prisma.conversation.findFirst({ where: { tenantId, groupId }, include: { members: true } });
         if (existing) return existing;
 
         const ids = Array.from(new Set(memberIds.filter(Boolean)));
         return prisma.conversation.create({
             data: {
+                tenantId,
                 type: 'GROUP',
                 name,
                 groupId,
-                members: { create: ids.map((id) => ({ memberId: id })) },
+                members: { create: ids.map((id) => ({ tenantId, memberId: id })) },
             },
             include: { members: true },
         });
@@ -77,8 +77,8 @@ export class ChatService {
      * existing conversation when a previous one was created for the same name +
      * member set (helps idempotent retries from a flaky network).
      */
-    async createAdhocGroup(dbName: string, name: string, memberIds: string[]) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
+    async createAdhocGroup(tenantId: string, name: string, memberIds: string[]) {
+        const prisma = this.tenantPrisma.getWriteClient();
         const ids = Array.from(new Set(memberIds.filter(Boolean)));
         if (ids.length < 2) {
             throw new Error('Group needs at least two members');
@@ -87,22 +87,33 @@ export class ChatService {
         const groupId = `adhoc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         return prisma.conversation.create({
             data: {
+                tenantId,
                 type: 'GROUP',
                 name: safeName,
                 groupId,
-                members: { create: ids.map((id) => ({ memberId: id })) },
+                members: { create: ids.map((id) => ({ tenantId, memberId: id })) },
             },
             include: { members: true },
         });
     }
 
-    async createMessage(dbName: string, dto: CreateMessageDto) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
-        
+    async createMessage(tenantId: string, dto: CreateMessageDto) {
+        const prisma = this.tenantPrisma.getWriteClient();
+
+        // Guard: the conversation must exist in THIS tenant.
+        const conversation = await prisma.conversation.findFirst({
+            where: { id: dto.conversationId, tenantId },
+            select: { id: true },
+        });
+        if (!conversation) {
+            throw new NotFoundException('Conversation not found');
+        }
+
         let pollId = undefined;
         if (dto.type === 'POLL' && dto.poll) {
             const poll = await prisma.poll.create({
                 data: {
+                    tenantId,
                     question: dto.poll.question,
                     expiresAt: new Date(Date.now() + (dto.poll.durationDays || 7) * 24 * 60 * 60 * 1000),
                     options: {
@@ -115,6 +126,7 @@ export class ChatService {
 
         return prisma.message.create({
             data: {
+                tenantId,
                 conversationId: dto.conversationId,
                 senderId: dto.senderId,
                 content: dto.content,
@@ -136,18 +148,18 @@ export class ChatService {
         });
     }
 
-    async votePoll(dbName: string, pollId: string, optionId: string, userId: string) {
-        const prisma = this.tenantPrisma.getWriteClient(dbName);
+    async votePoll(tenantId: string, pollId: string, optionId: string, userId: string) {
+        const prisma = this.tenantPrisma.getWriteClient();
 
-        // Only members of the poll's conversation may vote.
+        // Only members of the poll's conversation (in this tenant) may vote.
         const message = await prisma.message.findFirst({
-            where: { poll: { id: pollId } },
+            where: { tenantId, poll: { id: pollId } },
             select: { conversationId: true },
         });
         if (!message) {
             throw new NotFoundException('Poll not found');
         }
-        const isMember = await this.isConversationMember(dbName, message.conversationId, userId);
+        const isMember = await this.isConversationMember(tenantId, message.conversationId, userId);
         if (!isMember) {
             throw new ForbiddenException('Not a member of this conversation');
         }
@@ -163,6 +175,7 @@ export class ChatService {
 
         return prisma.pollVote.create({
             data: {
+                tenantId,
                 pollId,
                 optionId,
                 userId
@@ -170,12 +183,12 @@ export class ChatService {
         });
     }
 
-    async getMessages(dbName: string, conversationId: string, skip = 0, take = 50, userId?: string) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
+    async getMessages(tenantId: string, conversationId: string, skip = 0, take = 50, userId?: string) {
+        const prisma = this.tenantPrisma.getReadClient();
         const safeTake = Math.min(Math.max(take, 1), 100);
         const safeSkip = Math.max(skip, 0);
         return prisma.message.findMany({
-            where: { conversationId, isDeleted: false },
+            where: { tenantId, conversationId, isDeleted: false },
             include: {
                 poll: {
                     include: {
@@ -196,13 +209,13 @@ export class ChatService {
         });
     }
 
-    async getConversations(dbName: string, memberId: string, skip = 0, take = 30) {
-        const prisma = this.tenantPrisma.getReadClient(dbName);
+    async getConversations(tenantId: string, memberId: string, skip = 0, take = 30) {
+        const prisma = this.tenantPrisma.getReadClient();
         // Cap page size so an account in thousands of groups can't pull the
         // entire inbox + full member graph in one request.
         const safeTake = Math.min(Math.max(take, 1), 50);
         return prisma.conversation.findMany({
-            where: { members: { some: { memberId } } },
+            where: { tenantId, members: { some: { memberId } } },
             include: {
                 members: true,
                 messages: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -214,15 +227,15 @@ export class ChatService {
     }
 
     /**
-     * Whether `memberId` belongs to a conversation. Used to authorize joins,
-     * sends and history reads so a client can't post into / read arbitrary
-     * conversation ids. Result is tiny and indexed (ConversationMember.memberId).
+     * Whether `memberId` belongs to a conversation in this tenant. Used to
+     * authorize joins, sends and history reads so a client can't post into /
+     * read arbitrary conversation ids.
      */
-    async isConversationMember(dbName: string, conversationId: string, memberId: string): Promise<boolean> {
+    async isConversationMember(tenantId: string, conversationId: string, memberId: string): Promise<boolean> {
         if (!conversationId || !memberId) return false;
-        const prisma = this.tenantPrisma.getReadClient(dbName);
+        const prisma = this.tenantPrisma.getReadClient();
         const row = await prisma.conversationMember.findFirst({
-            where: { conversationId, memberId },
+            where: { tenantId, conversationId, memberId },
             select: { id: true },
         });
         return !!row;

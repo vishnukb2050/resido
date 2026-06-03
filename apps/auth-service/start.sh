@@ -2,10 +2,11 @@
 set -e
 
 # 1. Initialize Databases (if they don't exist).
-#    init-geo-db creates resido_geodata when missing, and is also the place
-#    where we ensure resido_master / resido_users exist before we push them.
+#    ensure-databases.js creates resido_users / resido_core / resido_geodata /
+#    resido_notifications on the single RDS server when missing (resido_master
+#    is created by RDS itself). Idempotent — skips databases that already exist.
 echo "🏗️ Initializing Databases..."
-node init-geo-db.js
+node ensure-databases.js
 
 # 2. Sync the prisma schemas that auth-service OWNS.
 #

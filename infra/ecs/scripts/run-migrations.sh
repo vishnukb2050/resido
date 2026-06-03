@@ -24,11 +24,13 @@ TD_DIR="$REPO_ROOT/infra/ecs/task-definitions"
 SCRIPTS_DIR="$REPO_ROOT/infra/ecs/scripts"
 
 # Migrations run in two ECS tasks (one per image):
-#   1. db-migrate          — uses auth-service image, applies master/user/core/geo
-#   2. db-migrate-notification — uses notification-service image, applies its DB
+#   1. db-migrate              — auth-service image: ensure DBs + master/user/core/geo
+#   2. db-migrate-notification — notification-service image
+#   3. db-migrate-chat         — chat-service image (resido_chat)
 TEMPLATES=(
     "db-migrate.json"
     "db-migrate-notification.json"
+    "db-migrate-chat.json"
 )
 
 # Convert comma-separated CLI args into the JSON arrays that

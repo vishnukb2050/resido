@@ -222,27 +222,23 @@ The DB URLs and Redis URL are managed entirely by Terraform — they
 update automatically if you ever change `rds_instance_class`,
 `rds_username`, or the like.
 
-## After the first apply — bootstrap the extra databases
+## Extra databases — created automatically by the migrate task
 
-RDS only creates `resido_master` for us at boot. The four extra logical
-databases need to be created once:
+RDS creates only `resido_master` at boot. The four extra logical databases
+(`resido_users`, `resido_core`, `resido_geodata`, `resido_notifications`) are
+created **automatically** by the `db-migrate` ECS task, which runs
+`node ensure-databases.js` before `prisma migrate deploy`. It runs inside the
+VPC (so it can reach the private RDS), and is idempotent.
 
-```bash
-# Grab the RDS URL from Secrets Manager:
-RDS_URL=$(aws secretsmanager get-secret-value \
-    --secret-id resido/prod/rds-write-url \
-    --query SecretString --output text)
+So the order is simply:
 
-psql "$RDS_URL" -c "CREATE DATABASE resido_users;"
-psql "$RDS_URL" -c "CREATE DATABASE resido_core;"
-psql "$RDS_URL" -c "CREATE DATABASE resido_geodata;"
-psql "$RDS_URL" -c "CREATE DATABASE resido_notifications;"
-```
+1. `terraform apply` → RDS instance + `resido_master`
+2. `release.yml` (run_migrate=true) → `db-migrate` task:
+   - `ensure-databases.js` creates the other four DBs if missing
+   - `prisma migrate deploy` creates/updates all tables
 
-You only have to do this once per environment. Subsequent schema
-migrations are handled by the `db-migrate` ECS task defined in
-`infra/ecs/task-definitions/db-migrate.json` and run from
-`infra/ecs/scripts/run-migrations.sh`.
+No manual `psql` step. (Fallback, only if you bypass the migrate task: connect
+to the server's `postgres` DB and `CREATE DATABASE resido_users;` etc.)
 
 ## Drive the existing deploy scripts
 

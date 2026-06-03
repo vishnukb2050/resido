@@ -12,11 +12,7 @@
             "name": "db-migrate",
             "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/auth-service:${IMAGE_TAG}",
             "essential": true,
-            "command": [
-                "/bin/sh",
-                "-c",
-                "set -e; echo '==== migrate: resido_master ===='; npx prisma migrate deploy --schema=prisma/master/schema.prisma; echo '==== migrate: resido_users ===='; npx prisma migrate deploy --schema=prisma/user/schema.prisma; echo '==== migrate: resido_core (canonical schema mirrored from resident-service) ===='; npx prisma migrate deploy --schema=prisma/core/schema.prisma; echo '==== migrate: resido_geodata ===='; GEO_WRITE_URL=${GEO_WRITE_URL:-$RDS_WRITE_URL/resido_geodata?schema=public} npx prisma migrate deploy --schema=prisma/geo/schema.prisma; echo '==== enable PostGIS on resido_geodata ===='; node enable-postgis.js || true; echo '==== migrations completed successfully ===='"
-            ],
+            "command": ["/bin/sh", "./prisma-deploy.sh"],
             "environment": [
                 { "name": "NODE_ENV", "value": "production" }
             ],

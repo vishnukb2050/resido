@@ -84,21 +84,19 @@ resource "aws_db_instance" "this" {
   }
 }
 
-# Bootstrap additional logical databases (Prisma points each service at its
-# own DB inside the single Postgres instance). We do this with a null_resource
-# that runs psql, but Terraform alone can't open a TCP connection to a
-# Postgres in your VPC reliably from the operator machine, so we instead
-# rely on each service's startup migrations (`prisma migrate deploy`) which
-# create the database connection inside the cluster's network.
+# ─── Additional logical databases ────────────────────────────────────────────
+# `aws_db_instance.db_name` (above) creates ONLY `resido_master`. Postgres
+# requires CREATE DATABASE for each of the others, and Terraform can't reach a
+# `publicly_accessible = false` RDS from the operator/CI machine (the SG only
+# trusts the ECS service SG).
 #
-# However, we DO need the databases to EXIST before Prisma can connect. We
-# create them via the postgresql provider only if you set
-# `var.create_additional_databases = true` AND your operator machine can
-# reach the RDS endpoint. Otherwise create them once by hand:
+# Instead, the databases are created INSIDE the VPC by the one-off `db-migrate`
+# ECS task, which runs `node ensure-databases.js` before `prisma migrate deploy`
+# (see apps/auth-service/ensure-databases.js + prisma-deploy.sh). That task runs
+# on every `release.yml` with run_migrate=true, is idempotent, and creates:
 #
-#   psql "$RDS_WRITE_URL" -c "CREATE DATABASE resido_users;"
-#   psql "$RDS_WRITE_URL" -c "CREATE DATABASE resido_core;"
-#   psql "$RDS_WRITE_URL" -c "CREATE DATABASE resido_geodata;"
-#   psql "$RDS_WRITE_URL" -c "CREATE DATABASE resido_notifications;"
+#   resido_users, resido_core, resido_geodata, resido_notifications, resido_chat
 #
-# The `resido_master` DB is created by `aws_db_instance.db_name` above.
+# So the full chain — RDS instance, all logical DBs, and all tables — is
+# provisioned automatically by `terraform apply` + the migrate pipeline, with
+# no manual `psql`. `resido_master` itself is created by RDS via db_name above.
