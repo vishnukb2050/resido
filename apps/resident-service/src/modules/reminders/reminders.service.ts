@@ -1,11 +1,57 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import Redis from 'ioredis';
 
 @Injectable()
-export class RemindersService {
+export class RemindersService implements OnModuleDestroy {
     private readonly logger = new Logger(RemindersService.name);
-    constructor(private prisma: PrismaService) {}
+    // Optional Redis client used purely for the cron leader lock so that, when
+    // resident-service runs as multiple ECS tasks, only one instance dispatches
+    // reminders per tick. Falls back to "always leader" if Redis isn't set up.
+    private redis: Redis | null = null;
+
+    constructor(private prisma: PrismaService) {
+        const host = process.env.REDIS_HOST;
+        if (host) {
+            try {
+                this.redis = new Redis({
+                    host,
+                    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+                    password: process.env.REDIS_PASSWORD || undefined,
+                    ...(process.env.REDIS_TLS === 'true' ? { tls: {} } : {}),
+                    maxRetriesPerRequest: 1,
+                    lazyConnect: false,
+                });
+                this.redis.on('error', (e) => this.logger.warn(`Redis (reminder lock) error: ${e?.message}`));
+            } catch (e: any) {
+                this.logger.warn(`Could not init Redis for reminder lock: ${e?.message}`);
+                this.redis = null;
+            }
+        }
+    }
+
+    onModuleDestroy() {
+        this.redis?.disconnect();
+    }
+
+    /**
+     * Acquire a short-lived distributed lock so only one replica dispatches per
+     * tick. Returns true when this instance won the lock (or when Redis isn't
+     * configured, e.g. local single-process dev).
+     */
+    private async acquireDispatchLock(ttlSeconds: number): Promise<boolean> {
+        if (!this.redis) return true;
+        try {
+            const res = await this.redis.set('resido:reminders:dispatch-lock', process.pid.toString(), 'EX', ttlSeconds, 'NX');
+            return res === 'OK';
+        } catch (e: any) {
+            // If Redis is briefly unavailable, skip this tick rather than risk
+            // every replica dispatching duplicates.
+            this.logger.warn(`Reminder lock acquire failed, skipping tick: ${e?.message}`);
+            return false;
+        }
+    }
 
     /**
      * Resolve the calling member from any combination of:
@@ -325,22 +371,40 @@ export class RemindersService {
     // Cron checking every minute to dispatch pending scheduled items
     @Cron(CronExpression.EVERY_MINUTE)
     async checkAndDispatchScheduled() {
+        // Only one replica should run per tick. Hold the lock for slightly less
+        // than the cron interval so a crashed leader can't block the next tick.
+        const isLeader = await this.acquireDispatchLock(55);
+        if (!isLeader) return;
+
         this.logger.log('Running scheduled reminders dispatch checker...');
         try {
-            const pendingReminders = await this.prisma.client.reminder.findMany({
-                where: {
-                    status: 'PENDING',
-                    scheduledAt: {
-                        lte: new Date()
-                    }
-                }
-            });
+            // Process in bounded batches so a backlog can't load unbounded rows.
+            const BATCH = 200;
+            let processed = 0;
+            for (;;) {
+                const pendingReminders = await this.prisma.client.reminder.findMany({
+                    where: {
+                        status: 'PENDING',
+                        scheduledAt: { lte: new Date() },
+                    },
+                    orderBy: { scheduledAt: 'asc' },
+                    take: BATCH,
+                });
 
-            if (pendingReminders.length > 0) {
-                this.logger.log(`Found ${pendingReminders.length} pending scheduled reminders to dispatch.`);
+                if (pendingReminders.length === 0) break;
+
                 for (const r of pendingReminders) {
                     await this.dispatchReminder(r.tenantId, r.id);
                 }
+                processed += pendingReminders.length;
+
+                // The dispatch flips status off PENDING (or reschedules into the
+                // future), so a short page means we've drained the queue.
+                if (pendingReminders.length < BATCH) break;
+            }
+
+            if (processed > 0) {
+                this.logger.log(`Dispatched ${processed} pending scheduled reminders.`);
             }
         } catch (e) {
             this.logger.error('Error during scheduled reminders run', e);

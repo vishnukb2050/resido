@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Req, UseInterceptors, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Req, Query } from '@nestjs/common';
 import { BlogsService } from './blogs.service';
-import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
 
+// Tenant context is established per-request by TenantMiddleware (als.run),
+// which also sets req.tenantId / req.tenantDbName.
 @Controller(['threads', 'flares', 'blogs'])
-@UseInterceptors(TenantInterceptor)
 export class BlogsController {
     constructor(private blogsService: BlogsService) {}
 
@@ -90,13 +90,17 @@ export class BlogsController {
     }
 
     @Patch(':id')
-    updateBlog(@Param('id') id: string, @Body() data: any) {
-        return this.blogsService.updateBlog(id, data);
+    updateBlog(@Req() req: any, @Param('id') id: string, @Body() data: any) {
+        const userId = req.headers['x-user-id'] as string;
+        const tenantId = req.tenantId as string;
+        return this.blogsService.updateBlog(id, data, userId, tenantId);
     }
 
     @Delete(':id')
-    deleteBlog(@Param('id') id: string) {
-        return this.blogsService.deleteBlog(id);
+    deleteBlog(@Req() req: any, @Param('id') id: string) {
+        const userId = req.headers['x-user-id'] as string;
+        const tenantId = req.tenantId as string;
+        return this.blogsService.deleteBlog(id, userId, tenantId);
     }
 
     @Post(':id/like')

@@ -6,30 +6,37 @@ import { GatepassStatus } from '@resido/visitor-client';
 export class GatepassService {
   constructor(private prisma: PrismaService) {}
 
-  async createGatepass(data: any) {
+  async createGatepass(tenantId: string, data: any) {
+    const { tenantId: _ignored, ...rest } = data || {};
     return this.prisma.gatepass.create({
       data: {
-        ...data,
+        ...rest,
+        tenantId,
         status: GatepassStatus.PENDING,
       },
     });
   }
 
-  async getGatepasses(residentId: string) {
+  async getGatepasses(tenantId: string, residentId: string) {
     return this.prisma.gatepass.findMany({
-      where: { residentId },
+      where: { tenantId, residentId },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     });
   }
 
-  async getGatepassById(id: string) {
-    const gatepass = await this.prisma.gatepass.findUnique({ where: { id } });
+  async getGatepassById(tenantId: string, id: string) {
+    const gatepass = await this.prisma.gatepass.findFirst({
+      where: { id, tenantId },
+    });
     if (!gatepass) throw new NotFoundException('Gatepass not found');
     return gatepass;
   }
 
-  async approveGatepass(id: string, securityMemberId: string) {
-    const gatepass = await this.prisma.gatepass.findUnique({ where: { id } });
+  async approveGatepass(tenantId: string, id: string, securityMemberId: string) {
+    const gatepass = await this.prisma.gatepass.findFirst({
+      where: { id, tenantId },
+    });
     if (!gatepass) throw new NotFoundException('Gatepass not found');
 
     const updated = await this.prisma.gatepass.update({
@@ -41,9 +48,9 @@ export class GatepassService {
       },
     });
 
-    // Create a visitor entry automatically
     await this.prisma.visitorEntry.create({
       data: {
+        tenantId,
         visitorName: gatepass.visitorName,
         phone: gatepass.phone,
         purpose: gatepass.purpose,

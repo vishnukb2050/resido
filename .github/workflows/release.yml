@@ -1,0 +1,92 @@
+name: Release (build → migrate → deploy)
+
+# One-click release orchestrator. Runs the three stages in order, reusing the
+# same image tag throughout:
+#
+#   1. build-and-push.yml  — build all images, push to ECR
+#   2. db-migrate.yml      — prisma migrate deploy (only if run_migrate = true)
+#   3. deploy.yml          — rolling ECS deploy (waits for migrations first)
+#
+# Run individual stages from their own workflows when you need to; use this
+# when you want the full, ordered release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        required: true
+        default: prod
+        options: [prod, staging]
+      image_tag:
+        description: "Image tag for the whole release (defaults to commit SHA)"
+        type: string
+        required: false
+        default: ""
+      services:
+        description: 'Services to build & deploy: "all" or comma-separated'
+        type: string
+        required: false
+        default: all
+      run_migrate:
+        description: Run DB migrations before deploying
+        type: boolean
+        required: true
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: resolve release tag
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.set.outputs.image_tag }}
+    steps:
+      - id: set
+        run: |
+          tag="${{ inputs.image_tag }}"
+          if [ -z "$tag" ]; then tag="${GITHUB_SHA::7}"; fi
+          echo "image_tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $tag"
+
+  build:
+    name: build & push
+    needs: prepare
+    uses: ./.github/workflows/build-and-push.yml
+    with:
+      environment: ${{ inputs.environment }}
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+      services: ${{ inputs.services }}
+    secrets: inherit
+
+  migrate:
+    name: db migrate
+    needs: [prepare, build]
+    if: ${{ inputs.run_migrate }}
+    uses: ./.github/workflows/db-migrate.yml
+    with:
+      environment: ${{ inputs.environment }}
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+    secrets: inherit
+
+  deploy:
+    name: deploy
+    needs: [prepare, build, migrate]
+    # Run when build succeeded and migrate either succeeded or was skipped.
+    if: >-
+      ${{ always()
+          && needs.build.result == 'success'
+          && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+      services: ${{ inputs.services }}
+    secrets: inherit

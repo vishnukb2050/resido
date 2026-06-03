@@ -14,6 +14,11 @@ variable "chat_port" {
   default = 3004
 }
 
+variable "flaredthread_port" {
+  type    = number
+  default = 3008
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

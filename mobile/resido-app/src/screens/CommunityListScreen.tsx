@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import { authApi } from '../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const MOCK_COMMUNITIES = [
@@ -17,9 +18,27 @@ export default function CommunityListScreen() {
     const { workspaces, setActiveWorkspace } = useAuthStore();
     const [search, setSearch] = useState('');
 
-    const handleSelect = (ws: any) => {
-        setActiveWorkspace(ws, ''); // Token will be handled by interceptor or next login
-        router.replace('/');
+    const [switching, setSwitching] = useState(false);
+
+    const handleSelect = async (ws: any) => {
+        if (switching) return;
+        try {
+            setSwitching(true);
+            // Optimistically switch with the current token so the UI updates,
+            // then fetch a tenant-scoped token (carries tenantId/dbName claims)
+            // which the gateway trusts for routing.
+            const currentToken = useAuthStore.getState().token || '';
+            setActiveWorkspace({ ...ws, role: ws.role }, currentToken);
+
+            const res = await authApi.switchWorkspace(ws.tenantId, ws.role);
+            setActiveWorkspace(res.data.workspace, res.data.accessToken);
+            router.replace('/');
+        } catch (e) {
+            console.error('Failed to enter community', e);
+            Alert.alert('Error', 'Could not open this community. Please try again.');
+        } finally {
+            setSwitching(false);
+        }
     };
 
     const renderItem = ({ item }: any) => (

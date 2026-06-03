@@ -47,7 +47,8 @@ export class CommunityFinanceService {
         return config;
     }
 
-    async updateMaintenanceConfig(tenantId: string, data: any) {
+    async updateMaintenanceConfig(tenantId: string, actor: { authUserId?: string | null; authUserPhone?: string | null; role?: string | null }, data: any) {
+        await this.requireAdmin({ authUserId: actor.authUserId, phone: actor.authUserPhone, role: actor.role });
         return this.prisma.client.maintenanceConfig.upsert({
             where: { tenantId },
             update: {
@@ -73,7 +74,9 @@ export class CommunityFinanceService {
     }
 
     // ─── Ledger Transactions ───────────────────────────────────
-    async addTransaction(tenantId: string, addedById: string, data: any) {
+    async addTransaction(tenantId: string, actor: { authUserId?: string | null; authUserPhone?: string | null; role?: string | null }, data: any) {
+        await this.requireAdmin({ authUserId: actor.authUserId, phone: actor.authUserPhone, role: actor.role });
+        const admin = await this.resolveMember({ authUserId: actor.authUserId, phone: actor.authUserPhone });
         return this.prisma.client.communityTransaction.create({
             data: {
                 tenantId,
@@ -84,12 +87,13 @@ export class CommunityFinanceService {
                 description: data.description,
                 paymentMethod: data.paymentMethod || 'CASH',
                 billUrl: data.billUrl,
-                addedById,
+                addedById: admin?.id || actor.authUserId || 'system',
             }
         });
     }
 
-    async getTransactions(tenantId: string, query: any) {
+    async getTransactions(tenantId: string, actor: { authUserId?: string | null; authUserPhone?: string | null; role?: string | null }, query: any) {
+        await this.requireAdmin({ authUserId: actor.authUserId, phone: actor.authUserPhone, role: actor.role });
         const { type, category, page = 1, limit = 10 } = query;
         const skip = (Number(page) - 1) * Number(limit);
         const where: any = { tenantId };
@@ -110,7 +114,8 @@ export class CommunityFinanceService {
     }
 
     // ─── Maintenance Bills ─────────────────────────────────────
-    async generateBills(tenantId: string, body: { month: number; year: number }) {
+    async generateBills(tenantId: string, actor: { authUserId?: string | null; authUserPhone?: string | null; role?: string | null }, body: { month: number; year: number }) {
+        await this.requireAdmin({ authUserId: actor.authUserId, phone: actor.authUserPhone, role: actor.role });
         const { month, year } = body;
         const config = await this.getMaintenanceConfig(tenantId);
         const units = await this.prisma.client.unit.findMany({ where: { tenantId } });
@@ -316,7 +321,8 @@ export class CommunityFinanceService {
         });
     }
 
-    async getReports(tenantId: string, query: { period: 'day' | 'week' | 'month'; year: number }) {
+    async getReports(tenantId: string, actor: { authUserId?: string | null; authUserPhone?: string | null; role?: string | null }, query: { period: 'day' | 'week' | 'month'; year: number }) {
+        await this.requireAdmin({ authUserId: actor.authUserId, phone: actor.authUserPhone, role: actor.role });
         const period = query.period || 'month';
         const year = Number(query.year || new Date().getFullYear());
 

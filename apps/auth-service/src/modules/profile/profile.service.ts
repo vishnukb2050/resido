@@ -117,6 +117,18 @@ export class ProfileService implements OnModuleInit {
     }
 
     private async queryReverseGeoNeighbors(lat: number, lng: number, useRadiusFilter: boolean): Promise<ReverseGeoNeighbor[]> {
+        // Coordinates are interpolated into raw SQL, so they MUST be validated
+        // finite numbers in range — never trust the caller to have done so.
+        const safeLat = Number(lat);
+        const safeLng = Number(lng);
+        if (
+            !Number.isFinite(safeLat) || !Number.isFinite(safeLng) ||
+            safeLat < -90 || safeLat > 90 || safeLng < -180 || safeLng > 180
+        ) {
+            return [];
+        }
+        lat = safeLat;
+        lng = safeLng;
         const maxM = ProfileService.REVERSE_GEO_MAX_M;
         const limit = ProfileService.REVERSE_GEO_LIMIT;
         const radiusClause = useRadiusFilter
@@ -152,8 +164,17 @@ export class ProfileService implements OnModuleInit {
     }
 
     async onModuleInit() {
-        // Run ingestion in background to not block startup
-        this.seedLocations();
+        // Location ingestion is an expensive, idempotent, one-time job. Running
+        // it on EVERY replica boot (steps 2 & 3 unconditionally delete + bulk
+        // re-insert all geo_/osm_ rows) caused write storms and slow starts as
+        // we scale out. Gate it behind SEED_LOCATIONS=true so a single dedicated
+        // task/run does the seeding; normal app replicas skip it.
+        if (process.env.SEED_LOCATIONS === 'true') {
+            // Run in background so it never blocks startup / health checks.
+            this.seedLocations();
+        } else {
+            this.logger.log('⏭️  Skipping location seeding (set SEED_LOCATIONS=true to enable).');
+        }
     }
 
     private async seedLocations() {
@@ -505,42 +526,70 @@ export class ProfileService implements OnModuleInit {
             });
         }
 
-        // Hybrid Geospatial Query for JobProfiles
-        const profiles = await this.prisma.userRead.$queryRawUnsafe(`
-            SELECT DISTINCT j.* FROM job_profiles j
-            WHERE j."isActive" = true
-            AND j.category = '${category}'
-            AND (
-                -- Administrative Matches
-                "serviceAreaType" = 'GLOBAL'
-                OR "serviceAreaType" = 'PAN_INDIA'
-                ${state ? `OR ("serviceAreaType" = 'STATE' AND '${state}' = ANY("serviceAreaValues"))` : ''}
-                ${district ? `OR ("serviceAreaType" = 'DISTRICT' AND '${district}' = ANY("serviceAreaValues"))` : ''}
-                ${pincode ? `OR ("serviceAreaType" = 'PINCODE' AND '${pincode}' = ANY("serviceAreaValues"))` : ''}
-                
-                -- Geospatial Match: User is within Provider's configured radius
-                OR (
-                    j.latitude IS NOT NULL AND j.longitude IS NOT NULL AND j."serviceRadiusKm" IS NOT NULL
-                    AND ST_DWithin(
-                        ST_SetSRID(ST_MakePoint(j.longitude, j.latitude), 4326)::geography,
-                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-                        j."serviceRadiusKm" * 1000
-                    )
-                )
-                
-                -- Geospatial Match: Provider is within User's requested search radius
-                ${radius ? `
+        // Hybrid Geospatial Query for JobProfiles.
+        // SECURITY: all user-supplied values are passed as bound parameters
+        // ($1, $2, ...) — never string-interpolated — to prevent SQL injection.
+        const safeLat = Number(lat);
+        const safeLng = Number(lng);
+        if (!Number.isFinite(safeLat) || !Number.isFinite(safeLng)) {
+            return [];
+        }
+
+        const params: any[] = [category, safeLng, safeLat];
+        // params[0]=category, [1]=lng, [2]=lat; further conditions push more.
+        let stateClause = '';
+        if (state) {
+            params.push(state);
+            stateClause = `OR ("serviceAreaType" = 'STATE' AND $${params.length} = ANY("serviceAreaValues"))`;
+        }
+        let districtClause = '';
+        if (district) {
+            params.push(district);
+            districtClause = `OR ("serviceAreaType" = 'DISTRICT' AND $${params.length} = ANY("serviceAreaValues"))`;
+        }
+        let pincodeClause = '';
+        if (pincode) {
+            params.push(pincode);
+            pincodeClause = `OR ("serviceAreaType" = 'PINCODE' AND $${params.length} = ANY("serviceAreaValues"))`;
+        }
+        let radiusClause = '';
+        const safeRadius = radius != null ? Number(radius) : null;
+        if (safeRadius != null && Number.isFinite(safeRadius)) {
+            params.push(safeRadius);
+            const radiusIdx = params.length;
+            radiusClause = `
                 OR (
                     j.latitude IS NOT NULL AND j.longitude IS NOT NULL
                     AND ST_DWithin(
                         ST_SetSRID(ST_MakePoint(j.longitude, j.latitude), 4326)::geography,
-                        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-                        ${radius} * 1000
+                        ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
+                        $${radiusIdx} * 1000
                     )
-                )` : ''}
+                )`;
+        }
+
+        const profiles = await this.prisma.userRead.$queryRawUnsafe(`
+            SELECT DISTINCT j.* FROM job_profiles j
+            WHERE j."isActive" = true
+            AND j.category = $1
+            AND (
+                "serviceAreaType" = 'GLOBAL'
+                OR "serviceAreaType" = 'PAN_INDIA'
+                ${stateClause}
+                ${districtClause}
+                ${pincodeClause}
+                OR (
+                    j.latitude IS NOT NULL AND j.longitude IS NOT NULL AND j."serviceRadiusKm" IS NOT NULL
+                    AND ST_DWithin(
+                        ST_SetSRID(ST_MakePoint(j.longitude, j.latitude), 4326)::geography,
+                        ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography,
+                        j."serviceRadiusKm" * 1000
+                    )
+                )
+                ${radiusClause}
             )
             ORDER BY j."createdAt" DESC
-        `);
+        `, ...params);
 
         const ids = (profiles as any[]).map(p => p.id);
 
@@ -770,6 +819,20 @@ export class ProfileService implements OnModuleInit {
         const searcherMemberships = await this.prisma.userRead.workspaceMembership.findMany({
             where: { userId: searcherId }
         });
+        const searcherTenantIds = new Set(searcherMemberships.map((m) => m.tenantId));
+
+        // Batch the "does searcher follow this user?" lookups into ONE query
+        // instead of one findFirst per candidate (was an N+1 across up to 50
+        // rows on every keystroke-driven search).
+        const candidateIds = users.map((u) => u.id).filter((id) => id !== searcherId);
+        const followingSet = new Set<string>();
+        if (candidateIds.length) {
+            const follows = await this.prisma.userRead.follow.findMany({
+                where: { followerId: searcherId, followingId: { in: candidateIds } },
+                select: { followingId: true },
+            });
+            for (const f of follows) followingSet.add(f.followingId);
+        }
 
         for (const user of users) {
             // Always see yourself
@@ -790,18 +853,16 @@ export class ProfileService implements OnModuleInit {
 
             // 1. Community Check (Shares a workspace)
             if (options.includes('COMMUNITY')) {
-                const sharedWorkspace = user.workspaceMemberships.some(um => 
-                    searcherMemberships.some(sm => sm.tenantId === um.tenantId)
+                const sharedWorkspace = user.workspaceMemberships.some(um =>
+                    searcherTenantIds.has(um.tenantId)
                 );
                 if (sharedWorkspace) isVisible = true;
             }
 
-            // 2. Followers Check (Searcher follows user)
+            // 2. Followers Check (Searcher follows user) — resolved from the
+            // pre-fetched set above, no per-row query.
             if (options.includes('FOLLOWERS') && !isVisible) {
-                const follow = await this.prisma.userRead.follow.findFirst({
-                    where: { followerId: searcherId, followingId: user.id }
-                });
-                if (follow) isVisible = true;
+                if (followingSet.has(user.id)) isVisible = true;
             }
 
             // 3. Contacts & Groups (Not explicitly in schema yet, but we allow them if we find a way later)
@@ -879,20 +940,38 @@ export class ProfileService implements OnModuleInit {
         return { status: 'NOT_FOLLOWING' as const };
     }
 
-    async getFollowing(userId: string) {
+    async getFollowing(userId: string, skip = 0, take = 50) {
+        // Bounded + paginated: a celebrity account could otherwise pull tens of
+        // thousands of full user rows in one request.
+        const safeTake = Math.min(Math.max(take, 1), 100);
         const following = await this.prisma.userRead.follow.findMany({
             where: { followerId: userId },
-            include: { following: true }
+            include: {
+                following: {
+                    select: { id: true, name: true, profileName: true, profilePhoto: true, profilePhotoThumb: true },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+            skip: Math.max(skip, 0),
+            take: safeTake,
         });
-        return following.map(f => f.following);
+        return following.map(f => this.withResolvedPhotos(f.following as any));
     }
 
-    async getFollowers(userId: string) {
+    async getFollowers(userId: string, skip = 0, take = 50) {
+        const safeTake = Math.min(Math.max(take, 1), 100);
         const followers = await this.prisma.userRead.follow.findMany({
             where: { followingId: userId },
-            include: { follower: true },
+            include: {
+                follower: {
+                    select: { id: true, name: true, profileName: true, profilePhoto: true, profilePhotoThumb: true },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+            skip: Math.max(skip, 0),
+            take: safeTake,
         });
-        return followers.map(f => f.follower);
+        return followers.map(f => this.withResolvedPhotos(f.follower as any));
     }
 
     /**
@@ -1288,7 +1367,21 @@ export class ProfileService implements OnModuleInit {
         });
     }
 
-    async updateNotePage(pageId: string, data: { title?: string, content?: string, color?: string }) {
+    async updateNotePage(userId: string, pageId: string, data: { title?: string, content?: string, color?: string }) {
+        if (!pageId) {
+            throw new BadRequestException('Note id is required.');
+        }
+        // Ownership check: the page's folder must belong to the caller.
+        const page = await this.prisma.userRead.notePage.findUnique({
+            where: { id: pageId },
+            include: { folder: true },
+        });
+        if (!page) {
+            throw new NotFoundException('Note not found.');
+        }
+        if (page.folder?.userId !== userId) {
+            throw new ForbiddenException('You can only edit your own notes.');
+        }
         return this.prisma.userClient.notePage.update({
             where: { id: pageId },
             data: data

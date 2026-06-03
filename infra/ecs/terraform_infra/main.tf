@@ -18,11 +18,9 @@ locals {
     "api-gateway",
     "auth-service",
     "resident-service",
-    "accounting-service",
     "chat-service",
     "notification-service",
     "visitor-service",
-    "complaint-service",
     "flaredthread-service",
     "media-worker",
     "business-service",
@@ -168,6 +166,16 @@ resource "aws_security_group_rule" "alb_to_chat_service" {
   security_group_id        = aws_security_group.service.id
   source_security_group_id = module.alb.security_group_id
   description              = "ALB to chat-service 3004"
+}
+
+resource "aws_security_group_rule" "alb_to_flaredthread_service" {
+  type                     = "ingress"
+  from_port                = 3008
+  to_port                  = 3008
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.service.id
+  source_security_group_id = module.alb.security_group_id
+  description              = "ALB to flaredthread-service 3008 (flares-io WebSockets)"
 }
 
 # ─── RDS Postgres ────────────────────────────────────────────────────────────

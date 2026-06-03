@@ -6,7 +6,8 @@ output "security_group_id" { value = aws_security_group.alb.id }
 output "target_group_arns" {
   description = "Map of service name -> target group ARN (only services that face the ALB)."
   value = {
-    "api-gateway"  = aws_lb_target_group.api_gateway.arn
-    "chat-service" = aws_lb_target_group.chat.arn
+    "api-gateway"          = aws_lb_target_group.api_gateway.arn
+    "chat-service"         = aws_lb_target_group.chat.arn
+    "flaredthread-service" = aws_lb_target_group.flaredthread.arn
   }
 }

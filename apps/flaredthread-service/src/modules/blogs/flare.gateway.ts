@@ -9,7 +9,14 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
-@WebSocketGateway({ cors: { origin: '*' }, namespace: '/flares' })
+// Custom path so the ALB can route flare WebSockets separately from chat
+// (/socket.io/* → chat-service). Must match mobile FLARES_SOCKET_PATH and
+// the listener rule path-pattern /flares-io/* in terraform_infra/modules/alb.
+@WebSocketGateway({
+    cors: { origin: '*' },
+    namespace: '/flares',
+    path: '/flares-io',
+})
 export class FlareGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
@@ -29,6 +36,15 @@ export class FlareGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
         client.join(`flare:${data.flareId}`);
         return { event: 'joined', data: data.flareId };
+    }
+
+    @SubscribeMessage('leave_flare')
+    handleLeaveFlare(
+        @ConnectedSocket() client: Socket,
+        @MessageBody() data: { flareId: string },
+    ) {
+        client.leave(`flare:${data.flareId}`);
+        return { event: 'left', data: data.flareId };
     }
 
     @SubscribeMessage('join_global_feed')

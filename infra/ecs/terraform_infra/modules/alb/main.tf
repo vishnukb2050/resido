@@ -85,6 +85,33 @@ resource "aws_lb_target_group" "chat" {
   tags = merge(var.tags, { Name = "${var.name}-chat-tg" })
 }
 
+resource "aws_lb_target_group" "flaredthread" {
+  name                 = "${var.name}-flaredthread-tg"
+  port                 = var.flaredthread_port
+  protocol             = "HTTP"
+  target_type          = "ip"
+  vpc_id               = var.vpc_id
+  deregistration_delay = 30
+
+  health_check {
+    path                = "/health"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    protocol            = "HTTP"
+  }
+
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 86400
+    enabled         = true
+  }
+
+  tags = merge(var.tags, { Name = "${var.name}-flaredthread-tg" })
+}
+
 # ─── Listeners ───────────────────────────────────────────────────────────────
 
 # Always-on :80. If HTTPS is configured, redirect to it; otherwise serve HTTP
@@ -162,6 +189,41 @@ resource "aws_lb_listener_rule" "socketio_https" {
   condition {
     path_pattern {
       values = ["/socket.io/*"]
+    }
+  }
+}
+
+# /flares-io/* → flaredthread (Socket.IO path distinct from chat's /socket.io/*)
+resource "aws_lb_listener_rule" "flares_io_http" {
+  count        = var.acm_certificate_arn == "" ? 1 : 0
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 11
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.flaredthread.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/flares-io/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "flares_io_https" {
+  count        = var.acm_certificate_arn == "" ? 0 : 1
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 11
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.flaredthread.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/flares-io/*"]
     }
   }
 }

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, ScrollView, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { threadApi, authApi, unpackFeedPage } from '../services/api';
 import BottomNav from '../components/BottomNav';
 import PostSearchOverlay from '../components/PostSearchOverlay';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { setFlareFeedCache } from '../services/feedCache';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 2;
@@ -35,12 +35,51 @@ export default function FlaresScreen() {
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    // For You merges two feeds; each keeps its own cursor for infinite scroll.
+    const [forYouCursors, setForYouCursors] = useState<{
+        following: string | null;
+        public: string | null;
+        followingHasMore: boolean;
+        publicHasMore: boolean;
+    }>({ following: null, public: null, followingHasMore: false, publicHasMore: false });
     const { refresh } = useLocalSearchParams();
     const router = useRouter();
 
     useEffect(() => {
         fetchInitialData();
     }, [activeTab, refresh, activeHashtag]);
+
+    // Warm the image cache for every thumbnail/poster we have so both the grid
+    // tiles and (later) the player's poster frame render instantly.
+    useEffect(() => {
+        flares.forEach((f: any) => {
+            const uri = resolveMediaUrl(
+                f.thumbnailUrl || f.posterUrl || f.previewUrl || f.mediaUrls?.[0],
+            );
+            if (uri) Image.prefetch(uri).catch(() => undefined);
+        });
+    }, [flares]);
+
+    // The full-screen player normally re-fetches the feed on open. We hand it
+    // the list we already have (keyed by feed type) so it can start playing
+    // immediately, then it refreshes in the background.
+    const playerFeedType = activeHashtag
+        ? 'PUBLIC'
+        : activeTab === 'myflares'
+        ? 'MY'
+        : (activeTab.toUpperCase() as string);
+
+    const openFlare = (id: string) => {
+        setFlareFeedCache(playerFeedType, flares);
+        router.push({
+            pathname: '/flare-player',
+            params: {
+                initialId: id,
+                feedType: playerFeedType,
+                followingIds: followingIds.join(','),
+            },
+        });
+    };
 
     const resolveFollowingIds = async (): Promise<string[]> => {
         if (activeTab === 'following' || activeTab === 'foryou' || activeHashtag) {
@@ -71,19 +110,28 @@ export default function FlaresScreen() {
         if (activeTab === 'reshared') apiFeedType = 'RESHARE';
 
         if (activeTab === 'foryou') {
+            const fetchFollowing = !append || forYouCursors.followingHasMore;
+            const fetchPublic = !append || forYouCursors.publicHasMore;
             const [fRes, pRes] = await Promise.all([
-                threadApi.getFlares({
-                    feedType: 'FOLLOWING',
-                    followingIds: currentFollowing,
-                    limit: 15,
-                    cursor: append ? cursor : undefined,
-                }),
-                threadApi.getFlares({ feedType: 'PUBLIC', limit: 15, cursor: append ? cursor : undefined }),
+                fetchFollowing
+                    ? threadApi.getFlares({
+                          feedType: 'FOLLOWING',
+                          followingIds: currentFollowing,
+                          limit: 15,
+                          cursor: append ? forYouCursors.following || undefined : undefined,
+                      })
+                    : Promise.resolve({ data: { items: [], nextCursor: null, hasMore: false } }),
+                fetchPublic
+                    ? threadApi.getFlares({
+                          feedType: 'PUBLIC',
+                          limit: 15,
+                          cursor: append ? forYouCursors.public || undefined : undefined,
+                      })
+                    : Promise.resolve({ data: { items: [], nextCursor: null, hasMore: false } }),
             ]);
-            const combined = [
-                ...unpackFeedPage(fRes.data).items,
-                ...unpackFeedPage(pRes.data).items,
-            ];
+            const fPage = unpackFeedPage(fRes.data);
+            const pPage = unpackFeedPage(pRes.data);
+            const combined = [...fPage.items, ...pPage.items];
             const uniqueFlares = Array.from(new Map(combined.map((f) => [f.id, f])).values());
             const sorted = uniqueFlares.sort((a, b) => {
                 const aIsFollowing = currentFollowing.includes(a.authorId);
@@ -93,8 +141,16 @@ export default function FlaresScreen() {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             });
             setFlares((prev) => (append ? [...prev, ...sorted] : sorted));
+            setForYouCursors((prev) => ({
+                following: fetchFollowing ? fPage.nextCursor : prev.following,
+                public: fetchPublic ? pPage.nextCursor : prev.public,
+                followingHasMore: fetchFollowing ? fPage.hasMore : false,
+                publicHasMore: fetchPublic ? pPage.hasMore : false,
+            }));
             setNextCursor(null);
-            setHasMore(false);
+            setHasMore(
+                (fetchFollowing && fPage.hasMore) || (fetchPublic && pPage.hasMore),
+            );
             return;
         }
 
@@ -114,6 +170,7 @@ export default function FlaresScreen() {
         try {
             setLoading(true);
             setNextCursor(null);
+            setForYouCursors({ following: null, public: null, followingHasMore: false, publicHasMore: false });
             await fetchFeedPage(null, false);
         } catch (error) {
             console.error('Failed to fetch flares', error);
@@ -123,7 +180,8 @@ export default function FlaresScreen() {
     };
 
     const loadMoreFlares = async () => {
-        if (!hasMore || loadingMore || !nextCursor || activeTab === 'foryou') return;
+        if (!hasMore || loadingMore) return;
+        if (activeTab !== 'foryou' && !nextCursor) return;
         try {
             setLoadingMore(true);
             await fetchFeedPage(nextCursor, true);
@@ -169,7 +227,10 @@ export default function FlaresScreen() {
         title: f.title,
         likes: f.likesCount || 0,
         liked: f.liked || false,
-        image: resolveMediaUrl(f.mediaUrls?.[0]) || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800',
+        mediaStatus: f.mediaStatus || 'READY',
+        image:
+            resolveMediaUrl(f.thumbnailUrl || f.posterUrl || f.previewUrl || f.mediaUrls?.[0]) ||
+            'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800',
     }));
 
     const renderRecentItem = ({ item }: any) => {
@@ -195,23 +256,9 @@ export default function FlaresScreen() {
                     styles.recentCard,
                     hasMultiple && styles.groupedCard
                 ]}
-                onPress={() => router.push({
-                    pathname: '/flare-player',
-                    params: { 
-                        initialId: item.id,
-                        feedType: activeTab === 'myflares' ? 'MY' : activeTab.toUpperCase(),
-                        followingIds: followingIds.join(',')
-                    }
-                })}
+                onPress={() => openFlare(item.id)}
             >
-                <Video
-                    source={item.image ? ({ uri: item.image, overrideFileExtension: 'mp4' } as any) : undefined}
-                    style={styles.recentBg}
-                    resizeMode={ResizeMode.COVER}
-                    shouldPlay={false}
-                    isMuted
-                    useNativeControls={false}
-                />
+                <Image source={{ uri: item.image }} style={styles.recentBg} />
                 <View style={styles.recentGradient} />
                 
                 {/* Border for multiple flares */}
@@ -253,28 +300,18 @@ export default function FlaresScreen() {
         }
     };
 
-    const renderFeedItem = (item: any) => (
+    const renderFeedItem = ({ item }: { item: any }) => (
         <TouchableOpacity 
-            key={item.id} 
             style={styles.feedCard}
-            onPress={() => router.push({
-                pathname: '/flare-player',
-                params: { 
-                    initialId: item.id,
-                    feedType: activeTab === 'myflares' ? 'MY' : activeTab.toUpperCase(),
-                    followingIds: followingIds.join(',')
-                }
-            })}
+            onPress={() => openFlare(item.id)}
         >
-            <Video
-                source={item.image ? ({ uri: item.image, overrideFileExtension: 'mp4' } as any) : undefined}
-                style={styles.feedImage}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay
-                isMuted
-                isLooping
-                useNativeControls={false}
-            />
+            <Image source={{ uri: item.image }} style={styles.feedImage} />
+            {item.mediaStatus === 'PROCESSING' && (
+                <View style={styles.processingBadge}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.processingText}>Processing</Text>
+                </View>
+            )}
             <View style={styles.feedGradient} />
             <View style={styles.playIconOverlay}>
                 <Ionicons name="play" size={16} color="#fff" />
@@ -337,92 +374,89 @@ export default function FlaresScreen() {
                     <ActivityIndicator size="large" color="#8b5cf6" />
                 </View>
             ) : (
-                <ScrollView 
-                    showsVerticalScrollIndicator={false} 
+                <FlatList
+                    data={gridFlares}
+                    keyExtractor={(item) => item.id}
+                    numColumns={2}
+                    columnWrapperStyle={styles.gridRow}
+                    renderItem={renderFeedItem}
+                    showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" />
                     }
-                >
-                    {/* Tabs — hidden in hashtag mode. */}
-                    {!activeHashtag && (
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContainer}>
-                            {TABS.map(tab => (
-                                <TouchableOpacity 
-                                    key={tab.id} 
-                                    style={[styles.tab, activeTab === tab.id ? styles.activeTab : styles.inactiveTab]}
-                                    onPress={() => setActiveTab(tab.id)}
-                                >
-                                    <MaterialCommunityIcons 
-                                        name={tab.icon as any} 
-                                        size={20} 
-                                        color={activeTab === tab.id ? "#fff" : "rgba(255,255,255,0.7)"} 
-                                    />
-                                    <Text style={[styles.tabLabel, activeTab === tab.id ? styles.activeTabLabel : styles.inactiveTabLabel]}>{tab.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    )}
-
-                    {/* Recent Flares — hidden in hashtag mode. */}
-                    {!activeHashtag && (
+                    onEndReached={loadMoreFlares}
+                    onEndReachedThreshold={0.4}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={6}
+                    windowSize={7}
+                    removeClippedSubviews
+                    ListHeaderComponent={
                         <>
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionTitle}>Recent Flares</Text>
-                                <TouchableOpacity>
-                                    <Text style={styles.seeAll}>See all</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <FlatList
-                                data={recentFlares}
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                keyExtractor={(item: any) => item.id}
-                                renderItem={renderRecentItem}
-                                contentContainerStyle={styles.recentList}
-                            />
-                        </>
-                    )}
+                            {!activeHashtag && (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContainer}>
+                                    {TABS.map(tab => (
+                                        <TouchableOpacity 
+                                            key={tab.id} 
+                                            style={[styles.tab, activeTab === tab.id ? styles.activeTab : styles.inactiveTab]}
+                                            onPress={() => setActiveTab(tab.id)}
+                                        >
+                                            <MaterialCommunityIcons 
+                                                name={tab.icon as any} 
+                                                size={20} 
+                                                color={activeTab === tab.id ? "#fff" : "rgba(255,255,255,0.7)"} 
+                                            />
+                                            <Text style={[styles.tabLabel, activeTab === tab.id ? styles.activeTabLabel : styles.inactiveTabLabel]}>{tab.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            )}
 
-                    {/* Section title for the grid below. In hashtag mode we
-                        label it explicitly so the user knows which feed
-                        they're scrolling. */}
-                    <Text style={styles.sectionTitleGrid}>
-                        {activeHashtag ? `#${activeHashtag}` :
-                         activeTab === 'foryou' ? 'For You' : 
-                         activeTab === 'following' ? 'Following' : 
-                         activeTab === 'public' ? 'Public' : 
-                         activeTab === 'saved' ? 'Saved Flares' : 
-                         activeTab === 'reshared' ? 'Reshared Flares' : 'My Flares'}
-                    </Text>
-                    
-                    {flares.length === 0 ? (
+                            {!activeHashtag && (
+                                <>
+                                    <View style={styles.sectionHeader}>
+                                        <Text style={styles.sectionTitle}>Recent Flares</Text>
+                                        <TouchableOpacity>
+                                            <Text style={styles.seeAll}>See all</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.recentList}
+                                    >
+                                        {recentFlares.map((item: any) => (
+                                            <View key={item.id}>{renderRecentItem({ item })}</View>
+                                        ))}
+                                    </ScrollView>
+                                </>
+                            )}
+
+                            <Text style={styles.sectionTitleGrid}>
+                                {activeHashtag ? `#${activeHashtag}` :
+                                 activeTab === 'foryou' ? 'For You' : 
+                                 activeTab === 'following' ? 'Following' : 
+                                 activeTab === 'public' ? 'Public' : 
+                                 activeTab === 'saved' ? 'Saved Flares' : 
+                                 activeTab === 'reshared' ? 'Reshared Flares' : 'My Flares'}
+                            </Text>
+                        </>
+                    }
+                    ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Ionicons name="videocam-outline" size={48} color="rgba(255,255,255,0.2)" />
                             <Text style={styles.emptyText}>No flares found in this section.</Text>
                         </View>
-                    ) : (
-                        <View style={styles.gridContainer}>
-                            {gridFlares.map((item: any) => renderFeedItem(item))}
-                        </View>
-                    )}
-                    
-                    {hasMore && activeTab !== 'foryou' && (
-                        <TouchableOpacity
-                            style={styles.loadMoreBtn}
-                            onPress={loadMoreFlares}
-                            disabled={loadingMore}
-                        >
+                    }
+                    ListFooterComponent={
+                        <>
                             {loadingMore ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.loadMoreText}>Load more</Text>
-                            )}
-                        </TouchableOpacity>
-                    )}
-
-                    <View style={{ height: 120 }} />
-                </ScrollView>
+                                <ActivityIndicator style={{ marginVertical: 20 }} color="#8b5cf6" />
+                            ) : null}
+                            <View style={{ height: 120 }} />
+                        </>
+                    }
+                />
             )}
 
             <BottomNav activeTab="Flares" />
@@ -515,11 +549,25 @@ const styles = StyleSheet.create({
     countText: { color: '#fff', fontSize: 11, fontWeight: '900' },
 
     sectionTitleGrid: { fontSize: 20, fontWeight: '800', color: '#C4B5FD', paddingHorizontal: 20, marginTop: 35, marginBottom: 15 },
-    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 18, justifyContent: 'space-between' },
+    gridRow: { paddingHorizontal: 18, justifyContent: 'space-between' },
     feedCard: { width: COLUMN_WIDTH, height: COLUMN_WIDTH * 1.6, borderRadius: 22, overflow: 'hidden', marginBottom: 18, backgroundColor: '#1c1c1e' },
     feedImage: { ...StyleSheet.absoluteFillObject },
     feedGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
     playIconOverlay: { position: 'absolute', top: 15, right: 15, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+    processingBadge: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(0,0,0,0.65)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+        zIndex: 2,
+    },
+    processingText: { color: '#fff', fontSize: 11, fontWeight: '700' },
     feedOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
     feedBottomInfo: { flex: 1, marginRight: 5 },
     feedAuthor: { color: '#fff', fontSize: 14, fontWeight: '800' },
@@ -529,6 +577,4 @@ const styles = StyleSheet.create({
     loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, marginTop: 50 },
     emptyText: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 20, fontSize: 16, fontWeight: '600' },
-    loadMoreBtn: { marginHorizontal: 20, marginTop: 12, paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center' },
-    loadMoreText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

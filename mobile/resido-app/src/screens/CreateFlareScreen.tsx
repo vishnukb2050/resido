@@ -37,6 +37,10 @@ export default function CreateFlareScreen() {
     const [hashtags, setHashtags] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    // Brief success state: after the blog row is created we flash a
+    // "Published!" popup for ~1s, then auto-navigate to the feed where the
+    // flare appears immediately (media keeps transcoding server-side).
+    const [published, setPublished] = useState(false);
     const [selectedVisibilities, setSelectedVisibilities] = useState<string[]>(['PUBLIC']);
     const [selectedMusic, setSelectedMusic] = useState(TRENDING_MUSIC[0]);
     const [commentsEnabled, setCommentsEnabled] = useState(true);
@@ -194,22 +198,21 @@ export default function CreateFlareScreen() {
             await threadApi.createFlare(payload);
 
             setUploadProgress(1);
-            Alert.alert('Success', 'Your Flare has been published!', [
-                { 
-                    text: 'OK', 
-                    onPress: () => router.replace({ 
-                        pathname: '/flares', 
-                        params: { refresh: Date.now().toString() } 
-                    }) 
-                }
-            ]);
+            // Flash a brief "Published!" popup, then jump straight to the feed
+            // instead of blocking on an Alert that needs an explicit "OK" tap.
+            setPublished(true);
+            setTimeout(() => {
+                router.replace({
+                    pathname: '/flares',
+                    params: { refresh: Date.now().toString() },
+                });
+            }, 1000);
         } catch (error: any) {
             console.error('Publish error:', error?.response?.status, error?.response?.data || error?.message || error);
             const status = error?.response?.status;
             const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
             const reason = serverMsg || error?.message || 'Unknown error';
             Alert.alert('Publish Failed', `${reason}${status ? ` (HTTP ${status})` : ''}\n\nPlease check your connection and try again.`);
-        } finally {
             setIsUploading(false);
         }
     };
@@ -505,13 +508,25 @@ export default function CreateFlareScreen() {
                 </View>
             </Modal>
 
-            {/* Upload Progress Overlay */}
+            {/* Upload Progress / Success Overlay */}
             {isUploading && (
                 <View style={styles.uploadModalOverlay}>
                     <View style={styles.uploadCard}>
-                        <CircularProgress progress={uploadProgress} size={100} strokeWidth={8} color="#1d4ed8" />
-                        <Text style={styles.uploadingText}>Publishing Flare...</Text>
-                        <Text style={styles.uploadingSub}>Optimizing and uploading your community content</Text>
+                        {published ? (
+                            <>
+                                <View style={styles.publishedCheck}>
+                                    <Ionicons name="checkmark" size={56} color="#fff" />
+                                </View>
+                                <Text style={styles.uploadingText}>Published!</Text>
+                                <Text style={styles.uploadingSub}>Taking you to your flares…</Text>
+                            </>
+                        ) : (
+                            <>
+                                <CircularProgress progress={uploadProgress} size={100} strokeWidth={8} color="#8b5cf6" />
+                                <Text style={styles.uploadingText}>Publishing Flare...</Text>
+                                <Text style={styles.uploadingSub}>Optimizing and uploading your community content</Text>
+                            </>
+                        )}
                     </View>
                 </View>
             )}
@@ -689,5 +704,6 @@ const styles = StyleSheet.create({
     uploadModalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
     uploadCard: { width: width * 0.85, backgroundColor: '#fff', borderRadius: 32, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },
     uploadingText: { fontSize: 20, fontWeight: '900', color: '#1e293b', marginTop: 25 },
-    uploadingSub: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 10, fontWeight: '500' }
+    uploadingSub: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 10, fontWeight: '500' },
+    publishedCheck: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }
 });

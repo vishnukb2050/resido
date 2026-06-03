@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Patch, Body, Query, UseGuards, Req, Param, Delete, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { InternalAuthGuard } from '../../common/guards/internal-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('profile')
@@ -116,16 +117,16 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Get('following')
-    async getFollowing(@Req() req: any) {
-        return this.profileService.getFollowing(req.user.userId);
+    async getFollowing(@Req() req: any, @Query('skip') skip = '0', @Query('take') take = '50') {
+        return this.profileService.getFollowing(req.user.userId, +skip, +take);
     }
 
     // ─── New follow surfaces ────────────────────────────────────────────────
 
     @UseGuards(JwtAuthGuard)
     @Get('followers')
-    async getMyFollowers(@Req() req: any) {
-        return this.profileService.getFollowers(req.user.userId);
+    async getMyFollowers(@Req() req: any, @Query('skip') skip = '0', @Query('take') take = '50') {
+        return this.profileService.getFollowers(req.user.userId, +skip, +take);
     }
 
     @UseGuards(JwtAuthGuard)
@@ -136,14 +137,14 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Get('follow/followers/:id')
-    async getUserFollowers(@Param('id') id: string) {
-        return this.profileService.getFollowers(id);
+    async getUserFollowers(@Param('id') id: string, @Query('skip') skip = '0', @Query('take') take = '50') {
+        return this.profileService.getFollowers(id, +skip, +take);
     }
 
     @UseGuards(JwtAuthGuard)
     @Get('follow/following/:id')
-    async getUserFollowing(@Param('id') id: string) {
-        return this.profileService.getFollowing(id);
+    async getUserFollowing(@Param('id') id: string, @Query('skip') skip = '0', @Query('take') take = '50') {
+        return this.profileService.getFollowing(id, +skip, +take);
     }
 
     @UseGuards(JwtAuthGuard)
@@ -180,6 +181,7 @@ export class ProfileController {
     // Internal/batch endpoint used by other services (flaredthread-service)
     // to gate feeds by each author's profileVisibility. Returns a
     // `{ userId: 'GLOBAL' | 'CONTACTS' | 'COMMUNITY' | 'FOLLOWERS' }` map.
+    @UseGuards(InternalAuthGuard)
     @Get('users/visibilities/batch')
     async getProfileVisibilities(@Query('ids') ids: string) {
         const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -255,8 +257,8 @@ export class ProfileController {
 
     @UseGuards(JwtAuthGuard)
     @Patch('notes/pages/:id')
-    async updateNotePage(@Param('id') id: string, @Body() body: { title?: string, content?: string, color?: string }) {
-        return this.profileService.updateNotePage(id, body);
+    async updateNotePage(@Req() req: any, @Param('id') id: string, @Body() body: { title?: string, content?: string, color?: string }) {
+        return this.profileService.updateNotePage(req.user.userId, id, body);
     }
 
     @UseGuards(JwtAuthGuard)

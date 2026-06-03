@@ -1,0 +1,48 @@
+{
+    "family": "resido-${ENV}-media-worker",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "1024",
+    "memory": "4096",
+    "executionRoleArn": "${TASK_EXECUTION_ROLE}",
+    "taskRoleArn": "${TASK_ROLE}",
+    "runtimePlatform": { "operatingSystemFamily": "LINUX", "cpuArchitecture": "X86_64" },
+    "containerDefinitions": [
+        {
+            "name": "media-worker",
+            "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/media-worker:${IMAGE_TAG}",
+            "essential": true,
+            "environment": [
+                { "name": "NODE_ENV", "value": "production" },
+                { "name": "RUN_PRISMA_PUSH", "value": "false" },
+                { "name": "FLAREDTHREAD_URL", "value": "http://flaredthread-service.resido.local:3008" },
+                { "name": "AUTH_SERVICE_URL", "value": "http://auth-service.resido.local:3001" }
+            ],
+            "secrets": [
+                { "name": "REDIS_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-url" },
+                { "name": "MEDIA_WORKER_SECRET", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/media-worker-secret" },
+                { "name": "AWS_ACCESS_KEY_ID", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-access-key-id" },
+                { "name": "AWS_SECRET_ACCESS_KEY", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-secret-access-key" },
+                { "name": "AWS_S3_ENDPOINT", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-s3-endpoint" },
+                { "name": "AWS_S3_BUCKET_NAME", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-s3-bucket-name" },
+                { "name": "CLOUDFLARE_R2_PUBLIC_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/cloudflare-r2-public-url" }
+            ],
+            "healthCheck": {
+                "command": ["CMD-SHELL", "pgrep -f 'node dist/worker' >/dev/null || exit 1"],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 120
+            },
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "${LOG_GROUP}",
+                    "awslogs-region": "${AWS_REGION}",
+                    "awslogs-stream-prefix": "media-worker",
+                    "awslogs-create-group": "true"
+                }
+            }
+        }
+    ]
+}

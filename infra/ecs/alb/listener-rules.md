@@ -2,27 +2,28 @@
 
 The Application Load Balancer replaces the in-cluster Nginx container.
 You need ONE public ALB plus the listener rules below. Everything else
-in ECS (auth, resident, accounting, complaint, visitor, notification,
+in ECS (auth, resident, visitor, notification,
 business, flaredthread) stays **private**, reachable only via Cloud Map
 DNS (`<svc>.resido.local`).
 
 ## Target groups
 
-Create one target group per service that needs ALB exposure. Only two
-services do today:
+Create one target group per service that needs ALB exposure. Three services
+face the ALB today:
 
-| Target group              | Protocol | Port | Health check                | ECS service       |
-| ------------------------- | -------- | ---- | --------------------------- | ----------------- |
-| `resido-prod-api-gateway` | HTTP     | 3000 | `GET /health` returns 200   | `api-gateway`     |
-| `resido-prod-chat`        | HTTP     | 3004 | `GET /health` returns 200   | `chat-service`    |
+| Target group              | Protocol | Port | Health check                | ECS service            |
+| ------------------------- | -------- | ---- | --------------------------- | ---------------------- |
+| `resido-prod-api-gateway` | HTTP     | 3000 | `GET /health` returns 200   | `api-gateway`          |
+| `resido-prod-chat`        | HTTP     | 3004 | `GET /health` returns 200   | `chat-service`         |
+| `resido-prod-flaredthread`| HTTP     | 3008 | `GET /health` returns 200   | `flaredthread-service` |
 
 Settings worth tuning per TG:
 
 - `target_type` = `ip` (required by Fargate `awsvpc` network mode).
 - `deregistration_delay.timeout_seconds` = `30` (faster blue/green).
-- `stickiness.enabled` = `true` only for the chat TG (so a WebSocket
-  client lands on the same task across reconnects). Use `lb_cookie`,
-  duration 86 400 s.
+- `stickiness.enabled` = `true` for the chat and flaredthread TGs (so a
+  WebSocket client lands on the same task across reconnects). Use
+  `lb_cookie`, duration 86 400 s.
 
 If you haven't added the `/health` controllers yet, set the TG health
 check to **TCP** on the container port and add `/health` later.
@@ -46,13 +47,16 @@ Default action: **forward to `resido-prod-api-gateway`** target group.
 | Priority | Match                                                                 | Action                                  |
 | -------- | --------------------------------------------------------------------- | --------------------------------------- |
 | 10       | `path-pattern = /socket.io/*`                                         | Forward → `resido-prod-chat`           |
-| 20       | `host-header = superadmin.residoapp.com` AND `path-pattern = /api/*`  | Forward → `resido-prod-api-gateway`    |
-| 30       | `host-header = residoapp.com` AND `path-pattern = /api/*`             | Forward → `resido-prod-api-gateway`    |
+| 11       | `path-pattern = /flares-io/*`                                         | Forward → `resido-prod-flaredthread`   |
 | default  | anything else                                                         | Forward → `resido-prod-api-gateway`    |
+
+Flaredthread Socket.IO uses path `/flares-io` (namespace `/flares`) so it
+does not share `/socket.io/*` with chat.
 
 The two SPAs (`/` on `residoapp.com` and `superadmin.residoapp.com`) do
 **not** route through the ALB — they're served from CloudFront in front
-of S3. The ALB only sees `/api/*` and `/socket.io/*`.
+of S3. The ALB sees `/api/*` (via gateway default), `/socket.io/*`, and
+`/flares-io/*`.
 
 ## Security groups
 

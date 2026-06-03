@@ -19,7 +19,10 @@ function bullmqConnection() {
 
 export const config = {
     redisConnection: bullmqConnection(),
-    flaredthreadUrl: process.env.FLAREDTHREAD_URL || 'http://flaredthread-service:3008',
+    flaredthreadUrl:
+        process.env.FLAREDTHREAD_URL ||
+        process.env.FLAREDTHREAD_SERVICE_URL ||
+        'http://flaredthread-service:3008',
     authServiceUrl: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
     mediaWorkerSecret: process.env.MEDIA_WORKER_SECRET || 'resido-media-dev-secret',
     awsRegion: process.env.AWS_REGION || 'auto',

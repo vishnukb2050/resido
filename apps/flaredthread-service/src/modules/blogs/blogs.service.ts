@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, ForbiddenException } from '@nestjs/common';
 import { FlareGateway } from './flare.gateway';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import { HttpService } from '@nestjs/axios';
@@ -6,6 +6,14 @@ import { firstValueFrom } from 'rxjs';
 
 import { StorageService } from '../storage/storage.service';
 import { MediaService } from '../media/media.service';
+import { CacheService } from '../cache/cache.service';
+
+// Cache TTLs (seconds). Short enough that a stale avatar/visibility/follower
+// set self-heals within a minute or two, long enough to absorb the bulk of
+// repeated feed reads at scale.
+const AVATAR_TTL = 300;
+const VISIBILITY_TTL = 300;
+const FOLLOWERS_TTL = 60;
 
 // Allowed post visibility values. Anything else from the client is coerced
 // to PUBLIC on create so we never silently store an unknown bucket that
@@ -20,6 +28,7 @@ export class BlogsService {
         private storage: StorageService,
         private flareGateway: FlareGateway,
         private mediaService: MediaService,
+        private cache: CacheService,
     ) {}
 
     /** Batch fetch of each author's profileVisibility from auth-service. */
@@ -28,17 +37,55 @@ export class BlogsService {
     ): Promise<Record<string, { profilePhoto: string | null; profilePhotoThumb: string | null }>> {
         const unique = Array.from(new Set(authorIds.filter(Boolean)));
         if (unique.length === 0) return {};
+
+        type Avatar = { profilePhoto: string | null; profilePhotoThumb: string | null };
+        const result: Record<string, Avatar> = {};
+
+        // 1) Pull whatever we already have cached (one MGET, not N gets).
+        const cached = await this.cache.mgetJson<Avatar>(unique.map((id) => `avatar:${id}`));
+        const misses: string[] = [];
+        unique.forEach((id, i) => {
+            if (cached[i]) result[id] = cached[i] as Avatar;
+            else misses.push(id);
+        });
+        if (misses.length === 0) return result;
+
+        // 2) Fetch only the misses from auth-service, then warm the cache.
         try {
             const res = await firstValueFrom(
                 this.http.get(
-                    `http://auth-service:3001/profile/users/avatars/batch?ids=${encodeURIComponent(unique.join(','))}`,
+                    `${this.authBaseUrl()}/profile/users/avatars/batch?ids=${encodeURIComponent(misses.join(','))}`,
+                    { headers: this.internalHeaders() },
                 ),
             );
-            return (res?.data || {}) as Record<string, { profilePhoto: string | null; profilePhotoThumb: string | null }>;
+            const fetched = (res?.data || {}) as Record<string, Avatar>;
+            const toCache = misses.map((id) => ({
+                key: `avatar:${id}`,
+                value: fetched[id] || { profilePhoto: null, profilePhotoThumb: null },
+                ttlSeconds: AVATAR_TTL,
+            }));
+            await this.cache.msetJson(toCache);
+            Object.assign(result, fetched);
         } catch (err: any) {
             console.warn('[avatars] failed to fetch author avatars', err?.message);
-            return {};
         }
+        return result;
+    }
+
+    /** Invalidate a single author's cached avatar (call after a photo change). */
+    async invalidateAuthorAvatar(userId: string) {
+        await this.cache.del(`avatar:${userId}`);
+    }
+
+    /** Base URL for auth-service (Cloud Map in prod, compose name locally). */
+    private authBaseUrl(): string {
+        return process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+    }
+
+    /** Shared-secret header for internal service-to-service calls. */
+    private internalHeaders(): Record<string, string> {
+        const secret = process.env.INTERNAL_SERVICE_SECRET;
+        return secret ? { 'x-internal-secret': secret } : {};
     }
 
     private enrichBlogsWithAuthorAvatars(blogs: any[], avatars: Record<string, any>) {
@@ -56,17 +103,35 @@ export class BlogsService {
     private async fetchAuthorVisibilities(authorIds: string[]): Promise<Record<string, string>> {
         const unique = Array.from(new Set(authorIds.filter(Boolean)));
         if (unique.length === 0) return {};
+
+        const result: Record<string, string> = {};
+        const cached = await this.cache.mgetJson<string>(unique.map((id) => `vis:${id}`));
+        const misses: string[] = [];
+        unique.forEach((id, i) => {
+            if (cached[i]) result[id] = cached[i] as string;
+            else misses.push(id);
+        });
+        if (misses.length === 0) return result;
+
         try {
             const res = await firstValueFrom(
                 this.http.get(
-                    `http://auth-service:3001/profile/users/visibilities/batch?ids=${encodeURIComponent(unique.join(','))}`,
+                    `${this.authBaseUrl()}/profile/users/visibilities/batch?ids=${encodeURIComponent(misses.join(','))}`,
+                    { headers: this.internalHeaders() },
                 ),
             );
-            return (res?.data || {}) as Record<string, string>;
+            const fetched = (res?.data || {}) as Record<string, string>;
+            const toCache = misses.map((id) => ({
+                key: `vis:${id}`,
+                value: fetched[id] || 'GLOBAL',
+                ttlSeconds: VISIBILITY_TTL,
+            }));
+            await this.cache.msetJson(toCache);
+            Object.assign(result, fetched);
         } catch (err: any) {
             console.warn('[visibility] failed to fetch author visibilities', err?.message);
-            return {};
         }
+        return result;
     }
 
     /**
@@ -77,16 +142,23 @@ export class BlogsService {
      */
     private async fetchFollowersOf(viewerId: string): Promise<Set<string>> {
         if (!viewerId) return new Set();
+
+        const cacheKey = `followers:${viewerId}`;
+        const cached = await this.cache.getJson<string[]>(cacheKey);
+        if (cached) return new Set(cached);
+
         try {
             const res = await firstValueFrom(
-                this.http.get(`http://auth-service:3001/follow/followers/${viewerId}`)
+                this.http.get(`${this.authBaseUrl()}/follow/followers/${viewerId}`, {
+                    headers: this.internalHeaders(),
+                })
             );
             const rows: any[] = Array.isArray(res?.data) ? res.data : [];
-            return new Set<string>(
-                rows
-                    .map((r) => r?.followerId)
-                    .filter((id): id is string => typeof id === 'string' && id.length > 0),
-            );
+            const ids = rows
+                .map((r) => r?.followerId)
+                .filter((id): id is string => typeof id === 'string' && id.length > 0);
+            await this.cache.setJson(cacheKey, ids, FOLLOWERS_TTL);
+            return new Set<string>(ids);
         } catch (err: any) {
             console.warn('[visibility] failed to fetch followers of viewer', viewerId, err?.message);
             return new Set();
@@ -377,6 +449,38 @@ export class BlogsService {
             where.visibility = 'PUBLIC';
         }
 
+        // ---- P1 feed page cache ------------------------------------------
+        // Only the *first* page of the hot read-only feeds (PUBLIC / HASHTAG)
+        // is cached, and the key includes the viewer id so per-user
+        // personalization (visibility filtering + like/save flags) is never
+        // shared across accounts. Short TTL keeps it effectively real-time
+        // while absorbing repeated reads (tab re-entry, pull-to-refresh).
+        const isFirstPage = !cursor;
+        const feedCacheable =
+            isFirstPage &&
+            !businessProfileId &&
+            (feedType === 'PUBLIC' || feedType === 'HASHTAG');
+        const feedCacheKey = feedCacheable
+            ? [
+                  'feed',
+                  feedType,
+                  type || 'ALL',
+                  feedType === 'HASHTAG' ? 'GLOBAL' : tenantId || 'GLOBAL',
+                  category || '',
+                  normalizedHashtag || '',
+                  userId || 'anon',
+              ].join(':')
+            : null;
+        if (feedCacheKey) {
+            const hit = await this.cache.getJson<{
+                items: any[];
+                nextCursor: string | null;
+                hasMore: boolean;
+            }>(feedCacheKey);
+            if (hit) return hit;
+        }
+        const FEED_PAGE_TTL = 15;
+
         const pageSize = Math.min(Math.max(Number(limit) || 15, 1), 20);
         const needCount = pageSize + 1;
         const skipVisibilityPass =
@@ -445,11 +549,13 @@ export class BlogsService {
         const pageWithAvatars = this.enrichBlogsWithAuthorAvatars(page, avatars);
 
         if (!userId) {
-            return {
+            const anonResult = {
                 items: pageWithAvatars.map((b) => this.toFeedItem(b)),
                 nextCursor: hasMore && page.length ? this.encodeFeedCursor(page[page.length - 1]) : null,
                 hasMore,
             };
+            if (feedCacheKey) await this.cache.setJson(feedCacheKey, anonResult, FEED_PAGE_TTL);
+            return anonResult;
         }
 
         const blogIds = pageWithAvatars.map((b) => b.id);
@@ -483,11 +589,13 @@ export class BlogsService {
             }),
         );
 
-        return {
+        const result = {
             items,
             nextCursor: hasMore && pageWithAvatars.length ? this.encodeFeedCursor(pageWithAvatars[pageWithAvatars.length - 1]) : null,
             hasMore,
         };
+        if (feedCacheKey) await this.cache.setJson(feedCacheKey, result, FEED_PAGE_TTL);
+        return result;
     }
 
     async createBlog(authorId: string, data: any, tenantId: string) {
@@ -620,14 +728,23 @@ export class BlogsService {
             }
 
             if (data.tags && data.tags.length > 0) {
+                const notificationBase =
+                    process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3005';
+                const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
                 for (const taggedUserId of data.tags) {
                     try {
-                        await firstValueFrom(this.http.post('http://notification-service:3005/notifications/send', {
-                            userId: taggedUserId,
-                            title: 'You were tagged in a blog',
-                            body: `A new blog post titled "${blog.title}" tagged you.`,
-                            type: 'CHAT',
-                        }));
+                        await firstValueFrom(this.http.post(
+                            `${notificationBase}/send`,
+                            {
+                                userId: taggedUserId,
+                                title: 'You were tagged in a blog',
+                                body: `A new blog post titled "${blog.title}" tagged you.`,
+                                data: { type: 'CHAT' },
+                            },
+                            internalSecret
+                                ? { headers: { 'x-internal-secret': internalSecret } }
+                                : undefined,
+                        ));
                     } catch (e: any) {
                         console.error('Failed to notify tagged user', taggedUserId, e?.message);
                     }
@@ -736,12 +853,37 @@ export class BlogsService {
         });
     }
 
-    async updateBlog(id: string, data: any) {
-        return this.prisma.client.blog.update({ where: { id }, data });
+    async updateBlog(id: string, data: any, userId: string, tenantId: string) {
+        await this.assertBlogOwnership(id, userId, tenantId);
+        // Never allow the caller to reassign ownership/tenant via the body.
+        const safe = { ...(data || {}) };
+        delete safe.authorId;
+        delete safe.tenantId;
+        delete safe.id;
+        return (this.prisma.client as any).blog.update({
+            where: { id, tenantId },
+            data: safe,
+        });
     }
 
-    async deleteBlog(id: string) {
-        return this.prisma.client.blog.update({ where: { id }, data: { isActive: false } });
+    async deleteBlog(id: string, userId: string, tenantId: string) {
+        await this.assertBlogOwnership(id, userId, tenantId);
+        return (this.prisma.client as any).blog.update({
+            where: { id, tenantId },
+            data: { isActive: false },
+        });
+    }
+
+    private async assertBlogOwnership(id: string, userId: string, tenantId: string) {
+        if (!userId) throw new ForbiddenException('Authentication required');
+        const blog = await (this.prisma.reader as any).blog.findFirst({
+            where: { id, tenantId },
+            select: { authorId: true },
+        });
+        if (!blog) throw new NotFoundException('Post not found');
+        if (blog.authorId !== userId) {
+            throw new ForbiddenException('You can only modify your own posts');
+        }
     }
 
     async generateUploadUrl(tenantId: string, userId: string, fileName: string, contentType: string, blogType: 'THREAD' | 'FLARE', mediaType: 'IMAGE' | 'VIDEO') {
@@ -889,7 +1031,8 @@ export class BlogsService {
         return completeComment;
     }
 
-    async getComments(blogId: string, userId?: string) {
+    async getComments(blogId: string, userId?: string, skip = 0, take = 50) {
+        const safeTake = Math.min(Math.max(take, 1), 100);
         return (this.prisma.reader as any).blogComment.findMany({
             where: { blogId },
             include: {
@@ -906,7 +1049,9 @@ export class BlogsService {
                     }
                 }
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            skip: Math.max(skip, 0),
+            take: safeTake,
         });
     }
 

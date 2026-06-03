@@ -1,6 +1,10 @@
-import { Controller, Get, Post, Patch, Delete, Body, Headers, Param, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Headers, Param, UseInterceptors, UseGuards } from '@nestjs/common';
 import { RemindersService } from './reminders.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
+import { RolesGuard, Roles } from '../../common/guards/roles.guard';
+
+// Reminders broadcast notifications community-wide — admin/staff only.
+const MANAGE_ROLES = ['APARTMENT_ADMIN', 'ADMIN_STAFF'];
 
 @Controller('community/reminders')
 @UseInterceptors(TenantInterceptor)
@@ -8,6 +12,8 @@ export class RemindersController {
     constructor(private readonly remindersService: RemindersService) {}
 
     @Post()
+    @UseGuards(RolesGuard)
+    @Roles(...MANAGE_ROLES)
     async createReminder(
         @Headers('x-tenant-id') tenantId: string,
         @Body() data: any
@@ -36,6 +42,8 @@ export class RemindersController {
     }
 
     @Post(':id/trigger')
+    @UseGuards(RolesGuard)
+    @Roles(...MANAGE_ROLES)
     async triggerReminder(
         @Headers('x-tenant-id') tenantId: string,
         @Param('id') id: string
@@ -45,6 +53,8 @@ export class RemindersController {
     }
 
     @Patch(':id')
+    @UseGuards(RolesGuard)
+    @Roles(...MANAGE_ROLES)
     async updateReminder(
         @Headers('x-tenant-id') tenantId: string,
         @Param('id') id: string,
@@ -54,6 +64,8 @@ export class RemindersController {
     }
 
     @Delete(':id')
+    @UseGuards(RolesGuard)
+    @Roles(...MANAGE_ROLES)
     async deleteReminder(
         @Headers('x-tenant-id') tenantId: string,
         @Param('id') id: string

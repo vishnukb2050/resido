@@ -1,4 +1,5 @@
-// visitor-service Prisma schema (per-tenant DB)
+// visitor-service Prisma schema — shared `resido_core` DB (same as resident-service).
+// Rows are isolated by `tenantId`; migrations are applied via resident-service.
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/@resido/visitor-client"
@@ -11,6 +12,7 @@ datasource db {
 
 model VisitorEntry {
   id          String    @id @default(cuid())
+  tenantId    String
   visitorName String
   phone       String?
   purpose     String?
@@ -25,11 +27,14 @@ model VisitorEntry {
   gatepassId  String?   // Link to gatepass if used
   createdAt   DateTime  @default(now())
 
+  @@index([tenantId])
+  @@index([tenantId, inTime(sort: Desc)])
   @@map("visitor_entries")
 }
 
 model Gatepass {
   id              String   @id @default(cuid())
+  tenantId        String
   visitorName     String
   phone           String?
   personsCount    Int      @default(1)
@@ -45,6 +50,8 @@ model Gatepass {
   approvedBy      String?  // security member id
   createdAt       DateTime @default(now())
 
+  @@index([tenantId])
+  @@index([tenantId, residentId, createdAt(sort: Desc)])
   @@map("gatepasses")
 }
 

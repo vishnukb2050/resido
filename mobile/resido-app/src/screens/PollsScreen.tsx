@@ -19,7 +19,7 @@ export default function PollsScreen() {
         if (!user?.id) return;
         setVoting(optionId);
         try {
-            await communityApi.votePoll(user.id, optionId);
+            await communityApi.votePoll(optionId);
             refetch();
         } catch (e: any) {
             Alert.alert('Error', e.response?.data?.message || 'Vote failed');

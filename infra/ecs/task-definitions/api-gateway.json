@@ -23,11 +23,9 @@
                 { "name": "PORT", "value": "3000" },
                 { "name": "AUTH_SERVICE_URL",         "value": "http://auth-service.resido.local:3001" },
                 { "name": "RESIDENT_SERVICE_URL",     "value": "http://resident-service.resido.local:3002" },
-                { "name": "ACCOUNTING_SERVICE_URL",   "value": "http://accounting-service.resido.local:3003" },
                 { "name": "CHAT_SERVICE_URL",         "value": "http://chat-service.resido.local:3004" },
                 { "name": "NOTIFICATION_SERVICE_URL", "value": "http://notification-service.resido.local:3005" },
                 { "name": "VISITOR_SERVICE_URL",      "value": "http://visitor-service.resido.local:3006" },
-                { "name": "COMPLAINT_SERVICE_URL",    "value": "http://complaint-service.resido.local:3007" },
                 { "name": "FLAREDTHREAD_SERVICE_URL", "value": "http://flaredthread-service.resido.local:3008" },
                 { "name": "BUSINESS_SERVICE_URL",     "value": "http://business-service.resido.local:3009" }
             ],

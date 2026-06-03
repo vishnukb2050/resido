@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 
 interface CreateMessageDto {
@@ -138,7 +138,20 @@ export class ChatService {
 
     async votePoll(dbName: string, pollId: string, optionId: string, userId: string) {
         const prisma = this.tenantPrisma.getWriteClient(dbName);
-        
+
+        // Only members of the poll's conversation may vote.
+        const message = await prisma.message.findFirst({
+            where: { poll: { id: pollId } },
+            select: { conversationId: true },
+        });
+        if (!message) {
+            throw new NotFoundException('Poll not found');
+        }
+        const isMember = await this.isConversationMember(dbName, message.conversationId, userId);
+        if (!isMember) {
+            throw new ForbiddenException('Not a member of this conversation');
+        }
+
         // Check if already voted
         const existing = await prisma.pollVote.findFirst({
             where: { pollId, userId }
@@ -159,6 +172,8 @@ export class ChatService {
 
     async getMessages(dbName: string, conversationId: string, skip = 0, take = 50, userId?: string) {
         const prisma = this.tenantPrisma.getReadClient(dbName);
+        const safeTake = Math.min(Math.max(take, 1), 100);
+        const safeSkip = Math.max(skip, 0);
         return prisma.message.findMany({
             where: { conversationId, isDeleted: false },
             include: {
@@ -176,13 +191,16 @@ export class ChatService {
                 }
             },
             orderBy: { createdAt: 'asc' },
-            skip,
-            take,
+            skip: safeSkip,
+            take: safeTake,
         });
     }
 
-    async getConversations(dbName: string, memberId: string) {
+    async getConversations(dbName: string, memberId: string, skip = 0, take = 30) {
         const prisma = this.tenantPrisma.getReadClient(dbName);
+        // Cap page size so an account in thousands of groups can't pull the
+        // entire inbox + full member graph in one request.
+        const safeTake = Math.min(Math.max(take, 1), 50);
         return prisma.conversation.findMany({
             where: { members: { some: { memberId } } },
             include: {
@@ -190,6 +208,23 @@ export class ChatService {
                 messages: { orderBy: { createdAt: 'desc' }, take: 1 },
             },
             orderBy: { createdAt: 'desc' },
+            skip: Math.max(skip, 0),
+            take: safeTake,
         });
+    }
+
+    /**
+     * Whether `memberId` belongs to a conversation. Used to authorize joins,
+     * sends and history reads so a client can't post into / read arbitrary
+     * conversation ids. Result is tiny and indexed (ConversationMember.memberId).
+     */
+    async isConversationMember(dbName: string, conversationId: string, memberId: string): Promise<boolean> {
+        if (!conversationId || !memberId) return false;
+        const prisma = this.tenantPrisma.getReadClient(dbName);
+        const row = await prisma.conversationMember.findFirst({
+            where: { conversationId, memberId },
+            select: { id: true },
+        });
+        return !!row;
     }
 }

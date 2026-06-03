@@ -297,8 +297,10 @@ model Follow {
   following   User     @relation("following", fields: [followingId], references: [id])
 
   @@unique([followerId, followingId])
-  @@index([followingId])
-  @@index([followerId])
+  // Composite (id, createdAt) serves both the leftmost-prefix filter (used by
+  // count) and the paginated `orderBy createdAt desc` reads without a sort.
+  @@index([followingId, createdAt(sort: Desc)])
+  @@index([followerId, createdAt(sort: Desc)])
   @@map("follows")
 }
 

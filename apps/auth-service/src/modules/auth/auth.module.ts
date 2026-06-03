@@ -9,6 +9,7 @@ import { JwtStrategy } from '../../common/strategies/jwt.strategy';
 import { FollowModule } from '../follow/follow.module';
 import { StorageModule } from '../storage/storage.module';
 import { ProfileMediaModule } from '../profile-media/profile-media.module';
+import { ProfileModule } from '../profile/profile.module';
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { ProfileMediaModule } from '../profile-media/profile-media.module';
         FollowModule,
         StorageModule,
         ProfileMediaModule,
+        ProfileModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],

@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
-import { FinanceService } from './finance.service';
-import { FinanceController } from './finance.controller';
 import { CommunityFinanceService } from './community-finance.service';
 import { CommunityFinanceController } from './community-finance.controller';
 import { TenantPrismaModule } from '../prisma/tenant-prisma.module';
 
+/** Community ledger + maintenance billing (`/community/finance/*`). */
 @Module({
     imports: [TenantPrismaModule],
-    controllers: [FinanceController, CommunityFinanceController],
-    providers: [FinanceService, CommunityFinanceService],
+    controllers: [CommunityFinanceController],
+    providers: [CommunityFinanceService],
 })
 export class FinanceModule {}

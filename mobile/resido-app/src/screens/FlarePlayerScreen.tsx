@@ -5,10 +5,11 @@ import { AdaptiveVideoPlayer } from '../components/AdaptiveVideoPlayer';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { io } from 'socket.io-client';
-import { threadApi, API_URL, unpackFeedPage } from '../services/api';
+import { threadApi, FLARES_SOCKET_URL, flaresSocketOptions, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import CommentSheet from '../components/CommentSheet';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { takeFlareFeedCache } from '../services/feedCache';
 
 const { width, height } = Dimensions.get('window');
 const SCREEN_HEIGHT = height;
@@ -31,18 +32,76 @@ interface Flare {
 
 export default function FlarePlayerScreen() {
     const { initialId, feedType, followingIds } = useLocalSearchParams();
-    const [flares, setFlares] = useState<Flare[]>([]);
-    const [activeIndex, setActiveIndex] = useState(0);
-    const [loading, setLoading] = useState(true);
+    // Seed synchronously from the grid's hand-off cache so the tapped video can
+    // start loading immediately instead of waiting on a fresh network call.
+    const seeded = takeFlareFeedCache((feedType as string) || 'PUBLIC');
+    const seededIndex = seeded && initialId
+        ? Math.max(0, seeded.findIndex((f: any) => f.id === initialId))
+        : 0;
+    const [flares, setFlares] = useState<Flare[]>(seeded || []);
+    const [activeIndex, setActiveIndex] = useState(seededIndex);
+    const [loading, setLoading] = useState(!seeded);
     const router = useRouter();
+    const { user, activeWorkspace } = useAuthStore();
+
+    // ---- Single shared socket for the whole player ----------------------
+    // Previously every visible FlareItem opened its own socket, so swiping
+    // churned several connections per user. We now keep ONE connection and
+    // join/leave the active flare's room as the user scrolls.
+    const socketRef = useRef<any>(null);
+    const joinedFlareRef = useRef<string | null>(null);
 
     useEffect(() => {
-        fetchFlares();
+        // If we already have a seeded list, refresh quietly in the background;
+        // otherwise show the loader while we fetch.
+        fetchFlares(!seeded);
     }, [feedType, initialId]);
 
-    const fetchFlares = async () => {
+    useEffect(() => {
+        if (!activeWorkspace) return;
+        const socket = io(`${FLARES_SOCKET_URL}/flares`, {
+            ...flaresSocketOptions,
+            auth: {
+                tenantId: activeWorkspace?.tenantId,
+                dbName: activeWorkspace?.dbName,
+                memberId: user?.id,
+            },
+        });
+        socketRef.current = socket;
+
+        socket.on('new_comment', (data: any) => {
+            if (!data?.blogId) return;
+            setFlares((prev) =>
+                prev.map((f) =>
+                    f.id === data.blogId
+                        ? { ...f, commentsCount: (f.commentsCount || 0) + 1 }
+                        : f,
+                ),
+            );
+        });
+
+        return () => {
+            socket.disconnect();
+            socketRef.current = null;
+            joinedFlareRef.current = null;
+        };
+    }, [activeWorkspace?.tenantId, user?.id]);
+
+    // Join the room of whichever flare is on screen; leave the previous one.
+    useEffect(() => {
+        const socket = socketRef.current;
+        const activeId = flares[activeIndex]?.id;
+        if (!socket || !activeId) return;
+        if (joinedFlareRef.current && joinedFlareRef.current !== activeId) {
+            socket.emit('leave_flare', { flareId: joinedFlareRef.current });
+        }
+        socket.emit('join_flare', { flareId: activeId });
+        joinedFlareRef.current = activeId;
+    }, [activeIndex, flares]);
+
+    const fetchFlares = async (showLoader = true) => {
         try {
-            setLoading(true);
+            if (showLoader) setLoading(true);
             const fIds = typeof followingIds === 'string' ? followingIds.split(',') : [];
             const type = (feedType as string) || 'PUBLIC';
             
@@ -78,12 +137,15 @@ export default function FlarePlayerScreen() {
 
             setFlares(fetchedFlares);
             
-            if (initialId) {
+            // Only jump to the tapped flare on the initial (loader) load — a
+            // background refresh shouldn't yank the user away from where they
+            // scrolled to.
+            if (initialId && showLoader) {
                 const idx = fetchedFlares.findIndex((f: any) => f.id === initialId);
                 if (idx !== -1) setActiveIndex(idx);
             }
         } finally {
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
     };
 
@@ -170,7 +232,7 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
     const [showComments, setShowComments] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { user, activeWorkspace } = useAuthStore();
+    const { user } = useAuthStore();
 
     useEffect(() => {
         setLiked(flare.liked || false);
@@ -179,35 +241,10 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
         setDisplayLikes(flare.likesCount || 0);
         setDisplaySaves(flare.savesCount || 0);
         setDisplayReshares(flare.resharesCount || 0);
+        // Live comment counts are driven by the parent's single socket, which
+        // updates flare.commentsCount; we just mirror it here.
+        setDisplayComments(flare.commentsCount || 0);
     }, [flare]);
-
-    useEffect(() => {
-        if (!flare.id || !activeWorkspace) return;
-
-        // Connect to flares namespace for live comments
-        const socket = io(`${API_URL}/flares`, {
-            transports: ['websocket'],
-            auth: { 
-                tenantId: activeWorkspace?.tenantId,
-                dbName: activeWorkspace?.dbName,
-                memberId: user?.id 
-            }
-        });
-
-        socket.on('connect', () => {
-            socket.emit('join_flare', { flareId: flare.id });
-        });
-
-        socket.on('new_comment', (data) => {
-            if (data.blogId === flare.id) {
-                setDisplayComments((prev: number) => (prev || 0) + 1);
-            }
-        });
-
-        return () => { 
-            socket.disconnect(); 
-        };
-    }, [flare.id, activeWorkspace]);
 
     const toggleLike = async () => {
         try {

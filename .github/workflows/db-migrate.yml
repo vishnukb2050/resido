@@ -1,0 +1,109 @@
+name: DB Migrate (Prisma migrate deploy)
+
+# Applies `prisma migrate deploy` to the production databases by firing the
+# one-off ECS `db-migrate` tasks (see infra/ecs/scripts/run-migrations.sh).
+#
+# This workflow ONLY applies schema migrations. It never deploys services,
+# never runs `prisma db push`, and never uses `--accept-data-loss`.
+#
+# Can be run on its own (workflow_dispatch) or called by release.yml
+# (workflow_call) so a deploy can migrate first.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        required: true
+        default: prod
+        options: [prod, staging]
+      image_tag:
+        description: "Image tag for the migration container (defaults to commit SHA)"
+        type: string
+        required: false
+        default: ""
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      image_tag:
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: migrate (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      ENV: ${{ inputs.environment }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+      ECS_SUBNETS: ${{ vars.ECS_SUBNETS }}
+      ECS_SECURITY_GROUPS: ${{ vars.ECS_SECURITY_GROUPS }}
+      TASK_EXECUTION_ROLE: ${{ vars.TASK_EXECUTION_ROLE }}
+      TASK_ROLE: ${{ vars.TASK_ROLE }}
+      LOG_GROUP: ${{ vars.MIGRATE_LOG_GROUP }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          tag="${{ inputs.image_tag }}"
+          if [ -z "$tag" ]; then tag="${GITHUB_SHA::7}"; fi
+          echo "IMAGE_TAG=$tag" >> "$GITHUB_ENV"
+          echo "Using image tag: $tag"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The db-migrate tasks run inside the auth-service and notification-service
+      # images, so those two images must exist at IMAGE_TAG before we run them.
+      - name: Build & push migration images
+        run: |
+          set -euo pipefail
+          chmod +x infra/ecs/scripts/build-and-push.sh
+          infra/ecs/scripts/build-and-push.sh auth-service
+          infra/ecs/scripts/build-and-push.sh notification-service
+
+      - name: Run Prisma migrations (one-off ECS tasks)
+        run: |
+          set -euo pipefail
+          chmod +x infra/ecs/scripts/run-migrations.sh \
+                   infra/ecs/scripts/render-task-def.sh
+          infra/ecs/scripts/run-migrations.sh
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### DB Migrate"
+            echo "- Environment: \`${{ inputs.environment }}\`"
+            echo "- Image tag: \`${IMAGE_TAG}\`"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

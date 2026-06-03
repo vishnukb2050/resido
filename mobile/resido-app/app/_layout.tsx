@@ -1,7 +1,12 @@
+import React from 'react';
 import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, Platform } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { useAuthStore } from '../src/store/authStore';
+
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -12,6 +17,16 @@ const queryClient = new QueryClient({
   },
 });
 
+function SplashGate({ children }: { children: React.ReactNode }) {
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  React.useEffect(() => {
+    if (isHydrated) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [isHydrated]);
+  return <>{children}</>;
+}
+
 export default function Layout() {
   return (
     // SafeAreaProvider is required for `react-native-safe-area-context`
@@ -20,14 +35,16 @@ export default function Layout() {
     // were rendering right against the status bar.
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        {Platform.OS === 'android' && (
-          <StatusBar
-            translucent={false}
-            backgroundColor="#F8F5FF"
-            barStyle="dark-content"
-          />
-        )}
-        <Stack screenOptions={{ headerShown: false }} />
+        <SplashGate>
+          {Platform.OS === 'android' && (
+            <StatusBar
+              translucent={false}
+              backgroundColor="#F8F5FF"
+              barStyle="dark-content"
+            />
+          )}
+          <Stack screenOptions={{ headerShown: false }} />
+        </SplashGate>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

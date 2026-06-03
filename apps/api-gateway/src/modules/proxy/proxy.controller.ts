@@ -19,6 +19,60 @@ export class ProxyController {
     ) {}
 
     /**
+     * Downstream service base URLs. On ECS these are injected via Cloud Map
+     * (e.g. AUTH_SERVICE_URL); locally (docker-compose) they fall back to the
+     * compose service names. Previously these were hardcoded to compose names,
+     * so the gateway could not reach services through Cloud Map in prod.
+     */
+    private readonly services = {
+        auth: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001',
+        resident: process.env.RESIDENT_SERVICE_URL || 'http://resident-service:3002',
+        flaredthread:
+            process.env.FLAREDTHREAD_SERVICE_URL ||
+            process.env.FLAREDTHREAD_URL ||
+            'http://flaredthread-service:3008',
+        business: process.env.BUSINESS_SERVICE_URL || 'http://business-service:3009',
+        visitor: process.env.VISITOR_SERVICE_URL || 'http://visitor-service:3006',
+        chat: process.env.CHAT_SERVICE_URL || 'http://chat-service:3004',
+        notification: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3005',
+    };
+
+    /**
+     * Paths reachable WITHOUT a valid JWT. Everything else requires a verified
+     * Bearer token. Keep this in sync with @Public() routes in the services.
+     */
+    private isPublicPath(path: string): boolean {
+        if (path === '/health' || path === '/healthz') return true;
+        const publicExact = [
+            '/auth/send-otp',
+            '/auth/verify-otp',
+            '/auth/login',
+            '/auth/refresh',
+        ];
+        if (publicExact.includes(path)) return true;
+        return false;
+    }
+
+    private resolveTarget(path: string): string | null {
+        if (path.startsWith('/auth') || path.startsWith('/staff') || path.startsWith('/clients') || path.startsWith('/profile') || path.startsWith('/storage') || path.startsWith('/notes') || path.startsWith('/follow')) {
+            return this.services.auth;
+        }
+        if (path.startsWith('/members') || path.startsWith('/apartments') || path.startsWith('/community')) {
+            return this.services.resident;
+        }
+        if (path.startsWith('/threads') || path.startsWith('/flares') || path.startsWith('/blogs')) {
+            return this.services.flaredthread;
+        }
+        if (path.startsWith('/business')) return this.services.business;
+        if (path.startsWith('/visitors') || path.startsWith('/gatepass')) return this.services.visitor;
+        if (path.startsWith('/chat')) return this.services.chat;
+        if (path.startsWith('/notifications')) return this.services.notification;
+        // accounting-service and complaint-service are empty stubs — routes
+        // removed until those services are implemented (use /community/* today).
+        return null;
+    }
+
+    /**
      * Read the raw body from the request stream into a Buffer. The gateway runs
      * with `bodyParser: false`, so `req.body` is unset — we drain the stream
      * here so we can hand a real payload (with accurate content-length) to
@@ -39,37 +93,35 @@ export class ProxyController {
     async proxy(@Req() req: Request, @Res() res: Response) {
         const path = req.path;
 
-        let targetUrl = '';
-        if (path.startsWith('/auth') || path.startsWith('/staff') || path.startsWith('/clients') || path.startsWith('/profile') || path.startsWith('/storage') || path.startsWith('/notes')) {
-            targetUrl = `http://auth-service:3001${path}`;
-        } else if (path.startsWith('/members') || path.startsWith('/apartments') || path.startsWith('/community')) {
-            targetUrl = `http://resident-service:3002${path}`;
-        } else if (path.startsWith('/threads') || path.startsWith('/flares') || path.startsWith('/blogs')) {
-            targetUrl = `http://flaredthread-service:3008${path}`;
-        } else if (path.startsWith('/business')) {
-            targetUrl = `http://business-service:3009${path}`;
-        } else if (path.startsWith('/visitors') || path.startsWith('/gatepass')) {
-            targetUrl = `http://visitor-service:3006${path}`;
-        } else if (path.startsWith('/accounting')) {
-            targetUrl = `http://accounting-service:3003${path}`;
-        } else if (path.startsWith('/chat')) {
-            targetUrl = `http://chat-service:3004${path}`;
-        } else if (path.startsWith('/notifications')) {
-            targetUrl = `http://notification-service:3005${path}`;
-        } else if (path.startsWith('/complaint')) {
-            targetUrl = `http://complaint-service:3007${path}`;
-        } else {
+        // Gateway's own liveness probe — must not be proxied (ALB/ECS hit this).
+        if (path === '/health' || path === '/healthz') {
+            return res.status(200).json({ status: 'ok', service: 'api-gateway' });
+        }
+
+        const base = this.resolveTarget(path);
+        if (!base) {
             return res.status(404).json({ message: 'Service not found' });
         }
+        const targetUrl = `${base}${path}`;
 
         const headers: Record<string, any> = { ...req.headers };
         delete headers.host;
         delete headers['content-length'];
 
-        // Preserve tenant headers the mobile app already chose (active workspace).
-        // JWT may still carry an older tenantId until the user switches workspace again.
-        const clientTenantId = headers['x-tenant-id'];
-        const clientDbName = headers['x-db-name'];
+        // SECURITY: the gateway is the trust boundary. Identity headers are
+        // derived from the verified JWT only — never from the client. Strip any
+        // the caller tried to inject so downstream services can't be spoofed.
+        delete headers['x-user-id'];
+        delete headers['x-user-role'];
+        delete headers['x-user-phone'];
+        delete headers['x-tenant-id'];
+        delete headers['x-db-name'];
+        delete headers['x-user-member-id'];
+        delete headers['x-member-id'];
+        delete headers['x-internal-secret'];
+
+        const method = (req.method || 'GET').toUpperCase();
+        const isPublic = this.isPublicPath(path);
 
         const authHeader = req.headers['authorization'];
         if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -78,22 +130,42 @@ export class ProxyController {
                 const payload = this.jwtService.verify(token, {
                     secret: this.config.get('JWT_SECRET'),
                 });
-                if (!clientDbName && payload.dbName) headers['x-db-name'] = payload.dbName;
                 if (payload.sub) headers['x-user-id'] = payload.sub;
-                if (!clientTenantId && payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
                 if (payload.phone) headers['x-user-phone'] = payload.phone;
                 if (payload.role) headers['x-user-role'] = payload.role;
+                if (payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
+                // x-db-name (tenant scope) is ALWAYS derived from the verified
+                // token — never the client. With an active workspace the token
+                // carries dbName/tenantId; in MySpace there is no tenant, so we
+                // scope to the user's personal feed `personal_<sub>` (matches the
+                // mobile create screens). This keeps flaredthread's shared-DB
+                // tenant isolation un-spoofable.
+                if (payload.dbName) {
+                    headers['x-db-name'] = payload.dbName;
+                } else if (payload.tenantId) {
+                    headers['x-db-name'] = payload.tenantId;
+                } else if (payload.sub) {
+                    headers['x-db-name'] = `personal_${payload.sub}`;
+                }
             } catch (err) {
-                // Token invalid / expired — let the downstream service decide.
+                // A token was presented but is invalid/expired → reject outright.
+                return res.status(401).json({ message: 'Invalid or expired token' });
             }
+        } else if (!isPublic) {
+            // No bearer token on a protected route.
+            return res.status(401).json({ message: 'Authentication required' });
         }
 
-        // Buffer the body for methods that carry one. GET/HEAD/DELETE/OPTIONS
-        // shouldn't have a body, so we skip reading the stream.
+        // Buffer the body when the client sends one. GET/HEAD/OPTIONS never carry
+        // a body; DELETE may (e.g. community deletion sends { confirmName }).
         let bodyBuffer: Buffer | undefined;
-        const method = (req.method || 'GET').toUpperCase();
-        const hasBody = !['GET', 'HEAD', 'DELETE', 'OPTIONS'].includes(method);
-        if (hasBody) {
+        const neverHasBody = ['GET', 'HEAD', 'OPTIONS'].includes(method);
+        const mayHaveBody = !neverHasBody && (
+            method !== 'DELETE' ||
+            Number(req.headers['content-length']) > 0 ||
+            !!req.headers['transfer-encoding']
+        );
+        if (mayHaveBody) {
             try {
                 bodyBuffer = await this.readBody(req);
                 if (bodyBuffer.length > 0) {

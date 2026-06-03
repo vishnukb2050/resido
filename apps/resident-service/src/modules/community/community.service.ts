@@ -5,9 +5,22 @@ import { PrismaService } from '../prisma/tenant-prisma.service';
 export class CommunityService {
     constructor(private prisma: PrismaService) {}
 
+    // Per-tenant, short-TTL in-memory cache for the dashboard summary. The
+    // summary runs ~15 aggregate queries + a full bill scan; on a busy
+    // community dashboard that hammered the DB on every open. A 30s TTL keeps
+    // the numbers fresh enough while collapsing repeated loads to one query
+    // burst per tenant per window. (Shared Redis would be even better across
+    // replicas, but this needs no new infra and removes the hot-path load.)
+    private static statsCache = new Map<string, { at: number; data: any }>();
+    private static readonly STATS_TTL_MS = 30_000;
+
     // ─── Notices ────────────────────────────────────────────────
-    async getNotices() {
-        return this.prisma.reader.notice.findMany({ orderBy: { createdAt: 'desc' } });
+    async getNotices(skip = 0, take = 50) {
+        return this.prisma.reader.notice.findMany({
+            orderBy: { createdAt: 'desc' },
+            skip: Math.max(skip, 0),
+            take: Math.min(Math.max(take, 1), 100),
+        });
     }
 
     async createNotice(data: any) {
@@ -15,19 +28,38 @@ export class CommunityService {
     }
 
     // ─── Polls ──────────────────────────────────────────────────
-    async getPolls() {
+    async getPolls(skip = 0, take = 50) {
         return this.prisma.reader.poll.findMany({
             include: { options: { include: { _count: { select: { votes: true } } } } },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            skip: Math.max(skip, 0),
+            take: Math.min(Math.max(take, 1), 100),
         });
     }
 
-    async votePoll(memberId: string, optionId: string) {
+    async votePoll(args: { authUserId?: string; authUserPhone?: string; optionId: string }) {
+        const member = await this.resolveMember({
+            authUserId: args.authUserId,
+            phone: args.authUserPhone,
+        });
+        if (!member) {
+            throw new BadRequestException('Could not resolve your member profile in this community');
+        }
+        if (!args.optionId) {
+            throw new BadRequestException('optionId is required');
+        }
+        // Prevent double-vote on the same poll option.
+        const existing = await this.prisma.reader.pollVote.findFirst({
+            where: { memberId: member.id, optionId: args.optionId },
+        });
+        if (existing) {
+            throw new BadRequestException('You have already voted on this option');
+        }
         return this.prisma.client.pollVote.create({
             data: {
-                member: { connect: { id: memberId } },
-                option: { connect: { id: optionId } }
-            } as any
+                member: { connect: { id: member.id } },
+                option: { connect: { id: args.optionId } },
+            } as any,
         });
     }
 
@@ -288,6 +320,31 @@ export class CommunityService {
             data: {
                 progressNotes: currentNotes as any,
                 ...(data.status ? { status: data.status as any } : {}),
+            },
+        });
+    }
+
+    // ─── Cleaning logs ──────────────────────────────────────────
+    async getCleaningLogs(skip = 0, take = 30) {
+        const safeTake = Math.min(Math.max(take, 1), 100);
+        return (this.prisma.reader as any).cleaningLog.findMany({
+            orderBy: { createdAt: 'desc' },
+            skip: Math.max(skip, 0),
+            take: safeTake,
+        });
+    }
+
+    async createCleaningLog(
+        loggedBy: string,
+        data: { date?: string; areas: string[]; notes?: string; photoUrls?: string[] },
+    ) {
+        return (this.prisma.client as any).cleaningLog.create({
+            data: {
+                loggedBy,
+                date: data.date ? new Date(data.date) : new Date(),
+                areas: Array.isArray(data.areas) ? data.areas : [],
+                notes: data.notes,
+                photoUrls: Array.isArray(data.photoUrls) ? data.photoUrls : [],
             },
         });
     }
@@ -1097,6 +1154,12 @@ export class CommunityService {
     }
 
     async getSummaryStats() {
+        const tenantId = PrismaService.als.getStore()?.tenantId || 'global';
+        const cached = CommunityService.statsCache.get(tenantId);
+        if (cached && Date.now() - cached.at < CommunityService.STATS_TTL_MS) {
+            return cached.data;
+        }
+
         const safe = async <T>(fn: () => Promise<T>, fallback: T, tag: string): Promise<T> => {
             try {
                 return await fn();
@@ -1220,7 +1283,7 @@ export class CommunityService {
             .sort((a, b) => b.amount - a.amount)
             .slice(0, 5);
 
-        return {
+        const result = {
             people: {
                 totalMembers,
                 totalFamilies,
@@ -1255,5 +1318,8 @@ export class CommunityService {
                 },
             },
         };
+
+        CommunityService.statsCache.set(tenantId, { at: Date.now(), data: result });
+        return result;
     }
 }

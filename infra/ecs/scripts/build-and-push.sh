@@ -26,13 +26,12 @@ ALL_SERVICES=(
     api-gateway
     auth-service
     resident-service
-    accounting-service
     chat-service
     notification-service
     visitor-service
-    complaint-service
     flaredthread-service
     business-service
+    media-worker
 )
 
 if [ "${1:-}" = "--all" ]; then

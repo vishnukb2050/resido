@@ -1,0 +1,115 @@
+name: Deploy (ECS)
+
+# Rolling-deploys Resido services to ECS by registering a new task-definition
+# revision per service and forcing a new deployment.
+# Wraps infra/ecs/scripts/deploy-service.sh.
+#
+# NOTE: This does NOT run migrations. Run db-migrate.yml first (or use
+# release.yml, which migrates before deploying) whenever the release contains
+# schema changes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        required: true
+        default: prod
+        options: [prod, staging]
+      image_tag:
+        description: "Image tag to deploy (defaults to commit SHA)"
+        type: string
+        required: false
+        default: ""
+      services:
+        description: 'Services to deploy: "all" or comma-separated'
+        type: string
+        required: false
+        default: all
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      image_tag:
+        type: string
+        required: false
+        default: ""
+      services:
+        type: string
+        required: false
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: prepare matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+      image_tag: ${{ steps.set.outputs.image_tag }}
+    steps:
+      - name: Compute service matrix and image tag
+        id: set
+        run: |
+          set -euo pipefail
+          ALL='["api-gateway","auth-service","resident-service","chat-service","notification-service","visitor-service","flaredthread-service","business-service","media-worker"]'
+          svc="${{ inputs.services }}"
+          if [ -z "$svc" ] || [ "$svc" = "all" ]; then
+            matrix="$ALL"
+          else
+            matrix="$(echo "$svc" | tr -d ' ' | jq -R -c 'split(",") | map(select(length > 0))')"
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+          tag="${{ inputs.image_tag }}"
+          if [ -z "$tag" ]; then tag="${GITHUB_SHA::7}"; fi
+          echo "image_tag=$tag" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: deploy ${{ matrix.service }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      ENV: ${{ inputs.environment }}
+      IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+      TASK_EXECUTION_ROLE: ${{ vars.TASK_EXECUTION_ROLE }}
+      TASK_ROLE: ${{ vars.TASK_ROLE }}
+      LOG_GROUP_PREFIX: ${{ vars.LOG_GROUP_PREFIX }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy ${{ matrix.service }}
+        run: |
+          set -euo pipefail
+          chmod +x infra/ecs/scripts/deploy-service.sh \
+                   infra/ecs/scripts/render-task-def.sh
+          infra/ecs/scripts/deploy-service.sh "${{ matrix.service }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "- \`${{ matrix.service }}\`:\`${IMAGE_TAG}\` → ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

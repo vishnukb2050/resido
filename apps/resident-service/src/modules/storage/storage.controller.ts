@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseInterceptors, Req } from '@nestjs/common';
+import { Controller, Get, Query, UseInterceptors, Req, Headers } from '@nestjs/common';
 import { StorageService } from './storage.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
 
@@ -16,10 +16,11 @@ export class StorageController {
         @Query('contentType') contentType: string,
         @Query('module') module: string,
         @Query('subfolder') subfolder: string,
+        @Headers('x-user-id') userId: string,
         @Req() req: any
     ) {
         // tenantDbName is usually the slug or ID used for path scoping
         const tenantId = req.tenantDbName || 'global';
-        return this.storageService.generatePresignedUrl(fileName, contentType, tenantId, module, subfolder);
+        return this.storageService.generatePresignedUrl(fileName, contentType, tenantId, module, subfolder, userId);
     }
 }

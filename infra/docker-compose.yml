@@ -17,8 +17,8 @@ services:
 
   # resident-service owns the `resido_core` Prisma schema and runs
   # `prisma db push` on every startup. Every other service that reads/writes
-  # `resido_core` (auth, business, chat, complaint, visitor, accounting,
-  # flaredthread) depends on this container so docker starts it FIRST, giving
+  # `resido_core` (auth, business, chat, visitor, flaredthread) depends on
+  # this container so docker starts it FIRST, giving
   # it a head start to push the schema before its consumers wake up.
   resident-service:
     build:
@@ -54,21 +54,8 @@ services:
       - resido-net
     restart: unless-stopped
 
-  accounting-service:
-    build:
-      context: ../apps/accounting-service
-      dockerfile: Dockerfile
-    container_name: resido-accounting
-    env_file: .env
-    ports:
-      - '3003:3003'
-    environment:
-      - PORT=3003
-    depends_on:
-      - resident-service
-    networks:
-      - resido-net
-    restart: unless-stopped
+  # accounting-service — REMOVED: empty stub; use /community/finance on resident-service.
+  # complaint-service — REMOVED: empty stub; use /community/complaints on resident-service.
 
   chat-service:
     build:
@@ -96,22 +83,6 @@ services:
       - '3005:3005'
     environment:
       - PORT=3005
-    networks:
-      - resido-net
-    restart: unless-stopped
-
-  complaint-service:
-    build:
-      context: ../apps/complaint-service
-      dockerfile: Dockerfile
-    container_name: resido-complaint
-    env_file: .env
-    ports:
-      - '3007:3007'
-    environment:
-      - PORT=3007
-    depends_on:
-      - resident-service
     networks:
       - resido-net
     restart: unless-stopped

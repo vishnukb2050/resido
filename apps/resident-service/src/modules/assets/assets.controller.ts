@@ -1,6 +1,9 @@
-import { Controller, Get, Post, Patch, Delete, Body, Query, Headers, Param, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Query, Headers, Param, UseInterceptors, UseGuards } from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
+import { RolesGuard, Roles } from '../../common/guards/roles.guard';
+
+const MANAGE_ROLES = ['APARTMENT_ADMIN', 'ADMIN_STAFF'];
 
 @Controller('community/assets')
 @UseInterceptors(TenantInterceptor)
@@ -8,6 +11,8 @@ export class AssetsController {
     constructor(private readonly assetsService: AssetsService) {}
 
     @Post()
+    @UseGuards(RolesGuard)
+    @Roles(...MANAGE_ROLES)
     async createAsset(
         @Headers('x-tenant-id') tenantId: string,
         @Body() data: any
@@ -32,6 +37,8 @@ export class AssetsController {
     }
 
     @Patch(':id')
+    @UseGuards(RolesGuard)
+    @Roles(...MANAGE_ROLES)
     async updateAsset(
         @Headers('x-tenant-id') tenantId: string,
         @Param('id') id: string,
@@ -41,6 +48,8 @@ export class AssetsController {
     }
 
     @Delete(':id')
+    @UseGuards(RolesGuard)
+    @Roles(...MANAGE_ROLES)
     async deleteAsset(
         @Headers('x-tenant-id') tenantId: string,
         @Param('id') id: string

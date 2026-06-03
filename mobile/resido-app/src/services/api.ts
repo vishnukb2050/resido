@@ -1,72 +1,158 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
+import { useAuthStore } from '../store/authStore';
 
 export const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
 
 /**
- * The Socket.IO host. In production, nginx only proxies `/socket.io/` to the
- * chat-service from the root domain (NOT the `/api/` path), so we must connect
- * to the root host. Falls back to deriving from `API_URL` by stripping a
- * trailing `/api` so local development with `http://10.0.2.2:3000` keeps working.
+ * The Socket.IO host. In production, the ALB proxies `/socket.io/` to chat and
+ * `/flares-io/` to flaredthread from the root domain (NOT the `/api/` path).
+ * Falls back to deriving from `API_URL` by stripping a trailing `/api`.
  */
 export const SOCKET_URL: string =
     (Constants.expoConfig?.extra as any)?.socketUrl ||
     API_URL.replace(/\/api\/?$/, '') ||
     API_URL;
 
+/** Socket.IO HTTP path on flaredthread (must match flare.gateway.ts and ALB rule). */
+export const FLARES_SOCKET_PATH = '/flares-io';
+
+/** Host for flare live WebSockets (defaults to same root as chat). */
+export const FLARES_SOCKET_URL: string =
+    (Constants.expoConfig?.extra as any)?.flaresSocketUrl || SOCKET_URL;
+
+/** Shared client options for flare Socket.IO (namespace `/flares`). */
+export const flaresSocketOptions = {
+    path: FLARES_SOCKET_PATH,
+    transports: ['websocket'] as ('websocket' | 'polling')[],
+};
+
 export const api = axios.create({ baseURL: API_URL });
 
-// Inject auth token and tenantId from secure store on every request.
-//
-// The chat-service and several other tenant-scoped services REQUIRE the
-// `x-db-name` header. In MySpace mode (no active workspace) we used to send
-// the request without those headers, which broke chat ("could not start chat")
-// and any other tenant-scoped call. As a fallback, we use the first
-// workspace the user belongs to, then finally a synthetic `personal_<userId>`
-// db name so the request still reaches the service with something to scope on.
-api.interceptors.request.use(async (config) => {
-    try {
-        const authDataRaw = await SecureStore.getItemAsync('resido-auth-secure-storage');
-        if (authDataRaw) {
-            const authData = JSON.parse(authDataRaw);
-            const state = authData.state;
-            
-            if (state.token) {
-                config.headers.set('Authorization', `Bearer ${state.token}`);
-            }
-
-            if (state.user?.id) {
-                config.headers.set('x-user-id', state.user.id);
-            }
-
-            const active = state.activeWorkspace;
-            const firstWs = Array.isArray(state.workspaces) && state.workspaces.length > 0 ? state.workspaces[0] : null;
-
-            const tenantId = active?.tenantId || firstWs?.tenantId;
-            // Tenant-scoped services (chat-service in particular) look up an actual
-            // Postgres database with this name, so we MUST point at a real tenant.
-            // Fall back to the user's first workspace; if they have none, leave
-            // both headers off so the backend can respond with a clear error.
-            const dbName = active?.dbName || firstWs?.dbName || tenantId;
-
-            if (tenantId) config.headers.set('x-tenant-id', tenantId);
-            if (dbName) config.headers.set('x-db-name', dbName);
-        }
-    } catch (error) {
-        console.error('Error reading auth state for interceptor:', error);
+// Inject auth token and tenant headers from the in-memory Zustand store.
+// Reading SecureStore on every request costs ~10–50ms per call (Keystore I/O);
+// the store is already hydrated from SecureStore on cold start via persist.
+api.interceptors.request.use((config) => {
+    const state = useAuthStore.getState();
+    if (state.token) {
+        config.headers.set('Authorization', `Bearer ${state.token}`);
     }
+    if (state.user?.id) {
+        config.headers.set('x-user-id', state.user.id);
+    }
+    const active = state.activeWorkspace;
+    const firstWs = Array.isArray(state.workspaces) && state.workspaces.length > 0
+        ? state.workspaces[0]
+        : null;
+    const tenantId = active?.tenantId || firstWs?.tenantId;
+    const dbName = active?.dbName || firstWs?.dbName || tenantId;
+    if (tenantId) config.headers.set('x-tenant-id', tenantId);
+    if (dbName) config.headers.set('x-db-name', dbName);
     return config;
 });
 
-// Response interceptor for better error visibility
+// --- 401 handling: transparently refresh the access token once, retry the
+// original request, and log the user out if the refresh also fails. ---
+let isRefreshing = false;
+let refreshWaiters: Array<(token: string | null) => void> = [];
+
+function onRefreshed(token: string | null) {
+    refreshWaiters.forEach((cb) => cb(token));
+    refreshWaiters = [];
+}
+
+async function readAuthState(): Promise<any | null> {
+    try {
+        const raw = await SecureStore.getItemAsync('resido-auth-secure-storage');
+        return raw ? JSON.parse(raw)?.state : null;
+    } catch {
+        return null;
+    }
+}
+
+async function persistTokens(accessToken: string, refreshToken?: string) {
+    try {
+        const raw = await SecureStore.getItemAsync('resido-auth-secure-storage');
+        const parsed = raw ? JSON.parse(raw) : { state: {}, version: 0 };
+        parsed.state = {
+            ...parsed.state,
+            token: accessToken,
+            personalToken: parsed.state?.activeWorkspace ? parsed.state?.personalToken : accessToken,
+            ...(refreshToken ? { refreshToken } : {}),
+        };
+        await SecureStore.setItemAsync('resido-auth-secure-storage', JSON.stringify(parsed));
+    } catch (e) {
+        console.error('Failed to persist refreshed tokens', e);
+    }
+}
+
+async function forceLogout() {
+    try {
+        const { useAuthStore } = require('../store/authStore');
+        useAuthStore.getState().logout();
+    } catch {
+        // Store not available — clear the persisted blob directly.
+        await SecureStore.deleteItemAsync('resido-auth-secure-storage');
+    }
+}
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            console.warn('[API Error] 401 Unauthorized - Token may be invalid or expired');
+    async (error) => {
+        const original: any = error.config;
+        const status = error.response?.status;
+        const url: string = original?.url || '';
+
+        // Don't try to refresh for the auth endpoints themselves or after a retry.
+        const isAuthCall = url.includes('/auth/refresh') || url.includes('/auth/verify-otp') || url.includes('/auth/login') || url.includes('/auth/send-otp');
+
+        if (status === 401 && original && !original._retry && !isAuthCall) {
+            original._retry = true;
+
+            if (isRefreshing) {
+                // Queue until the in-flight refresh completes.
+                return new Promise((resolve, reject) => {
+                    refreshWaiters.push((token) => {
+                        if (!token) return reject(error);
+                        original.headers = original.headers || {};
+                        original.headers['Authorization'] = `Bearer ${token}`;
+                        resolve(api(original));
+                    });
+                });
+            }
+
+            isRefreshing = true;
+            try {
+                const state = await readAuthState();
+                const refreshToken = state?.refreshToken;
+                if (!refreshToken) throw new Error('No refresh token');
+
+                const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+                const newAccess = data?.accessToken;
+                const newRefresh = data?.refreshToken;
+                if (!newAccess) throw new Error('No access token in refresh response');
+
+                await persistTokens(newAccess, newRefresh);
+                try {
+                    const { useAuthStore } = require('../store/authStore');
+                    useAuthStore.setState({ token: newAccess, ...(newRefresh ? { refreshToken: newRefresh } : {}) });
+                } catch { /* store update is best-effort */ }
+
+                onRefreshed(newAccess);
+                original.headers = original.headers || {};
+                original.headers['Authorization'] = `Bearer ${newAccess}`;
+                return api(original);
+            } catch (refreshErr) {
+                onRefreshed(null);
+                await forceLogout();
+                return Promise.reject(refreshErr);
+            } finally {
+                isRefreshing = false;
+            }
         }
-        console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, error.response?.status, error.response?.data);
+
+        console.error(`[API Error] ${original?.method?.toUpperCase()} ${url}:`, status, error.response?.data);
         return Promise.reject(error);
     }
 );
@@ -130,7 +216,7 @@ export const communityApi = {
     getNotices: () => api.get('/community/notices'),
     createNotice: (data: any) => api.post('/community/notices', data),
     getPolls: () => api.get('/community/polls'),
-    votePoll: (memberId: string, optionId: string) => api.post('/community/polls/vote', { memberId, optionId }),
+    votePoll: (optionId: string) => api.post('/community/polls/vote', { optionId }),
     getComplaints: (memberId: string) => api.get(`/community/complaints?memberId=${memberId}`),
     getComplaintsAdmin: (params?: any) => api.get('/community/complaints', { params }),
     assignComplaint: (id: string, staffId: string) => api.post(`/community/complaints/${id}/assign`, { staffId }),
@@ -262,13 +348,6 @@ export const businessApi = {
         api.get(`/business/profiles/${profileId}/report`, { params }),
 };
 
-// Accounting APIs
-export const accountingApi = {
-    getTransactions: (params?: any) => api.get('/accounting/transactions', { params }),
-    createTransaction: (data: any) => api.post('/accounting/transactions', data),
-    getMonthlyReport: (year: number, month: number) => api.get('/accounting/reports/monthly', { params: { year, month } }),
-};
-
 export type FeedListParams = {
     feedType?: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'RESHARE' | 'SAVED' | 'HASHTAG' | 'AUTHOR';
     followingIds?: string[];
@@ -364,7 +443,8 @@ export const threadApi = {
 // Chat APIs
 export const chatApi = {
     getConversations: () => api.get('/chat/conversations'),
-    getMessages: (conversationId: string) => api.get(`/chat/conversations/${conversationId}/messages`),
+    getMessages: (conversationId: string, params?: { skip?: number; take?: number }) =>
+        api.get(`/chat/conversations/${conversationId}/messages`, { params }),
     sendMessage: (
         conversationId: string,
         data: { content?: string; type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'FILE' | 'AUDIO' | 'POLL'; mediaUrl?: string; poll?: any },
@@ -378,15 +458,7 @@ export const chatApi = {
     votePoll: (pollId: string, optionId: string) => api.post(`/chat/polls/${pollId}/vote`, { optionId }),
 };
 
-// Complaint APIs
-export const complaintApi = {
-    getComplaints: (params?: any) => api.get('/complaint/complaints', { params }),
-    createComplaint: (data: any) => api.post('/complaint/complaints', data),
-    updateStatus: (id: string, status: string) => api.patch(`/complaint/complaints/${id}/status`, { status }),
-    addComment: (id: string, message: string) => api.post(`/complaint/complaints/${id}/comments`, { message }),
-};
-
-// My Space APIs
+// My Space APIs (notes, documents, personal finance → auth-service /profile/*)
 export const mySpaceApi = {
     getNoteFolders: () => api.get('/profile/notes/folders'),
     createNoteFolder: (name: string) => api.post('/profile/notes/folders', { name }),

@@ -115,8 +115,12 @@ export class BusinessController {
     }
 
     @Patch('profiles/:id')
-    updateProfile(@Param('id') id: string, @Body() data: any) {
-        return this.businessService.updateProfile(id, data);
+    updateProfile(
+        @Headers('x-user-id') userId: string,
+        @Param('id') id: string,
+        @Body() data: any,
+    ) {
+        return this.businessService.updateProfile(userId, id, data);
     }
 
     @Delete('profiles/:id')

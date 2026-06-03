@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@resido/business-client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationResolverService } from './location-resolver.service';
@@ -86,6 +86,10 @@ function expandPlaceAliases(name?: string): string[] {
 @Injectable()
 export class BusinessService {
     private readonly logger = new Logger(BusinessService.name);
+
+    // Process-wide cache for the marketplace category list (see getCategories).
+    private static categoriesCache: { at: number; data: string[] } | null = null;
+    private static readonly CATEGORIES_TTL_MS = 5 * 60_000;
 
     constructor(
         private prisma: PrismaService,
@@ -731,7 +735,16 @@ export class BusinessService {
         };
     }
 
-    async updateProfile(id: string, data: any) {
+    async updateProfile(userId: string, id: string, data: any) {
+        // Ownership check: only the profile owner may edit it (mirrors deleteProfile).
+        const owned = await this.prisma.businessProfile.findFirst({
+            where: { id, userId },
+            select: { id: true },
+        });
+        if (!owned) {
+            throw new ForbiddenException('You can only edit your own business profile');
+        }
+
         const { services, slots, pincode, city, expertise, description, images, ...rest } = data;
 
         const normalizedServiceAreaType =
@@ -866,12 +879,21 @@ export class BusinessService {
     }
 
     async getCategories() {
+        // Categories change rarely but this scans every active business
+        // profile. Cache the derived list for a few minutes so the (very hot)
+        // marketplace filter bar doesn't scan the table on every open.
+        const now = Date.now();
+        if (BusinessService.categoriesCache && now - BusinessService.categoriesCache.at < BusinessService.CATEGORIES_TTL_MS) {
+            return BusinessService.categoriesCache.data;
+        }
         const profiles = await this.prisma.businessProfile.findMany({
             select: { category: true },
             where: { isActive: true }
         });
         const categories = Array.from(new Set(profiles.map(p => p.category as string).filter(Boolean)));
-        return categories.sort((a, b) => a.localeCompare(b));
+        const sorted = categories.sort((a, b) => a.localeCompare(b));
+        BusinessService.categoriesCache = { at: now, data: sorted };
+        return sorted;
     }
 
     // ─── Business Slot & Booking Logic (Mirroring Amenities) ──────────────────
@@ -952,7 +974,117 @@ export class BusinessService {
             where: { businessProfileId: profileId, isActive: true },
             orderBy: { createdAt: 'desc' }
         });
-        return Promise.all(slots.map(s => this.getSlotById(profileId, s.id, date)));
+
+        // When a date is requested we need per-interval availability for every
+        // slot. Previously getSlots() called getSlotById() per slot, which
+        // re-fetched each slot row AND ran a separate bookings query per slot
+        // (a double N+1). Instead, fetch all confirmed bookings for this
+        // profile + date in ONE query and resolve every slot in memory.
+        let bookingsBySlot: Record<string, Record<string, number>> = {};
+        if (date) {
+            try {
+                const bookings = await this.prisma.businessBooking.findMany({
+                    where: { businessProfileId: profileId, bookingDate: date, status: 'CONFIRMED' },
+                    select: { slotId: true, timeSlot: true, persons: true },
+                });
+                for (const b of bookings) {
+                    const sid = b.slotId || '';
+                    const key = (b.timeSlot || '').trim();
+                    if (!sid || !key) continue;
+                    (bookingsBySlot[sid] ||= {})[key] = (bookingsBySlot[sid][key] || 0) + (b.persons || 0);
+                }
+            } catch (err) {
+                console.warn('[getSlots] failed to batch bookings:', (err as any)?.message);
+            }
+        }
+
+        return slots.map((slot) => {
+            const { timeSlots, availableDates } = this.resolveSlotSchedule(slot, date);
+            let timeSlotAvailability: Record<string, { booked: number; capacity: number; full: boolean }> = {};
+            if (date && Array.isArray(timeSlots) && timeSlots.length > 0) {
+                const capacity = slot.maxPersons || 1;
+                const totals = bookingsBySlot[slot.id] || {};
+                for (const interval of timeSlots) {
+                    const key = (interval || '').trim();
+                    if (!key) continue;
+                    const booked = totals[key] || 0;
+                    timeSlotAvailability[key] = { booked, capacity, full: booked >= capacity };
+                }
+            }
+            return { ...slot, timeSlots, availableDates, timeSlotAvailability };
+        });
+    }
+
+    /** Pure, in-memory expansion of a slot's schedule config into concrete
+     *  timeSlots/availableDates. No DB access — safe to map over a list. */
+    private resolveSlotSchedule(slot: any, date?: string): { timeSlots: any; availableDates: any } {
+        let resolvedSlots = slot.timeSlots;
+        let resolvedDates = slot.availableDates;
+
+        if (slot.scheduleType && slot.scheduleConfig) {
+            try {
+                const config = JSON.parse(slot.scheduleConfig);
+                const today = new Date();
+                const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+                if (slot.scheduleType === 'WEEKLY') {
+                    const dates: string[] = [];
+                    for (let i = 0; i < 90; i++) {
+                        const d = new Date(today);
+                        d.setDate(today.getDate() + i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        const dayName = weekdays[d.getDay()];
+                        if (config[dayName] && config[dayName].length > 0) {
+                            dates.push(dateStr);
+                        }
+                    }
+                    resolvedDates = dates;
+                    if (date) {
+                        const d = new Date(date);
+                        const dayName = weekdays[d.getDay()];
+                        resolvedSlots = config[dayName] || [];
+                    } else {
+                        const allSlots = new Set<string>();
+                        Object.values(config).forEach((slots: any) => {
+                            if (Array.isArray(slots)) slots.forEach(s => allSlots.add(s));
+                        });
+                        resolvedSlots = Array.from(allSlots);
+                    }
+                } else if (slot.scheduleType === 'MONTHLY') {
+                    const dates: string[] = [];
+                    const allowedDays = config.daysOfMonth || [];
+                    for (let i = 0; i < 90; i++) {
+                        const d = new Date(today);
+                        d.setDate(today.getDate() + i);
+                        const dateStr = d.toISOString().split('T')[0];
+                        if (allowedDays.includes(d.getDate())) {
+                            dates.push(dateStr);
+                        }
+                    }
+                    resolvedDates = dates;
+                    if (date) {
+                        const d = new Date(date);
+                        resolvedSlots = allowedDays.includes(d.getDate()) ? (config.slots || []) : [];
+                    } else {
+                        resolvedSlots = config.slots || [];
+                    }
+                } else if (slot.scheduleType === 'CUSTOM') {
+                    resolvedDates = Object.keys(config.dates || {});
+                    if (date) {
+                        resolvedSlots = config.dates?.[date] || [];
+                    } else {
+                        const allSlots = new Set<string>();
+                        Object.values(config.dates || {}).forEach((slots: any) => {
+                            if (Array.isArray(slots)) slots.forEach(s => allSlots.add(s));
+                        });
+                        resolvedSlots = Array.from(allSlots);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to parse scheduleConfig:', err);
+            }
+        }
+        return { timeSlots: resolvedSlots, availableDates: resolvedDates };
     }
 
     async getSlotById(profileId: string, id: string, date?: string) {

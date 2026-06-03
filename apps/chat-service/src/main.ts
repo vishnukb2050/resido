@@ -33,11 +33,19 @@ export class RedisIoAdapter extends IoAdapter {
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-    app.enableCors({ origin: '*', credentials: true });
+    const origins = process.env.CORS_ORIGINS;
+    app.enableCors(
+        origins ? { origin: origins.split(',').map((o) => o.trim()), credentials: true } : { origin: '*', credentials: true },
+    );
 
     const redisIoAdapter = new RedisIoAdapter(app);
     await redisIoAdapter.connectToRedis();
     app.useWebSocketAdapter(redisIoAdapter);
+
+    app.enableShutdownHooks();
+    app.getHttpAdapter().getInstance().get('/health', (_req: any, res: any) =>
+        res.status(200).json({ status: 'ok' }),
+    );
 
     const port = process.env.PORT || 3004;
     await app.listen(port);

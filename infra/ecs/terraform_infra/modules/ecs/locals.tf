@@ -14,6 +14,7 @@ locals {
       memory        = 1024
       desired_count = 1
       attach_alb    = "api-gateway" # key in alb_target_group_arns
+      worker        = false
     }
     "auth-service" = {
       port          = 3001
@@ -21,6 +22,7 @@ locals {
       memory        = 1024
       desired_count = 1
       attach_alb    = null
+      worker        = false
     }
     "resident-service" = {
       port          = 3002
@@ -28,13 +30,7 @@ locals {
       memory        = 1024
       desired_count = 1
       attach_alb    = null
-    }
-    "accounting-service" = {
-      port          = 3003
-      cpu           = 512
-      memory        = 1024
-      desired_count = 1
-      attach_alb    = null
+      worker        = false
     }
     "chat-service" = {
       port          = 3004
@@ -42,6 +38,7 @@ locals {
       memory        = 1024
       desired_count = 1
       attach_alb    = "chat-service"
+      worker        = false
     }
     "notification-service" = {
       port          = 3005
@@ -49,6 +46,7 @@ locals {
       memory        = 1024
       desired_count = 1
       attach_alb    = null
+      worker        = false
     }
     "visitor-service" = {
       port          = 3006
@@ -56,25 +54,30 @@ locals {
       memory        = 1024
       desired_count = 1
       attach_alb    = null
-    }
-    "complaint-service" = {
-      port          = 3007
-      cpu           = 512
-      memory        = 1024
-      desired_count = 1
-      attach_alb    = null
+      worker        = false
     }
     "flaredthread-service" = {
       port          = 3008
       cpu           = 512
       memory        = 1024
       desired_count = 1
-      attach_alb    = null
+      attach_alb    = "flaredthread-service"
+      worker        = false
     }
     "business-service" = {
       port          = 3009
       cpu           = 512
       memory        = 1024
+      desired_count = 1
+      attach_alb    = null
+      worker        = false
+    }
+    # Background worker: no HTTP port, no ALB, no Cloud Map registration.
+    "media-worker" = {
+      worker        = true
+      port          = 0
+      cpu           = 1024
+      memory        = 4096
       desired_count = 1
       attach_alb    = null
     }
@@ -93,9 +96,12 @@ locals {
     )
   }
 
-  # Service Discovery DNS used to inject sibling URLs.
+  # Service Discovery DNS used to inject sibling URLs (HTTP services only).
   service_urls = {
     for name, cfg in local.services :
     upper(replace(name, "-", "_")) => "http://${name}.${var.cloud_map_namespace_name}:${cfg.port}"
+    if !try(cfg.worker, false)
   }
+
+  flaredthread_internal_url = "http://flaredthread-service.${var.cloud_map_namespace_name}:3008"
 }

@@ -28,7 +28,10 @@ resource "aws_service_discovery_private_dns_namespace" "this" {
 }
 
 resource "aws_service_discovery_service" "svc" {
-  for_each = local.services
+  for_each = {
+    for name, cfg in local.services : name => cfg
+    if !try(cfg.worker, false)
+  }
 
   name = each.key
 

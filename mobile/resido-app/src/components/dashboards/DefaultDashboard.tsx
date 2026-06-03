@@ -4,13 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuthStore } from '../../store/authStore';
-import { threadApi, authApi, businessApi, unpackFeedPage } from '../../services/api';
+import { authApi, businessApi } from '../../services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
 import BottomNav from '../BottomNav';
 import { WorkspaceBubble } from '../WorkspaceBubble';
 import { getThemeColors } from '../../utils/theme';
 import { resolveMediaUrl, withCacheBust } from '../../utils/mediaUrl';
 import { useProfileRefresh } from '../../hooks/useProfileRefresh';
+import { useForYouFeed } from '../../hooks/useForYouFeed';
 
 const { width } = Dimensions.get('window');
 
@@ -229,7 +231,12 @@ const styles = StyleSheet.create({
 
 export default function DefaultDashboard() {
     const router = useRouter();
-    const { user, workspaces, activeWorkspace, setActiveWorkspace, switchRole } = useAuthStore();
+    const user = useAuthStore((s) => s.user);
+    const workspaces = useAuthStore((s) => s.workspaces);
+    const activeWorkspace = useAuthStore((s) => s.activeWorkspace);
+    const setActiveWorkspace = useAuthStore((s) => s.setActiveWorkspace);
+    const switchRole = useAuthStore((s) => s.switchRole);
+    const { data: items = [], isLoading: loadingActivity } = useForYouFeed();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const [touchStartX, setTouchStartX] = React.useState(0);
     const { width: windowWidth } = Dimensions.get('window');
@@ -237,9 +244,6 @@ export default function DefaultDashboard() {
     const [switchingRole, setSwitchingRole] = React.useState(false);
 
     const imageTimestamp = useProfileRefresh();
-
-    const [items, setItems] = React.useState<any[]>([]);
-    const [loadingActivity, setLoadingActivity] = React.useState(false);
 
     // Inline flare player: previews autoplay muted in each card; tapping a
     // flare's media expands it into a full-screen modal that plays with
@@ -389,101 +393,23 @@ export default function DefaultDashboard() {
         return `${diffDays}d ago`;
     };
 
-    const fetchRecentActivity = async () => {
-        try {
-            setLoadingActivity(true);
-
-            // 1. Fetch following list
-            let following: string[] = [];
-            try {
-                const { data: followList } = await authApi.getFollowing();
-                following = followList || [];
-            } catch (err) {
-                console.warn('Failed to fetch following users:', err);
-            }
-            const followingSet = new Set(following);
-
-            // 2. Fetch following + public threads & flares in parallel.
-            // The backend's FOLLOWING feed already includes Contacts-only
-            // posts you have permission to see (because you are in the
-            // author's contact list).
-            const promises = [
-                threadApi.getThreads({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
-                threadApi.getThreads({ feedType: 'PUBLIC', limit: 10 }).catch(() => ({ data: { items: [] } })),
-                threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
-                threadApi.getFlares({ feedType: 'PUBLIC', limit: 10 }).catch(() => ({ data: { items: [] } })),
-            ];
-
-            const [followingThreadsRes, publicThreadsRes, followingFlaresRes, publicFlaresRes] = await Promise.all(promises);
-
-            const allThreads = [
-                ...unpackFeedPage(followingThreadsRes.data).items,
-                ...unpackFeedPage(publicThreadsRes.data).items,
-            ];
-            const allFlares = [
-                ...unpackFeedPage(followingFlaresRes.data).items,
-                ...unpackFeedPage(publicFlaresRes.data).items,
-            ];
-
-            const threadsWithType = allThreads.map((t: any) => ({ ...t, itemType: 'THREAD' }));
-            const flaresWithType = allFlares.map((f: any) => ({ ...f, itemType: 'FLARE' }));
-
-            const combined = [...threadsWithType, ...flaresWithType];
-
-            // Remove duplicates by ID
-            const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-
-            // "For You" priority — mirrors the For You tab in /flares + /thread:
-            //   3 = Contacts (visibility is CONTACTS; backend already gated to
-            //       posts where I'm in the author's contact list)
-            //   2 = Following (I follow the author, OR visibility is FOLLOWERS
-            //       which the backend gates to people I follow)
-            //   1 = Public (everyone else)
-            // Within each tier, newest first.
-            unique.sort((a, b) => {
-                const getPriority = (item: any) => {
-                    if (item.visibility === 'CONTACTS') return 3;
-                    if (item.visibility === 'FOLLOWERS' || followingSet.has(item.authorId)) return 2;
-                    return 1;
-                };
-
-                const priorityA = getPriority(a);
-                const priorityB = getPriority(b);
-
-                if (priorityA !== priorityB) {
-                    return priorityB - priorityA;
-                }
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            });
-
-            setItems(unique);
-        } catch (e) {
-            console.error('Failed to load recent activity:', e);
-        } finally {
-            setLoadingActivity(false);
-        }
-    };
-
+    // Workspaces are only re-fetched when the persisted store is empty (login
+    // already supplies them). For You feed is cached via useForYouFeed.
     React.useEffect(() => {
-        if (user) {
-            fetchRecentActivity();
-        }
-    }, [user]);
+        if (!user) return;
 
-    React.useEffect(() => {
-        const fetchWorkspaces = async () => {
+        const { workspaces: stored } = useAuthStore.getState();
+        if (stored.length > 0) return;
+
+        (async () => {
             try {
                 const res = await authApi.getWorkspaces();
                 useAuthStore.getState().setWorkspaces(res.data);
             } catch (e) {
                 console.warn('Failed to fetch workspaces on mount:', e);
             }
-        };
-
-        if (user) {
-            fetchWorkspaces();
-        }
-    }, [user]);
+        })();
+    }, [user?.id]);
 
     // Align workspace bubbles (top horizontal ScrollView) when activeWorkspace changes or on mount
     React.useEffect(() => {
@@ -903,7 +829,12 @@ export default function DefaultDashboard() {
                                                         onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
                                                         style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                                                     >
-                                                        <Image source={{ uri: item.authorAvatar || 'https://i.pravatar.cc/100' }} style={styles.activityAvatar} />
+                                                        <ExpoImage
+                                                            source={{ uri: item.authorAvatar || undefined }}
+                                                            style={styles.activityAvatar}
+                                                            cachePolicy="memory-disk"
+                                                            contentFit="cover"
+                                                        />
                                                         <View style={styles.activityAuthorInfo}>
                                                             <View style={styles.activityAuthorRow}>
                                                                 <Text style={[styles.activityAuthorName, { color: mySpaceText }]}>{item.authorName || 'Anonymous'}</Text>
@@ -972,14 +903,18 @@ export default function DefaultDashboard() {
                                                                 }}
                                                             >
                                                                 {isFlare ? (
-                                                                    <Video
-                                                                        source={{ uri: mediaSrc, overrideFileExtension: 'mp4' } as any}
+                                                                    // Poster-only in the feed — do NOT mount a native <Video> per
+                                                                    // flare card (was shouldPlay+isLooping for every visible item,
+                                                                    // which tanks scroll performance). Full playback happens in the
+                                                                    // expand modal when the user taps.
+                                                                    <Image
+                                                                        source={{
+                                                                            uri:
+                                                                                resolveMediaUrl(item.thumbnailUrl) ||
+                                                                                resolveMediaUrl(item.posterUrl) ||
+                                                                                mediaSrc,
+                                                                        }}
                                                                         style={styles.activityMedia}
-                                                                        resizeMode={ResizeMode.COVER}
-                                                                        shouldPlay
-                                                                        isMuted
-                                                                        isLooping
-                                                                        useNativeControls={false}
                                                                     />
                                                                 ) : (
                                                                     <Image source={{ uri: mediaSrc }} style={styles.activityMedia} />
@@ -987,7 +922,7 @@ export default function DefaultDashboard() {
                                                                 {isFlare && (
                                                                     <>
                                                                         <View style={styles.playOverlay}>
-                                                                            <Ionicons name="volume-mute" size={32} color="#fff" />
+                                                                            <Ionicons name="play" size={32} color="#fff" />
                                                                         </View>
                                                                         <View style={styles.flareTapHint}>
                                                                             <Ionicons name="expand" size={12} color="#fff" style={{ marginRight: 4 }} />

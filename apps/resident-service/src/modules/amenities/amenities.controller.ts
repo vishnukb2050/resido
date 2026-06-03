@@ -1,11 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Headers, Query, UseGuards } from '@nestjs/common';
 import { AmenitiesService } from './amenities.service';
+import { RolesGuard, Roles } from '../../common/guards/roles.guard';
+
+// Amenities are community infrastructure — only admins/managers may manage them.
+const MANAGE_ROLES = ['APARTMENT_ADMIN', 'ADMIN_STAFF'];
 
 @Controller('community/amenities')
 export class AmenitiesController {
   constructor(private readonly amenitiesService: AmenitiesService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(...MANAGE_ROLES)
   create(@Headers('x-tenant-id') tenantId: string, @Body() data: any) {
     return this.amenitiesService.createAmenity(tenantId, data);
   }
@@ -33,11 +39,15 @@ export class AmenitiesController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(...MANAGE_ROLES)
   update(@Headers('x-tenant-id') tenantId: string, @Param('id') id: string, @Body() data: any) {
     return this.amenitiesService.updateAmenity(id, tenantId, data);
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(...MANAGE_ROLES)
   remove(@Headers('x-tenant-id') tenantId: string, @Param('id') id: string) {
     return this.amenitiesService.deleteAmenity(id, tenantId);
   }

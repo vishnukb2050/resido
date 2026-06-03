@@ -15,19 +15,26 @@ export class AmenitiesService {
   }
 
   async getAmenities(tenantId: string) {
-    const amenities = await this.prisma.client.amenity.findMany({
+    const amenities = await this.prisma.reader.amenity.findMany({
       where: { tenantId, isActive: true },
       orderBy: { createdAt: 'desc' },
     });
-    return Promise.all(amenities.map(a => this.getAmenityById(a.id, tenantId)));
+    // Resolve each amenity's schedule in memory. Previously this called
+    // getAmenityById() per row → one extra DB round-trip per amenity (N+1).
+    return amenities.map((a) => this.resolveAmenitySchedule(a));
   }
 
   async getAmenityById(id: string, tenantId: string, date?: string) {
-    const amenity = await this.prisma.client.amenity.findFirst({
+    const amenity = await this.prisma.reader.amenity.findFirst({
       where: { id, tenantId },
     });
     if (!amenity) throw new NotFoundException('Amenity not found');
+    return this.resolveAmenitySchedule(amenity, date);
+  }
 
+  /** Pure, in-memory expansion of an amenity's schedule config into concrete
+   *  timeSlots/availableDates. No DB access — safe to map over a list. */
+  private resolveAmenitySchedule(amenity: any, date?: string) {
     let resolvedSlots = amenity.timeSlots;
     let resolvedDates = amenity.availableDates;
 
@@ -212,7 +219,7 @@ export class AmenitiesService {
   }
 
   async getAmenityBookings(tenantId: string, amenityId: string, date: string) {
-    return this.prisma.client.amenityBooking.findMany({
+    return this.prisma.reader.amenityBooking.findMany({
       where: {
         tenantId,
         amenityId,
@@ -227,8 +234,8 @@ export class AmenitiesService {
     });
   }
 
-  async getMyBookings(tenantId: string, userId: string) {
-    const member = await this.prisma.client.member.findFirst({
+  async getMyBookings(tenantId: string, userId: string, skip = 0, take = 50) {
+    const member = await this.prisma.reader.member.findFirst({
       where: {
         tenantId,
         OR: [
@@ -239,10 +246,12 @@ export class AmenitiesService {
     });
     if (!member) return [];
 
-    return this.prisma.client.amenityBooking.findMany({
+    return this.prisma.reader.amenityBooking.findMany({
       where: { tenantId, memberId: member.id },
       include: { amenity: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip: Math.max(skip, 0),
+      take: Math.min(Math.max(take, 1), 100),
     });
   }
 }

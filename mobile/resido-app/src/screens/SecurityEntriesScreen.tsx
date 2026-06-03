@@ -1,24 +1,94 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import dayjs from 'dayjs';
+import { visitorApi } from '../services/api';
 
 const FILTERS = ['All', 'Visitors', 'Deliveries', 'Cabs', 'Staff'];
 
+// Map the free-text `category` stored on a visitor entry to a UI filter bucket.
+function categoryToType(category?: string): string {
+    const c = (category || '').toLowerCase();
+    if (c.includes('deliver')) return 'Deliveries';
+    if (c.includes('cab') || c.includes('taxi')) return 'Cabs';
+    if (c.includes('staff') || c.includes('maintenance') || c.includes('repair')) return 'Staff';
+    return 'Visitors';
+}
+
+function iconForType(type: string): string {
+    switch (type) {
+        case 'Deliveries': return 'bicycle';
+        case 'Cabs': return 'car';
+        case 'Staff': return 'construct';
+        default: return 'person';
+    }
+}
+
+interface UiEntry {
+    id: string;
+    name: string;
+    sub: string;
+    time: string;
+    status: 'IN' | 'OUT';
+    photo?: string;
+    icon: string;
+    type: string;
+}
+
 export default function SecurityEntriesScreen() {
     const [activeFilter, setActiveFilter] = useState('All');
+    const [entries, setEntries] = useState<UiEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [search, setSearch] = useState('');
     const router = useRouter();
 
-    const ENTRIES = [
-        { id: '1', name: 'Rahul Sharma', sub: 'Flat A-203 • Visitor', time: '10:30 AM', status: 'IN', photo: 'https://i.pravatar.cc/100?u=1', type: 'Visitors' },
-        { id: '2', name: 'Swiggy Delivery', sub: 'KL07CS1234 - Delivery', time: '10:22 AM', status: 'IN', icon: 'bicycle', type: 'Deliveries' },
-        { id: '3', name: 'Uber - White Swift', sub: 'KL07CP4567 - Cab', time: '10:15 AM', status: 'IN', icon: 'car', type: 'Cabs' },
-        { id: '4', name: 'Amit (Plumber)', sub: 'Staff - Maintenance', time: '09:50 AM', status: 'IN', photo: 'https://i.pravatar.cc/100?u=4', type: 'Staff' },
-        { id: '5', name: 'Amazon Delivery', sub: 'KL07DE7788 - Delivery', time: '09:40 AM', status: 'OUT', icon: 'bicycle', type: 'Deliveries' },
-    ];
+    const loadEntries = useCallback(async () => {
+        try {
+            const { data } = await visitorApi.getEntries();
+            const list = Array.isArray(data) ? data : (data?.entries ?? []);
+            const mapped: UiEntry[] = list.map((e: any) => {
+                const type = categoryToType(e.category);
+                const subParts = [e.unitToVisit, e.category || type].filter(Boolean);
+                return {
+                    id: e.id,
+                    name: e.visitorName || 'Unknown',
+                    sub: subParts.join(' • '),
+                    time: e.inTime ? dayjs(e.inTime).format('hh:mm A') : '',
+                    status: e.outTime ? 'OUT' : 'IN',
+                    photo: e.photoUrl || undefined,
+                    icon: iconForType(type),
+                    type,
+                };
+            });
+            setEntries(mapped);
+        } catch (err) {
+            console.error('Failed to load visitor entries', err);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
 
-    const filteredEntries = activeFilter === 'All' ? ENTRIES : ENTRIES.filter(e => e.type === activeFilter);
+    useEffect(() => {
+        loadEntries();
+    }, [loadEntries]);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadEntries();
+    }, [loadEntries]);
+
+    const filteredEntries = useMemo(() => {
+        const byFilter = activeFilter === 'All' ? entries : entries.filter(e => e.type === activeFilter);
+        const q = search.trim().toLowerCase();
+        if (!q) return byFilter;
+        return byFilter.filter(e =>
+            e.name.toLowerCase().includes(q) || e.sub.toLowerCase().includes(q),
+        );
+    }, [entries, activeFilter, search]);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fcfcfd' }}>
@@ -39,6 +109,8 @@ export default function SecurityEntriesScreen() {
                         placeholder="Search by name, number or vehicle..." 
                         style={styles.searchInput}
                         placeholderTextColor="#94a3b8"
+                        value={search}
+                        onChangeText={setSearch}
                     />
                 </View>
             </View>
@@ -64,10 +136,22 @@ export default function SecurityEntriesScreen() {
             </View>
 
             {/* List */}
+            {loading ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator size="large" color="#1d4ed8" />
+                </View>
+            ) : (
             <FlatList
                 data={filteredEntries}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                ListEmptyComponent={
+                    <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                        <Ionicons name="file-tray-outline" size={40} color="#cbd5e1" />
+                        <Text style={{ color: '#94a3b8', marginTop: 10, fontWeight: '600' }}>No entries yet</Text>
+                    </View>
+                }
                 renderItem={({ item }) => (
                     <View style={styles.entryItem}>
                         <View style={styles.avatarBox}>
@@ -94,10 +178,11 @@ export default function SecurityEntriesScreen() {
                     </View>
                 )}
             />
+            )}
 
             {/* Footer */}
             <View style={styles.footer}>
-                <Text style={styles.totalText}>Total Entries: 64</Text>
+                <Text style={styles.totalText}>Total Entries: {entries.length}</Text>
                 <TouchableOpacity>
                     <Text style={styles.exportText}>Export</Text>
                 </TouchableOpacity>

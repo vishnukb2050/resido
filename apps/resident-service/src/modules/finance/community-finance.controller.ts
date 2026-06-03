@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Delete, Body, Query, Headers, Param, UseInterceptors } from '@nestjs/common';
 import { CommunityFinanceService } from './community-finance.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
+import { AddCommunityTransactionDto, UpdateMaintenanceConfigDto, GenerateBillsDto } from './community-finance.dto';
 
 @Controller('community/finance')
 @UseInterceptors(TenantInterceptor)
@@ -14,8 +15,14 @@ export class CommunityFinanceController {
     }
 
     @Post('maintenance/config')
-    async updateMaintenanceConfig(@Headers('x-tenant-id') tenantId: string, @Body() data: any) {
-        return this.financeService.updateMaintenanceConfig(tenantId, data);
+    async updateMaintenanceConfig(
+        @Headers('x-tenant-id') tenantId: string,
+        @Headers('x-user-id') userId: string,
+        @Headers('x-user-phone') phone: string,
+        @Headers('x-user-role') role: string,
+        @Body() data: UpdateMaintenanceConfigDto,
+    ) {
+        return this.financeService.updateMaintenanceConfig(tenantId, { authUserId: userId, authUserPhone: phone, role }, data);
     }
 
     // ─── Ledger Transactions ─────────────────────────────
@@ -23,20 +30,34 @@ export class CommunityFinanceController {
     async addTransaction(
         @Headers('x-tenant-id') tenantId: string,
         @Headers('x-user-id') userId: string,
-        @Body() data: any,
+        @Headers('x-user-phone') phone: string,
+        @Headers('x-user-role') role: string,
+        @Body() data: AddCommunityTransactionDto,
     ) {
-        return this.financeService.addTransaction(tenantId, userId, data);
+        return this.financeService.addTransaction(tenantId, { authUserId: userId, authUserPhone: phone, role }, data);
     }
 
     @Get('transactions')
-    async getTransactions(@Headers('x-tenant-id') tenantId: string, @Query() query: any) {
-        return this.financeService.getTransactions(tenantId, query);
+    async getTransactions(
+        @Headers('x-tenant-id') tenantId: string,
+        @Headers('x-user-id') userId: string,
+        @Headers('x-user-phone') phone: string,
+        @Headers('x-user-role') role: string,
+        @Query() query: any,
+    ) {
+        return this.financeService.getTransactions(tenantId, { authUserId: userId, authUserPhone: phone, role }, query);
     }
 
     // ─── Maintenance Bills ───────────────────────────────
     @Post('maintenance/generate')
-    async generateBills(@Headers('x-tenant-id') tenantId: string, @Body() body: { month: number; year: number }) {
-        return this.financeService.generateBills(tenantId, body);
+    async generateBills(
+        @Headers('x-tenant-id') tenantId: string,
+        @Headers('x-user-id') userId: string,
+        @Headers('x-user-phone') phone: string,
+        @Headers('x-user-role') role: string,
+        @Body() body: GenerateBillsDto,
+    ) {
+        return this.financeService.generateBills(tenantId, { authUserId: userId, authUserPhone: phone, role }, body);
     }
 
     @Get('maintenance/status')
@@ -83,9 +104,12 @@ export class CommunityFinanceController {
     @Get('reports')
     async getReports(
         @Headers('x-tenant-id') tenantId: string,
+        @Headers('x-user-id') userId: string,
+        @Headers('x-user-phone') phone: string,
+        @Headers('x-user-role') role: string,
         @Query() query: { period: 'day' | 'week' | 'month'; year: number },
     ) {
-        return this.financeService.getReports(tenantId, query);
+        return this.financeService.getReports(tenantId, { authUserId: userId, authUserPhone: phone, role }, query);
     }
 
     // ─── Payment Splits ──────────────────────────────────

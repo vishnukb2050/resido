@@ -207,11 +207,51 @@ export class ClientsService {
         }
     }
 
-    async listClients() {
-        return this.prisma.masterRead.client.findMany({ orderBy: { createdAt: 'desc' } });
+    private userIdFromActor(actor?: { userId?: string; sub?: string }) {
+        return actor?.userId || actor?.sub;
     }
 
-    async getClient(id: string) {
+    /** Caller must have an active workspace membership in this community. */
+    private async assertClientMember(clientId: string, actor?: { userId?: string; sub?: string }) {
+        const userId = this.userIdFromActor(actor);
+        if (!userId) throw new ForbiddenException('Authentication required');
+        const m = await this.prisma.userRead.workspaceMembership.findFirst({
+            where: { userId, tenantId: clientId, isActive: true },
+            select: { id: true },
+        });
+        if (!m) throw new ForbiddenException('You are not a member of this community');
+    }
+
+    /** Caller must be the APARTMENT_ADMIN of this community. */
+    private async assertClientAdmin(clientId: string, actor?: { userId?: string; sub?: string }) {
+        const userId = this.userIdFromActor(actor);
+        if (!userId) throw new ForbiddenException('Authentication required');
+        const admin = await this.prisma.userRead.workspaceMembership.findFirst({
+            where: { userId, tenantId: clientId, role: 'APARTMENT_ADMIN', isActive: true },
+            select: { id: true },
+        });
+        if (!admin) {
+            throw new ForbiddenException('Only the community admin can perform this action');
+        }
+    }
+
+    async listClients(actor?: { userId?: string; sub?: string }) {
+        const userId = this.userIdFromActor(actor);
+        if (!userId) throw new ForbiddenException('Authentication required');
+        const memberships = await this.prisma.userRead.workspaceMembership.findMany({
+            where: { userId, isActive: true },
+            select: { tenantId: true },
+        });
+        const tenantIds = memberships.map((m) => m.tenantId);
+        if (tenantIds.length === 0) return [];
+        return this.prisma.masterRead.client.findMany({
+            where: { id: { in: tenantIds } },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async getClient(id: string, actor?: { userId?: string; sub?: string }) {
+        await this.assertClientMember(id, actor);
         const client = await this.prisma.masterRead.client.findUnique({ where: { id } });
         if (!client) throw new NotFoundException('Client not found');
         return client;
@@ -221,12 +261,14 @@ export class ClientsService {
         return this.prisma.masterRead.client.findUnique({ where: { slug } });
     }
 
-    async toggleClient(id: string, isActive: boolean) {
+    async toggleClient(id: string, isActive: boolean, actor?: { userId?: string; sub?: string }) {
+        await this.assertClientAdmin(id, actor);
         await this.prisma.masterClient.staffAccount.updateMany({ where: { clientId: id }, data: { isActive } });
         return this.prisma.masterClient.client.update({ where: { id }, data: { isActive } });
     }
 
-    async updateClient(id: string, dto: { name?: string; photoUrl?: string }) {
+    async updateClient(id: string, dto: { name?: string; photoUrl?: string }, actor?: { userId?: string; sub?: string }) {
+        await this.assertClientAdmin(id, actor);
         const client = await this.prisma.masterClient.client.update({
             where: { id },
             data: {
@@ -247,7 +289,8 @@ export class ClientsService {
         return client;
     }
 
-    async getClientStaff(clientId: string) {
+    async getClientStaff(clientId: string, actor?: { userId?: string; sub?: string }) {
+        await this.assertClientMember(clientId, actor);
         return this.prisma.userRead.workspaceMembership.findMany({
             where: {
                 tenantId: clientId,
@@ -268,7 +311,8 @@ export class ClientsService {
         });
     }
 
-    async addClientStaff(clientId: string, dto: { phone: string; role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF'; name?: string }) {
+    async addClientStaff(clientId: string, dto: { phone: string; role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF'; name?: string }, actor?: { userId?: string; sub?: string }) {
+        await this.assertClientAdmin(clientId, actor);
         let user = await this.prisma.userRead.user.findUnique({
             where: { phone: dto.phone }
         });
@@ -344,7 +388,8 @@ export class ClientsService {
         return { user, membership };
     }
 
-    async removeClientStaff(clientId: string, membershipId: string) {
+    async removeClientStaff(clientId: string, membershipId: string, actor?: { userId?: string; sub?: string }) {
+        await this.assertClientAdmin(clientId, actor);
         return this.prisma.userClient.workspaceMembership.delete({
             where: {
                 id: membershipId

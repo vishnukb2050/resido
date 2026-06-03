@@ -27,60 +27,69 @@ resource "aws_ecs_task_definition" "svc" {
   }
 
   container_definitions = jsonencode([
-    {
-      name      = each.key
-      image     = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${each.key}:${var.image_tag}"
-      essential = true
+    merge(
+      {
+        name      = each.key
+        image     = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${each.key}:${var.image_tag}"
+        essential = true
 
-      portMappings = [
-        {
-          containerPort = each.value.port
-          protocol      = "tcp"
-          name          = "http"
-          appProtocol   = "http"
-        },
-      ]
+        environment = concat(
+          [
+            { name = "NODE_ENV", value = "production" },
+            { name = "RUN_PRISMA_PUSH", value = "false" },
+          ],
+          try(each.value.worker, false) ? [] : [
+            { name = "PORT", value = tostring(each.value.port) },
+          ],
+          [for k, v in local.service_urls : { name = "${k}_URL", value = v }],
+          try(each.value.worker, false) ? [
+            { name = "FLAREDTHREAD_URL", value = local.flaredthread_internal_url },
+          ] : [],
+        )
 
-      environment = concat(
-        [
-          { name = "NODE_ENV", value = "production" },
-          { name = "PORT", value = tostring(each.value.port) },
-          { name = "RUN_PRISMA_PUSH", value = "false" },
-        ],
-        # Inject every sibling's Cloud Map URL as <SERVICE>_URL env var.
-        [for k, v in local.service_urls : { name = "${k}_URL", value = v }],
-      )
+        secrets = [
+          for env_name, arn in var.secret_arns :
+          {
+            name      = env_name
+            valueFrom = arn
+          }
+        ]
 
-      # Inject every Secrets Manager entry into the container as an env var
-      # with the same name as the .env key. The ECS agent calls
-      # secretsmanager:GetSecretValue using the task execution role BEFORE
-      # the application process starts, so `process.env.<KEY>` is populated
-      # by the time NestJS reads it.
-      secrets = [
-        for env_name, arn in var.secret_arns :
-        {
-          name      = env_name
-          valueFrom = arn
+        logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            "awslogs-group"         = aws_cloudwatch_log_group.svc[each.key].name
+            "awslogs-region"        = var.region
+            "awslogs-stream-prefix" = each.key
+          }
         }
-      ]
-
-      healthCheck = {
-        command     = ["CMD-SHELL", "wget -q --spider http://localhost:${each.value.port}/health || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
-      }
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.svc[each.key].name
-          "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = each.key
+      },
+      try(each.value.worker, false) ? {
+        healthCheck = {
+          command     = ["CMD-SHELL", "pgrep -f 'node dist/worker' >/dev/null || exit 1"]
+          interval    = 30
+          timeout     = 5
+          retries     = 3
+          startPeriod = 120
         }
-      }
-    },
+        } : {
+        portMappings = [
+          {
+            containerPort = each.value.port
+            protocol      = "tcp"
+            name          = "http"
+            appProtocol   = "http"
+          },
+        ]
+        healthCheck = {
+          command     = ["CMD-SHELL", "wget -q --spider http://localhost:${each.value.port}/health || exit 1"]
+          interval    = 30
+          timeout     = 5
+          retries     = 3
+          startPeriod = 60
+        }
+      },
+    ),
   ])
 
   tags = merge(var.tags, { Service = each.key })
@@ -119,10 +128,13 @@ resource "aws_ecs_service" "svc" {
     assign_public_ip = true
   }
 
-  service_registries {
-    registry_arn   = aws_service_discovery_service.svc[each.key].arn
-    container_name = each.key
-    container_port = each.value.port
+  dynamic "service_registries" {
+    for_each = try(each.value.worker, false) ? [] : [each.key]
+    content {
+      registry_arn   = aws_service_discovery_service.svc[service_registries.key].arn
+      container_name = each.key
+      container_port = each.value.port
+    }
   }
 
   # Attach to the ALB target group only for services that are public-facing.

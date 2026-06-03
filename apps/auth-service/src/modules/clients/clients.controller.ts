@@ -20,40 +20,40 @@ export class ClientsController {
         return this.clientsService.createClient(dto);
     }
 
-    // Superadmin or staff: list all clients
+    // List communities the caller belongs to (not the entire catalog).
     @Get()
-    listClients() {
-        return this.clientsService.listClients();
+    listClients(@Req() req: any) {
+        return this.clientsService.listClients(req.user);
     }
 
     @Get(':id')
-    getClient(@Param('id') id: string) {
-        return this.clientsService.getClient(id);
+    getClient(@Param('id') id: string, @Req() req: any) {
+        return this.clientsService.getClient(id, req.user);
     }
 
     @Patch(':id')
-    updateClient(@Param('id') id: string, @Body() body: { name?: string; photoUrl?: string }) {
-        return this.clientsService.updateClient(id, body);
+    updateClient(@Param('id') id: string, @Body() body: { name?: string; photoUrl?: string }, @Req() req: any) {
+        return this.clientsService.updateClient(id, body, req.user);
     }
 
     @Get(':id/staff')
-    getClientStaff(@Param('id') id: string) {
-        return this.clientsService.getClientStaff(id);
+    getClientStaff(@Param('id') id: string, @Req() req: any) {
+        return this.clientsService.getClientStaff(id, req.user);
     }
 
     @Post(':id/staff')
-    addClientStaff(@Param('id') id: string, @Body() body: { phone: string; role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF'; name?: string }) {
-        return this.clientsService.addClientStaff(id, body);
+    addClientStaff(@Param('id') id: string, @Body() body: { phone: string; role: 'APARTMENT_ADMIN' | 'CARETAKER' | 'ADMIN_STAFF'; name?: string }, @Req() req: any) {
+        return this.clientsService.addClientStaff(id, body, req.user);
     }
 
     @Delete(':id/staff/:membershipId')
-    removeClientStaff(@Param('id') id: string, @Param('membershipId') membershipId: string) {
-        return this.clientsService.removeClientStaff(id, membershipId);
+    removeClientStaff(@Param('id') id: string, @Param('membershipId') membershipId: string, @Req() req: any) {
+        return this.clientsService.removeClientStaff(id, membershipId, req.user);
     }
 
     @Patch(':id/toggle')
-    toggleClient(@Param('id') id: string, @Body() body: { isActive: boolean }) {
-        return this.clientsService.toggleClient(id, body.isActive);
+    toggleClient(@Param('id') id: string, @Body() body: { isActive: boolean }, @Req() req: any) {
+        return this.clientsService.toggleClient(id, body.isActive, req.user);
     }
 
     @Delete(':id')

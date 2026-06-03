@@ -5,8 +5,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import axios from 'axios';
-import { mySpaceApi, authApi } from '../services/api';
+import { mySpaceApi } from '../services/api';
+import { storageApi } from '../services/storage';
 
 /**
  * Upload a document with a friendly title + description before it lands in
@@ -84,26 +84,21 @@ export default function UploadDocumentScreen() {
 
         try {
             setUploading(true);
-            setProgress(0.05);
+            setProgress(0.1);
 
-            const presignRes = await authApi.getPresignedUrl(file.name, file.mimeType, 'DOCUMENTS');
-            const presign: any = presignRes.data || {};
-            const uploadUrl = presign.uploadUrl;
-            const finalUrl = presign.fileUrl || presign.url || presign.key;
-            if (!uploadUrl || !finalUrl) {
-                throw new Error('Could not get an upload URL.');
+            // Use the shared storage helper: it streams local files natively via
+            // FileSystem.uploadAsync, which is reliable for binary docs (PDFs) on
+            // Android where the fetch().blob() round-trip corrupts the upload.
+            const finalUrl = await storageApi.uploadFile(
+                file.uri,
+                file.name,
+                file.mimeType,
+                'DOCUMENTS',
+            );
+            setProgress(0.85);
+            if (!finalUrl) {
+                throw new Error('Could not upload the document.');
             }
-
-            const response = await fetch(file.uri);
-            const blob = await response.blob();
-
-            await axios.put(uploadUrl, blob, {
-                headers: { 'Content-Type': file.mimeType },
-                onUploadProgress: (e) => {
-                    const ratio = e.total ? e.loaded / e.total : 0.5;
-                    setProgress(0.2 + ratio * 0.7);
-                },
-            });
 
             await mySpaceApi.addDocumentFile({
                 folderId,

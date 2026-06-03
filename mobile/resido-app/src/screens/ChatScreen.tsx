@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { authApi, chatApi, API_URL, SOCKET_URL } from '../services/api';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import PollBuilderModal from '../components/PollBuilderModal';
 import { Image as ImageCompressor, Video as VideoCompressor } from 'react-native-compressor';
 import * as ImagePicker from 'expo-image-picker';
@@ -37,19 +37,31 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     
     const socketRef = useRef<Socket | null>(null);
     const flatRef = useRef<FlatList>(null);
-    const { activeWorkspace, user } = useAuthStore();
+    const activeWorkspace = useAuthStore((s) => s.activeWorkspace);
+    const user = useAuthStore((s) => s.user);
+    const token = useAuthStore((s) => s.token);
     const router = useRouter();
+    const params = useLocalSearchParams<{ convName?: string; convType?: string; otherMemberId?: string }>();
 
     useEffect(() => {
         loadMessages();
-        loadConversationMeta();
+        if (!params.convName && !params.otherMemberId) {
+            loadConversationMeta();
+        } else if (params.otherMemberId) {
+            authApi.getUser(String(params.otherMemberId)).then(({ data }) => setOtherUser(data)).catch(() => undefined);
+        }
+    }, [conversationId]);
+
+    // Reconnect when the conversation, workspace, or auth token changes so the
+    // socket handshake always carries a valid token + matching tenant.
+    useEffect(() => {
         connectSocket();
-        return () => { 
+        return () => {
             if (socketRef.current) {
-                socketRef.current.disconnect(); 
+                socketRef.current.disconnect();
             }
         };
-    }, [conversationId]);
+    }, [conversationId, activeWorkspace?.tenantId, activeWorkspace?.dbName, token]);
 
     const loadConversationMeta = async () => {
         try {
@@ -77,7 +89,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         if (!conversationId) return;
         try {
             setLoading(true);
-            const { data } = await chatApi.getMessages(conversationId);
+            const { data } = await chatApi.getMessages(conversationId, { take: 50 });
             setMessages(data);
         } catch (error) {
             console.error('Failed to load messages', error);
@@ -87,7 +99,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     };
 
     const connectSocket = () => {
-        if (!conversationId || !activeWorkspace) return;
+        if (!conversationId || !activeWorkspace || !token) return;
 
         const socket = io(`${SOCKET_URL}/chat`, {
             transports: ['websocket', 'polling'],
@@ -95,6 +107,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
             reconnectionAttempts: 10,
             reconnectionDelay: 1000,
             auth: {
+                token,
                 tenantId: activeWorkspace.tenantId,
                 dbName: activeWorkspace.dbName,
                 memberId: user?.id
@@ -352,7 +365,7 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                         <Text style={styles.headerTitle} numberOfLines={1}>
                             {conversation?.type === 'GROUP'
                                 ? conversation?.name || 'Group'
-                                : otherUser?.name || otherUser?.phone || 'Chat'}
+                                : otherUser?.name || otherUser?.phone || params.convName || 'Chat'}
                         </Text>
                         <Text style={styles.headerSub}>
                             {conversation?.type === 'GROUP'

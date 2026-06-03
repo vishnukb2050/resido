@@ -1,10 +1,14 @@
 import { Controller, Post, Get, Body, Headers, UseGuards, Param } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { ProfileService } from '../profile/profile.service';
 import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+    constructor(
+        private authService: AuthService,
+        private profileService: ProfileService,
+    ) { }
 
     @Public()
     @Post('send-otp')
@@ -49,8 +53,9 @@ export class AuthController {
     }
 
     @Get('users/:id')
-    getUser(@Param('id') id: string) {
-        return this.authService.getMe(id); // Reusing getMe logic as it returns same fields
+    getUser(@Headers('x-user-id') viewerId: string, @Param('id') id: string) {
+        // Respect profile/phone visibility — never return raw PII to arbitrary callers.
+        return this.profileService.getPublicProfile(id, viewerId);
     }
 
     @Post('sync-contacts')
@@ -58,15 +63,25 @@ export class AuthController {
         return this.authService.syncContacts(userId, body.phones);
     }
 
-    @Public()
+    // Membership sync is triggered by an authenticated admin/manager from the
+    // app (e.g. after creating a member). The gateway requires a valid JWT for
+    // these paths (they are NOT in its public allowlist), so they are no longer
+    // anonymously callable. We pass the caller's id so the service can authorize.
     @Post('sync-membership')
-    syncMembership(@Body() body: { phone: string; tenantId: string; tenantName: string; role: string; name?: string; age?: number; address?: string }) {
-        return this.authService.syncMembership(body.phone, body.tenantId, body.tenantName, body.role, body.name, body.age, body.address);
+    syncMembership(
+        @Headers('x-user-id') actingUserId: string,
+        @Headers('x-user-phone') actingUserPhone: string,
+        @Body() body: { phone: string; tenantId: string; tenantName: string; role: string; name?: string; age?: number; address?: string },
+    ) {
+        return this.authService.syncMembership(actingUserId, actingUserPhone, body);
     }
 
-    @Public()
     @Post('sync-membership-deactivation')
-    syncMembershipDeactivation(@Body() body: { phone: string; tenantId: string; role: string }) {
-        return this.authService.syncMembershipDeactivation(body.phone, body.tenantId, body.role);
+    syncMembershipDeactivation(
+        @Headers('x-user-id') actingUserId: string,
+        @Headers('x-user-phone') actingUserPhone: string,
+        @Body() body: { phone: string; tenantId: string; role: string },
+    ) {
+        return this.authService.syncMembershipDeactivation(actingUserId, actingUserPhone, body);
     }
 }

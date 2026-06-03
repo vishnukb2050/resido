@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, Dimensions, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, communityApi } from '../services/api';
+import { storageApi } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -74,15 +75,31 @@ export default function GalleryScreen() {
             setUploading(true);
             try {
                 const asset = result.assets[0];
+                const isVideo = asset.type === 'video';
+                const fileName = asset.fileName || asset.uri.split('/').pop() || `upload_${Date.now()}`;
+                const contentType =
+                    (asset as any).mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
+
+                // Upload the binary to storage first, then persist the public URL —
+                // never store the local device file:// URI (it isn't reachable).
+                const fileUrl = await storageApi.uploadFile(
+                    asset.uri,
+                    fileName,
+                    contentType,
+                    'gallery',
+                    activeWorkspace?.tenantId,
+                );
+
                 await api.post('/community/gallery', {
                     title: 'New Upload',
-                    mediaUrls: [asset.uri],
+                    mediaUrls: [fileUrl],
                     folderId: selectedFolder.id,
-                    type: asset.type === 'video' ? 'VIDEO' : 'IMAGE',
+                    type: isVideo ? 'VIDEO' : 'IMAGE',
                     category: 'Community'
                 });
                 fetchGallery(selectedFolder.id);
             } catch (error) {
+                console.error('Gallery upload failed', error);
                 Alert.alert('Error', 'Failed to upload media');
             } finally {
                 setUploading(false);

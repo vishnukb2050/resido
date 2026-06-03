@@ -15,7 +15,14 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.enableCors();
+  const corsOrigins = process.env.CORS_ORIGINS;
+  app.enableCors(
+    corsOrigins ? { origin: corsOrigins.split(',').map((o) => o.trim()), credentials: true } : { origin: '*' },
+  );
+  app.enableShutdownHooks();
+  app.getHttpAdapter().getInstance().get('/health', (_req: any, res: any) =>
+    res.status(200).json({ status: 'ok' }),
+  );
   const port = process.env.PORT || 3002;
   await app.listen(port);
   console.log(`Resident-service running on port ${port}`);

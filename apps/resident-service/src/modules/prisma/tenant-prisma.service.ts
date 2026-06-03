@@ -38,7 +38,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
                     async $allOperations({ model, operation, args, query }: any) {
                         const store = PrismaService.als.getStore();
                         const tenantId = store?.tenantId;
-                        const modelsWithoutTenantId = ['VisitorEntry', 'Gatepass', 'BusinessBooking'];
+                        const modelsWithoutTenantId = ['BusinessBooking'];
 
                         if (tenantId && !modelsWithoutTenantId.includes(model)) {
                             args = args || {};

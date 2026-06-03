@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Headers, Param, Post, Query, Req, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post, Query, Req, UseInterceptors } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
@@ -36,18 +36,23 @@ export class ChatController {
     getConversations(
         @Req() req: any,
         @Headers('x-user-id') memberId: string,
+        @Query('skip') skip = '0',
+        @Query('take') take = '30',
     ) {
-        return this.chatService.getConversations(req.tenantDbName, memberId);
+        return this.chatService.getConversations(req.tenantDbName, memberId, +skip, +take);
     }
 
     @Get('conversations/:id/messages')
-    getMessages(
+    async getMessages(
         @Req() req: any,
         @Param('id') conversationId: string,
         @Headers('x-user-id') userId: string,
         @Query('skip') skip = '0',
         @Query('take') take = '50',
     ) {
+        // Don't let a user read history of a conversation they're not in.
+        const allowed = await this.chatService.isConversationMember(req.tenantDbName, conversationId, userId);
+        if (!allowed) throw new ForbiddenException('Not a member of this conversation');
         return this.chatService.getMessages(req.tenantDbName, conversationId, +skip, +take, userId);
     }
 
@@ -65,6 +70,8 @@ export class ChatController {
         @Body() body: { content?: string; type?: string; mediaUrl?: string; poll?: any },
     ) {
         if (!senderId) throw new BadRequestException('Missing sender');
+        const allowed = await this.chatService.isConversationMember(req.tenantDbName, conversationId, senderId);
+        if (!allowed) throw new ForbiddenException('Not a member of this conversation');
         const message = await this.chatService.createMessage(req.tenantDbName, {
             conversationId,
             senderId,

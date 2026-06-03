@@ -1,8 +1,22 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
+
+// Only allow uploads of media/document types we actually serve. Prevents the
+// presigned URL from being used to stage arbitrary executable/HTML content.
+const ALLOWED_CONTENT_TYPES = [
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif',
+    'video/mp4', 'video/quicktime', 'video/webm',
+    'audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/wav', 'audio/webm',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain', 'text/csv',
+];
 
 @Injectable()
 export class StorageService {
@@ -30,22 +44,35 @@ export class StorageService {
      * @param module e.g. 'profiles', 'gallery', 'chats', 'complaints'
      * @param subfolder Optional extra nesting (e.g. conversationId)
      */
-    async generatePresignedUrl(fileName: string, contentType: string, tenantId?: string, module: string = 'media', subfolder?: string) {
+    async generatePresignedUrl(fileName: string, contentType: string, tenantId?: string, module: string = 'media', subfolder?: string, userId?: string) {
         try {
-            const fileExtension = fileName.split('.').pop();
+            if (!contentType || !ALLOWED_CONTENT_TYPES.includes(contentType.toLowerCase())) {
+                throw new BadRequestException(`Unsupported content type: ${contentType}`);
+            }
+            // Sanitize path segments so a crafted subfolder/module can't escape
+            // the tenant prefix (e.g. "../other-tenant").
+            const safe = (s?: string) => (s || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+            const safeModule = safe(module) || 'media';
+            const safeSub = safe(subfolder);
+            const safeUser = safe(userId);
+            const fileExtension = (fileName.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
             const uuid = uuidv4();
-            
+
+            // Always include the uploader id in the key for traceability and so a
+            // member can't overwrite another member's object prefix.
+            const userSeg = safeUser ? `${safeUser}/` : '';
+
             let key = '';
-            if (module === 'profiles') {
+            if (safeModule === 'profiles') {
                 // Global profiles (User is same across multiple communities)
-                key = `global/profiles/${subfolder || 'general'}/${uuid}.${fileExtension}`;
+                key = `global/profiles/${userSeg || (safeSub ? `${safeSub}/` : 'general/')}${uuid}.${fileExtension}`;
             } else if (tenantId) {
-                // Tenant specific data
-                const folder = subfolder ? `/${subfolder}` : '';
-                key = `tenants/${tenantId}/${module}${folder}/${uuid}.${fileExtension}`;
+                // Tenant specific data, scoped to the uploading member.
+                const folder = safeSub ? `${safeSub}/` : '';
+                key = `tenants/${safe(tenantId)}/${safeModule}/${userSeg}${folder}${uuid}.${fileExtension}`;
             } else {
                 // Generic global media
-                key = `global/media/${module}/${uuid}.${fileExtension}`;
+                key = `global/media/${safeModule}/${userSeg}${uuid}.${fileExtension}`;
             }
 
             const command = new PutObjectCommand({

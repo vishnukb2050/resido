@@ -25,8 +25,12 @@ export class CommunityController {
     }
 
     @Post('polls/vote')
-    votePoll(@Body() body: { memberId: string; optionId: string }) {
-        return this.communityService.votePoll(body.memberId, body.optionId);
+    votePoll(
+        @Headers('x-user-id') authUserId: string,
+        @Headers('x-user-phone') authUserPhone: string,
+        @Body() body: { optionId: string },
+    ) {
+        return this.communityService.votePoll({ authUserId, authUserPhone, optionId: body.optionId });
     }
 
     // Complaints
@@ -116,6 +120,20 @@ export class CommunityController {
         }
     ) {
         return this.communityService.approveGatepassEntry(id, body.securityMemberId, body);
+    }
+
+    // Cleaning logs (daily housekeeping by cleaning staff)
+    @Get('cleaning-log')
+    getCleaningLogs(@Query('skip') skip?: string, @Query('take') take?: string) {
+        return this.communityService.getCleaningLogs(Number(skip) || 0, Number(take) || 30);
+    }
+
+    @Post('cleaning-log')
+    createCleaningLog(
+        @Headers('x-user-id') authUserId: string,
+        @Body() body: { date?: string; areas: string[]; notes?: string; photoUrls?: string[] },
+    ) {
+        return this.communityService.createCleaningLog(authUserId, body);
     }
 
     // Calendar / Events

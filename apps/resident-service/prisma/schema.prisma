@@ -866,6 +866,7 @@ model BusinessBookingUpdate {
 // ─── Visitors (Entry/Exit) ────────────────────────────────────
 model VisitorEntry {
   id          String    @id @default(cuid())
+  tenantId    String
   visitorName String
   phone       String?
   purpose     String?
@@ -880,11 +881,14 @@ model VisitorEntry {
   gatepassId  String?   // Link to gatepass if used
   createdAt   DateTime  @default(now())
 
+  @@index([tenantId])
+  @@index([tenantId, inTime(sort: Desc)])
   @@map("visitor_entries")
 }
 
 model Gatepass {
   id              String   @id @default(cuid())
+  tenantId        String
   visitorName     String
   phone           String?
   personsCount    Int      @default(1)
@@ -900,7 +904,25 @@ model Gatepass {
   approvedBy      String?  // security member id
   createdAt       DateTime @default(now())
 
+  @@index([tenantId])
+  @@index([tenantId, residentId, createdAt(sort: Desc)])
   @@map("gatepasses")
+}
+
+// ─── Cleaning Log (daily housekeeping by cleaning staff) ──────
+model CleaningLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  loggedBy  String   // global user id of the cleaning staff
+  date      DateTime @default(now())
+  areas     String[] // cleaned area labels
+  notes     String?
+  photoUrls String[] // S3 keys / URLs
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("cleaning_logs")
 }
 
 enum GatepassStatus {

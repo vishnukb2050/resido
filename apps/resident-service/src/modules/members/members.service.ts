@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
 export class MembersService {
     constructor(private prisma: PrismaService) {}
 
-    async listMembers(role?: string) {
+    async listMembers(role?: string, skip = 0, take = 0) {
         const where: any = {};
         if (role) {
             if (role === 'STAFF_GROUP') {
@@ -14,10 +14,18 @@ export class MembersService {
                 where.role = role;
             }
         }
-        
+
+        // Always bound the result set. Defaults to 500 (covers most communities
+        // in a single page) and is hard-capped at 1000 to protect the DB.
+        const safeTake = Math.min(take > 0 ? take : 500, 1000);
+        const safeSkip = Math.max(skip, 0);
+
         const members = await this.prisma.reader.member.findMany({
             where,
-            include: { family: { include: { unit: true } } }
+            include: { family: { include: { unit: true } } },
+            orderBy: { createdAt: 'desc' },
+            skip: safeSkip,
+            take: safeTake,
         });
         return members.map(m => ({
             ...m,
@@ -116,7 +124,23 @@ export class MembersService {
         return member;
     }
 
-    async updateProfilePhoto(id: string, profilePhoto: string) {
+    async updateProfilePhoto(
+        id: string,
+        profilePhoto: string,
+        actor?: { actingUserId?: string; actingRole?: string; manageRoles?: string[] },
+    ) {
+        // Admins may update anyone; otherwise the caller may only update their
+        // own member record (matched via userId).
+        const isAdmin = !!actor?.actingRole && (actor.manageRoles || []).includes(String(actor.actingRole).toUpperCase());
+        if (!isAdmin) {
+            const target = await this.prisma.reader.member.findUnique({
+                where: { id },
+                select: { userId: true },
+            });
+            if (!target || !actor?.actingUserId || target.userId !== actor.actingUserId) {
+                throw new ForbiddenException('You can only update your own profile photo');
+            }
+        }
         return this.prisma.client.member.update({
             where: { id },
             data: { profilePhoto },

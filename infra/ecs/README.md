@@ -107,8 +107,8 @@ on `ap-south-1`.
                       │
         ┌─────────────┴──────────────────────────────────────────────┐
         │ ECS Services (private, no ALB target):                     │
-        │ auth, resident, accounting, complaint, visitor,            │
-        │ notification, business, flaredthread                       │
+        │ auth, resident, visitor, notification, business,           │
+        │ flaredthread, media-worker (background)                    │
         └─────────────┬──────────────────────────────────────────────┘
                       │
                       ▼
@@ -146,13 +146,12 @@ infra/ecs/
 │   ├── api-gateway.json
 │   ├── auth-service.json
 │   ├── resident-service.json
-│   ├── accounting-service.json
 │   ├── chat-service.json
 │   ├── notification-service.json
 │   ├── visitor-service.json
-│   ├── complaint-service.json
 │   ├── flaredthread-service.json
 │   ├── business-service.json
+│   ├── media-worker.json
 │   └── db-migrate.json              ← one-off task that runs `prisma migrate deploy`
 ├── alb/
 │   └── listener-rules.md            ← target groups + routing rules to create

@@ -84,11 +84,12 @@ module "ecr" {
     "api-gateway",
     "auth-service",
     "resident-service",
-    "accounting-service",
     "chat-service",
     "notification-service",
     "visitor-service",
-    "complaint-service",
+    "flaredthread-service",
+    "business-service",
+    "media-worker",
   ]
   common_tags = var.common_tags
 }

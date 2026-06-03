@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
@@ -119,7 +119,7 @@ export class AuthService {
         if (!valid) throw new UnauthorizedException('Invalid credentials');
         if (!staff.isActive) throw new UnauthorizedException('Account is disabled');
 
-        const tokens = await this.generateTokens(staff.id, null, staff.clientId, staff.role as string);
+        const tokens = await this.generateTokens(staff.id, null, staff.clientId, staff.role as string, staff.client?.dbName || null);
         
         return { 
             ...tokens, 
@@ -205,7 +205,7 @@ export class AuthService {
             select: { phone: true },
         });
 
-        const tokens = await this.generateTokens(userId, user?.phone || null, tenantId, membership.role as string);
+        const tokens = await this.generateTokens(userId, user?.phone || null, tenantId, membership.role as string, client?.dbName || null);
         return {
             ...tokens,
             workspace: {
@@ -234,14 +234,33 @@ export class AuthService {
                 });
                 phone = u?.phone || null;
             }
-            const tokens = await this.generateTokens(payload.sub, phone, payload.tenantId, payload.role);
+            const tokens = await this.generateTokens(payload.sub, phone, payload.tenantId, payload.role, payload.dbName || null);
             return tokens;
         } catch {
             throw new UnauthorizedException('Invalid refresh token');
         }
     }
 
-    async syncMembership(phone: string, tenantId: string, tenantName: string, role: string, name?: string, age?: number, address?: string) {
+    async syncMembership(
+        actingUserId: string,
+        actingUserPhone: string | undefined,
+        body: { phone: string; tenantId: string; tenantName: string; role: string; name?: string; age?: number; address?: string },
+    ) {
+        const { phone, tenantId, tenantName, role, name, age, address } = body;
+        // Caller may only sync membership for their own phone (prevents adding
+        // arbitrary users to communities via a stolen JWT).
+        const actor = await this.prisma.userRead.user.findUnique({
+            where: { id: actingUserId },
+            select: { id: true, phone: true },
+        });
+        if (!actor) {
+            throw new BadRequestException('Authentication required');
+        }
+        const actorPhone = (actingUserPhone || actor.phone || '').trim();
+        if (actorPhone && phone.trim() !== actorPhone) {
+            throw new ForbiddenException('You can only sync membership for your own phone number');
+        }
+
         // 1. Ensure user exists
         let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
         if (!user) {
@@ -286,7 +305,24 @@ export class AuthService {
         return { user, membership };
     }
 
-    async syncMembershipDeactivation(phone: string, tenantId: string, role: string) {
+    async syncMembershipDeactivation(
+        actingUserId: string,
+        actingUserPhone: string | undefined,
+        body: { phone: string; tenantId: string; role: string },
+    ) {
+        const { phone, tenantId, role } = body;
+        const actor = await this.prisma.userRead.user.findUnique({
+            where: { id: actingUserId },
+            select: { id: true, phone: true },
+        });
+        if (!actor) {
+            throw new BadRequestException('Authentication required');
+        }
+        const actorPhone = (actingUserPhone || actor.phone || '').trim();
+        if (actorPhone && phone.trim() !== actorPhone) {
+            throw new ForbiddenException('You can only deactivate your own membership');
+        }
+
         const user = await this.prisma.userRead.user.findUnique({ where: { phone } });
         if (!user) {
             return { success: false, message: 'User not found' };
@@ -305,36 +341,53 @@ export class AuthService {
     }
 
     async syncContacts(userId: string, phones: string[]) {
-        const normalized = phones.map(p => p.replace(/\D/g, ''));
-        
-        // We'll use suffix matching for better discovery
-        // Fetch all active users and filter in-memory for accuracy
-        const allUsers = await this.prisma.userRead.user.findMany({
-            where: { isActive: true },
+        // Previously this loaded the ENTIRE active users table into memory on
+        // every contact sync and then auto-followed each match with a separate
+        // INSERT (N+1). At millions of users that OOMs the pod and storms the
+        // DB. Instead we (1) push the suffix match into the DB and (2) create
+        // all follows in a single bulk insert.
+        const normalized = Array.from(
+            new Set(
+                (phones || [])
+                    .map(p => (p || '').replace(/\D/g, ''))
+                    .filter(p => p.length >= 6),
+            ),
+        ).slice(0, 2000); // cap a single sync payload
+
+        if (normalized.length === 0) return [];
+
+        // Last-10 digits handle the common case of varied country/STD prefixes.
+        const last10 = Array.from(new Set(normalized.map(p => p.slice(-10))));
+
+        const registered = await this.prisma.userRead.user.findMany({
+            where: {
+                isActive: true,
+                OR: [
+                    { phone: { in: normalized } },
+                    ...last10.map(s => ({ phone: { endsWith: s } })),
+                ],
+            },
             select: {
                 id: true,
                 phone: true,
                 name: true,
                 profileName: true,
                 phoneVisibility: true,
-                profilePhoto: true
-            }
+                profilePhoto: true,
+            },
         });
 
-        const registered = allUsers.filter(user => {
-            const userPhone = user.phone.replace(/\D/g, '');
-            return normalized.some(p => {
-                // Match if exact or if last 10 digits match (common for varied prefixes)
-                return p === userPhone || (p.length >= 10 && userPhone.endsWith(p.slice(-10)));
-            });
-        });
-
-        // Automatically follow registered contacts
-        if (userId) {
-            for (const contact of registered) {
-                if (contact.id !== userId) {
-                    await this.followService.followUser(userId, contact.id);
-                }
+        // Bulk auto-follow registered contacts in one statement; skipDuplicates
+        // makes it idempotent against the Follow unique constraint.
+        if (userId && registered.length) {
+            const data = registered
+                .filter(c => c.id !== userId)
+                .map(c => ({ followerId: userId, followingId: c.id }));
+            if (data.length) {
+                await this.prisma.userClient.follow.createMany({
+                    data,
+                    skipDuplicates: true,
+                });
             }
         }
 
@@ -357,8 +410,8 @@ export class AuthService {
         });
     }
 
-    private async generateTokens(userId: string, phone: string | null, tenantId: string | null, role: string | null) {
-        const payload = { sub: userId, phone, tenantId, role };
+    private async generateTokens(userId: string, phone: string | null, tenantId: string | null, role: string | null, dbName: string | null = null) {
+        const payload = { sub: userId, phone, tenantId, role, dbName };
         const [accessToken, refreshToken] = await Promise.all([
             this.jwt.signAsync(payload, {
                 secret: this.config.get('JWT_SECRET'),

@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { threadApi, authApi, API_URL, unpackFeedPage } from '../services/api';
-import { Video, ResizeMode } from 'expo-av';
+import { threadApi, authApi, FLARES_SOCKET_URL, flaresSocketOptions, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
@@ -56,6 +55,12 @@ export default function ThreadScreen() {
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [forYouCursors, setForYouCursors] = useState<{
+        following: string | null;
+        public: string | null;
+        followingHasMore: boolean;
+        publicHasMore: boolean;
+    }>({ following: null, public: null, followingHasMore: false, publicHasMore: false });
 
     useEffect(() => {
         fetchInitialData();
@@ -63,9 +68,7 @@ export default function ThreadScreen() {
             fetchFollowingFlares();
         }
 
-        const socket = io(`${API_URL}/flares`, {
-            transports: ['websocket']
-        });
+        const socket = io(`${FLARES_SOCKET_URL}/flares`, flaresSocketOptions);
 
         socket.on('connect', () => {
             socket.emit('join_global_feed');
@@ -105,25 +108,30 @@ export default function ThreadScreen() {
         }
 
         if (activeTab === 'FORYOU') {
+            const fetchFollowing = !append || forYouCursors.followingHasMore;
+            const fetchPublic = !append || forYouCursors.publicHasMore;
             const [fRes, pRes] = await Promise.all([
-                threadApi.getThreads({
-                    feedType: 'FOLLOWING',
-                    followingIds: currentFollowing,
-                    category: activeCategory !== 'all' ? activeCategory : undefined,
-                    limit: 15,
-                    cursor: append ? cursor : undefined,
-                }),
-                threadApi.getThreads({
-                    feedType: 'PUBLIC',
-                    category: activeCategory !== 'all' ? activeCategory : undefined,
-                    limit: 15,
-                    cursor: append ? cursor : undefined,
-                }),
+                fetchFollowing
+                    ? threadApi.getThreads({
+                          feedType: 'FOLLOWING',
+                          followingIds: currentFollowing,
+                          category: activeCategory !== 'all' ? activeCategory : undefined,
+                          limit: 15,
+                          cursor: append ? forYouCursors.following || undefined : undefined,
+                      })
+                    : Promise.resolve({ data: { items: [], nextCursor: null, hasMore: false } }),
+                fetchPublic
+                    ? threadApi.getThreads({
+                          feedType: 'PUBLIC',
+                          category: activeCategory !== 'all' ? activeCategory : undefined,
+                          limit: 15,
+                          cursor: append ? forYouCursors.public || undefined : undefined,
+                      })
+                    : Promise.resolve({ data: { items: [], nextCursor: null, hasMore: false } }),
             ]);
-            const combined = [
-                ...unpackFeedPage(fRes.data).items,
-                ...unpackFeedPage(pRes.data).items,
-            ];
+            const fPage = unpackFeedPage(fRes.data);
+            const pPage = unpackFeedPage(pRes.data);
+            const combined = [...fPage.items, ...pPage.items];
             const unique = Array.from(new Map(combined.map((t) => [t.id, t])).values());
             unique.sort((a, b) => {
                 const aIsFollowing = currentFollowing.includes(a.authorId);
@@ -133,8 +141,16 @@ export default function ThreadScreen() {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             });
             setThreads((prev) => (append ? [...prev, ...unique] : unique));
+            setForYouCursors((prev) => ({
+                following: fetchFollowing ? fPage.nextCursor : prev.following,
+                public: fetchPublic ? pPage.nextCursor : prev.public,
+                followingHasMore: fetchFollowing ? fPage.hasMore : false,
+                publicHasMore: fetchPublic ? pPage.hasMore : false,
+            }));
             setNextCursor(null);
-            setHasMore(false);
+            setHasMore(
+                (fetchFollowing && fPage.hasMore) || (fetchPublic && pPage.hasMore),
+            );
             return;
         }
 
@@ -155,6 +171,7 @@ export default function ThreadScreen() {
         try {
             setLoading(true);
             setNextCursor(null);
+            setForYouCursors({ following: null, public: null, followingHasMore: false, publicHasMore: false });
             await fetchFeedPage(null, false);
         } catch (e) {
             console.error('Failed to fetch threads', e);
@@ -164,7 +181,8 @@ export default function ThreadScreen() {
     };
 
     const loadMoreThreads = async () => {
-        if (!hasMore || loadingMore || !nextCursor || activeTab === 'FORYOU') return;
+        if (!hasMore || loadingMore) return;
+        if (activeTab !== 'FORYOU' && !nextCursor) return;
         try {
             setLoadingMore(true);
             await fetchFeedPage(nextCursor, true);
@@ -354,19 +372,23 @@ export default function ThreadScreen() {
                                 /\.(mp4|mov|m4v|webm)(\?|$)/i.test(resolved) ||
                                 resolved.includes('/videos/') ||
                                 resolved.includes('video');
+                            // For videos, render a lightweight poster image with a
+                            // play badge instead of mounting a native <Video> for
+                            // every item in the feed. Mounting many video players
+                            // (even paused) is expensive and janky while scrolling;
+                            // playback happens in ThreadDetailScreen on tap.
+                            const posterUri = isVideo
+                                ? (resolveMediaUrl(item.thumbnailUrl) || resolveMediaUrl(item.posterUrl) || resolved)
+                                : resolved;
                             return (
                                 <View key={idx} style={styles.carouselItem}>
-                                    {isVideo ? (
-                                        <Video
-                                            source={{ uri: resolved, overrideFileExtension: 'mp4' } as any}
-                                            style={styles.carouselMedia}
-                                            resizeMode={ResizeMode.COVER}
-                                            shouldPlay={false}
-                                            isMuted
-                                            useNativeControls={false}
-                                        />
-                                    ) : (
-                                        <Image source={{ uri: resolved }} style={styles.carouselMedia} />
+                                    <Image source={{ uri: posterUri }} style={styles.carouselMedia} />
+                                    {isVideo && (
+                                        <View style={styles.videoPlayOverlay} pointerEvents="none">
+                                            <View style={styles.videoPlayBadge}>
+                                                <Ionicons name="play" size={26} color="#fff" />
+                                            </View>
+                                        </View>
                                     )}
                                 </View>
                             );
@@ -749,8 +771,25 @@ const styles = StyleSheet.create({
     emptySub: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 8, lineHeight: 20 },
 
     mediaCarouselContainer: { width: '100%', height: 250, borderRadius: 20, overflow: 'hidden', marginBottom: 15, position: 'relative', backgroundColor: '#f1f5f9' },
-    carouselItem: { width: width - 80, height: 250 },
+    carouselItem: { width: width - 80, height: 250, justifyContent: 'center', alignItems: 'center' },
     carouselMedia: { width: '100%', height: '100%' },
+    videoPlayOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    videoPlayBadge: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     mediaCounter: { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
     mediaCounterText: { color: '#2D2445', fontSize: 12, fontWeight: '800' },
 

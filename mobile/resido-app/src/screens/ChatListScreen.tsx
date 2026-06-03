@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { chatApi, authApi, SOCKET_URL } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { useConversations } from '../hooks/useConversations';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
@@ -13,33 +14,45 @@ import BottomNav from '../components/BottomNav';
 const CHAT_FILTERS = ['All', 'Community', 'Contacts', 'Groups'];
 
 export default function ChatListScreen() {
-    const { user } = useAuthStore();
+    const user = useAuthStore((s) => s.user);
+    const token = useAuthStore((s) => s.token);
+    const activeWorkspace = useAuthStore((s) => s.activeWorkspace);
     const { forwardContent } = useLocalSearchParams();
-    const [conversations, setConversations] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: conversations = [], isLoading: loading, refetch: refetchConversations } = useConversations();
     const [activeFilter, setActiveFilter] = useState('All');
     const [search, setSearch] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [userCache, setUserCache] = useState<Record<string, any>>({});
     const [registeredContacts, setRegisteredContacts] = useState<any[]>([]);
-    const { activeWorkspace } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
-        fetchConversations();
+        if (conversations.length > 0) {
+            resolveMemberNames(conversations);
+        }
+    }, [conversations]);
+
+    useEffect(() => {
         syncRegisteredContacts();
-        const cleanup = connectSocket();
-        return cleanup;
     }, []);
 
+    // Recreate the socket whenever the workspace or auth token changes so it
+    // always carries a valid token + matching tenant (chat-service rejects
+    // stale/mismatched handshakes).
+    useEffect(() => {
+        const cleanup = connectSocket();
+        return cleanup;
+    }, [activeWorkspace?.tenantId, activeWorkspace?.dbName, token, user?.id]);
+
     const connectSocket = () => {
-        if (!activeWorkspace) return;
+        if (!activeWorkspace || !token) return;
 
         const socket = io(`${SOCKET_URL}/chat`, {
             transports: ['websocket', 'polling'],
             reconnection: true,
             auth: {
+                token,
                 tenantId: activeWorkspace.tenantId,
                 dbName: activeWorkspace.dbName,
                 memberId: user?.id
@@ -51,19 +64,7 @@ export default function ChatListScreen() {
         });
 
         socket.on('new_message', (message: any) => {
-            setConversations(prev => {
-                const existing = prev.find(c => c.id === message.conversationId);
-                if (existing) {
-                    const updated = {
-                        ...existing,
-                        messages: [message, ...(existing.messages || [])],
-                    };
-                    return [updated, ...prev.filter(c => c.id !== message.conversationId)];
-                }
-                // New conversation arrived while we were on this screen; refresh.
-                fetchConversations();
-                return prev;
-            });
+            refetchConversations();
         });
 
         return () => {
@@ -93,31 +94,36 @@ export default function ChatListScreen() {
         }
     };
 
-    const fetchConversations = async () => {
-        try {
-            setLoading(true);
-            const { data } = await chatApi.getConversations();
-            setConversations(data || []);
-            resolveMemberNames(data || []);
-        } catch (error) {
-            console.error('Failed to fetch conversations:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const resolveMemberNames = async (convs: any[]) => {
-        const directConvs = convs.filter(c => c.type === 'DIRECT');
-        for (const conv of directConvs) {
-            const otherMemberId = conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId;
-            if (otherMemberId && !userCache[otherMemberId]) {
+        const directConvs = convs.filter((c) => c.type === 'DIRECT');
+        const ids = Array.from(
+            new Set(
+                directConvs
+                    .map((conv) => conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId)
+                    .filter((id): id is string => !!id),
+            ),
+        ).filter((id) => !userCache[id]);
+
+        if (ids.length === 0) return;
+
+        const results = await Promise.all(
+            ids.map(async (id) => {
                 try {
-                    const { data } = await authApi.getUser(otherMemberId);
-                    setUserCache(prev => ({ ...prev, [otherMemberId]: data }));
+                    const { data } = await authApi.getUser(id);
+                    return { id, data };
                 } catch (e) {
-                    console.error('Failed to fetch user:', otherMemberId, e);
+                    console.error('Failed to fetch user:', id, e);
+                    return null;
                 }
-            }
+            }),
+        );
+
+        const updates: Record<string, any> = {};
+        results.forEach((r) => {
+            if (r) updates[r.id] = r.data;
+        });
+        if (Object.keys(updates).length > 0) {
+            setUserCache((prev) => ({ ...prev, ...updates }));
         }
     };
 
@@ -296,7 +302,17 @@ export default function ChatListScreen() {
                                                     }}
                                                 ]);
                                             } else {
-                                                router.push(`/chat/${conv.id}`);
+                                                router.push({
+                                                    pathname: `/chat/${conv.id}`,
+                                                    params: {
+                                                        convName: conv.name || getOtherMemberName(conv),
+                                                        convType: conv.type,
+                                                        otherMemberId:
+                                                            conv.type === 'DIRECT'
+                                                                ? conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId
+                                                                : undefined,
+                                                    },
+                                                });
                                             }
                                         }} 
                                     />

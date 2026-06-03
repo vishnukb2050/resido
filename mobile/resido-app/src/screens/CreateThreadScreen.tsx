@@ -37,6 +37,9 @@ export default function CreateThreadScreen() {
     const [mediaList, setMediaList] = useState<any[]>([]);
     const [selectedVisibilities, setSelectedVisibilities] = useState<string[]>(['PUBLIC']);
     const [loading, setLoading] = useState(false);
+    // Brief "Posted!" confirmation shown for ~1s before auto-returning to the
+    // thread feed (media, if any, keeps processing server-side).
+    const [published, setPublished] = useState(false);
     const [showVisibilityModal, setShowVisibilityModal] = useState(false);
     const [showPollBuilder, setShowPollBuilder] = useState(false);
     const [pollQuestion, setPollQuestion] = useState('');
@@ -135,18 +138,21 @@ export default function CreateThreadScreen() {
             }
 
             await threadApi.createThread(payload);
-            Alert.alert('Success', 'Thread published!');
-            router.replace({ 
-                pathname: '/thread', 
-                params: { refresh: Date.now().toString() } 
-            });
+            // Flash a brief "Posted!" popup, then jump to the feed instead of
+            // blocking on an Alert that needs an explicit "OK" tap.
+            setPublished(true);
+            setTimeout(() => {
+                router.replace({
+                    pathname: '/thread',
+                    params: { refresh: Date.now().toString() },
+                });
+            }, 1000);
         } catch (error: any) {
             const status = error?.response?.status;
             const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
             const reason = serverMsg || error?.message || 'Unknown error';
             console.error('Publish thread failed:', status, reason, error?.response?.data || '');
             Alert.alert('Publish Failed', `${reason}${status ? ` (HTTP ${status})` : ''}`);
-        } finally {
             setLoading(false);
         }
     };
@@ -465,6 +471,29 @@ export default function CreateThreadScreen() {
                 </View>
             </Modal>
 
+            {/* Publishing / success overlay */}
+            {(loading || published) && (
+                <View style={styles.publishOverlay}>
+                    <View style={styles.publishCard}>
+                        {published ? (
+                            <>
+                                <View style={styles.publishedCheck}>
+                                    <Ionicons name="checkmark" size={48} color="#fff" />
+                                </View>
+                                <Text style={styles.publishOverlayTitle}>Posted!</Text>
+                                <Text style={styles.publishOverlaySub}>Taking you to the feed…</Text>
+                            </>
+                        ) : (
+                            <>
+                                <ActivityIndicator size="large" color="#8b5cf6" />
+                                <Text style={styles.publishOverlayTitle}>Publishing…</Text>
+                                <Text style={styles.publishOverlaySub}>Uploading your post</Text>
+                            </>
+                        )}
+                    </View>
+                </View>
+            )}
+
         </SafeAreaView>
     );
 }
@@ -592,4 +621,10 @@ const styles = StyleSheet.create({
     pickerItemCat: { fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '600' },
     pickerClose: { marginTop: 12, backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
     pickerCloseText: { color: '#2D2445', fontSize: 15, fontWeight: '800' },
+
+    publishOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+    publishCard: { width: width * 0.8, backgroundColor: '#fff', borderRadius: 28, padding: 28, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },
+    publishedCheck: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' },
+    publishOverlayTitle: { fontSize: 19, fontWeight: '900', color: '#1e293b', marginTop: 20 },
+    publishOverlaySub: { fontSize: 13, color: '#94a3b8', textAlign: 'center', marginTop: 8, fontWeight: '500' },
 });

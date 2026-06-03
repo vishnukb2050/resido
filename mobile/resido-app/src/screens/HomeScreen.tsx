@@ -13,7 +13,9 @@ import CommunityDashboard from '../components/dashboards/CommunityDashboard';
 import MemberDashboard from '../components/dashboards/MemberDashboard';
 
 export default function HomeScreen() {
-    const { activeWorkspace, isHydrated, user } = useAuthStore();
+    const activeWorkspace = useAuthStore((s) => s.activeWorkspace);
+    const isHydrated = useAuthStore((s) => s.isHydrated);
+    const user = useAuthStore((s) => s.user);
     const router = useRouter();
     const role = activeWorkspace?.role;
 

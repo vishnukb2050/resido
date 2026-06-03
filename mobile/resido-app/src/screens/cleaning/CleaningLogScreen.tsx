@@ -6,10 +6,13 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import dayjs from 'dayjs';
 import { api } from '../../services/api';
+import { storageApi } from '../../services/storage';
+import { useAuthStore } from '../../store/authStore';
 
 const AREAS = ['Lobby', 'Staircase A', 'Staircase B', 'Parking', 'Gym', 'Terrace', 'Garden', 'Lift'];
 
 export default function CleaningLogScreen() {
+    const { activeWorkspace } = useAuthStore();
     const [completed, setCompleted] = useState<Record<string, boolean>>({});
     const [photos, setPhotos] = useState<string[]>([]);
     const [notes, setNotes] = useState('');
@@ -25,9 +28,28 @@ export default function CleaningLogScreen() {
         if (!areas.length) { Alert.alert('Error', 'Mark at least one area as cleaned'); return; }
         setLoading(true);
         try {
-            await api.post('/resident/cleaning-log', { date: dayjs().toISOString(), areas, notes });
+            // Upload any captured photos to storage and persist their URLs.
+            const photoUrls: string[] = [];
+            for (const uri of photos) {
+                const fileName = uri.split('/').pop() || `cleaning_${Date.now()}.jpg`;
+                const url = await storageApi.uploadFile(
+                    uri,
+                    fileName,
+                    'image/jpeg',
+                    'cleaning-logs',
+                    activeWorkspace?.tenantId,
+                );
+                photoUrls.push(url);
+            }
+
+            await api.post('/community/cleaning-log', {
+                date: dayjs().toISOString(),
+                areas,
+                notes,
+                photoUrls,
+            });
             Alert.alert('Success', 'Cleaning log submitted!');
-            setCompleted({}); setPhotos([]);
+            setCompleted({}); setPhotos([]); setNotes('');
         } catch { Alert.alert('Error', 'Submission failed'); }
         finally { setLoading(false); }
     };
