@@ -467,6 +467,7 @@ export class CommunityService {
         // Automatically create a visitor entry in the visitor register
         await this.prisma.client.visitorEntry.create({
             data: {
+                tenantId: visitor.tenantId,
                 visitorName: name,
                 phone: phone,
                 purpose: purpose,
