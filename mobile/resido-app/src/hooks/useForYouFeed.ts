@@ -3,47 +3,31 @@ import { authApi, threadApi, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
 async function loadForYouFeed(userId: string | undefined) {
-    // The PUBLIC feeds don't depend on the following list, so kick them off
-    // immediately and let them run concurrently with getFollowing instead of
-    // waiting a full round-trip for the follow list first. The FOLLOWING feeds
-    // (which need followingIds) start as soon as that list resolves.
-    const publicThreadsPromise = threadApi
-        .getThreads({ feedType: 'PUBLIC', limit: 10 })
-        .catch(() => ({ data: { items: [] } }));
-    const publicFlaresPromise = threadApi
-        .getFlares({ feedType: 'PUBLIC', limit: 10 })
-        .catch(() => ({ data: { items: [] } }));
-
+    // Resolve the follow graph (normalized to ids) so the backend can include
+    // followed authors' FOLLOWERS/CONTACTS posts and the client can prioritize
+    // them in the sort below.
     let following: string[] = [];
     try {
-        const { data: followList } = await authApi.getAllFollowing();
-        following = followList || [];
+        following = await authApi.getFollowingIds();
     } catch {
         following = [];
     }
     const followingSet = new Set(following);
 
-    const [followingThreadsRes, publicThreadsRes, followingFlaresRes, publicFlaresRes] =
-        await Promise.all([
-            threadApi.getThreads({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
-            publicThreadsPromise,
-            threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
-            publicFlaresPromise,
-        ]);
+    // ONE request for the whole merged feed (threads + flares, public +
+    // followed), replacing the previous 4 parallel calls.
+    let items: any[] = [];
+    try {
+        const res = await threadApi.getForYou({ followingIds: following, limit: 20 });
+        items = unpackFeedPage(res.data).items;
+    } catch {
+        items = [];
+    }
 
-    const allThreads = [
-        ...unpackFeedPage(followingThreadsRes.data).items,
-        ...unpackFeedPage(publicThreadsRes.data).items,
-    ];
-    const allFlares = [
-        ...unpackFeedPage(followingFlaresRes.data).items,
-        ...unpackFeedPage(publicFlaresRes.data).items,
-    ];
-
-    const combined = [
-        ...allThreads.map((t: any) => ({ ...t, itemType: 'THREAD' })),
-        ...allFlares.map((f: any) => ({ ...f, itemType: 'FLARE' })),
-    ];
+    const combined = items.map((item: any) => ({
+        ...item,
+        itemType: item.type === 'FLARE' ? 'FLARE' : 'THREAD',
+    }));
 
     const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
 

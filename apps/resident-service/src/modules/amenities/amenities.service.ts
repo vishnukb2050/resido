@@ -18,6 +18,8 @@ export class AmenitiesService {
     const amenities = await this.prisma.reader.amenity.findMany({
       where: { tenantId, isActive: true },
       orderBy: { createdAt: 'desc' },
+      // Tenant-scoped; amenities are few in practice, this is a safety bound.
+      take: 500,
     });
     // Resolve each amenity's schedule in memory. Previously this called
     // getAmenityById() per row → one extra DB round-trip per amenity (N+1).

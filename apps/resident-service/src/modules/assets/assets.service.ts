@@ -38,7 +38,10 @@ export class AssetsService {
 
         return this.prisma.client.communityAsset.findMany({
             where,
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            // Tenant-scoped; defensive bound so a long-lived community's asset
+            // register can't grow into an unbounded payload.
+            take: 2000,
         });
     }
 

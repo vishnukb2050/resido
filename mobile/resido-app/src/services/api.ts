@@ -229,6 +229,20 @@ export const authApi = {
         }
         return { data: all.slice(0, maxItems) };
     },
+    /**
+     * The full following list as a plain array of user IDs (string[]).
+     *
+     * `/profile/following` returns user OBJECTS, but the feed APIs expect a list
+     * of author IDs. Consumers that fed the raw objects straight into
+     * `followingIds` were sending `[object Object],...` to the backend (so the
+     * FOLLOWING feed matched nothing) — this normalizes to ids in one place.
+     */
+    getFollowingIds: async (): Promise<string[]> => {
+        const { data } = await authApi.getAllFollowing();
+        return (data || [])
+            .map((f: any) => (typeof f === 'string' ? f : f?.id))
+            .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+    },
     getFollowers: () => api.get('/profile/followers'),
     getFollowCounts: (id: string) => api.get(`/profile/follow/counts/${id}`),
     getUserFollowers: (id: string) => api.get(`/profile/follow/followers/${id}`),
@@ -422,6 +436,21 @@ export const threadApi = {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/threads', { params: p });
     },
+    /**
+     * Unified "For You" feed — one request returns the merged, visibility-gated
+     * stream of public + followed-author posts across threads AND flares. This
+     * replaces the previous 4 parallel calls (PUBLIC+FOLLOWING × threads+flares),
+     * cutting home-screen gateway load. Returns the standard
+     * `{ items, nextCursor, hasMore }` feed page.
+     */
+    getForYou: (params?: { followingIds?: string[]; limit?: number; cursor?: string | null }) =>
+        api.get('/threads/for-you', {
+            params: {
+                followingIds: (params?.followingIds || []).join(','),
+                limit: params?.limit ?? 20,
+                cursor: params?.cursor || undefined,
+            },
+        }),
     getFlares: (params?: FeedListParams) => {
         const p = { ...params, followingIds: params?.followingIds?.join(',') };
         return api.get('/flares', { params: p });

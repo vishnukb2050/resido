@@ -3,6 +3,7 @@ import {
     All,
     Req,
     Res,
+    Logger,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
@@ -12,6 +13,8 @@ import { Request, Response } from 'express';
 
 @Controller()
 export class ProxyController {
+    private readonly logger = new Logger('Proxy');
+
     constructor(
         private httpService: HttpService,
         private jwtService: JwtService,
@@ -186,7 +189,7 @@ export class ProxyController {
                     headers['content-length'] = String(bodyBuffer.length);
                 }
             } catch (e: any) {
-                console.error('[Proxy] Failed to read body for', req.method, path, e?.message);
+                this.logger.error(`Failed to read body for ${req.method} ${path}: ${e?.message}`);
                 return res.status(400).json({ message: 'Could not read request body' });
             }
         }
@@ -194,9 +197,10 @@ export class ProxyController {
         try {
             // Per-request access logging is opt-in (PROXY_VERBOSE=1). At high RPS
             // a log line per request is a real throughput/cost drain and floods
-            // log storage; errors below are always logged regardless.
+            // log storage; errors below are always logged regardless. When on, it
+            // uses the structured Logger (level-controllable via LOG_LEVELS).
             if (process.env.PROXY_VERBOSE === '1') {
-                console.log(`[Proxy] ${req.method} ${path} → ${targetUrl} (body=${bodyBuffer?.length || 0}b)`);
+                this.logger.log(`${req.method} ${path} → ${targetUrl} (body=${bodyBuffer?.length || 0}b)`);
             }
             const response = await lastValueFrom(
                 this.httpService.request({
@@ -216,7 +220,7 @@ export class ProxyController {
             delete respHeaders['transfer-encoding'];
             res.status(response.status).set(respHeaders).send(response.data);
         } catch (err: any) {
-            console.error(`[Proxy Error] ${req.method} ${path}:`, err?.message, err?.response?.data);
+            this.logger.error(`${req.method} ${path}: ${err?.message}`);
             if (err.response) {
                 const respHeaders = { ...err.response.headers } as Record<string, any>;
                 delete respHeaders['transfer-encoding'];

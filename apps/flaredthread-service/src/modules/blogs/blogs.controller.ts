@@ -66,6 +66,39 @@ export class BlogsController {
         return this.blogsService.suggestHashtags(q, type || inferred);
     }
 
+    /**
+     * Unified "For You" feed: one request returns the merged, visibility-gated
+     * stream of public posts + posts from followed authors, across BOTH threads
+     * and flares, ordered newest-first with a cursor. Replaces the 4 separate
+     * feed calls the mobile home screen used to make. Declared before `:id` so
+     * the literal path isn't captured by the `@Get(':id')` route.
+     */
+    @Get('for-you')
+    forYouFeed(
+        @Req() req: any,
+        @Query('followingIds') followingIds: string,
+        @Query('limit') limit?: string,
+        @Query('cursor') cursor?: string,
+    ) {
+        const userId = req.headers['x-user-id'] as string;
+        const tenantId = req.tenantId as string;
+        const fIds = followingIds ? followingIds.split(',').filter(Boolean) : [];
+        const parsedLimit = limit ? parseInt(limit, 10) : 20;
+        return this.blogsService.listBlogs(
+            undefined, // both threads and flares
+            userId,
+            'FORYOU',
+            fIds,
+            tenantId,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            parsedLimit,
+            cursor,
+        );
+    }
+
     @Post('upload-url')
     async getUploadUrl(
         @Req() req: any,

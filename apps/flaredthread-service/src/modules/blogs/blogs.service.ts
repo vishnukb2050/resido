@@ -389,7 +389,7 @@ export class BlogsService {
     async listBlogs(
         type?: 'THREAD' | 'FLARE',
         userId?: string,
-        feedType: 'PUBLIC' | 'FOLLOWING' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR' | 'HASHTAG' = 'PUBLIC',
+        feedType: 'PUBLIC' | 'FOLLOWING' | 'FORYOU' | 'MY' | 'SAVED' | 'RESHARE' | 'AUTHOR' | 'HASHTAG' = 'PUBLIC',
         followingIds: string[] = [],
         tenantId?: string,
         category?: string,
@@ -434,6 +434,22 @@ export class BlogsService {
             // audience. CONTACTS results are further narrowed below to only
             // authors who follow the viewer back.
             where.visibility = { in: ['PUBLIC', 'FOLLOWERS', 'CONTACTS'] };
+        } else if (feedType === 'FORYOU') {
+            // Unified "For You" feed: PUBLIC posts from anyone PLUS posts from
+            // authors the viewer follows (incl. their FOLLOWERS/CONTACTS posts).
+            // This collapses what the client previously did as 4 separate calls
+            // (PUBLIC+FOLLOWING × threads+flares) into ONE ordered query. Type is
+            // left unset so threads AND flares are returned together. Tenant
+            // scoping matches the existing PUBLIC/FOLLOWING feeds (no
+            // __ignoreTenant), and the per-author visibility pass below still
+            // enforces gating — so a followed author's FOLLOWERS/CONTACTS post is
+            // only kept when the relationship actually permits it.
+            where.OR = [
+                { visibility: 'PUBLIC' },
+                ...(followingIds.length
+                    ? [{ authorId: { in: followingIds }, visibility: { in: ['PUBLIC', 'FOLLOWERS', 'CONTACTS'] } }]
+                    : []),
+            ];
         } else if (feedType === 'SAVED') {
             where.__ignoreTenant = true;
             where.interactions = {

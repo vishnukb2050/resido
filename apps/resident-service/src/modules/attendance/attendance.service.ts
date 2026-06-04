@@ -286,6 +286,9 @@ export class AttendanceService {
                     date: { gte: dateFrom, lte: dateTo },
                 },
                 orderBy: [{ date: 'desc' }, { markedAt: 'desc' }],
+                // Date-range bounded already; this caps the worst case of a very
+                // wide range across all staff in a large community.
+                take: 10000,
             });
 
             const memberIds = Array.from(new Set(records.map((r) => r.memberId)));

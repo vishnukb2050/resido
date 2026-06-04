@@ -6,6 +6,10 @@ import Redis from 'ioredis';
 @Injectable()
 export class RemindersService implements OnModuleDestroy {
     private readonly logger = new Logger(RemindersService.name);
+    // Defensive upper bound for tenant-scoped reminder list reads. Reminders
+    // accumulate over a community's lifetime, so an uncapped findMany would grow
+    // without limit. Far above any realistic backlog a client needs to render.
+    private static readonly MAX_LIST_ROWS = 1000;
     // Optional Redis client used purely for the cron leader lock so that, when
     // resident-service runs as multiple ECS tasks, only one instance dispatches
     // reminders per tick. Falls back to "always leader" if Redis isn't set up.
@@ -147,7 +151,8 @@ export class RemindersService implements OnModuleDestroy {
     async getReminders(tenantId: string) {
         return this.prisma.client.reminder.findMany({
             where: { tenantId },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            take: RemindersService.MAX_LIST_ROWS,
         });
     }
 
@@ -170,6 +175,7 @@ export class RemindersService implements OnModuleDestroy {
             return this.prisma.client.reminder.findMany({
                 where: { tenantId: args.tenantId, targetType: 'ALL' },
                 orderBy: [{ sentAt: 'desc' }, { createdAt: 'desc' }],
+                take: RemindersService.MAX_LIST_ROWS,
             });
         }
 
@@ -195,6 +201,7 @@ export class RemindersService implements OnModuleDestroy {
         return this.prisma.client.reminder.findMany({
             where: { tenantId: args.tenantId, OR: orFilters },
             orderBy: [{ sentAt: 'desc' }, { createdAt: 'desc' }],
+            take: RemindersService.MAX_LIST_ROWS,
         });
     }
 

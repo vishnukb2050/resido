@@ -1,4 +1,5 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@resido/resident-client';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -118,34 +119,55 @@ export class CommunityFinanceService {
         await this.requireAdmin({ authUserId: actor.authUserId, phone: actor.authUserPhone, role: actor.role });
         const { month, year } = body;
         const config = await this.getMaintenanceConfig(tenantId);
-        const units = await this.prisma.client.unit.findMany({ where: { tenantId } });
-
-        const billsData: any[] = [];
         const dueDate = new Date(year, month - 1, config.dueDateDay);
 
-        for (const unit of units) {
-            let baseAmount = 0;
-            if (config.calculationType === 'FLAT_RATE') {
-                baseAmount = config.flatRateAmount;
-            } else if (config.calculationType === 'AREA_BASED') {
-                baseAmount = config.ratePerSqFt * (unit.superBuiltUpArea || 0);
-            }
-            billsData.push({
-                tenantId,
-                unitId: unit.id,
-                month: Number(month),
-                year: Number(year),
-                baseAmount,
-                otherCharges: 0,
-                penaltyAmount: 0,
-                totalAmount: baseAmount,
-                status: 'UNPAID' as const,
-                dueDate,
+        // Stream units in cursor-paged batches instead of loading every unit for
+        // the tenant into memory at once. A large society (tens of thousands of
+        // units) would otherwise build one giant in-memory array; batching keeps
+        // peak memory flat and writes each batch as a single createMany.
+        const BATCH = 1000;
+        let cursorId: string | undefined;
+        let totalUnits = 0;
+
+        for (;;) {
+            const units = await this.prisma.client.unit.findMany({
+                where: { tenantId },
+                orderBy: { id: 'asc' },
+                take: BATCH,
+                ...(cursorId ? { skip: 1, cursor: { id: cursorId } } : {}),
+                select: { id: true, superBuiltUpArea: true },
             });
+            if (units.length === 0) break;
+
+            const billsData = units.map((unit) => {
+                let baseAmount = 0;
+                if (config.calculationType === 'FLAT_RATE') {
+                    baseAmount = config.flatRateAmount;
+                } else if (config.calculationType === 'AREA_BASED') {
+                    baseAmount = config.ratePerSqFt * (unit.superBuiltUpArea || 0);
+                }
+                return {
+                    tenantId,
+                    unitId: unit.id,
+                    month: Number(month),
+                    year: Number(year),
+                    baseAmount,
+                    otherCharges: 0,
+                    penaltyAmount: 0,
+                    totalAmount: baseAmount,
+                    status: 'UNPAID' as const,
+                    dueDate,
+                };
+            });
+
+            await this.prisma.client.maintenanceBill.createMany({ data: billsData, skipDuplicates: true });
+            totalUnits += units.length;
+
+            if (units.length < BATCH) break;
+            cursorId = units[units.length - 1].id;
         }
 
-        await this.prisma.client.maintenanceBill.createMany({ data: billsData, skipDuplicates: true });
-        return { message: `Bills generated successfully for ${units.length} units.` };
+        return { message: `Bills generated successfully for ${totalUnits} units.` };
     }
 
     async getMaintenanceStatus(tenantId: string, month: number, year: number) {
@@ -326,43 +348,59 @@ export class CommunityFinanceService {
         const period = query.period || 'month';
         const year = Number(query.year || new Date().getFullYear());
 
-        const transactions = await this.prisma.client.communityTransaction.findMany({
-            where: {
-                tenantId,
-                date: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) },
-            },
-        });
+        // Aggregate entirely in the DB (SUM + GROUP BY) instead of streaming every
+        // transaction row into the pod and summing in JS. This rides the
+        // `[tenantId, type, date]` / `[tenantId, category, date]` indexes and stays
+        // O(buckets) no matter how many transactions a community records — so a
+        // high-volume year can never OOM the service. NOTE: raw queries bypass the
+        // tenant-isolation Prisma extension, so `tenantId` is filtered explicitly.
+        const start = new Date(year, 0, 1);
+        const end = new Date(year, 11, 31, 23, 59, 59);
 
-        const breakdown: Record<string, { income: number; expense: number }> = {};
-        for (const t of transactions) {
-            const date = new Date(t.date);
-            let key = '';
-            if (period === 'day') {
-                key = date.toISOString().split('T')[0];
-            } else if (period === 'week') {
-                const oneJan = new Date(date.getFullYear(), 0, 1);
-                const numberOfDays = Math.floor((date.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
-                const weekNum = Math.ceil((date.getDay() + 1 + numberOfDays) / 7);
-                key = `W${weekNum} (${date.getFullYear()})`;
-            } else {
-                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                key = `${months[date.getMonth()]} ${date.getFullYear()}`;
-            }
-            if (!breakdown[key]) breakdown[key] = { income: 0, expense: 0 };
-            if (t.type === 'INCOME') breakdown[key].income += t.amount;
-            else breakdown[key].expense += t.amount;
-        }
+        // Period → SQL label/group expression. Computed in SQL so buckets are
+        // formed without materializing rows. Labels preserve the prior format
+        // (`YYYY-MM-DD`, `W{n} (YYYY)`, `Mon YYYY`).
+        const labelExpr =
+            period === 'day'
+                ? Prisma.sql`to_char("date", 'YYYY-MM-DD')`
+                : period === 'week'
+                    ? Prisma.sql`'W' || ceil((extract(dow from "date") + extract(doy from "date")) / 7.0)::int || ' (' || extract(year from "date")::int || ')'`
+                    : Prisma.sql`to_char("date", 'Mon YYYY')`;
 
-        const chartData = Object.keys(breakdown).map(key => ({
-            label: key, income: breakdown[key].income, expense: breakdown[key].expense,
+        const chartRows = await this.prisma.reader.$queryRaw<
+            Array<{ label: string; income: number; expense: number }>
+        >(Prisma.sql`
+            SELECT ${labelExpr} AS label,
+                COALESCE(SUM("amount") FILTER (WHERE "type" = 'INCOME'), 0)::float AS income,
+                COALESCE(SUM("amount") FILTER (WHERE "type" = 'EXPENSE'), 0)::float AS expense
+            FROM "community_transactions"
+            WHERE "tenantId" = ${tenantId}
+              AND "date" >= ${start} AND "date" <= ${end}
+            GROUP BY ${labelExpr}
+            ORDER BY MIN("date") DESC
+        `);
+
+        const categoryRows = await this.prisma.reader.$queryRaw<
+            Array<{ name: string; amount: number }>
+        >(Prisma.sql`
+            SELECT "category" AS name, COALESCE(SUM("amount"), 0)::float AS amount
+            FROM "community_transactions"
+            WHERE "tenantId" = ${tenantId} AND "type" = 'EXPENSE'
+              AND "date" >= ${start} AND "date" <= ${end}
+            GROUP BY "category"
+            ORDER BY amount DESC
+        `);
+
+        const chartData = chartRows.map(r => ({
+            label: r.label,
+            income: Number(r.income),
+            expense: Number(r.expense),
         }));
-        const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((a, c) => a + c.amount, 0);
-        const totalExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((a, c) => a + c.amount, 0);
-        const categoryBreakdown: Record<string, number> = {};
-        for (const t of transactions) {
-            if (t.type === 'EXPENSE') categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + t.amount;
-        }
-        const categories = Object.keys(categoryBreakdown).map(name => ({ name, amount: categoryBreakdown[name] }));
+        // Totals are derived from the (small) bucket set, so they stay consistent
+        // with the chart and need no extra scan.
+        const totalIncome = chartData.reduce((a, c) => a + c.income, 0);
+        const totalExpense = chartData.reduce((a, c) => a + c.expense, 0);
+        const categories = categoryRows.map(r => ({ name: r.name, amount: Number(r.amount) }));
 
         return { period, year, totalIncome, totalExpense, savings: totalIncome - totalExpense, chartData, categories };
     }
@@ -464,6 +502,10 @@ export class CommunityFinanceService {
                     },
                 },
             },
+            // Heavy nested read (shares → unit → families → members); bound the
+            // number of splits returned so an old community can't produce a
+            // multi-MB payload. Most recent first.
+            take: 500,
         });
 
         return splits.map(s => {

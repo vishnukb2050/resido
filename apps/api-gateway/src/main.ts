@@ -1,11 +1,28 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
 import helmet from 'helmet';
 import * as compression from 'compression';
 
+/**
+ * Log levels are configurable via LOG_LEVELS (comma-separated, e.g.
+ * "error,warn,log"). At high RPS you typically run "error,warn" in prod to keep
+ * log volume — and its cost — down, while dev keeps the full set. Defaults to a
+ * production-sane set so a noisy "debug"/"verbose" stream is never on by accident.
+ */
+function resolveLogLevels(): LogLevel[] {
+    const raw = process.env.LOG_LEVELS;
+    if (raw) {
+        return raw.split(',').map((s) => s.trim()).filter(Boolean) as LogLevel[];
+    }
+    return ['error', 'warn', 'log'];
+}
+
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, { bodyParser: false });
+    const app = await NestFactory.create(AppModule, {
+        bodyParser: false,
+        logger: resolveLogLevels(),
+    });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
     // Security headers on every response (cheap, applied at the single edge).
@@ -37,6 +54,6 @@ async function bootstrap() {
 
     const port = process.env.PORT || 3000;
     await app.listen(port);
-    console.log(`API Gateway running on port ${port}`);
+    Logger.log(`API Gateway running on port ${port}`, 'Bootstrap');
 }
 bootstrap();

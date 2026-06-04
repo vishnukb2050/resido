@@ -108,8 +108,7 @@ export default function ThreadScreen() {
 
     const resolveFollowingIds = async (): Promise<string[]> => {
         if (activeTab === 'FOLLOWING' || activeTab === 'FORYOU' || activeHashtag) {
-            const { data: followList } = await authApi.getAllFollowing();
-            const ids = followList || [];
+            const ids = await authApi.getFollowingIds();
             setFollowingIds(ids);
             return ids;
         }
