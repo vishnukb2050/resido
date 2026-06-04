@@ -1,8 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { authApi, threadApi, unpackFeedPage } from '../services/api';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore, type Workspace } from '../store/authStore';
 
-async function loadForYouFeed(userId: string | undefined) {
+export const forYouFeedQueryKey = (userId?: string) => ['forYouFeed', userId] as const;
+
+const FOR_YOU_STALE_MS = 1000 * 60 * 3;
+
+/** Mirrors HomeScreen: only DefaultDashboard shows the For You feed. */
+export function shouldPrefetchForYouFeed(activeWorkspace: Workspace | null): boolean {
+    const role = activeWorkspace?.role;
+    if (!activeWorkspace || !role) return true;
+    return role === 'RESIDENT';
+}
+
+export function needsProfileOnboarding(user: { name?: string; profileName?: string } | null): boolean {
+    return !!user && (!user.name?.trim() || !user.profileName?.trim());
+}
+
+export async function loadForYouFeed(_userId?: string) {
     // Resolve the follow graph (normalized to ids) so the backend can include
     // followed authors' FOLLOWERS/CONTACTS posts and the client can prioritize
     // them in the sort below.
@@ -46,12 +61,21 @@ async function loadForYouFeed(userId: string | undefined) {
     return unique;
 }
 
+export function forYouFeedQueryOptions(userId: string | undefined) {
+    return {
+        queryKey: forYouFeedQueryKey(userId),
+        queryFn: () => loadForYouFeed(userId),
+        enabled: !!userId,
+        staleTime: FOR_YOU_STALE_MS,
+    };
+}
+
+/** Warm the For You cache during splash so DefaultDashboard renders without a spinner. */
+export function prefetchForYouFeed(queryClient: QueryClient, userId: string) {
+    return queryClient.prefetchQuery(forYouFeedQueryOptions(userId));
+}
+
 export function useForYouFeed() {
     const user = useAuthStore((s) => s.user);
-    return useQuery({
-        queryKey: ['forYouFeed', user?.id],
-        queryFn: () => loadForYouFeed(user?.id),
-        enabled: !!user?.id,
-        staleTime: 1000 * 60 * 3,
-    });
+    return useQuery(forYouFeedQueryOptions(user?.id));
 }

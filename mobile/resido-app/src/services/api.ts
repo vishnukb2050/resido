@@ -38,7 +38,12 @@ export const getFlaresSocketOptions = () => ({
     auth: { token: useAuthStore.getState().token || '' },
 });
 
-export const api = axios.create({ baseURL: API_URL });
+// A request timeout is essential on mobile: without it, a dropped/stalled
+// connection (tunnel, lift, weak signal) leaves the request — and any loading
+// spinner bound to it — hanging indefinitely, so the app feels frozen. 30s is
+// generous for slow networks while still failing fast enough to show an error
+// or let the user retry.
+export const api = axios.create({ baseURL: API_URL, timeout: 30000 });
 
 // Inject auth token and tenant headers from the in-memory Zustand store.
 // Reading SecureStore on every request costs ~10–50ms per call (Keystore I/O);

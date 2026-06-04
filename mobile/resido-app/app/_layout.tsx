@@ -4,8 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../src/store/authStore';
 import { useChatNotifications } from '../src/hooks/useChatNotifications';
+import {
+  needsProfileOnboarding,
+  prefetchForYouFeed,
+  shouldPrefetchForYouFeed,
+} from '../src/hooks/useForYouFeed';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -35,6 +41,26 @@ function ChatNotifications() {
   return null;
 }
 
+// Start the For You feed fetch while splash/auth hydration is still visible so
+// DefaultDashboard can read from cache on first paint (no spinner on cold start).
+function FeedPrefetch() {
+  const queryClient = useQueryClient();
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
+  const activeWorkspace = useAuthStore((s) => s.activeWorkspace);
+
+  React.useEffect(() => {
+    if (!isHydrated || !token || !user?.id) return;
+    if (needsProfileOnboarding(user)) return;
+    if (!shouldPrefetchForYouFeed(activeWorkspace)) return;
+
+    void prefetchForYouFeed(queryClient, user.id);
+  }, [isHydrated, token, user?.id, activeWorkspace, queryClient]);
+
+  return null;
+}
+
 export default function Layout() {
   return (
     // SafeAreaProvider is required for `react-native-safe-area-context`
@@ -52,6 +78,7 @@ export default function Layout() {
             />
           )}
           <ChatNotifications />
+          <FeedPrefetch />
           <Stack screenOptions={{ headerShown: false }} />
         </SplashGate>
       </QueryClientProvider>

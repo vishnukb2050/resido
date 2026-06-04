@@ -212,18 +212,28 @@ export class ProxyController {
                     maxContentLength: Infinity,
                     maxBodyLength: Infinity,
                     timeout: 60000,
+                    // Forward the upstream body as raw bytes. Parsing JSON into an
+                    // object here only to have Express re-serialize it on send is
+                    // pure wasted CPU on every request; passing the Buffer through
+                    // preserves the upstream Content-Type and lets the gzip
+                    // middleware compress it directly.
+                    responseType: 'arraybuffer',
                     validateStatus: () => true, // forward whatever the service returns
                 }),
             );
 
             const respHeaders = { ...response.headers } as Record<string, any>;
             delete respHeaders['transfer-encoding'];
+            // content-length is recomputed by Express/compression from the actual
+            // bytes; a stale upstream value can mismatch and truncate the response.
+            delete respHeaders['content-length'];
             res.status(response.status).set(respHeaders).send(response.data);
         } catch (err: any) {
             this.logger.error(`${req.method} ${path}: ${err?.message}`);
             if (err.response) {
                 const respHeaders = { ...err.response.headers } as Record<string, any>;
                 delete respHeaders['transfer-encoding'];
+                delete respHeaders['content-length'];
                 res.status(err.response.status).set(respHeaders).send(err.response.data);
             } else {
                 res.status(502).json({
