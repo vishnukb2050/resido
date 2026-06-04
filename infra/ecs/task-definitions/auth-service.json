@@ -35,7 +35,12 @@
                 { "name": "JWT_SECRET",             "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret" },
                 { "name": "MSG91_API_KEY",          "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/msg91-api-key" },
                 { "name": "AWS_S3_ACCESS_KEY",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-s3-access-key" },
-                { "name": "AWS_S3_SECRET_KEY",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-s3-secret-key" }
+                { "name": "AWS_S3_SECRET_KEY",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-s3-secret-key" },
+                { "name": "REDIS_HOST",           "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-host" },
+                { "name": "REDIS_PORT",           "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-port" },
+                { "name": "REDIS_PASSWORD",       "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-password" },
+                { "name": "REDIS_TLS",            "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-tls" },
+                { "name": "REDIS_URL",            "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-url" }
             ],
             "healthCheck": {
                 "command": ["CMD-SHELL", "wget -q --spider http://localhost:3001/health || exit 1"],

@@ -178,6 +178,18 @@ export class ProfileController {
         return this.profileService.getPublicProfile(id, req.user.userId);
     }
 
+    // Internal endpoint used by chat-service to decide whether a user may start
+    // a direct chat with another user (followers / contacts / community /
+    // global; restricted profiles require an accepted follow).
+    @UseGuards(InternalAuthGuard)
+    @Get('chat/can-message')
+    async canMessage(
+        @Query('fromUserId') fromUserId: string,
+        @Query('toUserId') toUserId: string,
+    ) {
+        return this.profileService.canMessage(fromUserId, toUserId);
+    }
+
     // Internal/batch endpoint used by other services (flaredthread-service)
     // to gate feeds by each author's profileVisibility. Returns a
     // `{ userId: 'GLOBAL' | 'CONTACTS' | 'COMMUNITY' | 'FOLLOWERS' }` map.
@@ -199,6 +211,15 @@ export class ProfileController {
     async getPublicIdentitiesBatch(@Query('ids') ids: string) {
         const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
         return this.profileService.getPublicIdentitiesBatch(list);
+    }
+
+    // Mobile chat list uses this to resolve direct-conversation counterpart
+    // names/photos in a single request (avoids an N+1 getUser fan-out).
+    @UseGuards(JwtAuthGuard)
+    @Get('users/chat-identities/batch')
+    async getChatIdentitiesBatch(@Query('ids') ids: string) {
+        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
+        return this.profileService.getChatIdentitiesBatch(list);
     }
 
     @UseGuards(JwtAuthGuard)

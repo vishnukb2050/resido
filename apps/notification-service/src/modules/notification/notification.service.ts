@@ -13,13 +13,19 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     ) { }
 
     onModuleInit() {
-        const redisTls = this.configService.get('REDIS_TLS') === 'true';
-        this.redis = new Redis({
-            host: this.configService.get('REDIS_HOST', 'redis'),
-            port: this.configService.get('REDIS_PORT', 6379),
-            password: this.configService.get('REDIS_PASSWORD'),
-            ...(redisTls ? { tls: {} } : {}),
-        });
+        const url = this.configService.get<string>('REDIS_URL');
+        if (url) {
+            this.redis = new Redis(url, { maxRetriesPerRequest: 3 });
+        } else {
+            const redisTls = this.configService.get('REDIS_TLS') === 'true';
+            this.redis = new Redis({
+                host: this.configService.get('REDIS_HOST', 'redis'),
+                port: parseInt(String(this.configService.get('REDIS_PORT', 6379)), 10),
+                password: this.configService.get('REDIS_PASSWORD') || undefined,
+                ...(redisTls ? { tls: {} } : {}),
+            });
+        }
+        this.redis.on('error', (e) => console.warn('[notification] Redis error:', e?.message));
     }
 
     onModuleDestroy() {

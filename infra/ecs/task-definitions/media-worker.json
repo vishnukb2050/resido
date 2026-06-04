@@ -19,7 +19,11 @@
                 { "name": "AUTH_SERVICE_URL", "value": "http://auth-service.resido.local:3001" }
             ],
             "secrets": [
-                { "name": "REDIS_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-url" },
+                { "name": "REDIS_HOST",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-host"     },
+                { "name": "REDIS_PORT",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-port"     },
+                { "name": "REDIS_PASSWORD", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-password" },
+                { "name": "REDIS_TLS",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-tls"      },
+                { "name": "REDIS_URL",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-url"      },
                 { "name": "MEDIA_WORKER_SECRET", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/media-worker-secret" },
                 { "name": "AWS_ACCESS_KEY_ID", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-access-key-id" },
                 { "name": "AWS_SECRET_ACCESS_KEY", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/aws-secret-access-key" },

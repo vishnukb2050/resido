@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { chatApi } from '../../src/services/api';
+import { chatApi, authApi } from '../../src/services/api';
 
 /**
  * Entry point for "start a new direct chat with user :userId". Creates (or
@@ -34,10 +34,44 @@ export default function NewChatRoute() {
                 }
             } catch (e: any) {
                 const status = e?.response?.status;
-                const serverMessage = e?.response?.data?.message || e?.response?.data?.error;
-                const reason = serverMessage || e?.message || 'Unknown error';
-                console.error('[new chat] failed', status, reason, e?.response?.data || '');
-                Alert.alert('Could not start chat', `${reason}${status ? ` (HTTP ${status})` : ''}`);
+                const data = e?.response?.data || {};
+                const reason = data?.reason;
+                const serverMessage = data?.message || data?.error;
+
+                // Restricted profile: the target only accepts messages from
+                // approved followers. Offer to send a follow request.
+                if (status === 403 && reason === 'FOLLOW_REQUIRED') {
+                    const alreadyRequested = data?.followStatus === 'REQUESTED';
+                    Alert.alert(
+                        alreadyRequested ? 'Request pending' : 'Follow to chat',
+                        alreadyRequested
+                            ? 'Your follow request is waiting to be accepted. You can chat once they approve it.'
+                            : 'This user only accepts messages from approved followers. Send a follow request?',
+                        alreadyRequested
+                            ? [{ text: 'OK', onPress: () => router.back() }]
+                            : [
+                                { text: 'Cancel', style: 'cancel', onPress: () => router.back() },
+                                {
+                                    text: 'Send request',
+                                    onPress: async () => {
+                                        try {
+                                            await authApi.follow(String(userId));
+                                            Alert.alert('Request sent', 'You can chat once they accept your follow request.');
+                                        } catch {
+                                            Alert.alert('Could not send request', 'Please try again later.');
+                                        } finally {
+                                            router.back();
+                                        }
+                                    },
+                                },
+                            ],
+                    );
+                    return;
+                }
+
+                const message = serverMessage || e?.message || 'Unknown error';
+                console.error('[new chat] failed', status, message, data || '');
+                Alert.alert('Could not start chat', `${message}${status ? ` (HTTP ${status})` : ''}`);
                 router.back();
             }
         };

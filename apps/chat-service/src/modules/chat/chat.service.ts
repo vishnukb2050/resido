@@ -1,4 +1,5 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@resido/chat-client';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 
 interface CreateMessageDto {
@@ -14,24 +15,34 @@ interface CreateMessageDto {
     }
 }
 
+/**
+ * Sentinel community id for personal / contact direct chats that do not belong
+ * to any community. Using a fixed tenant (instead of nullable columns) keeps the
+ * existing schema and unique constraints intact while letting these chats show
+ * up regardless of which community a user currently has selected.
+ */
+export const PERSONAL_TENANT = 'global';
+
 @Injectable()
 export class ChatService {
     constructor(private tenantPrisma: TenantPrismaService) {}
 
-    async getOrCreateDirectConversation(tenantId: string, memberIds: string[]) {
-        // Normalize / de-dup. A DIRECT chat must have exactly two distinct members.
+    /**
+     * Direct (1:1) chats are personal and cross-community: a single conversation
+     * between two users regardless of which community either has selected. They
+     * live under the PERSONAL_TENANT sentinel.
+     */
+    async getOrCreateDirectConversation(memberIds: string[]) {
         const ids = Array.from(new Set(memberIds.filter(Boolean)));
         if (ids.length < 2) {
-            throw new Error('Direct conversation requires two distinct members');
+            throw new BadRequestException('Direct conversation requires two distinct members');
         }
         const [a, b] = ids.slice(0, 2).sort();
         const prisma = this.tenantPrisma.getWriteClient();
 
-        // Find an existing DIRECT conversation in THIS tenant that contains BOTH
-        // members and is between exactly two participants.
         const candidates = await prisma.conversation.findMany({
             where: {
-                tenantId,
+                tenantId: PERSONAL_TENANT,
                 type: 'DIRECT',
                 AND: [
                     { members: { some: { memberId: a } } },
@@ -45,15 +56,60 @@ export class ChatService {
 
         return prisma.conversation.create({
             data: {
-                tenantId,
+                tenantId: PERSONAL_TENANT,
                 type: 'DIRECT',
-                members: { create: [a, b].map((id) => ({ tenantId, memberId: id })) },
+                members: { create: [a, b].map((id) => ({ tenantId: PERSONAL_TENANT, memberId: id })) },
             },
             include: { members: true },
         });
     }
 
+    /**
+     * The default community group chat. Every community has exactly one, keyed by
+     * `comm-<tenantId>`. Idempotently creates it and makes sure `memberId` is in
+     * it — so the first time any resident opens chat they are auto-joined.
+     */
+    async ensureCommunityGroup(tenantId: string, communityName: string, memberId: string) {
+        if (!tenantId) throw new BadRequestException('Community is required');
+        if (!memberId) throw new BadRequestException('Member is required');
+        const prisma = this.tenantPrisma.getWriteClient();
+        const groupId = `comm-${tenantId}`;
+        const name = (communityName || 'Community').trim() || 'Community';
+
+        let conversation = await prisma.conversation.findFirst({
+            where: { tenantId, groupId },
+            include: { members: true },
+        });
+
+        if (!conversation) {
+            conversation = await prisma.conversation.create({
+                data: {
+                    tenantId,
+                    type: 'GROUP',
+                    name,
+                    groupId,
+                    members: { create: [{ tenantId, memberId }] },
+                },
+                include: { members: true },
+            });
+            return conversation;
+        }
+
+        const already = conversation.members?.some((m: any) => m.memberId === memberId);
+        if (!already) {
+            await prisma.conversationMember.create({
+                data: { tenantId, conversationId: conversation.id, memberId },
+            });
+            conversation = await prisma.conversation.findFirst({
+                where: { id: conversation.id },
+                include: { members: true },
+            });
+        }
+        return conversation;
+    }
+
     async getOrCreateGroupConversation(tenantId: string, groupId: string, memberIds: string[], name: string) {
+        if (!tenantId) throw new BadRequestException('Community is required for a group');
         const prisma = this.tenantPrisma.getWriteClient();
         const existing = await prisma.conversation.findFirst({ where: { tenantId, groupId }, include: { members: true } });
         if (existing) return existing;
@@ -73,41 +129,43 @@ export class ChatService {
 
     /**
      * Create an ad-hoc group from a free-form name + member ids. Used by mobile
-     * "New Group" flow where there is no pre-existing entity id. Returns an
-     * existing conversation when a previous one was created for the same name +
-     * member set (helps idempotent retries from a flaky network).
+     * "New Group" flow where there is no pre-existing entity id. Ad-hoc groups
+     * with no community fall back to the personal tenant.
      */
-    async createAdhocGroup(tenantId: string, name: string, memberIds: string[]) {
+    async createAdhocGroup(tenantId: string | null, name: string, memberIds: string[]) {
         const prisma = this.tenantPrisma.getWriteClient();
         const ids = Array.from(new Set(memberIds.filter(Boolean)));
         if (ids.length < 2) {
-            throw new Error('Group needs at least two members');
+            throw new BadRequestException('Group needs at least two members');
         }
+        const scope = tenantId || PERSONAL_TENANT;
         const safeName = (name || 'Group').trim() || 'Group';
         const groupId = `adhoc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         return prisma.conversation.create({
             data: {
-                tenantId,
+                tenantId: scope,
                 type: 'GROUP',
                 name: safeName,
                 groupId,
-                members: { create: ids.map((id) => ({ tenantId, memberId: id })) },
+                members: { create: ids.map((id) => ({ tenantId: scope, memberId: id })) },
             },
             include: { members: true },
         });
     }
 
-    async createMessage(tenantId: string, dto: CreateMessageDto) {
+    async createMessage(dto: CreateMessageDto) {
         const prisma = this.tenantPrisma.getWriteClient();
 
-        // Guard: the conversation must exist in THIS tenant.
+        // The conversation is the source of truth for the tenant; we never trust
+        // the request's tenant for an existing conversation.
         const conversation = await prisma.conversation.findFirst({
-            where: { id: dto.conversationId, tenantId },
-            select: { id: true },
+            where: { id: dto.conversationId },
+            select: { id: true, tenantId: true },
         });
         if (!conversation) {
             throw new NotFoundException('Conversation not found');
         }
+        const tenantId = conversation.tenantId;
 
         let pollId = undefined;
         if (dto.type === 'POLL' && dto.poll) {
@@ -148,34 +206,31 @@ export class ChatService {
         });
     }
 
-    async votePoll(tenantId: string, pollId: string, optionId: string, userId: string) {
+    async votePoll(pollId: string, optionId: string, userId: string) {
         const prisma = this.tenantPrisma.getWriteClient();
 
-        // Only members of the poll's conversation (in this tenant) may vote.
         const message = await prisma.message.findFirst({
-            where: { tenantId, poll: { id: pollId } },
-            select: { conversationId: true },
+            where: { poll: { id: pollId } },
+            select: { conversationId: true, tenantId: true },
         });
         if (!message) {
             throw new NotFoundException('Poll not found');
         }
-        const isMember = await this.isConversationMember(tenantId, message.conversationId, userId);
+        const isMember = await this.isConversationMember(message.conversationId, userId);
         if (!isMember) {
             throw new ForbiddenException('Not a member of this conversation');
         }
 
-        // Check if already voted
         const existing = await prisma.pollVote.findFirst({
             where: { pollId, userId }
         });
-
         if (existing) {
-            throw new Error('Already voted in this poll');
+            throw new BadRequestException('Already voted in this poll');
         }
 
         return prisma.pollVote.create({
             data: {
-                tenantId,
+                tenantId: message.tenantId,
                 pollId,
                 optionId,
                 userId
@@ -183,12 +238,12 @@ export class ChatService {
         });
     }
 
-    async getMessages(tenantId: string, conversationId: string, skip = 0, take = 50, userId?: string) {
+    async getMessages(conversationId: string, skip = 0, take = 50, userId?: string) {
         const prisma = this.tenantPrisma.getReadClient();
         const safeTake = Math.min(Math.max(take, 1), 100);
         const safeSkip = Math.max(skip, 0);
         return prisma.message.findMany({
-            where: { tenantId, conversationId, isDeleted: false },
+            where: { conversationId, isDeleted: false },
             include: {
                 poll: {
                     include: {
@@ -209,13 +264,16 @@ export class ChatService {
         });
     }
 
-    async getConversations(tenantId: string, memberId: string, skip = 0, take = 30) {
+    /**
+     * All conversations the user belongs to — personal direct chats AND every
+     * community group — regardless of which community is currently selected.
+     * Membership is the access boundary, so this is safe across tenants.
+     */
+    async getConversations(memberId: string, skip = 0, take = 30) {
         const prisma = this.tenantPrisma.getReadClient();
-        // Cap page size so an account in thousands of groups can't pull the
-        // entire inbox + full member graph in one request.
         const safeTake = Math.min(Math.max(take, 1), 50);
-        return prisma.conversation.findMany({
-            where: { tenantId, members: { some: { memberId } } },
+        const conversations = await prisma.conversation.findMany({
+            where: { members: { some: { memberId } } },
             include: {
                 members: true,
                 messages: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -224,18 +282,74 @@ export class ChatService {
             skip: Math.max(skip, 0),
             take: safeTake,
         });
+
+        if (conversations.length === 0) return [];
+
+        // Per-conversation unread count for this member: messages from OTHER
+        // members created after the member's lastReadAt (or all of them if the
+        // member has never opened the conversation). One grouped aggregate for
+        // the whole page instead of a COUNT per conversation (no N+1).
+        const ids = conversations.map((c: any) => c.id);
+        const rows = await prisma.$queryRaw<Array<{ id: string; unread: number }>>(Prisma.sql`
+            SELECT m."conversationId" AS id, COUNT(*)::int AS unread
+            FROM "messages" m
+            JOIN "conversation_members" cm
+              ON cm."conversationId" = m."conversationId" AND cm."memberId" = ${memberId}
+            WHERE m."conversationId" IN (${Prisma.join(ids)})
+              AND m."isDeleted" = false
+              AND m."senderId" <> ${memberId}
+              AND m."createdAt" > COALESCE(cm."lastReadAt", to_timestamp(0))
+            GROUP BY m."conversationId"
+        `);
+        const unreadById = new Map(rows.map((r) => [r.id, Number(r.unread)]));
+        return conversations.map((c: any) => ({ ...c, unreadCount: unreadById.get(c.id) || 0 }));
     }
 
     /**
-     * Whether `memberId` belongs to a conversation in this tenant. Used to
-     * authorize joins, sends and history reads so a client can't post into /
-     * read arbitrary conversation ids.
+     * Mark a conversation read for `memberId` (stamps `lastReadAt = now`). Used
+     * by the client when the user opens / is viewing a conversation so unread
+     * badges clear. Idempotent.
      */
-    async isConversationMember(tenantId: string, conversationId: string, memberId: string): Promise<boolean> {
+    async markRead(conversationId: string, memberId: string) {
+        if (!conversationId || !memberId) {
+            throw new BadRequestException('conversationId and member are required');
+        }
+        const prisma = this.tenantPrisma.getWriteClient();
+        const member = await prisma.conversationMember.findFirst({
+            where: { conversationId, memberId },
+            select: { id: true },
+        });
+        if (!member) throw new ForbiddenException('Not a member of this conversation');
+        await prisma.conversationMember.update({
+            where: { id: member.id },
+            data: { lastReadAt: new Date() },
+        });
+        return { ok: true };
+    }
+
+    /** Member ids of a conversation — used to fan a new message out to each
+     * member's personal socket room (inbox notifications). */
+    async getConversationMemberIds(conversationId: string): Promise<string[]> {
+        if (!conversationId) return [];
+        const prisma = this.tenantPrisma.getReadClient();
+        const rows = await prisma.conversationMember.findMany({
+            where: { conversationId },
+            select: { memberId: true },
+        });
+        return rows.map((r: any) => r.memberId);
+    }
+
+    /**
+     * Whether `memberId` belongs to a conversation. Used to authorize joins,
+     * sends and history reads so a client can't post into / read arbitrary
+     * conversation ids. Membership alone is sufficient (a user is only ever a
+     * member of conversations they were added to), so this is tenant-agnostic.
+     */
+    async isConversationMember(conversationId: string, memberId: string): Promise<boolean> {
         if (!conversationId || !memberId) return false;
         const prisma = this.tenantPrisma.getReadClient();
         const row = await prisma.conversationMember.findFirst({
-            where: { tenantId, conversationId, memberId },
+            where: { conversationId, memberId },
             select: { id: true },
         });
         return !!row;

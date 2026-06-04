@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaClient } from '@resido/chat-client';
 import { ConfigService } from '@nestjs/config';
+import { withDbPool } from '../../common/db-pool';
 
 /**
  * Shared chat database access.
@@ -22,8 +23,14 @@ export class TenantPrismaService implements OnModuleInit, OnModuleDestroy {
         const readUrl =
             this.resolveUrl(['CHAT_READ_URL', 'RDS_READ_URL']) || writeUrl;
 
-        this.write = new PrismaClient({ datasources: { db: { url: writeUrl } } });
-        this.read = new PrismaClient({ datasources: { db: { url: readUrl } } });
+        if (!writeUrl) {
+            throw new Error(
+                'Chat database URL is not configured. Set CHAT_WRITE_URL or RDS_WRITE_URL (with resido_chat).',
+            );
+        }
+
+        this.write = new PrismaClient({ datasources: { db: { url: withDbPool(writeUrl) } } });
+        this.read = new PrismaClient({ datasources: { db: { url: withDbPool(readUrl) } } });
     }
 
     private resolveUrl(keys: string[]): string | undefined {
@@ -49,9 +56,13 @@ export class TenantPrismaService implements OnModuleInit, OnModuleDestroy {
     }
 
     async onModuleInit() {
-        await Promise.all([this.write.$connect(), this.read.$connect()]).catch((e) =>
-            this.logger.warn(`Chat DB connect failed: ${e?.message}`),
-        );
+        try {
+            await Promise.all([this.write.$connect(), this.read.$connect()]);
+            this.logger.log('Connected to resido_chat');
+        } catch (e: any) {
+            this.logger.error(`Chat DB connect failed: ${e?.message}`);
+            throw e;
+        }
     }
 
     async onModuleDestroy() {

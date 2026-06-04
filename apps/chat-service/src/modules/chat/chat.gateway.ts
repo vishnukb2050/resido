@@ -12,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
+import { buildRedisClient } from '../../common/redis-connection';
 
 @WebSocketGateway({ cors: { origin: '*' }, namespace: '/chat' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit, OnModuleDestroy {
@@ -44,26 +45,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             return;
         }
 
-        if (!tenantId || !memberId) {
+        // memberId must be present and match the authenticated user — a client
+        // cannot attach as someone else.
+        const authedUserId = payload.sub;
+        if (!memberId || (authedUserId && memberId !== authedUserId)) {
+            console.warn('[ws] rejected connection: missing/mismatched member');
             client.disconnect(true);
             return;
         }
-        if (!payload.tenantId) {
-            console.warn('[ws] rejected connection: token missing tenantId');
-            client.disconnect(true);
-            return;
-        }
-        if (payload.tenantId !== tenantId) {
+
+        // tenantId is OPTIONAL: personal/contact chats have no community. When a
+        // community is claimed it must match the token's tenant (if any) so a
+        // user can't attach to another community's context. The `global`
+        // sentinel (personal chats) is always allowed.
+        const claimedTenant = typeof tenantId === 'string' && tenantId ? tenantId : 'global';
+        if (payload.tenantId && claimedTenant !== 'global' && claimedTenant !== payload.tenantId) {
             console.warn('[ws] rejected connection: tenant mismatch');
             client.disconnect(true);
             return;
         }
 
-        client.data.tenantId = tenantId;
+        client.data.tenantId = claimedTenant;
         client.data.memberId = memberId;
         client.data.userId = payload.sub;
 
-        client.join(`tenant:${tenantId}:member:${memberId}`);
+        client.join(`tenant:${claimedTenant}:member:${memberId}`);
         // Also join a per-user room so targeted notifications (which only
         // carry a userId) can reach this client without a global broadcast.
         client.join(`user:${memberId}`);
@@ -80,10 +86,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         @ConnectedSocket() client: Socket,
         @MessageBody() data: { conversationId: string },
     ) {
-        const { tenantId, memberId } = client.data;
-        if (!tenantId || !memberId) return { error: 'Unauthorized' };
+        const { memberId } = client.data;
+        if (!memberId) return { error: 'Unauthorized' };
         // Only let a client subscribe to conversations it actually belongs to.
-        const allowed = await this.chatService.isConversationMember(tenantId, data.conversationId, memberId);
+        const allowed = await this.chatService.isConversationMember(data.conversationId, memberId);
         if (!allowed) return { error: 'Forbidden' };
         client.join(`conversation:${data.conversationId}`);
         return { event: 'joined', data: data.conversationId };
@@ -105,14 +111,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             }
         },
     ) {
-        const { tenantId, memberId } = client.data;
-        if (!tenantId || !memberId) return { error: 'Unauthorized' };
+        const { memberId } = client.data;
+        if (!memberId) return { error: 'Unauthorized' };
 
         // Reject sends to conversations the client isn't a member of.
-        const allowed = await this.chatService.isConversationMember(tenantId, data.conversationId, memberId);
+        const allowed = await this.chatService.isConversationMember(data.conversationId, memberId);
         if (!allowed) return { error: 'Forbidden' };
 
-        const message = await this.chatService.createMessage(tenantId, {
+        const message = await this.chatService.createMessage({
             conversationId: data.conversationId,
             senderId: memberId,
             content: data.content,
@@ -127,10 +133,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         return { event: 'message_sent', data: message };
     }
 
-    /** Emit a freshly-persisted message to everyone joined to the conversation room. */
-    broadcastMessage(conversationId: string, message: any) {
+    /**
+     * Emit a freshly-persisted message to everyone joined to the conversation
+     * room (the open chat screen), AND fan a lightweight `inbox_message` out to
+     * every member's personal room so clients that aren't currently viewing the
+     * conversation still get unread-badge + notification-sound updates.
+     */
+    async broadcastMessage(conversationId: string, message: any) {
         if (!this.server) return;
         this.server.to(`conversation:${conversationId}`).emit('new_message', message);
+        try {
+            const memberIds = await this.chatService.getConversationMemberIds(conversationId);
+            for (const uid of memberIds) {
+                this.server.to(`user:${uid}`).emit('inbox_message', { conversationId, message });
+            }
+        } catch (e: any) {
+            console.warn('[chat] inbox fan-out failed:', e?.message);
+        }
     }
 
     @SubscribeMessage('typing')
@@ -146,18 +165,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     private subscriber: any;
 
     onModuleInit() {
-        const redisHost = process.env.REDIS_HOST || 'redis';
-        const redisPort = parseInt(process.env.REDIS_PORT || '6379');
-        const redisPassword = process.env.REDIS_PASSWORD;
-        const useTls = process.env.REDIS_TLS === 'true';
-        const subscriber = new (require('ioredis'))({ host: redisHost, port: redisPort, password: redisPassword, ...(useTls ? { tls: {} } : {}) });
-        this.subscriber = subscriber;
+        try {
+            const subscriber = buildRedisClient(this.config);
+            this.subscriber = subscriber;
 
-        subscriber.subscribe('resido_notifications', (err) => {
-            if (err) console.error('Failed to subscribe to notifications:', err);
-        });
+            subscriber.subscribe('resido_notifications', (err) => {
+                if (err) console.error('Failed to subscribe to notifications:', err);
+            });
 
-        subscriber.on('message', (channel, message) => {
+            subscriber.on('message', (channel, message) => {
             if (channel === 'resido_notifications') {
                 try {
                     const data = JSON.parse(message);
@@ -175,7 +191,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                     console.error('Failed to parse notification message:', e);
                 }
             }
-        });
+            });
+        } catch (e: any) {
+            console.warn('[chat] Redis notification subscriber unavailable:', e?.message);
+        }
     }
 
     async onModuleDestroy() {

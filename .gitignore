@@ -19,6 +19,13 @@ out/
 .env.development
 !.env.example
 
+# Secrets / private keys (never commit — rotate immediately if one leaks)
+*.pem
+*.p8
+*.pfx
+*.cer
+resido.pem
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -44,6 +51,7 @@ ios/build/
 *.jks
 *.p12
 *.key
+*.pem
 *.mobileprovision
 
 # Logs

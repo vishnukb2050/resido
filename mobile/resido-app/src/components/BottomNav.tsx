@@ -1,9 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import { useFocusEffect } from 'expo-router';
+import { useProfileRefresh } from '../hooks/useProfileRefresh';
+import { useConversations } from '../hooks/useConversations';
 
 interface BottomNavProps {
     activeTab?: 'Home' | 'Flares' | 'Threads' | 'Chats' | 'Account';
@@ -13,7 +15,18 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     const router = useRouter();
     const { user, activeWorkspace, setActiveWorkspace, token } = useAuthStore();
     const isMySpace = activeWorkspace === null;
-    const [imageKey, setImageKey] = useState(Date.now());
+    // Stable cache-bust key that only changes when the avatar URL changes —
+    // avoids re-downloading the avatar on every tab focus.
+    const imageKey = useProfileRefresh();
+
+    // Total unread across all conversations → red badge on the Chat tab. Reads
+    // from the shared (cached) conversations query, kept fresh by the global
+    // chat-notification listener.
+    const { data: conversations = [] } = useConversations();
+    const totalUnread = React.useMemo(
+        () => (conversations as any[]).reduce((sum, c) => sum + (c?.unreadCount || 0), 0),
+        [conversations],
+    );
 
     // Tapping Home always returns the user to the personal MySpace view,
     // even if they were inside a community workspace.
@@ -23,12 +36,6 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
         }
         router.push('/');
     };
-
-    useFocusEffect(
-        useCallback(() => {
-            setImageKey(Date.now());
-        }, [])
-    );
 
 
     const themeStyles = {
@@ -56,6 +63,7 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
                 active={activeTab === 'Chats'} 
                 onPress={() => router.push('/chat-list')}
                 theme={themeStyles}
+                badge={totalUnread}
             />
             <NavItem 
                 icon={activeTab === 'Threads' ? 'newspaper' : 'newspaper-outline'} 
@@ -78,7 +86,12 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
                     activeTab === 'Account' && { borderColor: themeStyles.activeIcon, borderWidth: 2 }
                 ]}>
                     {user?.profilePhoto ? (
-                        <Image source={{ uri: `${user.profilePhoto}?t=${imageKey}` }} style={styles.navAvatar} />
+                        <ExpoImage
+                            source={{ uri: `${user.profilePhoto}?t=${imageKey}` }}
+                            style={styles.navAvatar}
+                            cachePolicy="memory-disk"
+                            contentFit="cover"
+                        />
                     ) : (
                         <View style={[styles.navAvatarPlaceholder, { backgroundColor: '#EFE9F8' }]}>
                             <Ionicons 
@@ -98,14 +111,21 @@ export default function BottomNav({ activeTab }: BottomNavProps) {
     );
 }
 
-function NavItem({ icon, label, active, onPress, theme }: any) {
+function NavItem({ icon, label, active, onPress, theme, badge = 0 }: any) {
     return (
         <TouchableOpacity style={styles.navItem} onPress={onPress}>
-            <Ionicons 
-                name={icon} 
-                size={24} 
-                color={active ? theme.activeIcon : theme.inactiveIcon} 
-            />
+            <View>
+                <Ionicons 
+                    name={icon} 
+                    size={24} 
+                    color={active ? theme.activeIcon : theme.inactiveIcon} 
+                />
+                {badge > 0 && (
+                    <View style={styles.navBadge}>
+                        <Text style={styles.navBadgeText}>{badge > 99 ? '99+' : badge}</Text>
+                    </View>
+                )}
+            </View>
             <Text style={[
                 styles.navLabel, 
                 { color: active ? theme.activeLabel : theme.inactiveLabel }
@@ -138,6 +158,8 @@ const styles = StyleSheet.create({
     },
     navItem: { alignItems: 'center', justifyContent: 'center', width: 60 },
     navLabel: { fontSize: 10, marginTop: 4, fontWeight: '700' },
+    navBadge: { position: 'absolute', top: -6, right: -10, backgroundColor: '#ef4444', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1.5, borderColor: '#F8F5FF' },
+    navBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: '900' },
     navProfileContainer: { width: 28, height: 28, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#D4C9E8' },
     navAvatar: { width: '100%', height: '100%' },
     navAvatarPlaceholder: { width: '100%', height: '100%', backgroundColor: '#EFE9F8', alignItems: 'center', justifyContent: 'center' },

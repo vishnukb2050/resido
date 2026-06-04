@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import * as Contacts from 'expo-contacts';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, ScrollView, Image, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ export default function ChatListScreen() {
     const [isSearching, setIsSearching] = useState(false);
     const [userCache, setUserCache] = useState<Record<string, any>>({});
     const [registeredContacts, setRegisteredContacts] = useState<any[]>([]);
+    const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -37,6 +38,24 @@ export default function ChatListScreen() {
         syncRegisteredContacts();
     }, []);
 
+    // When the user is in a community, make sure they're in its default group
+    // chat (creates it on first use), then refresh so it shows under Community.
+    useEffect(() => {
+        if (!activeWorkspace?.tenantId || !token) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                await chatApi.ensureCommunityGroup(activeWorkspace.tenantName);
+                if (!cancelled) refetchConversations();
+            } catch (e) {
+                console.warn('[chat] ensure community group failed', e);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [activeWorkspace?.tenantId, token]);
+
     // Recreate the socket whenever the workspace or auth token changes so it
     // always carries a valid token + matching tenant (chat-service rejects
     // stale/mismatched handshakes).
@@ -46,15 +65,18 @@ export default function ChatListScreen() {
     }, [activeWorkspace?.tenantId, activeWorkspace?.dbName, token, user?.id]);
 
     const connectSocket = () => {
-        if (!activeWorkspace || !token) return;
+        // Personal/contact chats work without an active community, so connect as
+        // long as we have a token + user. tenantId defaults to the personal
+        // `global` scope when no community is selected.
+        if (!token || !user?.id) return;
 
         const socket = io(`${SOCKET_URL}/chat`, {
             transports: ['websocket', 'polling'],
             reconnection: true,
             auth: {
                 token,
-                tenantId: activeWorkspace.tenantId,
-                dbName: activeWorkspace.dbName,
+                tenantId: activeWorkspace?.tenantId || 'global',
+                dbName: activeWorkspace?.dbName,
                 memberId: user?.id
             }
         });
@@ -64,10 +86,17 @@ export default function ChatListScreen() {
         });
 
         socket.on('new_message', (message: any) => {
-            refetchConversations();
+            // Coalesce bursts of incoming messages into a single refetch so a
+            // busy group chat doesn't trigger one full conversation-list
+            // request per message.
+            if (refetchTimer.current) clearTimeout(refetchTimer.current);
+            refetchTimer.current = setTimeout(() => {
+                refetchConversations();
+            }, 800);
         });
 
         return () => {
+            if (refetchTimer.current) clearTimeout(refetchTimer.current);
             socket.disconnect();
         };
     };
@@ -106,24 +135,15 @@ export default function ChatListScreen() {
 
         if (ids.length === 0) return;
 
-        const results = await Promise.all(
-            ids.map(async (id) => {
-                try {
-                    const { data } = await authApi.getUser(id);
-                    return { id, data };
-                } catch (e) {
-                    console.error('Failed to fetch user:', id, e);
-                    return null;
-                }
-            }),
-        );
-
-        const updates: Record<string, any> = {};
-        results.forEach((r) => {
-            if (r) updates[r.id] = r.data;
-        });
-        if (Object.keys(updates).length > 0) {
-            setUserCache((prev) => ({ ...prev, ...updates }));
+        // Single batched request instead of one getUser call per conversation.
+        try {
+            const { data } = await authApi.getChatIdentitiesBatch(ids);
+            const map = data || {};
+            if (Object.keys(map).length > 0) {
+                setUserCache((prev) => ({ ...prev, ...map }));
+            }
+        } catch (e) {
+            console.error('Failed to resolve chat identities', e);
         }
     };
 
@@ -132,7 +152,7 @@ export default function ChatListScreen() {
         return userCache[otherMemberId]?.name || userCache[otherMemberId]?.phone || 'User';
     };
 
-    const filteredConversations = conversations.filter(conv => {
+    const filteredConversations = conversations.filter((conv: any) => {
         if (search.length >= 3) return false; // Hide main list while searching users
 
         if (activeFilter === 'All') return true;
@@ -153,11 +173,22 @@ export default function ChatListScreen() {
     const displayContacts = registeredContacts.filter(contact => {
         if (activeFilter !== 'Contacts') return false;
         // Don't show if already in conversations list
-        return !conversations.some(c => 
+        return !conversations.some((c: any) => 
             c.type === 'DIRECT' && 
             c.members?.some((m: any) => m.memberId === contact.id)
         );
     });
+
+    // Flattened, typed rows for the virtualized list: conversations, then an
+    // optional "Suggestions" section header followed by contact suggestions.
+    const listData = useMemo(() => {
+        const rows: any[] = filteredConversations.map((conv: any) => ({ kind: 'conv', conv }));
+        if (activeFilter === 'Contacts' && displayContacts.length > 0) {
+            rows.push({ kind: 'section', title: 'Suggestions' });
+            displayContacts.forEach((contact) => rows.push({ kind: 'contact', contact }));
+        }
+        return rows;
+    }, [filteredConversations, displayContacts, activeFilter]);
 
     const handleSearch = async (text: string) => {
         setSearch(text);
@@ -190,165 +221,180 @@ export default function ChatListScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                    <View style={styles.searchBox}>
-                        <Ionicons name="search-outline" size={20} color="#94a3b8" />
-                        <TextInput 
-                            placeholder="Search name or number..." 
-                            style={styles.searchInput}
-                            placeholderTextColor="#94a3b8"
-                            value={search}
-                            onChangeText={handleSearch}
-                        />
-                        {isSearching && <ActivityIndicator size="small" color="#1d4ed8" />}
-                    </View>
-                </View>
-
-                {/* Search Results */}
-                {search.length >= 3 && (
-                    <View style={styles.searchResultsContainer}>
-                        <Text style={styles.resultsTitle}>Search Results</Text>
-                        {searchResults.length > 0 ? (
-                            searchResults.map(user => (
-                                <TouchableOpacity 
-                                    key={user.id} 
-                                    style={styles.searchItem}
-                                    onPress={() => router.push(`/chat/new?userId=${user.id}`)}
-                                >
-                                    <View style={styles.userAvatar}>
-                                        <Text style={styles.avatarText}>{user.name?.[0] || '?'}</Text>
-                                    </View>
-                                    <View style={styles.userInfo}>
-                                        <Text style={styles.userName}>{user.name || 'Anonymous'}</Text>
-                                        <Text style={styles.userPhone}>{user.phone}</Text>
-                                    </View>
-                                    <Ionicons name="chatbubble-ellipses-outline" size={20} color="#1d4ed8" />
-                                </TouchableOpacity>
-                            ))
-                        ) : !isSearching ? (
-                            <Text style={styles.noResults}>No users found</Text>
-                        ) : null}
-                        <View style={styles.searchDivider} />
-                    </View>
-                )}
-
-                {/* Filters */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer} contentContainerStyle={styles.filtersContent}>
-                    {CHAT_FILTERS.map(filter => (
-                        <TouchableOpacity 
-                            key={filter} 
-                            style={[styles.filterPill, activeFilter === filter && styles.filterPillActive]}
-                            onPress={() => setActiveFilter(filter)}
-                        >
-                            <Ionicons 
-                                name={filter === 'All' ? 'chatbubbles' : filter === 'Community' ? 'business' : filter === 'Contacts' ? 'person' : 'people'} 
-                                size={18} 
-                                color={activeFilter === filter ? '#fff' : '#64748b'} 
-                            />
-                            <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>{filter}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-
-                {/* Create Group Button (Only for Groups filter) */}
-                {activeFilter === 'Groups' && (
-                    <TouchableOpacity 
-                        style={styles.createGroupBtn}
-                        onPress={() => router.push('/chat/create-group')}
-                    >
-                        <View style={styles.createGroupIcon}>
-                            <Ionicons name="add" size={24} color="#fff" />
-                        </View>
-                        <View style={{ flex: 1, marginLeft: 14 }}>
-                            <Text style={styles.createGroupTitle}>New Group</Text>
-                            <Text style={styles.createGroupSub}>Add members from contacts, community or followers</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
-                    </TouchableOpacity>
-                )}
-
-                {/* Conversations List */}
-                {loading ? (
-                    <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 40 }} />
-                ) : (
+            <FlatList
+                style={styles.content}
+                data={listData}
+                keyExtractor={(item, index) =>
+                    item.kind === 'conv'
+                        ? `conv-${item.conv.id}`
+                        : item.kind === 'contact'
+                            ? `contact-${item.contact.id}`
+                            : `section-${index}`
+                }
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 120 }}
+                keyboardShouldPersistTaps="handled"
+                initialNumToRender={12}
+                maxToRenderPerBatch={12}
+                windowSize={10}
+                removeClippedSubviews
+                ListHeaderComponent={
                     <>
-                        {filteredConversations.length > 0 || displayContacts.length > 0 ? (
-                            <>
-                                {filteredConversations.map(conv => (
-                                    <ChatItem 
-                                        key={conv.id} 
-                                        item={{
-                                            id: conv.id,
-                                            name: conv.name || (conv.type === 'DIRECT' ? getOtherMemberName(conv) : 'Group Chat'),
-                                            sub: conv.messages?.[0]?.content || 'No messages yet',
-                                            time: conv.messages?.[0] ? dayjs(conv.messages[0].createdAt).format('hh:mm A') : '',
-                                            icon: conv.type === 'GROUP' ? 'people' : undefined,
-                                            online: conv.type === 'DIRECT' // Mock online status
-                                        }} 
-                                        onPress={() => {
-                                            if (forwardContent) {
-                                                Alert.alert('Forward', 'Forward this content to this chat?', [
-                                                    { text: 'Cancel', style: 'cancel' },
-                                                    { text: 'Send', onPress: async () => {
-                                                        try {
-                                                            await chatApi.sendMessage(conv.id, { content: forwardContent as string });
-                                                            Alert.alert('Success', 'Forwarded successfully!');
-                                                            router.back();
-                                                        } catch (e) {
-                                                            Alert.alert('Error', 'Failed to forward');
-                                                        }
-                                                    }}
-                                                ]);
-                                            } else {
-                                                router.push({
-                                                    pathname: `/chat/${conv.id}`,
-                                                    params: {
-                                                        convName: conv.name || getOtherMemberName(conv),
-                                                        convType: conv.type,
-                                                        otherMemberId:
-                                                            conv.type === 'DIRECT'
-                                                                ? conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId
-                                                                : undefined,
-                                                    },
-                                                });
-                                            }
-                                        }} 
-                                    />
-                                ))}
+                        {/* Search Bar */}
+                        <View style={styles.searchContainer}>
+                            <View style={styles.searchBox}>
+                                <Ionicons name="search-outline" size={20} color="#94a3b8" />
+                                <TextInput 
+                                    placeholder="Search name or number..." 
+                                    style={styles.searchInput}
+                                    placeholderTextColor="#94a3b8"
+                                    value={search}
+                                    onChangeText={handleSearch}
+                                />
+                                {isSearching && <ActivityIndicator size="small" color="#1d4ed8" />}
+                            </View>
+                        </View>
 
-                                {activeFilter === 'Contacts' && displayContacts.length > 0 && (
-                                    <>
-                                        <View style={styles.sectionHeader}>
-                                            <Text style={styles.sectionTitle}>Suggestions</Text>
-                                        </View>
-                                        {displayContacts.map(contact => (
-                                            <ChatItem 
-                                                key={contact.id}
-                                                item={{
-                                                    id: contact.id,
-                                                    name: contact.name || contact.profileName || contact.phone,
-                                                    sub: 'Resido Contact',
-                                                    online: false
-                                                }}
-                                                onPress={() => router.push(`/chat/new?userId=${contact.id}`)}
-                                            />
-                                        ))}
-                                    </>
-                                )}
-                            </>
-                        ) : (
-                            <View style={styles.emptyState}>
-                                <Ionicons name="chatbubble-outline" size={48} color="#cbd5e1" />
-                                <Text style={styles.emptyText}>No conversations found in {activeFilter}</Text>
+                        {/* Search Results */}
+                        {search.length >= 3 && (
+                            <View style={styles.searchResultsContainer}>
+                                <Text style={styles.resultsTitle}>Search Results</Text>
+                                {searchResults.length > 0 ? (
+                                    searchResults.map(u => (
+                                        <TouchableOpacity 
+                                            key={u.id} 
+                                            style={styles.searchItem}
+                                            onPress={() => router.push(`/chat/new?userId=${u.id}`)}
+                                        >
+                                            <View style={styles.userAvatar}>
+                                                <Text style={styles.avatarText}>{u.name?.[0] || '?'}</Text>
+                                            </View>
+                                            <View style={styles.userInfo}>
+                                                <Text style={styles.userName}>{u.name || 'Anonymous'}</Text>
+                                                <Text style={styles.userPhone}>{u.phone}</Text>
+                                            </View>
+                                            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#1d4ed8" />
+                                        </TouchableOpacity>
+                                    ))
+                                ) : !isSearching ? (
+                                    <Text style={styles.noResults}>No users found</Text>
+                                ) : null}
+                                <View style={styles.searchDivider} />
                             </View>
                         )}
-                    </>
-                )}
 
-                <View style={{ height: 120 }} />
-            </ScrollView>
+                        {/* Filters */}
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer} contentContainerStyle={styles.filtersContent}>
+                            {CHAT_FILTERS.map(filter => (
+                                <TouchableOpacity 
+                                    key={filter} 
+                                    style={[styles.filterPill, activeFilter === filter && styles.filterPillActive]}
+                                    onPress={() => setActiveFilter(filter)}
+                                >
+                                    <Ionicons 
+                                        name={filter === 'All' ? 'chatbubbles' : filter === 'Community' ? 'business' : filter === 'Contacts' ? 'person' : 'people'} 
+                                        size={18} 
+                                        color={activeFilter === filter ? '#fff' : '#64748b'} 
+                                    />
+                                    <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>{filter}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        {/* Create Group Button (Only for Groups filter) */}
+                        {activeFilter === 'Groups' && (
+                            <TouchableOpacity 
+                                style={styles.createGroupBtn}
+                                onPress={() => router.push('/chat/create-group')}
+                            >
+                                <View style={styles.createGroupIcon}>
+                                    <Ionicons name="add" size={24} color="#fff" />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 14 }}>
+                                    <Text style={styles.createGroupTitle}>New Group</Text>
+                                    <Text style={styles.createGroupSub}>Add members from contacts, community or followers</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                            </TouchableOpacity>
+                        )}
+                    </>
+                }
+                renderItem={({ item }) => {
+                    if (item.kind === 'section') {
+                        return (
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>{item.title}</Text>
+                            </View>
+                        );
+                    }
+                    if (item.kind === 'contact') {
+                        const contact = item.contact;
+                        return (
+                            <ChatItem
+                                item={{
+                                    id: contact.id,
+                                    name: contact.name || contact.profileName || contact.phone,
+                                    sub: 'Resido Contact',
+                                    online: false,
+                                }}
+                                onPress={() => router.push(`/chat/new?userId=${contact.id}`)}
+                            />
+                        );
+                    }
+                    const conv = item.conv;
+                    return (
+                        <ChatItem
+                            item={{
+                                id: conv.id,
+                                name: conv.name || (conv.type === 'DIRECT' ? getOtherMemberName(conv) : 'Group Chat'),
+                                sub: conv.messages?.[0]?.content || 'No messages yet',
+                                time: conv.messages?.[0] ? dayjs(conv.messages[0].createdAt).format('hh:mm A') : '',
+                                icon: conv.type === 'GROUP' ? 'people' : undefined,
+                                online: conv.type === 'DIRECT',
+                                unread: conv.unreadCount || 0,
+                            }}
+                            onPress={() => {
+                                if (forwardContent) {
+                                    Alert.alert('Forward', 'Forward this content to this chat?', [
+                                        { text: 'Cancel', style: 'cancel' },
+                                        { text: 'Send', onPress: async () => {
+                                            try {
+                                                await chatApi.sendMessage(conv.id, { content: forwardContent as string });
+                                                Alert.alert('Success', 'Forwarded successfully!');
+                                                router.back();
+                                            } catch (e) {
+                                                Alert.alert('Error', 'Failed to forward');
+                                            }
+                                        }}
+                                    ]);
+                                } else {
+                                    router.push({
+                                        pathname: `/chat/${conv.id}`,
+                                        params: {
+                                            convName: conv.name || getOtherMemberName(conv),
+                                            convType: conv.type,
+                                            otherMemberId:
+                                                conv.type === 'DIRECT'
+                                                    ? conv.members?.find((m: any) => m.memberId !== user?.id)?.memberId
+                                                    : undefined,
+                                        },
+                                    });
+                                }
+                            }}
+                        />
+                    );
+                }}
+                ListEmptyComponent={
+                    loading ? (
+                        <ActivityIndicator size="large" color="#1d4ed8" style={{ marginTop: 40 }} />
+                    ) : (
+                        <View style={styles.emptyState}>
+                            <Ionicons name="chatbubble-outline" size={48} color="#cbd5e1" />
+                            <Text style={styles.emptyText}>No conversations found in {activeFilter}</Text>
+                        </View>
+                    )
+                }
+            />
 
             <BottomNav activeTab="Chats" />
         </SafeAreaView>
@@ -372,14 +418,14 @@ function ChatItem({ item, onPress }: any) {
             </View>
             <View style={styles.chatInfo}>
                 <View style={styles.chatHeaderRow}>
-                    <Text style={styles.chatName}>{item.name}</Text>
-                    <Text style={styles.chatTime}>{item.time}</Text>
+                    <Text style={[styles.chatName, item.unread > 0 && styles.chatNameUnread]} numberOfLines={1}>{item.name}</Text>
+                    <Text style={[styles.chatTime, item.unread > 0 && styles.chatTimeUnread]}>{item.time}</Text>
                 </View>
                 <View style={styles.chatBottomRow}>
-                    <Text style={styles.chatSub} numberOfLines={1}>{item.sub}</Text>
+                    <Text style={[styles.chatSub, item.unread > 0 && styles.chatSubUnread]} numberOfLines={1}>{item.sub}</Text>
                     {item.unread > 0 && (
                         <View style={styles.unreadBadge}>
-                            <Text style={styles.unreadText}>{item.unread}</Text>
+                            <Text style={styles.unreadText}>{item.unread > 99 ? '99+' : item.unread}</Text>
                         </View>
                     )}
                 </View>
@@ -415,12 +461,15 @@ const styles = StyleSheet.create({
     onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#10b981', borderWidth: 2, borderColor: '#fff' },
     chatInfo: { flex: 1, marginLeft: 14, borderBottomWidth: 1, borderBottomColor: '#f8fafc', paddingBottom: 10 },
     chatHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-    chatName: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
-    chatTime: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
+    chatName: { fontSize: 15, fontWeight: '800', color: '#1e293b', flex: 1 },
+    chatNameUnread: { color: '#0f172a' },
+    chatTime: { fontSize: 11, color: '#94a3b8', fontWeight: '600', marginLeft: 8 },
+    chatTimeUnread: { color: '#ef4444', fontWeight: '800' },
     chatBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     chatSub: { fontSize: 13, color: '#64748b', fontWeight: '500', flex: 1 },
-    unreadBadge: { backgroundColor: '#1d4ed8', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8 },
-    unreadText: { color: '#2D2445', fontSize: 10, fontWeight: '900' },
+    chatSubUnread: { color: '#1e293b', fontWeight: '700' },
+    unreadBadge: { backgroundColor: '#ef4444', borderRadius: 11, minWidth: 22, height: 22, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8 },
+    unreadText: { color: '#ffffff', fontSize: 11, fontWeight: '900' },
     
     // Search Styles
     searchResultsContainer: { paddingHorizontal: 20, marginTop: 10, paddingBottom: 10 },

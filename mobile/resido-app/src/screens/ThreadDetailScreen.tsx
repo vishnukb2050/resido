@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Share, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { threadApi, FLARES_SOCKET_URL, flaresSocketOptions } from '../services/api';
+import { threadApi, FLARES_SOCKET_URL, getFlaresSocketOptions } from '../services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import PollBuilderModal from '../components/PollBuilderModal';
@@ -31,7 +31,7 @@ export default function ThreadDetailScreen() {
         fetchComments();
         
         if (!id) return;
-        const socket = io(`${FLARES_SOCKET_URL}/flares`, flaresSocketOptions);
+        const socket = io(`${FLARES_SOCKET_URL}/flares`, getFlaresSocketOptions());
 
         socket.on('connect', () => {
             socket.emit('join_flare', { flareId: id });

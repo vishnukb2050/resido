@@ -108,6 +108,11 @@ export class ProxyController {
         delete headers.host;
         delete headers['content-length'];
 
+        // Preserve workspace hint before stripping spoofable headers (used only
+        // when the JWT has no tenantId but the app has an active community).
+        const clientTenantHint =
+            typeof req.headers['x-tenant-id'] === 'string' ? req.headers['x-tenant-id'] : undefined;
+
         // SECURITY: the gateway is the trust boundary. Identity headers are
         // derived from the verified JWT only — never from the client. Strip any
         // the caller tried to inject so downstream services can't be spoofed.
@@ -133,7 +138,16 @@ export class ProxyController {
                 if (payload.sub) headers['x-user-id'] = payload.sub;
                 if (payload.phone) headers['x-user-phone'] = payload.phone;
                 if (payload.role) headers['x-user-role'] = payload.role;
-                if (payload.tenantId) headers['x-tenant-id'] = payload.tenantId;
+                if (payload.tenantId) {
+                    headers['x-tenant-id'] = payload.tenantId;
+                } else if (
+                    clientTenantHint &&
+                    (path.startsWith('/chat') || path.startsWith('/members') || path.startsWith('/community'))
+                ) {
+                    // Mobile sends activeWorkspace.tenantId; token may still be the
+                    // personal token until switch-workspace completes.
+                    headers['x-tenant-id'] = clientTenantHint;
+                }
                 // x-db-name (tenant scope) is ALWAYS derived from the verified
                 // token — never the client. With an active workspace the token
                 // carries dbName/tenantId; in MySpace there is no tenant, so we

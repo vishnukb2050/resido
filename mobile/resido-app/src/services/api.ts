@@ -28,6 +28,16 @@ export const flaresSocketOptions = {
     transports: ['websocket'] as ('websocket' | 'polling')[],
 };
 
+/**
+ * Flare socket options including the auth token. The flare gateway now rejects
+ * unauthenticated connections, so the JWT must be supplied in the handshake.
+ * Use this in place of the bare `flaresSocketOptions` for all connections.
+ */
+export const getFlaresSocketOptions = () => ({
+    ...flaresSocketOptions,
+    auth: { token: useAuthStore.getState().token || '' },
+});
+
 export const api = axios.create({ baseURL: API_URL });
 
 // Inject auth token and tenant headers from the in-memory Zustand store.
@@ -182,6 +192,13 @@ export const authApi = {
     // shortcut for "render the linked-owner chip on this business card".
     getPublicIdentitiesBatch: (ids: string[]) =>
         api.get('/profile/users/identities/batch', {
+            params: { ids: (ids || []).filter(Boolean).join(',') },
+        }),
+    // Batch resolve chat counterpart display identities (name/phone/photo) for
+    // any active user in a single request (chat list uses this instead of an
+    // N+1 getUser fan-out).
+    getChatIdentitiesBatch: (ids: string[]) =>
+        api.get('/profile/users/chat-identities/batch', {
             params: { ids: (ids || []).filter(Boolean).join(',') },
         }),
     createMember: (data: any) => api.post('/members', data),
@@ -456,6 +473,12 @@ export const chatApi = {
     createGroup: (name: string, memberIds: string[]) =>
         api.post('/chat/conversations', { memberIds, name, type: 'GROUP' }),
     votePoll: (pollId: string, optionId: string) => api.post(`/chat/polls/${pollId}/vote`, { optionId }),
+    // Mark a conversation read (clears the unread badge for this user).
+    markRead: (conversationId: string) => api.post(`/chat/conversations/${conversationId}/read`),
+    // Ensure the active community's default group chat exists and that the
+    // current user is a member of it. Idempotent — safe to call on every load.
+    ensureCommunityGroup: (name?: string) =>
+        api.post('/chat/communities/ensure', { name }),
 };
 
 // My Space APIs (notes, documents, personal finance → auth-service /profile/*)

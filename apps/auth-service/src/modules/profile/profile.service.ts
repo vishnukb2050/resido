@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException, OnModuleInit, Logger, Inject } from '@nestjs/common';
+import type { Redis } from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ProfileMediaService } from '../profile-media/profile-media.service';
@@ -53,11 +54,63 @@ export class ProfileService implements OnModuleInit {
     /** Prefer consensus among neighbors inside this tighter band. */
     private static readonly REVERSE_GEO_CONSENSUS_M = 12_000;
 
+    /** TTL for cached identity/visibility reads (seconds). */
+    private static readonly IDENTITY_CACHE_TTL = 300;
+
     constructor(
         private prisma: PrismaService,
         private storageService: StorageService,
         private profileMedia: ProfileMediaService,
+        @Inject('REDIS_CLIENT') private redis: Redis,
     ) { }
+
+    /**
+     * Cache-aside batch read from Redis. Returns the entries found in cache and
+     * the ids that missed. Fail-open: any Redis error is treated as a full miss
+     * so a cache outage degrades to direct DB reads rather than an error.
+     */
+    private async cacheGetMany(prefix: string, ids: string[]): Promise<{ hits: Record<string, any>; misses: string[] }> {
+        const hits: Record<string, any> = {};
+        if (!this.redis || ids.length === 0) return { hits, misses: ids };
+        try {
+            const vals = await this.redis.mget(ids.map((id) => `${prefix}${id}`));
+            const misses: string[] = [];
+            ids.forEach((id, i) => {
+                const raw = vals[i];
+                if (raw == null) { misses.push(id); return; }
+                try { hits[id] = JSON.parse(raw); } catch { misses.push(id); }
+            });
+            return { hits, misses };
+        } catch {
+            return { hits: {}, misses: ids };
+        }
+    }
+
+    /** Cache-aside batch write to Redis (best-effort; never throws). */
+    private async cacheSetMany(prefix: string, map: Record<string, any>, ttl: number): Promise<void> {
+        if (!this.redis) return;
+        const entries = Object.entries(map);
+        if (entries.length === 0) return;
+        try {
+            const pipe = this.redis.pipeline();
+            for (const [id, val] of entries) {
+                pipe.set(`${prefix}${id}`, JSON.stringify(val), 'EX', ttl);
+            }
+            await pipe.exec();
+        } catch {
+            // best-effort
+        }
+    }
+
+    /** Drop cached identity/visibility entries for a user (on profile update). */
+    private async invalidateIdentityCache(userId: string): Promise<void> {
+        if (!this.redis || !userId) return;
+        try {
+            await this.redis.del(`chatident:${userId}`, `pvis:${userId}`);
+        } catch {
+            // best-effort
+        }
+    }
 
     private withResolvedPhotos<T extends { profilePhoto?: string | null; profilePhotoThumb?: string | null }>(row: T) {
         const photos = this.profileMedia.resolvePhotoFields(row);
@@ -421,6 +474,10 @@ export class ProfileService implements OnModuleInit {
         if (shouldProcessPhoto && user.profilePhoto) {
             await this.profileMedia.enqueueAfterPhotoUpdate(userId, tenantId, user.profilePhoto);
         }
+
+        // Drop cached identity/visibility so chat lists and feed gating reflect
+        // the edit (name, photo, profileName, visibility) without waiting on TTL.
+        await this.invalidateIdentityCache(userId);
 
         return this.withResolvedPhotos(user);
     }
@@ -982,14 +1039,25 @@ export class ProfileService implements OnModuleInit {
     async getProfileVisibilities(userIds: string[]): Promise<Record<string, string>> {
         if (!Array.isArray(userIds) || userIds.length === 0) return {};
         const unique = Array.from(new Set(userIds.filter(Boolean)));
-        const users = await this.prisma.userRead.user.findMany({
-            where: { id: { in: unique } },
-            select: { id: true, profileVisibility: true },
-        });
-        return users.reduce((acc, u: any) => {
-            acc[u.id] = u.profileVisibility || 'GLOBAL';
-            return acc;
-        }, {} as Record<string, string>);
+        if (unique.length === 0) return {};
+
+        // Cache-aside per user — feed gating calls this on every feed page for
+        // the same set of authors, so a short TTL cuts most reads.
+        const { hits, misses } = await this.cacheGetMany('pvis:', unique);
+        const result: Record<string, string> = { ...hits };
+        if (misses.length > 0) {
+            const users = await this.prisma.userRead.user.findMany({
+                where: { id: { in: misses } },
+                select: { id: true, profileVisibility: true },
+            });
+            const fetched: Record<string, string> = {};
+            for (const u of users as any[]) {
+                fetched[u.id] = u.profileVisibility || 'GLOBAL';
+            }
+            Object.assign(result, fetched);
+            await this.cacheSetMany('pvis:', fetched, ProfileService.IDENTITY_CACHE_TTL);
+        }
+        return result;
     }
 
     /**
@@ -1036,6 +1104,51 @@ export class ProfileService implements OnModuleInit {
         return this.profileMedia.getAvatarsBatch(userIds);
     }
 
+    /**
+     * Batch display identities for the chat list. Unlike
+     * `getPublicIdentitiesBatch` (which only returns "Link Business Profile"
+     * opt-ins), this returns the lightweight display fields for ANY active
+     * user so the client can render direct-conversation counterparts in one
+     * round-trip instead of an N+1 `getUser` fan-out. Fields here are the same
+     * non-secret display fields already exposed per-user via `getUser`.
+     */
+    async getChatIdentitiesBatch(userIds: string[]): Promise<Record<string, any>> {
+        if (!Array.isArray(userIds) || userIds.length === 0) return {};
+        const unique = Array.from(new Set(userIds.filter(Boolean)));
+        if (unique.length === 0) return {};
+
+        // Cache-aside per user — the chat list resolves the same counterparts
+        // on every open; identities change rarely (invalidated on profile edit).
+        const { hits, misses } = await this.cacheGetMany('chatident:', unique);
+        const result: Record<string, any> = { ...hits };
+        if (misses.length > 0) {
+            const users = await this.prisma.userRead.user.findMany({
+                where: { id: { in: misses }, isActive: true },
+                select: {
+                    id: true,
+                    name: true,
+                    profileName: true,
+                    phone: true,
+                    profilePhoto: true,
+                    profilePhotoThumb: true,
+                },
+            });
+            const fetched: Record<string, any> = {};
+            for (const u of users as any[]) {
+                fetched[u.id] = {
+                    id: u.id,
+                    name: u.name,
+                    profileName: u.profileName,
+                    phone: u.phone,
+                    ...this.profileMedia.resolvePhotoFields(u),
+                };
+            }
+            Object.assign(result, fetched);
+            await this.cacheSetMany('chatident:', fetched, ProfileService.IDENTITY_CACHE_TTL);
+        }
+        return result;
+    }
+
     async getFollowCounts(userId: string) {
         const [followersCount, followingCount] = await Promise.all([
             this.prisma.userRead.follow.count({ where: { followingId: userId } }),
@@ -1065,6 +1178,76 @@ export class ProfileService implements OnModuleInit {
         if (follow) return { status: 'FOLLOWING' as const };
         if (request) return { status: 'REQUESTED' as const };
         return { status: 'NOT_FOLLOWING' as const };
+    }
+
+    /**
+     * Whether `fromUserId` may start a direct chat with `toUserId`. Used by
+     * chat-service (server-to-server) to gate the "message a contact/profile"
+     * flow. Rules:
+     *   - GLOBAL profile      → anyone may message.
+     *   - Otherwise, allowed if there is a relationship:
+     *       • viewer follows target (covers followers AND synced contacts, which
+     *         are auto-followed), or target follows viewer, or
+     *       • they share at least one community (workspace).
+     *   - If none of the above and the profile is restricted → FOLLOW_REQUIRED;
+     *     the user must send a follow request and be accepted first.
+     */
+    async canMessage(fromUserId: string, toUserId: string) {
+        if (!fromUserId || !toUserId) {
+            return { allowed: false, reason: 'NOT_FOUND' as const };
+        }
+        if (fromUserId === toUserId) {
+            return { allowed: false, reason: 'SELF' as const };
+        }
+
+        const target = await this.prisma.userRead.user.findUnique({
+            where: { id: toUserId },
+            select: { id: true, profileVisibility: true },
+        });
+        if (!target) return { allowed: false, reason: 'NOT_FOUND' as const };
+
+        const visibility = (target as any).profileVisibility || 'GLOBAL';
+        if (visibility === 'GLOBAL') {
+            return { allowed: true, reason: 'GLOBAL' as const };
+        }
+
+        const [forward, reverse, sharedCommunity] = await Promise.all([
+            this.prisma.userRead.follow.findUnique({
+                where: { followerId_followingId: { followerId: fromUserId, followingId: toUserId } },
+                select: { followerId: true },
+            }),
+            this.prisma.userRead.follow.findUnique({
+                where: { followerId_followingId: { followerId: toUserId, followingId: fromUserId } },
+                select: { followerId: true },
+            }),
+            this.sharesCommunity(fromUserId, toUserId),
+        ]);
+
+        if (forward) return { allowed: true, reason: 'FOLLOWING' as const };
+        if (sharedCommunity) return { allowed: true, reason: 'COMMUNITY' as const };
+        if (reverse) return { allowed: true, reason: 'FOLLOWED_BY' as const };
+
+        const followStatus = await this.getFollowStatus(fromUserId, toUserId);
+        return {
+            allowed: false,
+            reason: 'FOLLOW_REQUIRED' as const,
+            followStatus: followStatus.status,
+        };
+    }
+
+    /** True if the two users belong to at least one common active community. */
+    private async sharesCommunity(a: string, b: string): Promise<boolean> {
+        const aTenants = await this.prisma.userRead.workspaceMembership.findMany({
+            where: { userId: a, isActive: true },
+            select: { tenantId: true },
+        });
+        if (!aTenants.length) return false;
+        const tenantIds = aTenants.map((m) => m.tenantId);
+        const overlap = await this.prisma.userRead.workspaceMembership.findFirst({
+            where: { userId: b, isActive: true, tenantId: { in: tenantIds } },
+            select: { id: true },
+        });
+        return !!overlap;
     }
 
     /** Pending follow requests waiting on `userId`'s approval. */

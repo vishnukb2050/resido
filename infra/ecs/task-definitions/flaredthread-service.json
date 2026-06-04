@@ -23,7 +23,12 @@
             "secrets": [
                 { "name": "CORE_WRITE_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/core-write-url" },
                 { "name": "CORE_READ_URL",  "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/core-read-url"  },
-                { "name": "JWT_SECRET",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret"     }
+                { "name": "JWT_SECRET",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret"     },
+                { "name": "REDIS_HOST",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-host"     },
+                { "name": "REDIS_PORT",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-port"     },
+                { "name": "REDIS_PASSWORD", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-password" },
+                { "name": "REDIS_TLS",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-tls"      },
+                { "name": "REDIS_URL",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-url"      }
             ],
             "healthCheck": {
                 "command": ["CMD-SHELL", "wget -q --spider http://localhost:3008/health || exit 1"],

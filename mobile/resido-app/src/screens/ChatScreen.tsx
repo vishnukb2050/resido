@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { io, Socket } from 'socket.io-client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { authApi, chatApi, API_URL, SOCKET_URL } from '../services/api';
+import { setActiveConversation } from '../services/chatPresence';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -41,7 +43,17 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     const user = useAuthStore((s) => s.user);
     const token = useAuthStore((s) => s.token);
     const router = useRouter();
+    const queryClient = useQueryClient();
     const params = useLocalSearchParams<{ convName?: string; convType?: string; otherMemberId?: string }>();
+
+    // Mark this conversation read and refresh the cached conversation list so
+    // the unread badges (list + chat tab) clear.
+    const markRead = React.useCallback(() => {
+        if (!conversationId) return;
+        chatApi.markRead(conversationId)
+            .then(() => queryClient.invalidateQueries({ queryKey: ['conversations'] }))
+            .catch(() => undefined);
+    }, [conversationId, queryClient]);
 
     useEffect(() => {
         loadMessages();
@@ -50,6 +62,15 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         } else if (params.otherMemberId) {
             authApi.getUser(String(params.otherMemberId)).then(({ data }) => setOtherUser(data)).catch(() => undefined);
         }
+
+        // Track presence (suppresses the notification sound for this open chat)
+        // and mark it read on entry / exit.
+        setActiveConversation(conversationId);
+        markRead();
+        return () => {
+            setActiveConversation(null);
+            markRead();
+        };
     }, [conversationId]);
 
     // Reconnect when the conversation, workspace, or auth token changes so the
@@ -99,7 +120,9 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     };
 
     const connectSocket = () => {
-        if (!conversationId || !activeWorkspace || !token) return;
+        // Works for personal/contact chats too (no community): default to the
+        // `global` scope when there's no active workspace.
+        if (!conversationId || !token || !user?.id) return;
 
         const socket = io(`${SOCKET_URL}/chat`, {
             transports: ['websocket', 'polling'],
@@ -108,8 +131,8 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
             reconnectionDelay: 1000,
             auth: {
                 token,
-                tenantId: activeWorkspace.tenantId,
-                dbName: activeWorkspace.dbName,
+                tenantId: activeWorkspace?.tenantId || 'global',
+                dbName: activeWorkspace?.dbName,
                 memberId: user?.id
             }
         });
@@ -135,6 +158,8 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         socket.on('new_message', (message: Message) => {
             setMessages(prev => mergeIncomingMessage(prev, message));
             setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
+            // The user is actively viewing this conversation, so keep it read.
+            if (message.senderId !== user?.id) markRead();
         });
 
         socketRef.current = socket;

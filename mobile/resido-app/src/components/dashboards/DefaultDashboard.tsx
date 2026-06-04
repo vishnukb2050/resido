@@ -502,10 +502,10 @@ export default function DefaultDashboard() {
         );
     }
  
-    return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: mySpaceBg }]}>
-            <ScrollView style={[styles.container, { backgroundColor: mySpaceBg }]} showsVerticalScrollIndicator={false}>
-                <View style={styles.content}>
+    // Shared top section (header + workspace bubbles + role switcher + search).
+    // Rendered as the list header in MySpace (so the For You feed below can be
+    // virtualized) and inline in the community ScrollView.
+    const topSection = (
                     <View style={styles.psWrapper}>
                         {/* Premium Header */}
                         <View style={[styles.psHeader, { backgroundColor: mySpaceBg }]}>
@@ -739,10 +739,13 @@ export default function DefaultDashboard() {
                                 <Ionicons name="qr-code-outline" size={22} color="#fff" />
                             </TouchableOpacity>
                         </View>
+                    </View>
+    );
 
-                        {/* Dashboard Body */}
-                        {!activeWorkspace ? (
-                            /* My Space View (Flares + Quick Access) */
+    // MySpace feed header: tools + banners + the "For You" title. Rendered as
+    // the virtualized list's header so the feed itself (potentially long) is
+    // windowed rather than mounted all at once.
+    const mySpaceFeedHeader = (
                             <View style={{ paddingHorizontal: 20 }}>
                                 {/* My Space Tools — solid colorful tiles, same design language as
                                     the admin panel so users get a consistent visual experience. */}
@@ -813,134 +816,11 @@ export default function DefaultDashboard() {
                                         {loadingActivity && <ActivityIndicator size="small" color={darkLavender} />}
                                     </View>
 
-                                    {items.length === 0 ? (
-                                        <View style={styles.activityEmptyState}>
-                                            <Ionicons name="sparkles-outline" size={40} color={mySpaceSubText} style={{ opacity: 0.6 }} />
-                                            <Text style={[styles.activityEmptyText, { color: mySpaceText }]}>No recent activity yet</Text>
-                                            <Text style={[styles.activityEmptySub, { color: mySpaceSubText }]}>Follow people or sync contacts to see their private/public updates here!</Text>
-                                        </View>
-                                    ) : (
-                                        items.map(item => (
-                                            <View key={item.id} style={[styles.activityCard, { backgroundColor: mySpaceBg === '#000000' ? '#111827' : '#ffffff', borderColor: 'rgba(91, 75, 138, 0.1)' }]}>
-                                                {/* Header */}
-                                                <View style={styles.activityCardHeader}>
-                                                    <TouchableOpacity
-                                                        activeOpacity={0.8}
-                                                        onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
-                                                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-                                                    >
-                                                        <ExpoImage
-                                                            source={{ uri: item.authorAvatar || undefined }}
-                                                            style={styles.activityAvatar}
-                                                            cachePolicy="memory-disk"
-                                                            contentFit="cover"
-                                                        />
-                                                        <View style={styles.activityAuthorInfo}>
-                                                            <View style={styles.activityAuthorRow}>
-                                                                <Text style={[styles.activityAuthorName, { color: mySpaceText }]}>{item.authorName || 'Anonymous'}</Text>
-                                                                {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#be185d" style={{ marginLeft: 4 }} />}
-                                                            </View>
-                                                            <Text style={[styles.activityMeta, { color: mySpaceSubText }]}>
-                                                                {item.location || 'Resido'} • {timeAgo(item.createdAt)}
-                                                            </Text>
-                                                        </View>
-                                                    </TouchableOpacity>
-                                                    {/* Type specifier & Visibility badge */}
-                                                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                                                        <View style={[styles.activityTypeBadge, { backgroundColor: item.itemType === 'FLARE' ? '#fdf2f8' : '#f0fdf4', borderColor: item.itemType === 'FLARE' ? '#fbcfe8' : '#bbf7d0' }]}>
-                                                            <Text style={[styles.activityTypeText, { color: item.itemType === 'FLARE' ? '#be185d' : '#15803d' }]}>{item.itemType}</Text>
-                                                        </View>
-                                                        <View style={[
-                                                            styles.activityVisBadge,
-                                                            { 
-                                                                backgroundColor: item.visibility === 'CONTACTS' ? '#fef2f2' : item.visibility === 'FOLLOWERS' ? '#eff6ff' : '#f8fafc',
-                                                                borderColor: item.visibility === 'CONTACTS' ? '#fecaca' : item.visibility === 'FOLLOWERS' ? '#bfdbfe' : '#e2e8f0'
-                                                            }
-                                                        ]}>
-                                                            <Ionicons 
-                                                                name={item.visibility === 'CONTACTS' ? 'people' : item.visibility === 'FOLLOWERS' ? 'person-add' : 'globe-outline'} 
-                                                                size={10} 
-                                                                color={item.visibility === 'CONTACTS' ? '#dc2626' : item.visibility === 'FOLLOWERS' ? '#2563eb' : '#64748b'} 
-                                                                style={{ marginRight: 3 }}
-                                                            />
-                                                            <Text style={[
-                                                                styles.activityVisText,
-                                                                { color: item.visibility === 'CONTACTS' ? '#dc2626' : item.visibility === 'FOLLOWERS' ? '#2563eb' : '#64748b' }
-                                                            ]}>
-                                                                {item.visibility || 'PUBLIC'}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                </View>
-
-                                                {/* Body */}
-                                                <View style={styles.activityCardBody}>
-                                                    <TouchableOpacity
-                                                        activeOpacity={0.85}
-                                                        onPress={() => {
-                                                            if (item.itemType === 'FLARE') return;
-                                                            router.push(`/thread/${item.id}`);
-                                                        }}
-                                                    >
-                                                        {item.title ? <Text style={[styles.activityTitle, { color: mySpaceText }]}>{item.title}</Text> : null}
-                                                        {item.content ? <Text style={[styles.activityContent, { color: mySpaceSubText }]} numberOfLines={3}>{item.content}</Text> : null}
-                                                    </TouchableOpacity>
-
-                                                    {/* Optional media preview */}
-                                                    {item.mediaUrls && item.mediaUrls.length > 0 && (() => {
-                                                        const mediaSrc = resolveMediaUrl(item.mediaUrls[0]) || item.mediaUrls[0];
-                                                        const isFlare = item.itemType === 'FLARE';
-                                                        return (
-                                                            <TouchableOpacity
-                                                                activeOpacity={0.9}
-                                                                style={styles.activityMediaWrapper}
-                                                                onPress={() => {
-                                                                    if (isFlare) {
-                                                                        setExpandedFlare({ ...item, _mediaUrl: mediaSrc });
-                                                                    } else {
-                                                                        router.push(`/thread/${item.id}`);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                {isFlare ? (
-                                                                    // Poster-only in the feed — do NOT mount a native <Video> per
-                                                                    // flare card (was shouldPlay+isLooping for every visible item,
-                                                                    // which tanks scroll performance). Full playback happens in the
-                                                                    // expand modal when the user taps.
-                                                                    <Image
-                                                                        source={{
-                                                                            uri:
-                                                                                resolveMediaUrl(item.thumbnailUrl) ||
-                                                                                resolveMediaUrl(item.posterUrl) ||
-                                                                                mediaSrc,
-                                                                        }}
-                                                                        style={styles.activityMedia}
-                                                                    />
-                                                                ) : (
-                                                                    <Image source={{ uri: mediaSrc }} style={styles.activityMedia} />
-                                                                )}
-                                                                {isFlare && (
-                                                                    <>
-                                                                        <View style={styles.playOverlay}>
-                                                                            <Ionicons name="play" size={32} color="#fff" />
-                                                                        </View>
-                                                                        <View style={styles.flareTapHint}>
-                                                                            <Ionicons name="expand" size={12} color="#fff" style={{ marginRight: 4 }} />
-                                                                            <Text style={styles.flareTapHintText}>Tap to play with sound</Text>
-                                                                        </View>
-                                                                    </>
-                                                                )}
-                                                            </TouchableOpacity>
-                                                        );
-                                                    })()}
-                                                </View>
-                                            </View>
-                                        ))
-                                    )}
                                 </View>
                             </View>
-                        ) : (
-                            /* Community View */
+    );
+
+    const communityContent = (
                             <View style={{ paddingHorizontal: 20 }}>
                                 <View style={styles.gridContainer}>
                                     <DashboardIcon icon="calendar" label="Events" color="#fff" bg="#ec4899" onPress={() => router.push('/events')} />
@@ -964,13 +844,9 @@ export default function DefaultDashboard() {
                                     </View>
                                 </View>
                             </View>
-                        )}
-                    </View>
-                </View>
-            </ScrollView>
+    );
 
-            {/* Expanded flare player — opens in place inside MySpace with
-                sound on, looping playback. Tap outside / close icon to dismiss. */}
+    const flareModal = (
             <Modal
                 visible={!!expandedFlare}
                 animationType="fade"
@@ -1030,11 +906,201 @@ export default function DefaultDashboard() {
                     </TouchableOpacity>
                 </Pressable>
             </Modal>
+    );
 
+    // MySpace: virtualize the For You feed so a long list isn't mounted all at
+    // once. All the static chrome (header, bubbles, search, tools, banners)
+    // lives in ListHeaderComponent and scrolls with the feed.
+    if (isMySpace) {
+        return (
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: mySpaceBg }]}>
+                <FlatList
+                    style={[styles.container, { backgroundColor: mySpaceBg }]}
+                    data={items}
+                    keyExtractor={(it: any, idx: number) => String(it?.id ?? idx)}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 120 }}
+                    keyboardShouldPersistTaps="handled"
+                    ListHeaderComponent={<>{topSection}{mySpaceFeedHeader}</>}
+                    renderItem={({ item }) => (
+                        <View style={{ paddingHorizontal: 20 }}>
+                            <FeedCard
+                                item={item}
+                                mySpaceBg={mySpaceBg}
+                                mySpaceText={mySpaceText}
+                                mySpaceSubText={mySpaceSubText}
+                                router={router}
+                                timeAgo={timeAgo}
+                                onExpandFlare={setExpandedFlare}
+                            />
+                        </View>
+                    )}
+                    ListEmptyComponent={loadingActivity ? null : (
+                        <View style={{ paddingHorizontal: 20 }}>
+                            <View style={styles.activityEmptyState}>
+                                <Ionicons name="sparkles-outline" size={40} color={mySpaceSubText} style={{ opacity: 0.6 }} />
+                                <Text style={[styles.activityEmptyText, { color: mySpaceText }]}>No recent activity yet</Text>
+                                <Text style={[styles.activityEmptySub, { color: mySpaceSubText }]}>Follow people or sync contacts to see their private/public updates here!</Text>
+                            </View>
+                        </View>
+                    )}
+                    initialNumToRender={6}
+                    maxToRenderPerBatch={6}
+                    windowSize={9}
+                    removeClippedSubviews
+                />
+                {flareModal}
+                <BottomNav activeTab="Home" />
+            </SafeAreaView>
+        );
+    }
+
+    return (
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: mySpaceBg }]}>
+            <ScrollView style={[styles.container, { backgroundColor: mySpaceBg }]} showsVerticalScrollIndicator={false}>
+                <View style={styles.content}>
+                    {topSection}
+                    {communityContent}
+                </View>
+            </ScrollView>
+            {flareModal}
             <BottomNav activeTab="Home" />
         </SafeAreaView>
     );
 }
+
+// Memoized feed card so the virtualized For You list only re-renders the rows
+// whose data actually changed (not the whole feed on every state update).
+const FeedCard = React.memo(function FeedCard({
+    item,
+    mySpaceBg,
+    mySpaceText,
+    mySpaceSubText,
+    router,
+    timeAgo,
+    onExpandFlare,
+}: {
+    item: any;
+    mySpaceBg: string;
+    mySpaceText: string;
+    mySpaceSubText: string;
+    router: any;
+    timeAgo: (d: string) => string;
+    onExpandFlare: (flare: any) => void;
+}) {
+    return (
+        <View style={[styles.activityCard, { backgroundColor: mySpaceBg === '#000000' ? '#111827' : '#ffffff', borderColor: 'rgba(91, 75, 138, 0.1)' }]}>
+            {/* Header */}
+            <View style={styles.activityCardHeader}>
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
+                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                >
+                    <ExpoImage
+                        source={{ uri: item.authorAvatar || undefined }}
+                        style={styles.activityAvatar}
+                        cachePolicy="memory-disk"
+                        contentFit="cover"
+                    />
+                    <View style={styles.activityAuthorInfo}>
+                        <View style={styles.activityAuthorRow}>
+                            <Text style={[styles.activityAuthorName, { color: mySpaceText }]}>{item.authorName || 'Anonymous'}</Text>
+                            {item.isVerified && <MaterialCommunityIcons name="check-decagram" size={14} color="#be185d" style={{ marginLeft: 4 }} />}
+                        </View>
+                        <Text style={[styles.activityMeta, { color: mySpaceSubText }]}>
+                            {item.location || 'Resido'} • {timeAgo(item.createdAt)}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+                {/* Type specifier & Visibility badge */}
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <View style={[styles.activityTypeBadge, { backgroundColor: item.itemType === 'FLARE' ? '#fdf2f8' : '#f0fdf4', borderColor: item.itemType === 'FLARE' ? '#fbcfe8' : '#bbf7d0' }]}>
+                        <Text style={[styles.activityTypeText, { color: item.itemType === 'FLARE' ? '#be185d' : '#15803d' }]}>{item.itemType}</Text>
+                    </View>
+                    <View style={[
+                        styles.activityVisBadge,
+                        {
+                            backgroundColor: item.visibility === 'CONTACTS' ? '#fef2f2' : item.visibility === 'FOLLOWERS' ? '#eff6ff' : '#f8fafc',
+                            borderColor: item.visibility === 'CONTACTS' ? '#fecaca' : item.visibility === 'FOLLOWERS' ? '#bfdbfe' : '#e2e8f0'
+                        }
+                    ]}>
+                        <Ionicons
+                            name={item.visibility === 'CONTACTS' ? 'people' : item.visibility === 'FOLLOWERS' ? 'person-add' : 'globe-outline'}
+                            size={10}
+                            color={item.visibility === 'CONTACTS' ? '#dc2626' : item.visibility === 'FOLLOWERS' ? '#2563eb' : '#64748b'}
+                            style={{ marginRight: 3 }}
+                        />
+                        <Text style={[
+                            styles.activityVisText,
+                            { color: item.visibility === 'CONTACTS' ? '#dc2626' : item.visibility === 'FOLLOWERS' ? '#2563eb' : '#64748b' }
+                        ]}>
+                            {item.visibility || 'PUBLIC'}
+                        </Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* Body */}
+            <View style={styles.activityCardBody}>
+                <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => {
+                        if (item.itemType === 'FLARE') return;
+                        router.push(`/thread/${item.id}`);
+                    }}
+                >
+                    {item.title ? <Text style={[styles.activityTitle, { color: mySpaceText }]}>{item.title}</Text> : null}
+                    {item.content ? <Text style={[styles.activityContent, { color: mySpaceSubText }]} numberOfLines={3}>{item.content}</Text> : null}
+                </TouchableOpacity>
+
+                {/* Optional media preview */}
+                {item.mediaUrls && item.mediaUrls.length > 0 && (() => {
+                    const mediaSrc = resolveMediaUrl(item.mediaUrls[0]) || item.mediaUrls[0];
+                    const isFlare = item.itemType === 'FLARE';
+                    return (
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            style={styles.activityMediaWrapper}
+                            onPress={() => {
+                                if (isFlare) {
+                                    onExpandFlare({ ...item, _mediaUrl: mediaSrc });
+                                } else {
+                                    router.push(`/thread/${item.id}`);
+                                }
+                            }}
+                        >
+                            {isFlare ? (
+                                <Image
+                                    source={{
+                                        uri:
+                                            resolveMediaUrl(item.thumbnailUrl) ||
+                                            resolveMediaUrl(item.posterUrl) ||
+                                            mediaSrc,
+                                    }}
+                                    style={styles.activityMedia}
+                                />
+                            ) : (
+                                <Image source={{ uri: mediaSrc }} style={styles.activityMedia} />
+                            )}
+                            {isFlare && (
+                                <>
+                                    <View style={styles.playOverlay}>
+                                        <Ionicons name="play" size={32} color="#fff" />
+                                    </View>
+                                    <View style={styles.flareTapHint}>
+                                        <Ionicons name="expand" size={12} color="#fff" style={{ marginRight: 4 }} />
+                                        <Text style={styles.flareTapHintText}>Tap to play with sound</Text>
+                                    </View>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    );
+                })()}
+            </View>
+        </View>
+    );
+});
 
 function DashboardIcon({ icon, label, color, bg, onPress }: any) {
     return (

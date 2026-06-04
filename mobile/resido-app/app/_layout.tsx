@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '../src/store/authStore';
+import { useChatNotifications } from '../src/hooks/useChatNotifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -27,6 +28,13 @@ function SplashGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// App-wide chat presence: maintains the notification socket, plays a sound on
+// new messages and keeps unread badges fresh. Renders nothing.
+function ChatNotifications() {
+  useChatNotifications();
+  return null;
+}
+
 export default function Layout() {
   return (
     // SafeAreaProvider is required for `react-native-safe-area-context`
@@ -43,6 +51,7 @@ export default function Layout() {
               barStyle="dark-content"
             />
           )}
+          <ChatNotifications />
           <Stack screenOptions={{ headerShown: false }} />
         </SplashGate>
       </QueryClientProvider>

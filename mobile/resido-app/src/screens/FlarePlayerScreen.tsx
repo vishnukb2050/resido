@@ -5,7 +5,7 @@ import { AdaptiveVideoPlayer } from '../components/AdaptiveVideoPlayer';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { io } from 'socket.io-client';
-import { threadApi, FLARES_SOCKET_URL, flaresSocketOptions, unpackFeedPage } from '../services/api';
+import { threadApi, FLARES_SOCKET_URL, flaresSocketOptions, getFlaresSocketOptions, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import CommentSheet from '../components/CommentSheet';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -62,6 +62,7 @@ export default function FlarePlayerScreen() {
         const socket = io(`${FLARES_SOCKET_URL}/flares`, {
             ...flaresSocketOptions,
             auth: {
+                ...getFlaresSocketOptions().auth,
                 tenantId: activeWorkspace?.tenantId,
                 dbName: activeWorkspace?.dbName,
                 memberId: user?.id,

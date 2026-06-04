@@ -45,4 +45,8 @@ The minimal set of secrets every Resido deployment needs:
 - `resido/${ENV}/msg91-api-key`
 - `resido/${ENV}/aws-s3-access-key`
 - `resido/${ENV}/aws-s3-secret-key`
-- `resido/${ENV}/redis-url`
+- `resido/${ENV}/redis-host`
+- `resido/${ENV}/redis-port`
+- `resido/${ENV}/redis-password`
+- `resido/${ENV}/redis-tls` (value: `true` for AWS ElastiCache in-transit encryption)
+- `resido/${ENV}/redis-url` (optional; use `rediss://:PASSWORD@HOST:6379` if you prefer a single URL for BullMQ / ioredis)

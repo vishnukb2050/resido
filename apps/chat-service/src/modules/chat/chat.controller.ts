@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post, Query, Req, UseInterceptors } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
+import { PermissionService } from './permission.service';
 import { TenantInterceptor } from '../../common/interceptors/tenant.interceptor';
 
 @Controller('chat')
@@ -9,70 +10,113 @@ export class ChatController {
     constructor(
         private chatService: ChatService,
         private chatGateway: ChatGateway,
+        private permissions: PermissionService,
     ) {}
 
+    /**
+     * Ensure the caller is a member of their active community's default group
+     * chat, creating the group on first use. Returns the conversation so the
+     * mobile app can render it under the "Community" filter. Requires an active
+     * community (x-tenant-id).
+     */
+    @Post('communities/ensure')
+    async ensureCommunityGroup(
+        @Req() req: any,
+        @Headers('x-user-id') memberId: string,
+        @Body() body: { name?: string },
+    ) {
+        if (!req.tenantId) {
+            throw new BadRequestException('Select a community to access its group chat');
+        }
+        if (!memberId) throw new BadRequestException('Missing user');
+        return this.chatService.ensureCommunityGroup(req.tenantId, body?.name || 'Community', memberId);
+    }
+
     @Post('conversations')
-    createConversation(
+    async createConversation(
         @Req() req: any,
         @Headers('x-user-id') callerId: string,
         @Body() body: { memberIds: string[]; groupId?: string; name?: string; type?: 'DIRECT' | 'GROUP' },
     ) {
-        const ids = Array.from(new Set([callerId, ...(body.memberIds || [])].filter(Boolean)));
+        if (!callerId) throw new BadRequestException('Missing user');
+        const others = (body.memberIds || []).filter((id) => id && id !== callerId);
+        const ids = Array.from(new Set([callerId, ...others]));
         if (ids.length < 2) {
             throw new BadRequestException('memberIds must include at least one other user');
         }
 
-        // Explicit GROUP type or a name supplied with >2 members => create an ad-hoc group.
+        // Community group bound to a resident-service group entity.
         if (body.groupId) {
             return this.chatService.getOrCreateGroupConversation(req.tenantId, body.groupId, ids, body.name || 'Group');
         }
-        if (body.type === 'GROUP' || (body.name && ids.length >= 2 && body.type !== 'DIRECT' && ids.length > 2)) {
+
+        // Explicit / inferred ad-hoc group (3+ members or named non-direct).
+        if (body.type === 'GROUP' || (body.name && body.type !== 'DIRECT' && ids.length > 2)) {
             return this.chatService.createAdhocGroup(req.tenantId, body.name || 'Group', ids);
         }
-        return this.chatService.getOrCreateDirectConversation(req.tenantId, ids);
+
+        // DIRECT (1:1) personal chat — gate on the relationship rules owned by
+        // auth-service (global / follower / contact / community; restricted
+        // profiles require an accepted follow).
+        const targetId = others[0];
+        const verdict = await this.permissions.canMessage(callerId, targetId);
+        if (!verdict.allowed) {
+            throw new ForbiddenException({
+                message:
+                    verdict.reason === 'FOLLOW_REQUIRED'
+                        ? 'This user only accepts messages from approved followers. Send a follow request first.'
+                        : 'You cannot message this user.',
+                reason: verdict.reason,
+                followStatus: verdict.followStatus,
+            });
+        }
+        return this.chatService.getOrCreateDirectConversation(ids);
     }
 
     @Get('conversations')
     getConversations(
-        @Req() req: any,
         @Headers('x-user-id') memberId: string,
         @Query('skip') skip = '0',
         @Query('take') take = '30',
     ) {
-        return this.chatService.getConversations(req.tenantId, memberId, +skip, +take);
+        return this.chatService.getConversations(memberId, +skip, +take);
+    }
+
+    @Post('conversations/:id/read')
+    async markRead(
+        @Param('id') conversationId: string,
+        @Headers('x-user-id') memberId: string,
+    ) {
+        if (!memberId) throw new BadRequestException('Missing user');
+        return this.chatService.markRead(conversationId, memberId);
     }
 
     @Get('conversations/:id/messages')
     async getMessages(
-        @Req() req: any,
         @Param('id') conversationId: string,
         @Headers('x-user-id') userId: string,
         @Query('skip') skip = '0',
         @Query('take') take = '50',
     ) {
-        // Don't let a user read history of a conversation they're not in.
-        const allowed = await this.chatService.isConversationMember(req.tenantId, conversationId, userId);
+        const allowed = await this.chatService.isConversationMember(conversationId, userId);
         if (!allowed) throw new ForbiddenException('Not a member of this conversation');
-        return this.chatService.getMessages(req.tenantId, conversationId, +skip, +take, userId);
+        return this.chatService.getMessages(conversationId, +skip, +take, userId);
     }
 
     /**
      * Reliable HTTP send. Used by the mobile app as the primary send path so
      * messages are persisted even when the socket connection is degraded.
-     * The websocket gateway still receives the broadcast so other connected
-     * clients see the message in real time.
      */
     @Post('conversations/:id/messages')
     async sendMessage(
-        @Req() req: any,
         @Param('id') conversationId: string,
         @Headers('x-user-id') senderId: string,
         @Body() body: { content?: string; type?: string; mediaUrl?: string; poll?: any },
     ) {
         if (!senderId) throw new BadRequestException('Missing sender');
-        const allowed = await this.chatService.isConversationMember(req.tenantId, conversationId, senderId);
+        const allowed = await this.chatService.isConversationMember(conversationId, senderId);
         if (!allowed) throw new ForbiddenException('Not a member of this conversation');
-        const message = await this.chatService.createMessage(req.tenantId, {
+        const message = await this.chatService.createMessage({
             conversationId,
             senderId,
             content: body.content,
@@ -86,11 +130,10 @@ export class ChatController {
 
     @Post('polls/:id/vote')
     votePoll(
-        @Req() req: any,
         @Param('id') pollId: string,
         @Headers('x-user-id') userId: string,
         @Body() body: { optionId: string },
     ) {
-        return this.chatService.votePoll(req.tenantId, pollId, body.optionId, userId);
+        return this.chatService.votePoll(pollId, body.optionId, userId);
     }
 }

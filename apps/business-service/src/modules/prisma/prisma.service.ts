@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@resido/business-client';
+import { withDbPool } from '../../common/db-pool';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -8,7 +9,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         super({
             datasources: {
                 db: {
-                    url: config.get('CORE_WRITE_URL'),
+                    url: withDbPool(config.get('CORE_WRITE_URL')),
                 },
             },
         });

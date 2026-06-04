@@ -12,11 +12,19 @@ export class RemindersService implements OnModuleDestroy {
     private redis: Redis | null = null;
 
     constructor(private prisma: PrismaService) {
-        const host = process.env.REDIS_HOST;
-        if (host) {
+        const url = process.env.REDIS_URL;
+        if (url) {
+            try {
+                this.redis = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: false });
+                this.redis.on('error', (e) => this.logger.warn(`Redis (reminder lock) error: ${e?.message}`));
+            } catch (e: any) {
+                this.logger.warn(`Could not init Redis for reminder lock: ${e?.message}`);
+                this.redis = null;
+            }
+        } else if (process.env.REDIS_HOST) {
             try {
                 this.redis = new Redis({
-                    host,
+                    host: process.env.REDIS_HOST,
                     port: parseInt(process.env.REDIS_PORT || '6379', 10),
                     password: process.env.REDIS_PASSWORD || undefined,
                     ...(process.env.REDIS_TLS === 'true' ? { tls: {} } : {}),

@@ -18,12 +18,18 @@
             "environment": [
                 { "name": "NODE_ENV", "value": "production" },
                 { "name": "PORT", "value": "3004" },
-                { "name": "RUN_PRISMA_PUSH", "value": "false" }
+                { "name": "RUN_PRISMA_PUSH", "value": "false" },
+                { "name": "AUTH_SERVICE_URL", "value": "http://auth-service.resido.local:3001" }
             ],
             "secrets": [
-                { "name": "CORE_WRITE_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/core-write-url" },
-                { "name": "CORE_READ_URL",  "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/core-read-url"  },
+                { "name": "CHAT_WRITE_URL", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/chat-write-url" },
+                { "name": "CHAT_READ_URL",  "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/chat-read-url"  },
                 { "name": "JWT_SECRET",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret"     },
+                { "name": "INTERNAL_SERVICE_SECRET", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/internal-service-secret" },
+                { "name": "REDIS_HOST",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-host"     },
+                { "name": "REDIS_PORT",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-port"     },
+                { "name": "REDIS_PASSWORD", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-password" },
+                { "name": "REDIS_TLS",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-tls"      },
                 { "name": "REDIS_URL",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-url"      }
             ],
             "healthCheck": {

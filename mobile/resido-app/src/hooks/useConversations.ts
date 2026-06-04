@@ -11,12 +11,15 @@ export function useConversations() {
     const token = useAuthStore((s) => s.token);
 
     return useQuery({
+        // Personal/contact chats exist even with no active community, so the
+        // list must load whenever the user is authenticated. We still key on the
+        // workspace so switching communities refreshes the (community) groups.
         queryKey: ['conversations', activeWorkspace?.tenantId, activeWorkspace?.dbName, token],
         queryFn: async () => {
             const { data } = await chatApi.getConversations();
             return data || [];
         },
-        enabled: !!activeWorkspace && !!token,
+        enabled: !!token,
         staleTime: 1000 * 60 * 2,
     });
 }

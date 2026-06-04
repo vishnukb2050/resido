@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, Dimensions, StatusBar, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { threadApi, authApi, FLARES_SOCKET_URL, flaresSocketOptions, unpackFeedPage } from '../services/api';
+import { threadApi, authApi, FLARES_SOCKET_URL, getFlaresSocketOptions, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
@@ -62,16 +62,25 @@ export default function ThreadScreen() {
         publicHasMore: boolean;
     }>({ following: null, public: null, followingHasMore: false, publicHasMore: false });
 
+    const socketRef = useRef<any>(null);
+    const watchedIdsRef = useRef<string[]>([]);
+
     useEffect(() => {
         fetchInitialData();
         if (activeTab === 'MY' || activeTab === 'FOLLOWING') {
             fetchFollowingFlares();
         }
 
-        const socket = io(`${FLARES_SOCKET_URL}/flares`, flaresSocketOptions);
+        const socket = io(`${FLARES_SOCKET_URL}/flares`, getFlaresSocketOptions());
+        socketRef.current = socket;
 
         socket.on('connect', () => {
-            socket.emit('join_global_feed');
+            // Re-subscribe to whatever flares are currently rendered. The old
+            // platform-wide `join_global_feed` room was removed (cross-tenant
+            // fan-out); we now watch only the flares in this feed.
+            if (watchedIdsRef.current.length) {
+                socket.emit('watch_flares', { flareIds: watchedIdsRef.current });
+            }
         });
 
         socket.on('feed_comment_update', ({ flareId }: { flareId: string }) => {
@@ -81,9 +90,21 @@ export default function ThreadScreen() {
         });
 
         return () => {
+            socketRef.current = null;
             socket.disconnect();
         };
     }, [activeWorkspace, activeTab, activeCategory, refresh, activeHashtag]);
+
+    // Keep the socket's watched flare set in sync with the rendered feed so
+    // live comment-count updates only flow for visible posts.
+    useEffect(() => {
+        const ids = threads.map((t) => t.id).filter(Boolean);
+        watchedIdsRef.current = ids;
+        const socket = socketRef.current;
+        if (socket?.connected && ids.length) {
+            socket.emit('watch_flares', { flareIds: ids });
+        }
+    }, [threads]);
 
     const resolveFollowingIds = async (): Promise<string[]> => {
         if (activeTab === 'FOLLOWING' || activeTab === 'FORYOU' || activeHashtag) {

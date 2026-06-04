@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@resido/flaredthread-client';
 import { ConfigService } from '@nestjs/config';
 import { AsyncLocalStorage } from 'async_hooks';
+import { withDbPool } from '../../common/db-pool';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
@@ -11,11 +12,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
     constructor(private config: ConfigService) {
         this.client = new PrismaClient({
-            datasources: { db: { url: config.get('CORE_WRITE_URL') } },
+            datasources: { db: { url: withDbPool(config.get('CORE_WRITE_URL')) } },
         });
 
         this.reader = new PrismaClient({
-            datasources: { db: { url: config.get('CORE_READ_URL') } },
+            datasources: { db: { url: withDbPool(config.get('CORE_READ_URL')) } },
         });
 
         this.client = this.applyTenantIsolation(this.client);
