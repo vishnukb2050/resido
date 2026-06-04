@@ -83,7 +83,7 @@ export default function FlaresScreen() {
 
     const resolveFollowingIds = async (): Promise<string[]> => {
         if (activeTab === 'following' || activeTab === 'foryou' || activeHashtag) {
-            const { data: followList } = await authApi.getFollowing();
+            const { data: followList } = await authApi.getAllFollowing();
             const ids = followList || [];
             setFollowingIds(ids);
             return ids;

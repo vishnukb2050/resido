@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
-import { authApi, chatApi, API_URL, SOCKET_URL } from '../services/api';
+import { authApi, chatApi } from '../services/api';
+import { acquireChatSocket, releaseChatSocket } from '../services/chatSocket';
 import { setActiveConversation } from '../services/chatPresence';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,9 +37,14 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     const [isUploading, setIsUploading] = useState(false);
     const [conversation, setConversation] = useState<any>(null);
     const [otherUser, setOtherUser] = useState<any>(null);
-    
+    const [hasEarlier, setHasEarlier] = useState(false);
+    const [loadingEarlier, setLoadingEarlier] = useState(false);
+
     const socketRef = useRef<Socket | null>(null);
     const flatRef = useRef<FlatList>(null);
+    // When prepending older messages we must NOT auto-scroll to the bottom, or
+    // the view yanks away from what the user was reading.
+    const suppressAutoScroll = useRef(false);
     const activeWorkspace = useAuthStore((s) => s.activeWorkspace);
     const user = useAuthStore((s) => s.user);
     const token = useAuthStore((s) => s.token);
@@ -76,12 +82,8 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
     // Reconnect when the conversation, workspace, or auth token changes so the
     // socket handshake always carries a valid token + matching tenant.
     useEffect(() => {
-        connectSocket();
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-            }
-        };
+        const cleanup = connectSocket();
+        return cleanup;
     }, [conversationId, activeWorkspace?.tenantId, activeWorkspace?.dbName, token]);
 
     const loadConversationMeta = async () => {
@@ -111,7 +113,10 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         try {
             setLoading(true);
             const { data } = await chatApi.getMessages(conversationId, { take: 50 });
-            setMessages(data);
+            const page = data || [];
+            setMessages(page);
+            // A full page means there are probably older messages to page back to.
+            setHasEarlier(page.length >= 50);
         } catch (error) {
             console.error('Failed to load messages', error);
         } finally {
@@ -119,50 +124,85 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         }
     };
 
+    // Page back through older history. `before` is the oldest loaded message id,
+    // so the server returns the previous page using the conversation index
+    // (O(take), no deep offset). Results are prepended without scrolling away.
+    const loadEarlier = async () => {
+        if (loadingEarlier || !hasEarlier || messages.length === 0) return;
+        try {
+            setLoadingEarlier(true);
+            suppressAutoScroll.current = true;
+            const before = messages[0]?.id;
+            const { data } = await chatApi.getMessages(conversationId, { take: 50, before });
+            const older: Message[] = data || [];
+            if (older.length > 0) {
+                setMessages((prev) => {
+                    const seen = new Set(prev.map((m) => m.id));
+                    const deduped = older.filter((m) => !seen.has(m.id));
+                    return [...deduped, ...prev];
+                });
+            }
+            setHasEarlier(older.length >= 50);
+        } catch (e) {
+            // non-fatal — user can retry
+        } finally {
+            setLoadingEarlier(false);
+            setTimeout(() => {
+                suppressAutoScroll.current = false;
+            }, 300);
+        }
+    };
+
     const connectSocket = () => {
         // Works for personal/contact chats too (no community): default to the
         // `global` scope when there's no active workspace.
-        if (!conversationId || !token || !user?.id) return;
+        if (!conversationId || !token || !user?.id) return undefined;
 
-        const socket = io(`${SOCKET_URL}/chat`, {
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionAttempts: 10,
-            reconnectionDelay: 1000,
-            auth: {
-                token,
-                tenantId: activeWorkspace?.tenantId || 'global',
-                dbName: activeWorkspace?.dbName,
-                memberId: user?.id
-            }
+        // Shared process-wide socket (also used by the global notifications hook
+        // and the chat list) — we just attach our own listeners and join this
+        // conversation's room.
+        const socket = acquireChatSocket({
+            token,
+            tenantId: activeWorkspace?.tenantId || 'global',
+            dbName: activeWorkspace?.dbName,
+            memberId: user.id,
         });
+        socketRef.current = socket;
 
         const joinRoom = () => {
             socket.emit('join_conversation', { conversationId });
         };
 
-        socket.on('connect', () => {
-            console.log('[chat] socket connected', socket.id);
-            joinRoom();
-        });
-
-        socket.on('reconnect', () => {
-            console.log('[chat] socket reconnected');
-            joinRoom();
-        });
-
-        socket.on('connect_error', (err) => {
+        const onConnect = () => joinRoom();
+        const onReconnect = () => joinRoom();
+        const onConnectError = (err: any) => {
             console.warn('[chat] socket connect_error:', err?.message);
-        });
-
-        socket.on('new_message', (message: Message) => {
+        };
+        const onNewMessage = (message: Message) => {
             setMessages(prev => mergeIncomingMessage(prev, message));
             setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
             // The user is actively viewing this conversation, so keep it read.
             if (message.senderId !== user?.id) markRead();
-        });
+        };
 
-        socketRef.current = socket;
+        socket.on('connect', onConnect);
+        socket.on('reconnect', onReconnect);
+        socket.on('connect_error', onConnectError);
+        socket.on('new_message', onNewMessage);
+
+        // If the socket is already connected (shared, opened earlier) the
+        // 'connect' event won't fire again — join immediately.
+        if (socket.connected) joinRoom();
+
+        return () => {
+            socket.emit('leave_conversation', { conversationId });
+            socket.off('connect', onConnect);
+            socket.off('reconnect', onReconnect);
+            socket.off('connect_error', onConnectError);
+            socket.off('new_message', onNewMessage);
+            socketRef.current = null;
+            releaseChatSocket();
+        };
     };
 
     /**
@@ -413,7 +453,26 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                     keyExtractor={(m) => m.id}
                     renderItem={renderMessage}
                     contentContainerStyle={styles.listContent}
-                    onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: true })}
+                    onContentSizeChange={() => {
+                        if (!suppressAutoScroll.current) {
+                            flatRef.current?.scrollToEnd({ animated: true });
+                        }
+                    }}
+                    ListHeaderComponent={
+                        hasEarlier ? (
+                            <TouchableOpacity
+                                style={styles.loadEarlierBtn}
+                                onPress={loadEarlier}
+                                disabled={loadingEarlier}
+                            >
+                                {loadingEarlier ? (
+                                    <ActivityIndicator size="small" color="#6b7280" />
+                                ) : (
+                                    <Text style={styles.loadEarlierText}>Load earlier messages</Text>
+                                )}
+                            </TouchableOpacity>
+                        ) : null
+                    }
                 />
 
                 {isUploading && (
@@ -490,6 +549,8 @@ const styles = StyleSheet.create({
     headerSub: { fontSize: 11, color: '#64748b', fontWeight: '600' },
 
     listContent: { padding: 20, paddingBottom: 20 },
+    loadEarlierBtn: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: '#eef2ff' },
+    loadEarlierText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
     messageWrapper: { maxWidth: '85%', marginBottom: 15 },
     mineWrapper: { alignSelf: 'flex-end' },
     theirsWrapper: { alignSelf: 'flex-start' },

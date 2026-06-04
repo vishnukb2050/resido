@@ -208,7 +208,27 @@ export const authApi = {
     toggleFollow: (id: string, isFollowing: boolean) => isFollowing ? api.delete(`/profile/follow/${id}`) : api.post(`/profile/follow/${id}`),
     follow: (id: string) => api.post(`/profile/follow/${id}`),
     unfollow: (id: string) => api.delete(`/profile/follow/${id}`),
-    getFollowing: () => api.get('/profile/following'),
+    getFollowing: (params?: { skip?: number; take?: number }) => api.get('/profile/following', { params }),
+    /**
+     * Pages through the FULL following list. The endpoint caps a single page at
+     * 100, so a user following >50 people previously got a truncated list — and
+     * an incomplete "Following" feed. Bounded to `maxItems` so accounts that
+     * follow very many people can't trigger unbounded work.
+     */
+    getAllFollowing: async () => {
+        const pageSize = 100;
+        const maxItems = 2000;
+        let skip = 0;
+        let all: any[] = [];
+        for (;;) {
+            const { data } = await api.get('/profile/following', { params: { skip, take: pageSize } });
+            const page: any[] = data || [];
+            all = all.concat(page);
+            if (page.length < pageSize || all.length >= maxItems) break;
+            skip += pageSize;
+        }
+        return { data: all.slice(0, maxItems) };
+    },
     getFollowers: () => api.get('/profile/followers'),
     getFollowCounts: (id: string) => api.get(`/profile/follow/counts/${id}`),
     getUserFollowers: (id: string) => api.get(`/profile/follow/followers/${id}`),
@@ -460,7 +480,7 @@ export const threadApi = {
 // Chat APIs
 export const chatApi = {
     getConversations: () => api.get('/chat/conversations'),
-    getMessages: (conversationId: string, params?: { skip?: number; take?: number }) =>
+    getMessages: (conversationId: string, params?: { take?: number; before?: string }) =>
         api.get(`/chat/conversations/${conversationId}/messages`, { params }),
     sendMessage: (
         conversationId: string,

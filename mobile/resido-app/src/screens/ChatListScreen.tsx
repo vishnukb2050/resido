@@ -1,14 +1,13 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import * as Contacts from 'expo-contacts';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, ScrollView, Image, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { chatApi, authApi, SOCKET_URL } from '../services/api';
+import { chatApi, authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useConversations } from '../hooks/useConversations';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
-import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
 
 const CHAT_FILTERS = ['All', 'Community', 'Contacts', 'Groups'];
@@ -25,7 +24,6 @@ export default function ChatListScreen() {
     const [isSearching, setIsSearching] = useState(false);
     const [userCache, setUserCache] = useState<Record<string, any>>({});
     const [registeredContacts, setRegisteredContacts] = useState<any[]>([]);
-    const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -56,50 +54,12 @@ export default function ChatListScreen() {
         };
     }, [activeWorkspace?.tenantId, token]);
 
-    // Recreate the socket whenever the workspace or auth token changes so it
-    // always carries a valid token + matching tenant (chat-service rejects
-    // stale/mismatched handshakes).
-    useEffect(() => {
-        const cleanup = connectSocket();
-        return cleanup;
-    }, [activeWorkspace?.tenantId, activeWorkspace?.dbName, token, user?.id]);
-
-    const connectSocket = () => {
-        // Personal/contact chats work without an active community, so connect as
-        // long as we have a token + user. tenantId defaults to the personal
-        // `global` scope when no community is selected.
-        if (!token || !user?.id) return;
-
-        const socket = io(`${SOCKET_URL}/chat`, {
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            auth: {
-                token,
-                tenantId: activeWorkspace?.tenantId || 'global',
-                dbName: activeWorkspace?.dbName,
-                memberId: user?.id
-            }
-        });
-
-        socket.on('connect_error', (err) => {
-            console.warn('[chat-list] socket connect_error:', err?.message);
-        });
-
-        socket.on('new_message', (message: any) => {
-            // Coalesce bursts of incoming messages into a single refetch so a
-            // busy group chat doesn't trigger one full conversation-list
-            // request per message.
-            if (refetchTimer.current) clearTimeout(refetchTimer.current);
-            refetchTimer.current = setTimeout(() => {
-                refetchConversations();
-            }, 800);
-        });
-
-        return () => {
-            if (refetchTimer.current) clearTimeout(refetchTimer.current);
-            socket.disconnect();
-        };
-    };
+    // Note: this screen no longer opens its own chat socket. The app-wide
+    // `useChatNotifications` hook holds the single shared chat connection and
+    // invalidates the `['conversations']` query on every incoming message, which
+    // re-renders this list automatically. (Its old `new_message` listener never
+    // fired here anyway — the server only emits `new_message` to a conversation
+    // room this screen never joined.)
 
     const syncRegisteredContacts = async () => {
         try {

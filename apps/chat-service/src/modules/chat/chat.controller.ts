@@ -95,12 +95,12 @@ export class ChatController {
     async getMessages(
         @Param('id') conversationId: string,
         @Headers('x-user-id') userId: string,
-        @Query('skip') skip = '0',
         @Query('take') take = '50',
+        @Query('before') before?: string,
     ) {
         const allowed = await this.chatService.isConversationMember(conversationId, userId);
         if (!allowed) throw new ForbiddenException('Not a member of this conversation');
-        return this.chatService.getMessages(conversationId, +skip, +take, userId);
+        return this.chatService.getMessages(conversationId, { take: +take, before }, userId);
     }
 
     /**

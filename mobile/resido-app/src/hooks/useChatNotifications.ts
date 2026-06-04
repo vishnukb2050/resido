@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
-import { io, Socket } from 'socket.io-client';
 import { Audio } from 'expo-av';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
-import { SOCKET_URL } from '../services/api';
+import { acquireChatSocket, releaseChatSocket } from '../services/chatSocket';
 import { getActiveConversation } from '../services/chatPresence';
 
 /**
@@ -24,7 +23,6 @@ export function useChatNotifications() {
     const queryClient = useQueryClient();
 
     const soundRef = useRef<Audio.Sound | null>(null);
-    const socketRef = useRef<Socket | null>(null);
 
     // Preload the notification sound once.
     useEffect(() => {
@@ -57,19 +55,9 @@ export function useChatNotifications() {
     useEffect(() => {
         if (!token || !userId) return;
 
-        const socket = io(`${SOCKET_URL}/chat`, {
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            auth: {
-                token,
-                tenantId: tenantId || 'global',
-                dbName,
-                memberId: userId,
-            },
-        });
-        socketRef.current = socket;
+        const socket = acquireChatSocket({ token, tenantId, dbName, memberId: userId });
 
-        socket.on('inbox_message', (payload: { conversationId: string; message: any }) => {
+        const onInbox = (payload: { conversationId: string; message: any }) => {
             const msg = payload?.message;
             // Refresh the conversation list (and therefore unread counts + the
             // chat-tab badge) for every inbox event.
@@ -82,11 +70,12 @@ export function useChatNotifications() {
             if (isMine || isActive) return;
             if (AppState.currentState !== 'active') return;
             soundRef.current?.replayAsync().catch(() => undefined);
-        });
+        };
+        socket.on('inbox_message', onInbox);
 
         return () => {
-            socket.disconnect();
-            socketRef.current = null;
+            socket.off('inbox_message', onInbox);
+            releaseChatSocket();
         };
     }, [token, userId, tenantId, dbName, queryClient]);
 }

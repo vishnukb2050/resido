@@ -3,9 +3,20 @@ import { authApi, threadApi, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
 async function loadForYouFeed(userId: string | undefined) {
+    // The PUBLIC feeds don't depend on the following list, so kick them off
+    // immediately and let them run concurrently with getFollowing instead of
+    // waiting a full round-trip for the follow list first. The FOLLOWING feeds
+    // (which need followingIds) start as soon as that list resolves.
+    const publicThreadsPromise = threadApi
+        .getThreads({ feedType: 'PUBLIC', limit: 10 })
+        .catch(() => ({ data: { items: [] } }));
+    const publicFlaresPromise = threadApi
+        .getFlares({ feedType: 'PUBLIC', limit: 10 })
+        .catch(() => ({ data: { items: [] } }));
+
     let following: string[] = [];
     try {
-        const { data: followList } = await authApi.getFollowing();
+        const { data: followList } = await authApi.getAllFollowing();
         following = followList || [];
     } catch {
         following = [];
@@ -15,9 +26,9 @@ async function loadForYouFeed(userId: string | undefined) {
     const [followingThreadsRes, publicThreadsRes, followingFlaresRes, publicFlaresRes] =
         await Promise.all([
             threadApi.getThreads({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
-            threadApi.getThreads({ feedType: 'PUBLIC', limit: 10 }).catch(() => ({ data: { items: [] } })),
+            publicThreadsPromise,
             threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: following, limit: 10 }).catch(() => ({ data: { items: [] } })),
-            threadApi.getFlares({ feedType: 'PUBLIC', limit: 10 }).catch(() => ({ data: { items: [] } })),
+            publicFlaresPromise,
         ]);
 
     const allThreads = [

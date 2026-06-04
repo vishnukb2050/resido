@@ -14,6 +14,15 @@ export class CommunityService {
     private static statsCache = new Map<string, { at: number; data: any }>();
     private static readonly STATS_TTL_MS = 30_000;
 
+    // Defensive upper bounds for tenant-scoped list reads. These are single-
+    // community queries, so the cap only matters for pathologically large
+    // societies — but an uncapped findMany there would OOM the pod and produce
+    // a multi-MB JSON payload the mobile client then has to parse. The caps are
+    // far above any realistic community size, so normal "fetch all" semantics
+    // are unchanged; they only bound the worst case.
+    private static readonly MAX_STRUCTURE_ROWS = 5000; // members / units
+    private static readonly MAX_CONTENT_ROWS = 1000; // gallery / events / visitors
+
     // ─── Notices ────────────────────────────────────────────────
     async getNotices(skip = 0, take = 50) {
         return this.prisma.reader.notice.findMany({
@@ -128,6 +137,7 @@ export class CommunityService {
                 await this.prisma.reader.complaint.findMany({
                     include: { member: { select: { id: true, name: true, phone: true } } },
                     orderBy: { createdAt: 'desc' },
+                    take: CommunityService.MAX_CONTENT_ROWS,
                 }),
             );
         }
@@ -173,6 +183,7 @@ export class CommunityService {
             where: { OR: whereOr },
             include: { member: { select: { id: true, name: true, phone: true } } },
             orderBy: { createdAt: 'desc' },
+            take: CommunityService.MAX_CONTENT_ROWS,
         });
 
         return this.enrichComplaints(complaints);
@@ -371,7 +382,8 @@ export class CommunityService {
 
         const visitors = await this.prisma.reader.visitor.findMany({
             where: queryFilter,
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            take: CommunityService.MAX_CONTENT_ROWS,
         });
 
         return visitors.map((visitor) => {
@@ -575,6 +587,7 @@ export class CommunityService {
     }) {
         const events = await this.prisma.reader.event.findMany({
             orderBy: { startDate: 'asc' },
+            take: CommunityService.MAX_CONTENT_ROWS,
         });
 
         const member = await this.resolveMember({
@@ -708,6 +721,7 @@ export class CommunityService {
     // possibly-null (e.g. caretakers/admin staff don't have a family).
     async getMembers() {
         return this.prisma.reader.member.findMany({
+            take: CommunityService.MAX_STRUCTURE_ROWS,
             select: {
                 id: true,
                 userId: true,
@@ -738,7 +752,8 @@ export class CommunityService {
     async getGallery(folderId?: string) {
         return this.prisma.reader.gallery.findMany({
             where: folderId ? { folderId } : {},
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            take: CommunityService.MAX_CONTENT_ROWS,
         });
     }
 
@@ -759,7 +774,8 @@ export class CommunityService {
     async getGalleryFolders() {
         return this.prisma.reader.galleryFolder.findMany({
             include: { _count: { select: { items: true } } },
-            orderBy: { updatedAt: 'desc' }
+            orderBy: { updatedAt: 'desc' },
+            take: CommunityService.MAX_CONTENT_ROWS,
         });
     }
 
@@ -777,7 +793,8 @@ export class CommunityService {
     async getBlocks() {
         const blocks = await this.prisma.reader.block.findMany({
             include: { _count: { select: { units: true } } },
-            orderBy: { name: 'asc' }
+            orderBy: { name: 'asc' },
+            take: CommunityService.MAX_CONTENT_ROWS,
         });
 
         if (blocks.length === 0) {
@@ -843,13 +860,15 @@ export class CommunityService {
         if (blockId === 'default') {
             return this.prisma.reader.unit.findMany({
                 include: { families: { include: { members: true } } },
-                orderBy: { number: 'asc' }
+                orderBy: { number: 'asc' },
+                take: CommunityService.MAX_STRUCTURE_ROWS,
             });
         }
         return this.prisma.reader.unit.findMany({
             where: { blockId },
             include: { families: { include: { members: true } } },
-            orderBy: { number: 'asc' }
+            orderBy: { number: 'asc' },
+            take: CommunityService.MAX_STRUCTURE_ROWS,
         });
     }
 
@@ -958,6 +977,7 @@ export class CommunityService {
             rules = await (this.prisma.reader as any).rule.findMany({
                 where: { tenantId },
                 orderBy: { createdAt: 'desc' },
+                take: CommunityService.MAX_CONTENT_ROWS,
             });
         } catch (err: any) {
             console.warn('[getRules] failed', err?.message);

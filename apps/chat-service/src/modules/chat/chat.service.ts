@@ -238,12 +238,36 @@ export class ChatService {
         });
     }
 
-    async getMessages(conversationId: string, skip = 0, take = 50, userId?: string) {
+    /**
+     * Cursor-paginated message history. Returns the most recent `take` messages
+     * (optionally those created before the `before` message id, for loading
+     * older pages), ordered oldest→newest for natural top-to-bottom display.
+     *
+     * Previously this used ascending order + offset, which (a) returned the
+     * OLDEST messages first — wrong for a chat that should open at the latest —
+     * and (b) degraded on deep offsets in long conversations. The cursor form
+     * rides the `[conversationId, createdAt desc]` index and stays O(take)
+     * regardless of how long the conversation gets.
+     */
+    async getMessages(
+        conversationId: string,
+        opts: { take?: number; before?: string } = {},
+        userId?: string,
+    ) {
         const prisma = this.tenantPrisma.getReadClient();
-        const safeTake = Math.min(Math.max(take, 1), 100);
-        const safeSkip = Math.max(skip, 0);
-        return prisma.message.findMany({
-            where: { conversationId, isDeleted: false },
+        const safeTake = Math.min(Math.max(opts.take ?? 50, 1), 100);
+        const where: any = { conversationId, isDeleted: false };
+
+        if (opts.before) {
+            const anchor = await prisma.message.findUnique({
+                where: { id: opts.before },
+                select: { createdAt: true },
+            });
+            if (anchor) where.createdAt = { lt: anchor.createdAt };
+        }
+
+        const rows = await prisma.message.findMany({
+            where,
             include: {
                 poll: {
                     include: {
@@ -258,10 +282,12 @@ export class ChatService {
                     }
                 }
             },
-            orderBy: { createdAt: 'asc' },
-            skip: safeSkip,
+            orderBy: { createdAt: 'desc' },
             take: safeTake,
         });
+
+        // DB gave us newest→oldest; flip to oldest→newest for display.
+        return rows.reverse();
     }
 
     /**

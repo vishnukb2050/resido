@@ -34,8 +34,10 @@ export class MembersService {
     }
 
     async getUnits() {
+        // Tenant-scoped; cap to protect against pathologically large societies.
         return this.prisma.reader.unit.findMany({
-            include: { block: true }
+            include: { block: true },
+            take: 5000,
         });
     }
 

@@ -4,6 +4,21 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { InternalAuthGuard } from '../../common/guards/internal-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
+/**
+ * Hard cap on the number of ids accepted by any `?ids=a,b,c` batch endpoint.
+ * Without this a single client (or attacker) could send thousands of ids and
+ * force a huge `IN (...)` query + Redis MGET. The mobile app never needs more
+ * than a page worth (feed ~20, chat list ~50), so 200 is generous headroom.
+ */
+const MAX_BATCH_IDS = 200;
+
+function parseBatchIds(ids: string): string[] {
+    const unique = Array.from(
+        new Set((ids || '').split(',').map((s) => s.trim()).filter(Boolean)),
+    );
+    return unique.slice(0, MAX_BATCH_IDS);
+}
+
 @Controller('profile')
 export class ProfileController {
     constructor(private readonly profileService: ProfileService) {}
@@ -196,8 +211,7 @@ export class ProfileController {
     @UseGuards(InternalAuthGuard)
     @Get('users/visibilities/batch')
     async getProfileVisibilities(@Query('ids') ids: string) {
-        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
-        return this.profileService.getProfileVisibilities(list);
+        return this.profileService.getProfileVisibilities(parseBatchIds(ids));
     }
 
     // Mobile uses this to enrich a list of business search results with
@@ -209,8 +223,7 @@ export class ProfileController {
     @UseGuards(JwtAuthGuard)
     @Get('users/identities/batch')
     async getPublicIdentitiesBatch(@Query('ids') ids: string) {
-        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
-        return this.profileService.getPublicIdentitiesBatch(list);
+        return this.profileService.getPublicIdentitiesBatch(parseBatchIds(ids));
     }
 
     // Mobile chat list uses this to resolve direct-conversation counterpart
@@ -218,15 +231,13 @@ export class ProfileController {
     @UseGuards(JwtAuthGuard)
     @Get('users/chat-identities/batch')
     async getChatIdentitiesBatch(@Query('ids') ids: string) {
-        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
-        return this.profileService.getChatIdentitiesBatch(list);
+        return this.profileService.getChatIdentitiesBatch(parseBatchIds(ids));
     }
 
     @UseGuards(JwtAuthGuard)
     @Get('users/avatars/batch')
     async getAvatarsBatch(@Query('ids') ids: string) {
-        const list = (ids || '').split(',').map(s => s.trim()).filter(Boolean);
-        return this.profileService.getAvatarsBatch(list);
+        return this.profileService.getAvatarsBatch(parseBatchIds(ids));
     }
 
     @UseGuards(JwtAuthGuard)

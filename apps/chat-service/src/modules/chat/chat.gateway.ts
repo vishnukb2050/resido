@@ -95,6 +95,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         return { event: 'joined', data: data.conversationId };
     }
 
+    @SubscribeMessage('leave_conversation')
+    handleLeaveConversation(
+        @ConnectedSocket() client: Socket,
+        @MessageBody() data: { conversationId: string },
+    ) {
+        // The chat socket is shared across the app (notifications + open chat),
+        // so when a chat screen closes it leaves just that conversation room
+        // while keeping the connection alive for the rest of the app.
+        if (data?.conversationId) {
+            client.leave(`conversation:${data.conversationId}`);
+        }
+        return { event: 'left', data: data?.conversationId };
+    }
+
     @SubscribeMessage('send_message')
     async handleMessage(
         @ConnectedSocket() client: Socket,

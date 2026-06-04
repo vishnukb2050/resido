@@ -192,7 +192,12 @@ export class ProxyController {
         }
 
         try {
-            console.log(`[Proxy] ${req.method} ${path} → ${targetUrl} (body=${bodyBuffer?.length || 0}b)`);
+            // Per-request access logging is opt-in (PROXY_VERBOSE=1). At high RPS
+            // a log line per request is a real throughput/cost drain and floods
+            // log storage; errors below are always logged regardless.
+            if (process.env.PROXY_VERBOSE === '1') {
+                console.log(`[Proxy] ${req.method} ${path} → ${targetUrl} (body=${bodyBuffer?.length || 0}b)`);
+            }
             const response = await lastValueFrom(
                 this.httpService.request({
                     method: req.method,
