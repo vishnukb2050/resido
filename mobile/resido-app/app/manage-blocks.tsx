@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { communityApi } from '../src/services/api';
@@ -114,135 +114,130 @@ export default function ManageBlocksScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView style={styles.content}>
-                {mode === 'BLOCK' && (
-                    <>
-                        {/* Section 1: Add Block */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionHeader}>Add New Block</Text>
-                            <View style={styles.addForm}>
-                                <TextInput 
-                                    style={styles.input} 
-                                    value={newBlockName} 
-                                    onChangeText={setNewBlockName}
-                                    placeholder="Enter block name (e.g. Block A)"
-                                    placeholderTextColor="#94a3b8"
-                                />
-                                <TouchableOpacity style={styles.addBtn} onPress={handleCreateBlock}>
-                                    <Text style={styles.addBtnText}>Add Block</Text>
-                                </TouchableOpacity>
+            <FlatList
+                style={styles.content}
+                contentContainerStyle={styles.listContent}
+                data={loading ? [] : (mode === 'BLOCK' ? blocks : units)}
+                keyExtractor={(item) => String(item.id)}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                keyboardShouldPersistTaps="handled"
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                renderItem={({ item }) =>
+                    mode === 'BLOCK' ? (
+                        <View style={styles.card}>
+                            <View style={styles.cardIconBox}>
+                                <Ionicons name="business" size={24} color="#4c1d95" />
+                            </View>
+                            <View style={styles.cardInfo}>
+                                <Text style={styles.cardTitle}>{item.name}</Text>
+                                <Text style={styles.cardSub}>{item._count?.units || 0} Units</Text>
                             </View>
                         </View>
+                    ) : (
+                        <View style={styles.card}>
+                            <View style={styles.cardIconBox}>
+                                <Ionicons name="home" size={24} color="#4c1d95" />
+                            </View>
+                            <View style={styles.cardInfo}>
+                                <Text style={styles.cardTitle}>Unit {item.number}</Text>
+                                <Text style={styles.cardSub}>
+                                    {item.families?.reduce((acc: number, f: any) => acc + (f.members?.length || 0), 0) || 0} Members
+                                </Text>
+                            </View>
+                        </View>
+                    )
+                }
+                ListHeaderComponent={
+                    mode === 'BLOCK' ? (
+                        <View>
+                            {/* Section 1: Add Block */}
+                            <View style={styles.section}>
+                                <Text style={styles.sectionHeader}>Add New Block</Text>
+                                <View style={styles.addForm}>
+                                    <TextInput 
+                                        style={styles.input} 
+                                        value={newBlockName} 
+                                        onChangeText={setNewBlockName}
+                                        placeholder="Enter block name (e.g. Block A)"
+                                        placeholderTextColor="#94a3b8"
+                                    />
+                                    <TouchableOpacity style={styles.addBtn} onPress={handleCreateBlock}>
+                                        <Text style={styles.addBtnText}>Add Block</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
 
-                        {/* Section 2: List of Blocks */}
-                        <View style={styles.section}>
+                            {/* Section 2: List of Blocks header */}
                             <Text style={styles.sectionHeader}>Existing Blocks</Text>
-                            {loading ? (
-                                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 20 }} />
-                            ) : (
-                                <View style={styles.list}>
-                                    {blocks.map(block => (
-                                        <View key={block.id} style={styles.card}>
-                                            <View style={styles.cardIconBox}>
-                                                <Ionicons name="business" size={24} color="#4c1d95" />
-                                            </View>
-                                            <View style={styles.cardInfo}>
-                                                <Text style={styles.cardTitle}>{block.name}</Text>
-                                                <Text style={styles.cardSub}>{block._count?.units || 0} Units</Text>
-                                            </View>
-                                        </View>
-                                    ))}
-                                    {blocks.length === 0 && (
-                                        <View style={styles.empty}>
-                                            <Text style={styles.emptyText}>No blocks added yet.</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            )}
                         </View>
-                    </>
-                )}
-
-                {mode === 'UNIT' && (
-                    <>
-                        {/* Section 1: Add Unit under Block */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionHeader}>Select Block & Add Units</Text>
-                            
-                            <Text style={styles.label}>Select Block</Text>
-                            <View style={styles.pickerContainer}>
-                                <TouchableOpacity style={styles.pickerTrigger} onPress={() => setShowBlockDropdown(!showBlockDropdown)}>
-                                    <Text style={[styles.pickerText, !selectedBlockForUnit && { color: '#94a3b8' }]}>
-                                        {selectedBlockForUnit ? selectedBlockForUnit.name : 'Select Block'}
-                                    </Text>
-                                    <Ionicons name="chevron-down" size={16} color="#64748b" />
-                                </TouchableOpacity>
-                            </View>
-                            {showBlockDropdown && (
-                                <View style={styles.dropdownList}>
-                                    {blocks.map(block => (
-                                        <TouchableOpacity 
-                                            key={block.id} 
-                                            style={styles.dropdownItem}
-                                            onPress={() => {
-                                                handleBlockSelectForUnit(block);
-                                                setShowBlockDropdown(false);
-                                            }}
-                                        >
-                                            <Text style={styles.dropdownText}>{block.name}</Text>
-                                        </TouchableOpacity>
-                                    ))}
+                    ) : (
+                        <View>
+                            {/* Section 1: Add Unit under Block */}
+                            <View style={styles.section}>
+                                <Text style={styles.sectionHeader}>Select Block & Add Units</Text>
+                                
+                                <Text style={styles.label}>Select Block</Text>
+                                <View style={styles.pickerContainer}>
+                                    <TouchableOpacity style={styles.pickerTrigger} onPress={() => setShowBlockDropdown(!showBlockDropdown)}>
+                                        <Text style={[styles.pickerText, !selectedBlockForUnit && { color: '#94a3b8' }]}>
+                                            {selectedBlockForUnit ? selectedBlockForUnit.name : 'Select Block'}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={16} color="#64748b" />
+                                    </TouchableOpacity>
                                 </View>
-                            )}
+                                {showBlockDropdown && (
+                                    <View style={styles.dropdownList}>
+                                        {blocks.map(block => (
+                                            <TouchableOpacity 
+                                                key={block.id} 
+                                                style={styles.dropdownItem}
+                                                onPress={() => {
+                                                    handleBlockSelectForUnit(block);
+                                                    setShowBlockDropdown(false);
+                                                }}
+                                            >
+                                                <Text style={styles.dropdownText}>{block.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
 
-                            <View style={styles.addForm}>
-                                <TextInput 
-                                    style={styles.input} 
-                                    value={newUnitNumber} 
-                                    onChangeText={setNewUnitNumber}
-                                    placeholder="Enter unit/address (e.g. 101)"
-                                    placeholderTextColor="#94a3b8"
-                                />
-                                <TouchableOpacity style={styles.addBtn} onPress={handleCreateUnit}>
-                                    <Text style={styles.addBtnText}>Add Unit</Text>
-                                </TouchableOpacity>
+                                <View style={styles.addForm}>
+                                    <TextInput 
+                                        style={styles.input} 
+                                        value={newUnitNumber} 
+                                        onChangeText={setNewUnitNumber}
+                                        placeholder="Enter unit/address (e.g. 101)"
+                                        placeholderTextColor="#94a3b8"
+                                    />
+                                    <TouchableOpacity style={styles.addBtn} onPress={handleCreateUnit}>
+                                        <Text style={styles.addBtnText}>Add Unit</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                        </View>
 
-                        {/* Section 2: List of Units in Selected Block */}
-                        <View style={styles.section}>
+                            {/* Section 2: List of Units in Selected Block header */}
                             <Text style={styles.sectionHeader}>
                                 Units in {selectedBlockForUnit?.name || '...'}
                             </Text>
-                            
-                            {loading ? (
-                                <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 20 }} />
-                            ) : (
-                                <View style={styles.list}>
-                                    {units.map(unit => (
-                                        <View key={unit.id} style={styles.card}>
-                                            <View style={styles.cardIconBox}>
-                                                <Ionicons name="home" size={24} color="#4c1d95" />
-                                            </View>
-                                            <View style={styles.cardInfo}>
-                                                <Text style={styles.cardTitle}>Unit {unit.number}</Text>
-                                                <Text style={styles.cardSub}>
-                                                    {unit.families?.reduce((acc: number, f: any) => acc + (f.members?.length || 0), 0) || 0} Members
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    ))}
-                                    {units.length === 0 && (
-                                        <View style={styles.empty}>
-                                            <Text style={styles.emptyText}>No units added in this block yet.</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            )}
                         </View>
-                    </>
-                )}
-            </ScrollView>
+                    )
+                }
+                ListEmptyComponent={
+                    loading ? (
+                        <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 20 }} />
+                    ) : (
+                        <View style={styles.empty}>
+                            <Text style={styles.emptyText}>
+                                {mode === 'BLOCK' ? 'No blocks added yet.' : 'No units added in this block yet.'}
+                            </Text>
+                        </View>
+                    )
+                }
+            />
         </SafeAreaView>
     );
 }
@@ -252,7 +247,8 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    content: { flex: 1, padding: 20 },
+    content: { flex: 1 },
+    listContent: { padding: 20, paddingBottom: 40 },
     section: { marginBottom: 30 },
     sectionHeader: { fontSize: 18, fontWeight: '800', color: '#1e293b', marginBottom: 15 },
     label: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: 8 },

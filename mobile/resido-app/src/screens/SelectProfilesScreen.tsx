@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, StatusBar, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,16 +46,24 @@ export default function SelectProfilesScreen() {
         };
     }, [query]);
 
-    const toggleSelect = (user: any) => {
+    const toggleSelect = useCallback((user: any) => {
         setSelected((prev) => {
             const next = { ...prev };
             if (next[user.id]) delete next[user.id];
             else next[user.id] = user;
             return next;
         });
-    };
+    }, []);
 
     const selectedList = Object.values(selected);
+
+    const renderItem = useCallback(({ item }: { item: any }) => (
+        <ProfileRow
+            user={item}
+            isSelected={!!selected[item.id]}
+            onPress={toggleSelect}
+        />
+    ), [selected, toggleSelect]);
 
     const handleShare = async () => {
         if (selectedList.length === 0) return;
@@ -123,36 +131,26 @@ export default function SelectProfilesScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 160 }}>
-                {loading ? (
+            <FlatList
+                data={loading ? [] : results}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={renderItem}
+                extraData={selected}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 160 }}
+                keyboardShouldPersistTaps="handled"
+                removeClippedSubviews
+                initialNumToRender={12}
+                maxToRenderPerBatch={12}
+                windowSize={11}
+                ListEmptyComponent={loading ? (
                     <ActivityIndicator color="#8b5cf6" style={{ marginTop: 24 }} />
                 ) : query.trim().length < 3 ? (
                     <Text style={styles.emptyText}>Search for users by their profile name.</Text>
-                ) : results.length === 0 ? (
-                    <Text style={styles.emptyText}>No matching profiles found.</Text>
                 ) : (
-                    results.map((u) => {
-                        const isSelected = !!selected[u.id];
-                        const photo = resolveMediaUrl(u.profilePhoto) || `https://i.pravatar.cc/100?u=${u.id}`;
-                        return (
-                            <TouchableOpacity key={u.id} style={styles.row} onPress={() => toggleSelect(u)}>
-                                <Image source={{ uri: photo }} style={styles.avatar} />
-                                <View style={{ flex: 1, marginLeft: 14 }}>
-                                    <Text style={styles.name} numberOfLines={1}>
-                                        {u.name || u.profileName || u.phone || 'Unknown'}
-                                    </Text>
-                                    {u.profileName && (
-                                        <Text style={styles.handle}>@{u.profileName}</Text>
-                                    )}
-                                </View>
-                                <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
-                                    {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })
+                    <Text style={styles.emptyText}>No matching profiles found.</Text>
                 )}
-            </ScrollView>
+            />
 
             {selectedList.length > 0 && (
                 <View style={styles.footer}>
@@ -172,6 +170,26 @@ export default function SelectProfilesScreen() {
         </SafeAreaView>
     );
 }
+
+const ProfileRow = React.memo(({ user, isSelected, onPress }: any) => {
+    const photo = resolveMediaUrl(user.profilePhoto) || `https://i.pravatar.cc/100?u=${user.id}`;
+    return (
+        <TouchableOpacity style={styles.row} onPress={() => onPress(user)}>
+            <Image source={{ uri: photo }} style={styles.avatar} />
+            <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={styles.name} numberOfLines={1}>
+                    {user.name || user.profileName || user.phone || 'Unknown'}
+                </Text>
+                {user.profileName && (
+                    <Text style={styles.handle}>@{user.profileName}</Text>
+                )}
+            </View>
+            <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
+                {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+            </View>
+        </TouchableOpacity>
+    );
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },

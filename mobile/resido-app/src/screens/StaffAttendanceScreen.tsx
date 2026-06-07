@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, FlatList, RefreshControl, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, FlatList, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,42 @@ const daysAgoKey = (n: number) => {
     d.setDate(d.getDate() - n);
     return todayKey(d);
 };
+
+const RecordCard = React.memo(function RecordCard({ item, surface }: { item: any; surface: string }) {
+    return (
+        <View style={[styles.recordCard, { backgroundColor: surface }]}>
+            <View style={styles.recordHeader}>
+                <View>
+                    <Text style={styles.recordDate}>{item.date}</Text>
+                    <Text style={styles.recordTime}>
+                        {new Date(item.markedAt).toLocaleTimeString()}
+                    </Text>
+                </View>
+                <View
+                    style={[
+                        styles.statusPill,
+                        item.status === 'PRESENT'
+                            ? { backgroundColor: 'rgba(16,185,129,0.15)' }
+                            : { backgroundColor: 'rgba(239,68,68,0.15)' },
+                    ]}
+                >
+                    <Text
+                        style={[
+                            styles.statusPillText,
+                            { color: item.status === 'PRESENT' ? '#10b981' : '#ef4444' },
+                        ]}
+                    >
+                        {item.status}
+                    </Text>
+                </View>
+            </View>
+            <View style={styles.recordMeta}>
+                <Ionicons name="navigate-outline" size={13} color="#94a3b8" />
+                <Text style={styles.recordMetaText}>{item.distanceMeters}m from point</Text>
+            </View>
+        </View>
+    );
+});
 
 export default function StaffAttendanceScreen() {
     const router = useRouter();
@@ -121,37 +157,132 @@ export default function StaffAttendanceScreen() {
         }
     };
 
-    const renderRecord = ({ item }: { item: any }) => (
-        <View style={[styles.recordCard, { backgroundColor: theme.surface }]}>
-            <View style={styles.recordHeader}>
-                <View>
-                    <Text style={styles.recordDate}>{item.date}</Text>
-                    <Text style={styles.recordTime}>
-                        {new Date(item.markedAt).toLocaleTimeString()}
-                    </Text>
+    const renderRecord = useCallback(
+        ({ item }: { item: any }) => <RecordCard item={item} surface={theme.surface} />,
+        [theme.surface],
+    );
+
+    // All the static chrome (mark-now card + history filters) now rides above the
+    // virtualized records list via ListHeaderComponent, so the FlatList is the
+    // single root scroller (no more FlatList-inside-ScrollView nesting warning).
+    const listHeader = (
+        <>
+            {/* Mark now card */}
+            <View style={[styles.markCard, { backgroundColor: theme.surface }]}>
+                <View style={styles.markIconWrap}>
+                    <Ionicons name="finger-print" size={28} color="#fff" />
                 </View>
-                <View
-                    style={[
-                        styles.statusPill,
-                        item.status === 'PRESENT'
-                            ? { backgroundColor: 'rgba(16,185,129,0.15)' }
-                            : { backgroundColor: 'rgba(239,68,68,0.15)' },
-                    ]}
+                <Text style={styles.markTitle}>
+                    {todayRecord ? "You're checked in" : 'Mark attendance for today'}
+                </Text>
+                <Text style={styles.markSubtitle}>
+                    {config
+                        ? `You must be within ${config.radiusMeters}m of the configured location.`
+                        : 'Waiting for admin to set the attendance location…'}
+                </Text>
+
+                {todayRecord ? (
+                    <View style={styles.todayBox}>
+                        <View style={styles.todayPill}>
+                            <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                            <Text style={styles.todayPillText}>
+                                Marked at {new Date(todayRecord.markedAt).toLocaleTimeString()}
+                            </Text>
+                        </View>
+                        <Text style={styles.todayMeta}>
+                            Distance: {todayRecord.distanceMeters}m
+                        </Text>
+                    </View>
+                ) : null}
+
+                <TouchableOpacity
+                    style={[styles.markBtn, { opacity: marking ? 0.6 : 1 }]}
+                    onPress={markNow}
+                    disabled={marking}
                 >
-                    <Text
+                    {marking ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <>
+                            <Ionicons name="navigate" size={18} color="#fff" />
+                            <Text style={styles.markBtnText}>
+                                {todayRecord ? 'Re-check location' : 'Mark Attendance Now'}
+                            </Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+
+                {lastResult ? (
+                    <View
                         style={[
-                            styles.statusPillText,
-                            { color: item.status === 'PRESENT' ? '#10b981' : '#ef4444' },
+                            styles.resultBox,
+                            lastResult.status === 'PRESENT'
+                                ? { backgroundColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.2)' }
+                                : { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)' },
                         ]}
                     >
-                        {item.status}
-                    </Text>
+                        <Ionicons
+                            name={lastResult.status === 'PRESENT' ? 'checkmark-circle' : 'alert-circle'}
+                            size={18}
+                            color={lastResult.status === 'PRESENT' ? '#10b981' : '#ef4444'}
+                        />
+                        <Text
+                            style={[
+                                styles.resultText,
+                                { color: lastResult.status === 'PRESENT' ? '#10b981' : '#ef4444' },
+                            ]}
+                        >
+                            {lastResult.message}
+                        </Text>
+                    </View>
+                ) : null}
+            </View>
+
+            {/* History */}
+            <View style={styles.historyHeader}>
+                <Text style={styles.historyTitle}>History</Text>
+                <View style={styles.rangeRow}>
+                    {(['today', '7d', '30d', 'custom'] as RangeKey[]).map((k) => (
+                        <TouchableOpacity
+                            key={k}
+                            style={[styles.rangeChip, range === k && styles.rangeChipActive]}
+                            onPress={() => {
+                                setRange(k);
+                                if (k === 'custom') setPickRangeOpen(true);
+                            }}
+                        >
+                            <Text
+                                style={[styles.rangeChipText, range === k && styles.rangeChipTextActive]}
+                            >
+                                {k === 'today' ? 'Today' : k === '7d' ? '7D' : k === '30d' ? '30D' : 'Custom'}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
             </View>
-            <View style={styles.recordMeta}>
-                <Ionicons name="navigate-outline" size={13} color="#94a3b8" />
-                <Text style={styles.recordMetaText}>{item.distanceMeters}m from point</Text>
-            </View>
+
+            {range === 'custom' ? (
+                <View style={styles.customRange}>
+                    <Text style={styles.customRangeText}>
+                        {customFrom} → {customTo}
+                    </Text>
+                    <TouchableOpacity onPress={() => setPickRangeOpen(true)}>
+                        <Text style={styles.customRangeEdit}>Edit</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : null}
+        </>
+    );
+
+    const listEmpty = loading ? (
+        <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 30 }} />
+    ) : (
+        <View style={styles.empty}>
+            <Ionicons name="calendar-outline" size={50} color="rgba(255,255,255,0.08)" />
+            <Text style={styles.emptyTitle}>No attendance records yet</Text>
+            <Text style={styles.emptyText}>
+                Mark attendance to see your history here.
+            </Text>
         </View>
     );
 
@@ -169,137 +300,21 @@ export default function StaffAttendanceScreen() {
                 </View>
             </View>
 
-            <ScrollView
+            <FlatList
+                data={records}
+                keyExtractor={(r) => r.id}
+                renderItem={renderRecord}
+                ListHeaderComponent={listHeader}
+                ListEmptyComponent={listEmpty}
                 contentContainerStyle={styles.content}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
                 refreshControl={
                     <RefreshControl tintColor="#6366f1" refreshing={refreshing} onRefresh={onRefresh} />
                 }
-            >
-                {/* Mark now card */}
-                <View style={[styles.markCard, { backgroundColor: theme.surface }]}>
-                    <View style={styles.markIconWrap}>
-                        <Ionicons name="finger-print" size={28} color="#fff" />
-                    </View>
-                    <Text style={styles.markTitle}>
-                        {todayRecord ? "You're checked in" : 'Mark attendance for today'}
-                    </Text>
-                    <Text style={styles.markSubtitle}>
-                        {config
-                            ? `You must be within ${config.radiusMeters}m of the configured location.`
-                            : 'Waiting for admin to set the attendance location…'}
-                    </Text>
-
-                    {todayRecord ? (
-                        <View style={styles.todayBox}>
-                            <View style={styles.todayPill}>
-                                <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                                <Text style={styles.todayPillText}>
-                                    Marked at {new Date(todayRecord.markedAt).toLocaleTimeString()}
-                                </Text>
-                            </View>
-                            <Text style={styles.todayMeta}>
-                                Distance: {todayRecord.distanceMeters}m
-                            </Text>
-                        </View>
-                    ) : null}
-
-                    <TouchableOpacity
-                        style={[styles.markBtn, { opacity: marking ? 0.6 : 1 }]}
-                        onPress={markNow}
-                        disabled={marking}
-                    >
-                        {marking ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <>
-                                <Ionicons name="navigate" size={18} color="#fff" />
-                                <Text style={styles.markBtnText}>
-                                    {todayRecord ? 'Re-check location' : 'Mark Attendance Now'}
-                                </Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-
-                    {lastResult ? (
-                        <View
-                            style={[
-                                styles.resultBox,
-                                lastResult.status === 'PRESENT'
-                                    ? { backgroundColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.2)' }
-                                    : { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)' },
-                            ]}
-                        >
-                            <Ionicons
-                                name={lastResult.status === 'PRESENT' ? 'checkmark-circle' : 'alert-circle'}
-                                size={18}
-                                color={lastResult.status === 'PRESENT' ? '#10b981' : '#ef4444'}
-                            />
-                            <Text
-                                style={[
-                                    styles.resultText,
-                                    { color: lastResult.status === 'PRESENT' ? '#10b981' : '#ef4444' },
-                                ]}
-                            >
-                                {lastResult.message}
-                            </Text>
-                        </View>
-                    ) : null}
-                </View>
-
-                {/* History */}
-                <View style={styles.historyHeader}>
-                    <Text style={styles.historyTitle}>History</Text>
-                    <View style={styles.rangeRow}>
-                        {(['today', '7d', '30d', 'custom'] as RangeKey[]).map((k) => (
-                            <TouchableOpacity
-                                key={k}
-                                style={[styles.rangeChip, range === k && styles.rangeChipActive]}
-                                onPress={() => {
-                                    setRange(k);
-                                    if (k === 'custom') setPickRangeOpen(true);
-                                }}
-                            >
-                                <Text
-                                    style={[styles.rangeChipText, range === k && styles.rangeChipTextActive]}
-                                >
-                                    {k === 'today' ? 'Today' : k === '7d' ? '7D' : k === '30d' ? '30D' : 'Custom'}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                {range === 'custom' ? (
-                    <View style={styles.customRange}>
-                        <Text style={styles.customRangeText}>
-                            {customFrom} → {customTo}
-                        </Text>
-                        <TouchableOpacity onPress={() => setPickRangeOpen(true)}>
-                            <Text style={styles.customRangeEdit}>Edit</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : null}
-
-                {loading ? (
-                    <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 30 }} />
-                ) : records.length === 0 ? (
-                    <View style={styles.empty}>
-                        <Ionicons name="calendar-outline" size={50} color="rgba(255,255,255,0.08)" />
-                        <Text style={styles.emptyTitle}>No attendance records yet</Text>
-                        <Text style={styles.emptyText}>
-                            Mark attendance to see your history here.
-                        </Text>
-                    </View>
-                ) : (
-                    <FlatList
-                        data={records}
-                        keyExtractor={(r) => r.id}
-                        renderItem={renderRecord}
-                        scrollEnabled={false}
-                        contentContainerStyle={{ paddingBottom: 120 }}
-                    />
-                )}
-            </ScrollView>
+            />
 
             <Modal visible={pickRangeOpen} transparent animationType="fade">
                 <View style={styles.modalBg}>

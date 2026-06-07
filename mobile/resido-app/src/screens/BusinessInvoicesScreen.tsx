@@ -860,6 +860,7 @@ export default function BusinessInvoicesScreen() {
                 </TouchableOpacity>
             </View>
 
+            {activeTab !== 'history' ? (
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                 {/* ──────────────────────────────────────────────────────── */}
                 {/* TAB 1: SETUP & CATALOG                                   */}
@@ -1227,12 +1228,34 @@ export default function BusinessInvoicesScreen() {
                         </TouchableOpacity>
                     </View>
                 )}
-
-                {/* ──────────────────────────────────────────────────────── */}
-                {/* TAB 3: BILL HISTORY                                      */}
-                {/* ──────────────────────────────────────────────────────── */}
-                {activeTab === 'history' && (
-                    <View style={styles.tabContent}>
+            </ScrollView>
+            ) : (
+            <FlatList
+                data={filteredInvoices}
+                keyExtractor={(item: any) => String(item.id)}
+                renderItem={({ item }) => (
+                    <InvoiceHistoryCard
+                        inv={item}
+                        dateFormat={invoiceSettings.dateTimeFormat}
+                        onShare={handleShareInvoice}
+                        saving={saving}
+                    />
+                )}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                ListEmptyComponent={(
+                    <View style={styles.emptyHistoryCard}>
+                        <Ionicons name="folder-open-outline" size={40} color="#94a3b8" />
+                        <Text style={styles.emptyHistoryText}>No matching generated invoices found.</Text>
+                    </View>
+                )}
+                ListHeaderComponent={(
+                    <View style={[styles.tabContent, { marginBottom: 12 }]}>
                         {/* Search and Filters */}
                         <Text style={styles.sectionTitle}>Search & Date Filter</Text>
                         <View style={styles.searchBarContainer}>
@@ -1317,50 +1340,44 @@ export default function BusinessInvoicesScreen() {
 
                         {/* History Invoices List */}
                         <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Generated Bills ({filteredInvoices.length})</Text>
-                        
-                        {filteredInvoices.length === 0 ? (
-                            <View style={styles.emptyHistoryCard}>
-                                <Ionicons name="folder-open-outline" size={40} color="#94a3b8" />
-                                <Text style={styles.emptyHistoryText}>No matching generated invoices found.</Text>
-                            </View>
-                        ) : (
-                            <View style={{ gap: 12 }}>
-                                {filteredInvoices.map((inv) => (
-                                    <View key={inv.id} style={styles.invoiceCard}>
-                                        <View style={styles.invoiceCardHeader}>
-                                            <View>
-                                                <Text style={styles.invoiceCardId}>#{inv.id}</Text>
-                                                <Text style={styles.invoiceCardDate}>
-                                                    {dayjs(inv.date).format(invoiceSettings.dateTimeFormat)}
-                                                </Text>
-                                            </View>
-                                            <Text style={styles.invoiceCardTotal}>₹{inv.total.toFixed(2)}</Text>
-                                        </View>
-                                        <View style={styles.invoiceCardBody}>
-                                            <Text style={styles.invoiceCardClient}>Client: <b>{inv.clientName}</b></Text>
-                                            {inv.clientEmail ? <Text style={styles.invoiceCardEmail}>{inv.clientEmail}</Text> : null}
-                                            <Text style={styles.invoiceCardItemsCount}>{inv.items?.length || 0} line items listed</Text>
-                                        </View>
-                                        <View style={styles.invoiceCardActions}>
-                                            <TouchableOpacity 
-                                                style={styles.actionBtn}
-                                                onPress={() => handleShareInvoice(inv)}
-                                                disabled={saving}
-                                            >
-                                                <Ionicons name="share-social-outline" size={14} color="#10b981" />
-                                                <Text style={styles.actionBtnText}>Share PDF</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
                     </View>
                 )}
-            </ScrollView>
+            />
+            )}
         </SafeAreaView>
     );
 }
+
+const InvoiceHistoryCard = React.memo(function InvoiceHistoryCard({ inv, dateFormat, onShare, saving }: any) {
+    return (
+        <View style={styles.invoiceCard}>
+            <View style={styles.invoiceCardHeader}>
+                <View>
+                    <Text style={styles.invoiceCardId}>#{inv.id}</Text>
+                    <Text style={styles.invoiceCardDate}>
+                        {dayjs(inv.date).format(dateFormat)}
+                    </Text>
+                </View>
+                <Text style={styles.invoiceCardTotal}>₹{inv.total.toFixed(2)}</Text>
+            </View>
+            <View style={styles.invoiceCardBody}>
+                <Text style={styles.invoiceCardClient}>Client: <b>{inv.clientName}</b></Text>
+                {inv.clientEmail ? <Text style={styles.invoiceCardEmail}>{inv.clientEmail}</Text> : null}
+                <Text style={styles.invoiceCardItemsCount}>{inv.items?.length || 0} line items listed</Text>
+            </View>
+            <View style={styles.invoiceCardActions}>
+                <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={() => onShare(inv)}
+                    disabled={saving}
+                >
+                    <Ionicons name="share-social-outline" size={14} color="#10b981" />
+                    <Text style={styles.actionBtnText}>Share PDF</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },

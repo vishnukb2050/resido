@@ -31,10 +31,9 @@ export default function SelectContactsScreen() {
         }
     };
 
-    const toggleSelect = (id: string) => {
-        if (selected.includes(id)) setSelected(selected.filter(i => i !== id));
-        else setSelected([...selected, id]);
-    };
+    const toggleSelect = useCallback((id: string) => {
+        setSelected(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    }, []);
 
     const handleShare = async () => {
         if (selected.length === 0) return;
@@ -70,6 +69,14 @@ export default function SelectContactsScreen() {
         c.fullName?.toLowerCase().includes(search.toLowerCase())
     );
 
+    const renderItem = useCallback(({ item }: { item: any }) => (
+        <ContactItem
+            contact={item}
+            isSelected={selected.includes(item.id)}
+            onPress={toggleSelect}
+        />
+    ), [selected, toggleSelect]);
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
@@ -97,22 +104,23 @@ export default function SelectContactsScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-                {loading ? (
-                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
-                ) : filteredContacts.length === 0 ? (
-                    <Text style={styles.emptyText}>No contacts found</Text>
-                ) : (
-                    filteredContacts.map(contact => (
-                        <ContactItem 
-                            key={contact.id} 
-                            contact={contact} 
-                            isSelected={selected.includes(contact.id)} 
-                            onPress={() => toggleSelect(contact.id)}
-                        />
-                    ))
-                )}
-            </ScrollView>
+            <FlatList
+                data={filteredContacts}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={renderItem}
+                extraData={selected}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 120 }}
+                keyboardShouldPersistTaps="handled"
+                removeClippedSubviews
+                initialNumToRender={12}
+                maxToRenderPerBatch={12}
+                windowSize={11}
+                ListEmptyComponent={loading
+                    ? <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
+                    : <Text style={styles.emptyText}>No contacts found</Text>
+                }
+            />
 
             {/* Selection Summary */}
             {selected.length > 0 && (
@@ -138,8 +146,8 @@ export default function SelectContactsScreen() {
     );
 }
 
-const ContactItem = ({ contact, isSelected, onPress }: any) => (
-    <TouchableOpacity style={styles.contactItem} onPress={onPress}>
+const ContactItem = React.memo(({ contact, isSelected, onPress }: any) => (
+    <TouchableOpacity style={styles.contactItem} onPress={() => onPress(contact.id)}>
         <Image source={{ uri: contact.profileImage || 'https://i.pravatar.cc/100?u=' + contact.id }} style={styles.avatar} />
         <View style={{ flex: 1, marginLeft: 16 }}>
             <Text style={styles.contactName}>{contact.fullName || contact.profileName}</Text>
@@ -149,7 +157,7 @@ const ContactItem = ({ contact, isSelected, onPress }: any) => (
             {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
         </View>
     </TouchableOpacity>
-);
+));
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },

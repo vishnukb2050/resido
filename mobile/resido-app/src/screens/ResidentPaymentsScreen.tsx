@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SectionList, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,128 @@ import { communityFinanceApi, communitySplitsApi } from '../services/api';
 import { storageApi } from '../services/storage';
 import { useAuthStore } from '../store/authStore';
 type PayMode = 'maintenance' | 'split';
+
+type PaySection = {
+    key: string;
+    title: string;
+    groupTitle?: string;
+    groupTitleSpaced?: boolean;
+    groupHint?: string;
+    variant: 'maint-pay' | 'maint-pending' | 'maint-paid' | 'split-pay' | 'split-pending' | 'split-paid';
+    data: any[];
+};
+
+const MaintDueCard = React.memo(function MaintDueCard({ bill, onPay }: { bill: any; onPay: (b: any) => void }) {
+    return (
+        <View style={styles.billCard}>
+            <View style={styles.billRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.billMonth}>{getMonthName(bill.month)} {bill.year}</Text>
+                    <Text style={styles.billDue}>Due: {new Date(bill.dueDate).toLocaleDateString()}</Text>
+                </View>
+                <Text style={styles.billAmount}>₹ {bill.totalAmount.toLocaleString()}</Text>
+            </View>
+            {(bill.adminNote || bill.rejectionReason) && (
+                <View style={styles.adminNoteBox}>
+                    <Ionicons name="information-circle" size={14} color="#f87171" />
+                    <Text style={styles.adminNoteText}>{bill.adminNote || bill.rejectionReason}</Text>
+                </View>
+            )}
+            <TouchableOpacity style={styles.payBtn} onPress={() => onPay(bill)}>
+                <Text style={styles.payBtnText}>Upload Payment Receipt</Text>
+            </TouchableOpacity>
+        </View>
+    );
+});
+
+const MaintPendingCard = React.memo(function MaintPendingCard({ bill }: { bill: any }) {
+    return (
+        <View style={[styles.billCard, { borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
+            <View style={styles.billRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.billMonth}>{getMonthName(bill.month)} {bill.year}</Text>
+                    <Text style={styles.billDue}>Awaiting admin verification</Text>
+                    {bill.amountPaid ? <Text style={styles.paidAmtTag}>Submitted: ₹{bill.amountPaid.toLocaleString()}</Text> : null}
+                </View>
+                <Text style={[styles.billAmount, { color: '#f59e0b' }]}>₹ {bill.totalAmount.toLocaleString()}</Text>
+            </View>
+            {bill.description ? <Text style={styles.residentNote}>Your note: {bill.description}</Text> : null}
+        </View>
+    );
+});
+
+const MaintPaidCard = React.memo(function MaintPaidCard({ bill }: { bill: any }) {
+    return (
+        <View style={styles.historyCard}>
+            <View style={styles.billRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.historyMonth}>{getMonthName(bill.month)} {bill.year}</Text>
+                    <Text style={styles.historyDate}>
+                        Paid: {bill.paymentDate ? new Date(bill.paymentDate).toLocaleDateString() : '—'}
+                        {bill.amountPaid ? ` · ₹${bill.amountPaid.toLocaleString()}` : ''}
+                    </Text>
+                    {bill.adminNote ? <Text style={styles.adminNoteInline}>{bill.adminNote}</Text> : null}
+                </View>
+                <Ionicons name="checkmark-circle" size={22} color="#10b981" />
+            </View>
+        </View>
+    );
+});
+
+const SplitDueCard = React.memo(function SplitDueCard({ share, onPay }: { share: any; onPay: (s: any) => void }) {
+    return (
+        <View style={[styles.billCard, { borderColor: 'rgba(167, 139, 250, 0.3)' }]}>
+            <View style={styles.billRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.billMonth}>{share.purpose}</Text>
+                    {share.splitDescription ? <Text style={styles.billDue}>{share.splitDescription}</Text> : null}
+                    {share.dueDate ? <Text style={styles.billDue}>Due: {new Date(share.dueDate).toLocaleDateString()}</Text> : null}
+                </View>
+                <Text style={[styles.billAmount, { color: '#a78bfa' }]}>₹ {share.amount.toLocaleString()}</Text>
+            </View>
+            {(share.adminNote || share.rejectionReason) && (
+                <View style={styles.adminNoteBox}>
+                    <Ionicons name="information-circle" size={14} color="#f87171" />
+                    <Text style={styles.adminNoteText}>{share.adminNote || share.rejectionReason}</Text>
+                </View>
+            )}
+            <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#7c3aed' }]} onPress={() => onPay(share)}>
+                <Text style={styles.payBtnText}>Upload Payment Receipt</Text>
+            </TouchableOpacity>
+        </View>
+    );
+});
+
+const SplitPendingCard = React.memo(function SplitPendingCard({ share }: { share: any }) {
+    return (
+        <View style={[styles.billCard, { borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
+            <View style={styles.billRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.billMonth}>{share.purpose}</Text>
+                    <Text style={styles.billDue}>Awaiting admin verification</Text>
+                </View>
+                <Text style={[styles.billAmount, { color: '#f59e0b' }]}>₹ {share.amount.toLocaleString()}</Text>
+            </View>
+        </View>
+    );
+});
+
+const SplitPaidCard = React.memo(function SplitPaidCard({ share }: { share: any }) {
+    return (
+        <View style={styles.historyCard}>
+            <View style={styles.billRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.historyMonth}>{share.purpose}</Text>
+                    <Text style={styles.historyDate}>
+                        Paid: {share.paymentDate ? new Date(share.paymentDate).toLocaleDateString() : '—'}
+                    </Text>
+                    {share.adminNote ? <Text style={styles.adminNoteInline}>{share.adminNote}</Text> : null}
+                </View>
+                <Ionicons name="checkmark-circle" size={22} color="#10b981" />
+            </View>
+        </View>
+    );
+});
 
 export default function ResidentPaymentsScreen() {
     const router = useRouter();
@@ -72,7 +194,7 @@ export default function ResidentPaymentsScreen() {
 
     useFocusEffect(useCallback(() => { loadData(); }, []));
 
-    const openMaintenancePay = (bill: any) => {
+    const openMaintenancePay = useCallback((bill: any) => {
         setPayMode('maintenance');
         setSelectedBill(bill);
         setSelectedShare(null);
@@ -80,9 +202,9 @@ export default function ResidentPaymentsScreen() {
         setDescription('');
         setAmountPaid(String(bill.totalAmount));
         setReceiptUri(null);
-    };
+    }, []);
 
-    const openSplitPay = (share: any) => {
+    const openSplitPay = useCallback((share: any) => {
         setPayMode('split');
         setSelectedShare(share);
         setSelectedBill(null);
@@ -90,7 +212,7 @@ export default function ResidentPaymentsScreen() {
         setDescription('');
         setAmountPaid(String(share.amount));
         setReceiptUri(null);
-    };
+    }, []);
 
     const closeModal = () => {
         setSelectedBill(null);
@@ -163,6 +285,46 @@ export default function ResidentPaymentsScreen() {
     const pendingSplits = splitShares.filter(s => s.status === 'PENDING_VERIFICATION');
     const paidSplits = splitShares.filter(s => s.status === 'PAID');
 
+    const sections: PaySection[] = [];
+
+    sections.push({
+        key: 'maint-out',
+        groupTitle: 'Monthly Maintenance',
+        title: 'Outstanding Dues',
+        variant: 'maint-pay',
+        data: outstandingBills.length ? outstandingBills : [{ __empty: 'maint-out' }],
+    });
+    if (pendingBills.length > 0) {
+        sections.push({ key: 'maint-pend', title: 'Pending Verification', variant: 'maint-pending', data: pendingBills });
+    }
+    sections.push({
+        key: 'maint-paid',
+        title: 'Paid Months',
+        variant: 'maint-paid',
+        data: paidBills.length ? paidBills : [{ __empty: 'maint-paid' }],
+    });
+
+    const hasSplits = outstandingSplits.length > 0 || pendingSplits.length > 0 || paidSplits.length > 0;
+    let splitGroupAttached = false;
+    const attachSplitGroup = (s: PaySection): PaySection => {
+        if (!splitGroupAttached) {
+            splitGroupAttached = true;
+            return { ...s, groupTitle: 'Shared Payments', groupTitleSpaced: true, groupHint: 'One-time charges split by admin (not part of monthly maintenance)' };
+        }
+        return s;
+    };
+    if (hasSplits) {
+        if (outstandingSplits.length > 0) {
+            sections.push(attachSplitGroup({ key: 'split-out', title: 'Your Share — Due', variant: 'split-pay', data: outstandingSplits }));
+        }
+        if (pendingSplits.length > 0) {
+            sections.push(attachSplitGroup({ key: 'split-pend', title: 'Pending Verification', variant: 'split-pending', data: pendingSplits }));
+        }
+        if (paidSplits.length > 0) {
+            sections.push(attachSplitGroup({ key: 'split-paid', title: 'Paid Shares', variant: 'split-paid', data: paidSplits }));
+        }
+    }
+
     const modalOpen = selectedBill !== null || selectedShare !== null;
     const modalTarget = payMode === 'maintenance' ? selectedBill : selectedShare;
 
@@ -183,176 +345,83 @@ export default function ResidentPaymentsScreen() {
             {loading ? (
                 <View style={styles.center}><ActivityIndicator size="large" color="#fff" /></View>
             ) : (
-                <ScrollView
+                <SectionList
+                    sections={sections}
+                    keyExtractor={(item: any, index) => (item.__empty ? `${item.__empty}` : String(item.id)) + index}
+                    stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
-                >
-                    <View style={styles.communityCard}>
-                        <Ionicons name="business" size={24} color="#ec4899" />
-                        <View style={{ marginLeft: 15, flex: 1 }}>
-                            <Text style={styles.communityName}>{activeWorkspace?.tenantName || 'My Community'}</Text>
-                            {unitLabel ? (
-                                <Text style={styles.unitTag}>Unit {unitLabel} · shared with all unit residents</Text>
-                            ) : (
-                                <Text style={styles.communityTag}>Monthly maintenance & shared payments</Text>
-                            )}
-                        </View>
-                    </View>
-
-                    {!unitLabel && (
-                        <View style={styles.noUnitBanner}>
-                            <Ionicons name="alert-circle" size={18} color="#f59e0b" />
-                            <Text style={styles.noUnitText}>
-                                You aren't linked to a unit yet. Ask your community admin to assign you to a unit so you can see its maintenance bills and split payments.
-                            </Text>
-                        </View>
-                    )}
-
-                    {/* ── Monthly Maintenance ── */}
-                    <Text style={styles.sectionTitle}>Monthly Maintenance</Text>
-
-                    <Text style={styles.subSectionTitle}>Outstanding Dues</Text>
-                    {outstandingBills.length === 0 ? (
-                        <View style={styles.emptyCard}>
-                            <Ionicons name="checkmark-circle" size={28} color="#10b981" />
-                            <Text style={styles.emptyText}>No pending maintenance dues.</Text>
-                        </View>
-                    ) : (
-                        outstandingBills.map(bill => (
-                            <View key={bill.id} style={styles.billCard}>
-                                <View style={styles.billRow}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.billMonth}>{getMonthName(bill.month)} {bill.year}</Text>
-                                        <Text style={styles.billDue}>Due: {new Date(bill.dueDate).toLocaleDateString()}</Text>
-                                    </View>
-                                    <Text style={styles.billAmount}>₹ {bill.totalAmount.toLocaleString()}</Text>
-                                </View>
-                                {(bill.adminNote || bill.rejectionReason) && (
-                                    <View style={styles.adminNoteBox}>
-                                        <Ionicons name="information-circle" size={14} color="#f87171" />
-                                        <Text style={styles.adminNoteText}>{bill.adminNote || bill.rejectionReason}</Text>
-                                    </View>
-                                )}
-                                <TouchableOpacity style={styles.payBtn} onPress={() => openMaintenancePay(bill)}>
-                                    <Text style={styles.payBtnText}>Upload Payment Receipt</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ))
-                    )}
-
-                    {pendingBills.length > 0 && (
+                    ListHeaderComponent={
                         <>
-                            <Text style={styles.subSectionTitle}>Pending Verification</Text>
-                            {pendingBills.map(bill => (
-                                <View key={bill.id} style={[styles.billCard, { borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
-                                    <View style={styles.billRow}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.billMonth}>{getMonthName(bill.month)} {bill.year}</Text>
-                                            <Text style={styles.billDue}>Awaiting admin verification</Text>
-                                            {bill.amountPaid ? <Text style={styles.paidAmtTag}>Submitted: ₹{bill.amountPaid.toLocaleString()}</Text> : null}
-                                        </View>
-                                        <Text style={[styles.billAmount, { color: '#f59e0b' }]}>₹ {bill.totalAmount.toLocaleString()}</Text>
-                                    </View>
-                                    {bill.description ? <Text style={styles.residentNote}>Your note: {bill.description}</Text> : null}
-                                </View>
-                            ))}
-                        </>
-                    )}
-
-                    <Text style={styles.subSectionTitle}>Paid Months</Text>
-                    {paidBills.length === 0 ? (
-                        <Text style={styles.noHistoryText}>No paid maintenance records yet.</Text>
-                    ) : (
-                        paidBills.map(bill => (
-                            <View key={bill.id} style={styles.historyCard}>
-                                <View style={styles.billRow}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.historyMonth}>{getMonthName(bill.month)} {bill.year}</Text>
-                                        <Text style={styles.historyDate}>
-                                            Paid: {bill.paymentDate ? new Date(bill.paymentDate).toLocaleDateString() : '—'}
-                                            {bill.amountPaid ? ` · ₹${bill.amountPaid.toLocaleString()}` : ''}
-                                        </Text>
-                                        {bill.adminNote ? <Text style={styles.adminNoteInline}>{bill.adminNote}</Text> : null}
-                                    </View>
-                                    <Ionicons name="checkmark-circle" size={22} color="#10b981" />
+                            <View style={styles.communityCard}>
+                                <Ionicons name="business" size={24} color="#ec4899" />
+                                <View style={{ marginLeft: 15, flex: 1 }}>
+                                    <Text style={styles.communityName}>{activeWorkspace?.tenantName || 'My Community'}</Text>
+                                    {unitLabel ? (
+                                        <Text style={styles.unitTag}>Unit {unitLabel} · shared with all unit residents</Text>
+                                    ) : (
+                                        <Text style={styles.communityTag}>Monthly maintenance & shared payments</Text>
+                                    )}
                                 </View>
                             </View>
-                        ))
-                    )}
 
-                    {/* ── Payment Splits ── */}
-                    {(outstandingSplits.length > 0 || pendingSplits.length > 0 || paidSplits.length > 0) && (
-                        <>
-                            <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Shared Payments</Text>
-                            <Text style={styles.splitSectionHint}>One-time charges split by admin (not part of monthly maintenance)</Text>
-
-                            {outstandingSplits.length > 0 && (
-                                <>
-                                    <Text style={styles.subSectionTitle}>Your Share — Due</Text>
-                                    {outstandingSplits.map(share => (
-                                        <View key={share.id} style={[styles.billCard, { borderColor: 'rgba(167, 139, 250, 0.3)' }]}>
-                                            <View style={styles.billRow}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.billMonth}>{share.purpose}</Text>
-                                                    {share.splitDescription ? <Text style={styles.billDue}>{share.splitDescription}</Text> : null}
-                                                    {share.dueDate ? <Text style={styles.billDue}>Due: {new Date(share.dueDate).toLocaleDateString()}</Text> : null}
-                                                </View>
-                                                <Text style={[styles.billAmount, { color: '#a78bfa' }]}>₹ {share.amount.toLocaleString()}</Text>
-                                            </View>
-                                            {(share.adminNote || share.rejectionReason) && (
-                                                <View style={styles.adminNoteBox}>
-                                                    <Ionicons name="information-circle" size={14} color="#f87171" />
-                                                    <Text style={styles.adminNoteText}>{share.adminNote || share.rejectionReason}</Text>
-                                                </View>
-                                            )}
-                                            <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#7c3aed' }]} onPress={() => openSplitPay(share)}>
-                                                <Text style={styles.payBtnText}>Upload Payment Receipt</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ))}
-                                </>
-                            )}
-
-                            {pendingSplits.length > 0 && (
-                                <>
-                                    <Text style={styles.subSectionTitle}>Pending Verification</Text>
-                                    {pendingSplits.map(share => (
-                                        <View key={share.id} style={[styles.billCard, { borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
-                                            <View style={styles.billRow}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.billMonth}>{share.purpose}</Text>
-                                                    <Text style={styles.billDue}>Awaiting admin verification</Text>
-                                                </View>
-                                                <Text style={[styles.billAmount, { color: '#f59e0b' }]}>₹ {share.amount.toLocaleString()}</Text>
-                                            </View>
-                                        </View>
-                                    ))}
-                                </>
-                            )}
-
-                            {paidSplits.length > 0 && (
-                                <>
-                                    <Text style={styles.subSectionTitle}>Paid Shares</Text>
-                                    {paidSplits.map(share => (
-                                        <View key={share.id} style={styles.historyCard}>
-                                            <View style={styles.billRow}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.historyMonth}>{share.purpose}</Text>
-                                                    <Text style={styles.historyDate}>
-                                                        Paid: {share.paymentDate ? new Date(share.paymentDate).toLocaleDateString() : '—'}
-                                                    </Text>
-                                                    {share.adminNote ? <Text style={styles.adminNoteInline}>{share.adminNote}</Text> : null}
-                                                </View>
-                                                <Ionicons name="checkmark-circle" size={22} color="#10b981" />
-                                            </View>
-                                        </View>
-                                    ))}
-                                </>
+                            {!unitLabel && (
+                                <View style={styles.noUnitBanner}>
+                                    <Ionicons name="alert-circle" size={18} color="#f59e0b" />
+                                    <Text style={styles.noUnitText}>
+                                        You aren't linked to a unit yet. Ask your community admin to assign you to a unit so you can see its maintenance bills and split payments.
+                                    </Text>
+                                </View>
                             )}
                         </>
-                    )}
-                </ScrollView>
+                    }
+                    renderSectionHeader={({ section }) => {
+                        const s = section as unknown as PaySection;
+                        return (
+                            <>
+                                {s.groupTitle ? (
+                                    <Text style={[styles.sectionTitle, s.groupTitleSpaced && { marginTop: 28 }]}>{s.groupTitle}</Text>
+                                ) : null}
+                                {s.groupHint ? <Text style={styles.splitSectionHint}>{s.groupHint}</Text> : null}
+                                <Text style={styles.subSectionTitle}>{s.title}</Text>
+                            </>
+                        );
+                    }}
+                    renderItem={({ item, section }) => {
+                        if (item.__empty === 'maint-out') {
+                            return (
+                                <View style={styles.emptyCard}>
+                                    <Ionicons name="checkmark-circle" size={28} color="#10b981" />
+                                    <Text style={styles.emptyText}>No pending maintenance dues.</Text>
+                                </View>
+                            );
+                        }
+                        if (item.__empty === 'maint-paid') {
+                            return <Text style={styles.noHistoryText}>No paid maintenance records yet.</Text>;
+                        }
+                        switch ((section as unknown as PaySection).variant) {
+                            case 'maint-pay':
+                                return <MaintDueCard bill={item} onPay={openMaintenancePay} />;
+                            case 'maint-pending':
+                                return <MaintPendingCard bill={item} />;
+                            case 'maint-paid':
+                                return <MaintPaidCard bill={item} />;
+                            case 'split-pay':
+                                return <SplitDueCard share={item} onPay={openSplitPay} />;
+                            case 'split-pending':
+                                return <SplitPendingCard share={item} />;
+                            case 'split-paid':
+                                return <SplitPaidCard share={item} />;
+                            default:
+                                return null;
+                        }
+                    }}
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                />
             )}
 
             {/* Submit Payment Proof Modal */}

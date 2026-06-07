@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar, ActivityIndicator, Alert, TextInput, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, Image, StatusBar, ActivityIndicator, Alert, TextInput, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -412,6 +412,57 @@ export default function AdminRemindersScreen() {
         ? Math.round((reminders.filter(r => r.status === 'SENT' || r.sentAt !== null).length / reminders.length) * 100) 
         : 100;
 
+    const chrome = (
+        <>
+            {/* Module Title */}
+            <View style={styles.titleRow}>
+                <Ionicons name="alarm" size={24} color="#d97706" />
+                <View style={{ marginLeft: 10 }}>
+                    <Text style={styles.titleText}>Reminders & Alerts</Text>
+                    <Text style={styles.workspaceText}>{activeWorkspace?.tenantName || 'My Township'}</Text>
+                </View>
+            </View>
+
+            {/* Stats Metrics Cards */}
+            <View style={styles.metricsRow}>
+                <View style={styles.metricItem}>
+                    <Text style={styles.metricVal}>{scheduledReminders.length}</Text>
+                    <Text style={styles.metricLabel}>Active Rules</Text>
+                </View>
+                <View style={styles.verticalDivider} />
+                <View style={styles.metricItem}>
+                    <Text style={[styles.metricVal, { color: '#10b981' }]}>{sentRemindersCount}</Text>
+                    <Text style={styles.metricLabel}>Dispatched</Text>
+                </View>
+                <View style={styles.verticalDivider} />
+                <View style={styles.metricItem}>
+                    <Text style={[styles.metricVal, { color: '#f59e0b' }]}>{successRate}%</Text>
+                    <Text style={styles.metricLabel}>Delivery Success</Text>
+                </View>
+            </View>
+
+            {/* Navigation Tabs */}
+            <View style={styles.tabRow}>
+                <TouchableOpacity 
+                    style={[styles.tabBtn, activeTab === 'CREATE' && styles.tabActive]}
+                    onPress={() => setActiveTab('CREATE')}
+                >
+                    <Text style={[styles.tabText, activeTab === 'CREATE' && styles.tabTextActive]}>
+                        Create Reminder
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.tabBtn, activeTab === 'QUEUE' && styles.tabActive]}
+                    onPress={() => setActiveTab('QUEUE')}
+                >
+                    <Text style={[styles.tabText, activeTab === 'QUEUE' && styles.tabTextActive]}>
+                        Reminder Register ({reminders.length})
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </>
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" />
@@ -429,57 +480,9 @@ export default function AdminRemindersScreen() {
                 <View style={styles.center}>
                     <ActivityIndicator size="large" color="#fff" />
                 </View>
-            ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    
-                    {/* Module Title */}
-                    <View style={styles.titleRow}>
-                        <Ionicons name="alarm" size={24} color="#d97706" />
-                        <View style={{ marginLeft: 10 }}>
-                            <Text style={styles.titleText}>Reminders & Alerts</Text>
-                            <Text style={styles.workspaceText}>{activeWorkspace?.tenantName || 'My Township'}</Text>
-                        </View>
-                    </View>
-
-                    {/* Stats Metrics Cards */}
-                    <View style={styles.metricsRow}>
-                        <View style={styles.metricItem}>
-                            <Text style={styles.metricVal}>{scheduledReminders.length}</Text>
-                            <Text style={styles.metricLabel}>Active Rules</Text>
-                        </View>
-                        <View style={styles.verticalDivider} />
-                        <View style={styles.metricItem}>
-                            <Text style={[styles.metricVal, { color: '#10b981' }]}>{sentRemindersCount}</Text>
-                            <Text style={styles.metricLabel}>Dispatched</Text>
-                        </View>
-                        <View style={styles.verticalDivider} />
-                        <View style={styles.metricItem}>
-                            <Text style={[styles.metricVal, { color: '#f59e0b' }]}>{successRate}%</Text>
-                            <Text style={styles.metricLabel}>Delivery Success</Text>
-                        </View>
-                    </View>
-
-                    {/* Navigation Tabs */}
-                    <View style={styles.tabRow}>
-                        <TouchableOpacity 
-                            style={[styles.tabBtn, activeTab === 'CREATE' && styles.tabActive]}
-                            onPress={() => setActiveTab('CREATE')}
-                        >
-                            <Text style={[styles.tabText, activeTab === 'CREATE' && styles.tabTextActive]}>
-                                Create Reminder
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            style={[styles.tabBtn, activeTab === 'QUEUE' && styles.tabActive]}
-                            onPress={() => setActiveTab('QUEUE')}
-                        >
-                            <Text style={[styles.tabText, activeTab === 'QUEUE' && styles.tabTextActive]}>
-                                Reminder Register ({reminders.length})
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {activeTab === 'CREATE' ? (
+            ) : activeTab === 'CREATE' ? (
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+                    {chrome}
                         <View style={styles.formContainer}>
 
                             {editingId ? (
@@ -789,90 +792,124 @@ export default function AdminRemindersScreen() {
                             ) : null}
 
                         </View>
-                    ) : (
-                        <View style={styles.listContainer}>
-                            <Text style={styles.sectionTitle}>Active Reminders Registry ({reminders.length})</Text>
-                            {reminders.length === 0 ? (
-                                <View style={styles.emptyCard}>
-                                    <Ionicons name="notifications-off-outline" size={40} color="#cbd5e1" />
-                                    <Text style={styles.emptyText}>No registered reminders found in history.</Text>
-                                </View>
-                            ) : (
-                                reminders.map(rem => (
-                                    <View key={rem.id} style={styles.reminderCard}>
-                                        <View style={styles.cardHeaderRow}>
-                                            <View style={{ flex: 1, marginRight: 10 }}>
-                                                <Text style={styles.remTitle}>{rem.title}</Text>
-                                                <Text style={styles.remCategory}>{rem.category}</Text>
-                                            </View>
-                                            <View style={[styles.statusBadge, getStatusStyle(rem.status)]}>
-                                                <Text style={styles.statusBadgeText}>{rem.status}</Text>
-                                            </View>
-                                        </View>
-
-                                        <Text style={styles.remMessage}>{rem.message}</Text>
-
-                                        {rem.imageUrl ? (
-                                            <ReminderImage uri={resolveMediaUrl(rem.imageUrl) as string} style={{ marginBottom: 12 }} />
-                                        ) : null}
-
-                                        {/* Parameter rows */}
-                                        <View style={styles.paramsGrid}>
-                                            <DetailRow icon="people-outline" label="Target Filter" value={rem.targetType} />
-                                            <DetailRow icon="repeat-outline" label="Recurrence" value={getRecurrenceLabel(rem)} />
-                                            {rem.scheduledAt && (
-                                                <DetailRow 
-                                                    icon="time-outline" 
-                                                    label="Next Schedule" 
-                                                    value={new Date(rem.scheduledAt).toLocaleString()} 
-                                                />
-                                            )}
-                                            {rem.sentAt && (
-                                                <DetailRow 
-                                                    icon="checkmark-circle-outline" 
-                                                    label="Last Sent" 
-                                                    value={new Date(rem.sentAt).toLocaleString()} 
-                                                />
-                                            )}
-                                        </View>
-
-                                        {/* Actions */}
-                                        <View style={styles.actionsRow}>
-                                            {rem.status === 'PENDING' && (
-                                                <TouchableOpacity 
-                                                    style={[styles.actionBtn, { borderColor: 'rgba(16, 185, 129, 0.4)' }]}
-                                                    onPress={() => handleTriggerInstantly(rem.id)}
-                                                >
-                                                    <Ionicons name="play" size={14} color="#10b981" style={{ marginRight: 6 }} />
-                                                    <Text style={[styles.actionBtnText, { color: '#10b981' }]}>Send Now</Text>
-                                                </TouchableOpacity>
-                                            )}
-                                            <TouchableOpacity
-                                                style={[styles.actionBtn, { borderColor: 'rgba(59, 130, 246, 0.4)' }]}
-                                                onPress={() => handleEditReminder(rem)}
-                                            >
-                                                <Ionicons name="create-outline" size={14} color="#3b82f6" style={{ marginRight: 6 }} />
-                                                <Text style={[styles.actionBtnText, { color: '#3b82f6' }]}>Edit</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity 
-                                                style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.4)' }]}
-                                                onPress={() => handleDeleteReminder(rem.id)}
-                                            >
-                                                <Ionicons name="trash-outline" size={14} color="#ef4444" style={{ marginRight: 6 }} />
-                                                <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                ))
-                            )}
-                        </View>
-                    )}
-
                 </ScrollView>
+            ) : (
+                <FlatList
+                    data={reminders}
+                    keyExtractor={(item) => String(item.id)}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                    ListHeaderComponent={
+                        <View>
+                            {chrome}
+                            <Text style={styles.sectionTitle}>Active Reminders Registry ({reminders.length})</Text>
+                        </View>
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyCard}>
+                            <Ionicons name="notifications-off-outline" size={40} color="#cbd5e1" />
+                            <Text style={styles.emptyText}>No registered reminders found in history.</Text>
+                        </View>
+                    }
+                    renderItem={({ item: rem }) => (
+                        <ReminderRow
+                            rem={rem}
+                            getRecurrenceLabel={getRecurrenceLabel}
+                            onTrigger={handleTriggerInstantly}
+                            onEdit={handleEditReminder}
+                            onDelete={handleDeleteReminder}
+                        />
+                    )}
+                />
             )}
         </SafeAreaView>
     );
 }
+
+const ReminderRow = React.memo(function ReminderRow({
+    rem,
+    getRecurrenceLabel,
+    onTrigger,
+    onEdit,
+    onDelete,
+}: {
+    rem: any;
+    getRecurrenceLabel: (rem: any) => string;
+    onTrigger: (id: string) => void;
+    onEdit: (rem: any) => void;
+    onDelete: (id: string) => void;
+}) {
+    return (
+        <View style={styles.reminderCard}>
+            <View style={styles.cardHeaderRow}>
+                <View style={{ flex: 1, marginRight: 10 }}>
+                    <Text style={styles.remTitle}>{rem.title}</Text>
+                    <Text style={styles.remCategory}>{rem.category}</Text>
+                </View>
+                <View style={[styles.statusBadge, getStatusStyle(rem.status)]}>
+                    <Text style={styles.statusBadgeText}>{rem.status}</Text>
+                </View>
+            </View>
+
+            <Text style={styles.remMessage}>{rem.message}</Text>
+
+            {rem.imageUrl ? (
+                <ReminderImage uri={resolveMediaUrl(rem.imageUrl) as string} style={{ marginBottom: 12 }} />
+            ) : null}
+
+            {/* Parameter rows */}
+            <View style={styles.paramsGrid}>
+                <DetailRow icon="people-outline" label="Target Filter" value={rem.targetType} />
+                <DetailRow icon="repeat-outline" label="Recurrence" value={getRecurrenceLabel(rem)} />
+                {rem.scheduledAt && (
+                    <DetailRow 
+                        icon="time-outline" 
+                        label="Next Schedule" 
+                        value={new Date(rem.scheduledAt).toLocaleString()} 
+                    />
+                )}
+                {rem.sentAt && (
+                    <DetailRow 
+                        icon="checkmark-circle-outline" 
+                        label="Last Sent" 
+                        value={new Date(rem.sentAt).toLocaleString()} 
+                    />
+                )}
+            </View>
+
+            {/* Actions */}
+            <View style={styles.actionsRow}>
+                {rem.status === 'PENDING' && (
+                    <TouchableOpacity 
+                        style={[styles.actionBtn, { borderColor: 'rgba(16, 185, 129, 0.4)' }]}
+                        onPress={() => onTrigger(rem.id)}
+                    >
+                        <Ionicons name="play" size={14} color="#10b981" style={{ marginRight: 6 }} />
+                        <Text style={[styles.actionBtnText, { color: '#10b981' }]}>Send Now</Text>
+                    </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                    style={[styles.actionBtn, { borderColor: 'rgba(59, 130, 246, 0.4)' }]}
+                    onPress={() => onEdit(rem)}
+                >
+                    <Ionicons name="create-outline" size={14} color="#3b82f6" style={{ marginRight: 6 }} />
+                    <Text style={[styles.actionBtnText, { color: '#3b82f6' }]}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.4)' }]}
+                    onPress={() => onDelete(rem.id)}
+                >
+                    <Ionicons name="trash-outline" size={14} color="#ef4444" style={{ marginRight: 6 }} />
+                    <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+});
 
 function DetailRow({ icon, label, value }: { icon: string, label: string, value: string }) {
     return (

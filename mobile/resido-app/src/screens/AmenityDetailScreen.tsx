@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, ActivityIndicator, Image, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -196,202 +196,231 @@ export default function AmenityDetailScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView style={styles.scroll}>
-                {amenity.photoUrl ? (
-                    <Image source={{ uri: amenity.photoUrl }} style={styles.image} />
-                ) : (
-                    <View style={styles.imagePlaceholder}>
-                        <Ionicons name="sparkles-outline" size={48} color="#cbd5e1" />
+            <FlatList
+                style={styles.scroll}
+                data={isAdmin ? bookings : []}
+                keyExtractor={(item, index) => String(item.id || index)}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                renderItem={({ item: b }) => (
+                    <View style={styles.adminSectionPad}>
+                        <View style={styles.adminSectionMid}>
+                            <View style={styles.adminBookingCard}>
+                                <View style={styles.adminBookingRow}>
+                                    <Ionicons name="time-outline" size={16} color="#6366f1" />
+                                    <Text style={styles.adminBookingTime}>{b.timeSlot}</Text>
+                                </View>
+                                <View style={styles.adminBookingRow}>
+                                    <Ionicons name="person-outline" size={16} color="#475569" />
+                                    <Text style={styles.adminBookingName}>{b.member?.name || 'Resident'}</Text>
+                                </View>
+                                <View style={styles.adminBookingRow}>
+                                    <Ionicons name="people-outline" size={16} color="#475569" />
+                                    <Text style={styles.adminBookingPersons}>{b.persons} Person(s)</Text>
+                                </View>
+                            </View>
+                        </View>
                     </View>
                 )}
-
-                <View style={styles.content}>
-                    <Text style={styles.sectionTitle}>About</Text>
-                    <Text style={styles.description}>{amenity.description || 'No description available.'}</Text>
-
-                    {amenity.rules ? (
-                        <>
-                            <Text style={styles.sectionTitle}>Rules & Guidelines</Text>
-                            <View style={styles.rulesBox}>
-                                <Text style={styles.rulesText}>{amenity.rules}</Text>
+                ListHeaderComponent={
+                    <View>
+                        {amenity.photoUrl ? (
+                            <Image source={{ uri: amenity.photoUrl }} style={styles.image} />
+                        ) : (
+                            <View style={styles.imagePlaceholder}>
+                                <Ionicons name="sparkles-outline" size={48} color="#cbd5e1" />
                             </View>
-                        </>
-                    ) : null}
-
-                    <View style={styles.divider} />
-
-                    <Text style={styles.sectionTitle}>Select Date & Booking</Text>
-                    
-                    {/* Date Selector */}
-                    <TouchableOpacity style={styles.dateSelector} onPress={() => setShowDatePicker(true)}>
-                        <Ionicons name="calendar-outline" size={20} color="#6366f1" />
-                        <Text style={styles.dateText}>{bookingDate.toDateString()}</Text>
-                        <Ionicons name="chevron-down" size={20} color="#64748b" />
-                    </TouchableOpacity>
-
-                    {showDatePicker && (
-                        <DateTimePicker
-                            value={bookingDate}
-                            mode="date"
-                            minimumDate={new Date()} // Prevent past dates
-                            display="default"
-                            onChange={(event, date) => {
-                                setShowDatePicker(false);
-                                if (date) setBookingDate(date);
-                            }}
-                        />
-                    )}
-
-                    {/* Admin Bookings Section */}
-                    {isAdmin && bookings.length > 0 && (
-                        <View style={styles.adminSection}>
-                            <Text style={styles.adminSectionTitle}>Admin: Today's Bookings</Text>
-                            {bookings.map((b, index) => (
-                                <View key={b.id || index} style={styles.adminBookingCard}>
-                                    <View style={styles.adminBookingRow}>
-                                        <Ionicons name="time-outline" size={16} color="#6366f1" />
-                                        <Text style={styles.adminBookingTime}>{b.timeSlot}</Text>
-                                    </View>
-                                    <View style={styles.adminBookingRow}>
-                                        <Ionicons name="person-outline" size={16} color="#475569" />
-                                        <Text style={styles.adminBookingName}>{b.member?.name || 'Resident'}</Text>
-                                    </View>
-                                    <View style={styles.adminBookingRow}>
-                                        <Ionicons name="people-outline" size={16} color="#475569" />
-                                        <Text style={styles.adminBookingPersons}>{b.persons} Person(s)</Text>
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    {/* Time Slots grid */}
-                    <Text style={styles.label}>Select Available Slot</Text>
-                    <View style={styles.slotsGrid}>
-                        {currentSlotsForDate.map((slot: string) => {
-                            const { remaining, isFull } = getSlotCapacityInfo(slot);
-                            const isSelected = selectedSlot === slot;
-                            const isPast = isPastTimeSlot(slot);
-                            const isSelectable = !isFull && !isPast;
-                            const allowRecur = amenity.allowRecurringBookings;
-
-                            return (
-                                <TouchableOpacity
-                                    key={slot}
-                                    style={[
-                                        styles.slotCard,
-                                        isFull && styles.slotCardFull,
-                                        isPast && styles.slotCardPast,
-                                        isSelected && styles.slotCardSelected
-                                    ]}
-                                    onPress={() => {
-                                        if (isSelectable) {
-                                            setSelectedSlot(slot);
-                                            setIsRecurringBooking(false);
-                                        } else if (allowRecur) {
-                                            // Let them select full/past slots for recurring bookings
-                                            setSelectedSlot(slot);
-                                            setIsRecurringBooking(true);
-                                        } else {
-                                            Alert.alert('Unavailable', 'This slot is booked or past and recurring bookings are disabled.');
-                                        }
-                                    }}
-                                >
-                                    <Text style={[
-                                        styles.slotTime,
-                                        (isFull || isPast) && styles.slotTextDisabled,
-                                        isSelected && styles.slotTextSelected
-                                    ]}>{slot}</Text>
-                                    <Text style={[
-                                        styles.slotCapacity,
-                                        (isFull || isPast) && styles.slotTextDisabled,
-                                        isSelected && styles.slotTextSelected
-                                    ]}>
-                                        {isPast ? 'PAST' : isFull ? (allowRecur ? 'RECURRING OK' : 'ALREADY BOOKED') : 'AVAILABLE'}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                        {currentSlotsForDate.length === 0 && (
-                            <Text style={styles.emptyText}>No available slots found for this date.</Text>
                         )}
-                    </View>
 
-                    {/* Dynamic Recurring Card for Full/Past Slots */}
-                    {selectedSlot && (getSlotCapacityInfo(selectedSlot).isFull || isPastDate) && amenity.allowRecurringBookings && (
-                        <View style={styles.recurringCard}>
-                            <View style={styles.recHeader}>
-                                <Ionicons name="repeat-outline" size={22} color="#6366f1" />
-                                <Text style={styles.recTitle}>Book Future Occurrences</Text>
-                            </View>
-                            <Text style={styles.recHelp}>This slot is full or completed today. You can auto-schedule the next occurrences.</Text>
-                            
-                            <View style={styles.recSwitchRow}>
-                                <Text style={styles.recLabel}>Schedule Recurrently</Text>
-                                <Switch 
-                                    value={isRecurringBooking}
-                                    onValueChange={setIsRecurringBooking}
-                                    trackColor={{ false: '#cbd5e1', true: '#818cf8' }}
-                                    thumbColor={isRecurringBooking ? '#6366f1' : '#f4f3f4'}
+                        <View style={[styles.content, { paddingBottom: 0 }]}>
+                            <Text style={styles.sectionTitle}>About</Text>
+                            <Text style={styles.description}>{amenity.description || 'No description available.'}</Text>
+
+                            {amenity.rules ? (
+                                <>
+                                    <Text style={styles.sectionTitle}>Rules & Guidelines</Text>
+                                    <View style={styles.rulesBox}>
+                                        <Text style={styles.rulesText}>{amenity.rules}</Text>
+                                    </View>
+                                </>
+                            ) : null}
+
+                            <View style={styles.divider} />
+
+                            <Text style={styles.sectionTitle}>Select Date & Booking</Text>
+
+                            {/* Date Selector */}
+                            <TouchableOpacity style={styles.dateSelector} onPress={() => setShowDatePicker(true)}>
+                                <Ionicons name="calendar-outline" size={20} color="#6366f1" />
+                                <Text style={styles.dateText}>{bookingDate.toDateString()}</Text>
+                                <Ionicons name="chevron-down" size={20} color="#64748b" />
+                            </TouchableOpacity>
+
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={bookingDate}
+                                    mode="date"
+                                    minimumDate={new Date()} // Prevent past dates
+                                    display="default"
+                                    onChange={(event, date) => {
+                                        setShowDatePicker(false);
+                                        if (date) setBookingDate(date);
+                                    }}
                                 />
-                            </View>
-
-                            {isRecurringBooking && (
-                                <View style={styles.recTypeRow}>
-                                    <TouchableOpacity 
-                                        style={[styles.recTypeBtn, recurringPeriod === 'WEEKLY' && styles.recTypeBtnActive]}
-                                        onPress={() => setRecurringPeriod('WEEKLY')}
-                                    >
-                                        <Text style={[styles.recTypeText, recurringPeriod === 'WEEKLY' && styles.recTypeTextActive]}>Weekly Day</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        style={[styles.recTypeBtn, recurringPeriod === 'MONTHLY' && styles.recTypeBtnActive]}
-                                        onPress={() => setRecurringPeriod('MONTHLY')}
-                                    >
-                                        <Text style={[styles.recTypeText, recurringPeriod === 'MONTHLY' && styles.recTypeTextActive]}>Monthly Date</Text>
-                                    </TouchableOpacity>
-                                </View>
                             )}
                         </View>
-                    )}
 
-                    {/* Party size picker */}
-                    {selectedSlot && (!getSlotCapacityInfo(selectedSlot).isFull && !isPastDate) && (
-                        <View style={styles.partyContainer}>
-                            <Text style={styles.label}>Number of Persons</Text>
-                            <View style={styles.counterRow}>
-                                <TouchableOpacity 
-                                    style={styles.counterBtn}
-                                    onPress={() => setPersonsCount(p => Math.max(1, p - 1))}
-                                >
-                                    <Ionicons name="remove" size={20} color="#1e293b" />
-                                </TouchableOpacity>
-                                <Text style={styles.counterValue}>{personsCount}</Text>
-                                <TouchableOpacity 
-                                    style={styles.counterBtn}
-                                    onPress={() => setPersonsCount(p => p + 1)}
-                                >
-                                    <Ionicons name="add" size={20} color="#1e293b" />
-                                </TouchableOpacity>
+                        {/* Admin Bookings Section — header/title; cards are virtualized below */}
+                        {isAdmin && bookings.length > 0 && (
+                            <View style={styles.adminSectionPad}>
+                                <View style={[styles.adminSection, styles.adminSectionTop]}>
+                                    <Text style={styles.adminSectionTitle}>Admin: Today's Bookings</Text>
+                                </View>
                             </View>
-                        </View>
-                    )}
-
-                    <TouchableOpacity 
-                        style={[styles.bookBtn, !selectedSlot && styles.bookBtnDisabled]}
-                        onPress={handleConfirmBooking}
-                        disabled={!selectedSlot || bookingLoading}
-                    >
-                        {bookingLoading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.bookBtnText}>
-                                {isRecurringBooking ? 'Confirm Recurring Booking' : 'Confirm Booking'}
-                            </Text>
                         )}
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+                    </View>
+                }
+                ListFooterComponent={
+                    <View>
+                        {/* Admin Bookings Section — card closer */}
+                        {isAdmin && bookings.length > 0 && (
+                            <View style={styles.adminSectionPad}>
+                                <View style={[styles.adminSection, styles.adminSectionBottom]} />
+                            </View>
+                        )}
+
+                        <View style={[styles.content, { paddingTop: 0 }]}>
+                            {/* Time Slots grid */}
+                            <Text style={styles.label}>Select Available Slot</Text>
+                            <View style={styles.slotsGrid}>
+                                {currentSlotsForDate.map((slot: string) => {
+                                    const { remaining, isFull } = getSlotCapacityInfo(slot);
+                                    const isSelected = selectedSlot === slot;
+                                    const isPast = isPastTimeSlot(slot);
+                                    const isSelectable = !isFull && !isPast;
+                                    const allowRecur = amenity.allowRecurringBookings;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={slot}
+                                            style={[
+                                                styles.slotCard,
+                                                isFull && styles.slotCardFull,
+                                                isPast && styles.slotCardPast,
+                                                isSelected && styles.slotCardSelected
+                                            ]}
+                                            onPress={() => {
+                                                if (isSelectable) {
+                                                    setSelectedSlot(slot);
+                                                    setIsRecurringBooking(false);
+                                                } else if (allowRecur) {
+                                                    // Let them select full/past slots for recurring bookings
+                                                    setSelectedSlot(slot);
+                                                    setIsRecurringBooking(true);
+                                                } else {
+                                                    Alert.alert('Unavailable', 'This slot is booked or past and recurring bookings are disabled.');
+                                                }
+                                            }}
+                                        >
+                                            <Text style={[
+                                                styles.slotTime,
+                                                (isFull || isPast) && styles.slotTextDisabled,
+                                                isSelected && styles.slotTextSelected
+                                            ]}>{slot}</Text>
+                                            <Text style={[
+                                                styles.slotCapacity,
+                                                (isFull || isPast) && styles.slotTextDisabled,
+                                                isSelected && styles.slotTextSelected
+                                            ]}>
+                                                {isPast ? 'PAST' : isFull ? (allowRecur ? 'RECURRING OK' : 'ALREADY BOOKED') : 'AVAILABLE'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                                {currentSlotsForDate.length === 0 && (
+                                    <Text style={styles.emptyText}>No available slots found for this date.</Text>
+                                )}
+                            </View>
+
+                            {/* Dynamic Recurring Card for Full/Past Slots */}
+                            {selectedSlot && (getSlotCapacityInfo(selectedSlot).isFull || isPastDate) && amenity.allowRecurringBookings && (
+                                <View style={styles.recurringCard}>
+                                    <View style={styles.recHeader}>
+                                        <Ionicons name="repeat-outline" size={22} color="#6366f1" />
+                                        <Text style={styles.recTitle}>Book Future Occurrences</Text>
+                                    </View>
+                                    <Text style={styles.recHelp}>This slot is full or completed today. You can auto-schedule the next occurrences.</Text>
+
+                                    <View style={styles.recSwitchRow}>
+                                        <Text style={styles.recLabel}>Schedule Recurrently</Text>
+                                        <Switch 
+                                            value={isRecurringBooking}
+                                            onValueChange={setIsRecurringBooking}
+                                            trackColor={{ false: '#cbd5e1', true: '#818cf8' }}
+                                            thumbColor={isRecurringBooking ? '#6366f1' : '#f4f3f4'}
+                                        />
+                                    </View>
+
+                                    {isRecurringBooking && (
+                                        <View style={styles.recTypeRow}>
+                                            <TouchableOpacity 
+                                                style={[styles.recTypeBtn, recurringPeriod === 'WEEKLY' && styles.recTypeBtnActive]}
+                                                onPress={() => setRecurringPeriod('WEEKLY')}
+                                            >
+                                                <Text style={[styles.recTypeText, recurringPeriod === 'WEEKLY' && styles.recTypeTextActive]}>Weekly Day</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity 
+                                                style={[styles.recTypeBtn, recurringPeriod === 'MONTHLY' && styles.recTypeBtnActive]}
+                                                onPress={() => setRecurringPeriod('MONTHLY')}
+                                            >
+                                                <Text style={[styles.recTypeText, recurringPeriod === 'MONTHLY' && styles.recTypeTextActive]}>Monthly Date</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+
+                            {/* Party size picker */}
+                            {selectedSlot && (!getSlotCapacityInfo(selectedSlot).isFull && !isPastDate) && (
+                                <View style={styles.partyContainer}>
+                                    <Text style={styles.label}>Number of Persons</Text>
+                                    <View style={styles.counterRow}>
+                                        <TouchableOpacity 
+                                            style={styles.counterBtn}
+                                            onPress={() => setPersonsCount(p => Math.max(1, p - 1))}
+                                        >
+                                            <Ionicons name="remove" size={20} color="#1e293b" />
+                                        </TouchableOpacity>
+                                        <Text style={styles.counterValue}>{personsCount}</Text>
+                                        <TouchableOpacity 
+                                            style={styles.counterBtn}
+                                            onPress={() => setPersonsCount(p => p + 1)}
+                                        >
+                                            <Ionicons name="add" size={20} color="#1e293b" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            )}
+
+                            <TouchableOpacity 
+                                style={[styles.bookBtn, !selectedSlot && styles.bookBtnDisabled]}
+                                onPress={handleConfirmBooking}
+                                disabled={!selectedSlot || bookingLoading}
+                            >
+                                {bookingLoading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.bookBtnText}>
+                                        {isRecurringBooking ? 'Confirm Recurring Booking' : 'Confirm Booking'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                }
+            />
         </SafeAreaView>
     );
 }
@@ -454,6 +483,10 @@ const styles = StyleSheet.create({
 
     // Admin Bookings
     adminSection: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#e2e8f0' },
+    adminSectionPad: { paddingHorizontal: 20 },
+    adminSectionTop: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 },
+    adminSectionMid: { backgroundColor: '#f1f5f9', paddingHorizontal: 16, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#e2e8f0' },
+    adminSectionBottom: { height: 6, padding: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTopWidth: 0 },
     adminSectionTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b', marginBottom: 12, textTransform: 'uppercase' },
     adminBookingCard: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
     adminBookingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },

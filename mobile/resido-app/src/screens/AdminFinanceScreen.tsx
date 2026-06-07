@@ -1,10 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, StatusBar, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { communityFinanceApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+
+const TransactionRow = React.memo(function TransactionRow({ t }: { t: any }) {
+    return (
+        <View style={styles.transactionCard}>
+            <View style={styles.ledgerLeft}>
+                <View style={[styles.ledgerIconBox, { backgroundColor: t.type === 'INCOME' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
+                    <Ionicons
+                        name={t.type === 'INCOME' ? 'arrow-down-circle' : 'arrow-up-circle'}
+                        size={22}
+                        color={t.type === 'INCOME' ? '#10b981' : '#ef4444'}
+                    />
+                </View>
+                <View style={{ marginLeft: 15 }}>
+                    <Text style={styles.ledgerCategory}>{t.category}</Text>
+                    <Text style={styles.ledgerDesc} numberOfLines={1}>{t.description || 'No description'}</Text>
+                    <Text style={styles.ledgerDate}>{new Date(t.date).toLocaleDateString()}</Text>
+                </View>
+            </View>
+            <Text style={[styles.ledgerAmount, { color: t.type === 'INCOME' ? '#10b981' : '#fff' }]}>
+                {t.type === 'INCOME' ? '+' : '-'} ₹{t.amount.toLocaleString()}
+            </Text>
+        </View>
+    );
+});
 
 export default function AdminFinanceScreen() {
     const router = useRouter();
@@ -90,117 +114,106 @@ export default function AdminFinanceScreen() {
                     <ActivityIndicator size="large" color="#fff" />
                 </View>
             ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    
-                    {/* Period Tabs */}
-                    <View style={styles.tabRow}>
-                        {(['month', 'week', 'day'] as const).map(p => (
-                            <TouchableOpacity 
-                                key={p} 
-                                style={[styles.tabBtn, period === p && styles.tabBtnActive]}
-                                onPress={() => setPeriod(p)}
-                            >
-                                <Text style={[styles.tabBtnText, period === p && styles.tabBtnTextActive]}>
-                                    {p.toUpperCase()}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    {/* Stats Summary Card */}
-                    {reportData && (
-                        <View style={styles.summaryCard}>
-                            <View style={styles.statRow}>
-                                <View style={styles.statBox}>
-                                    <Text style={styles.statLabel}>Total Income</Text>
-                                    <Text style={[styles.statValue, { color: '#10b981' }]}>₹ {reportData.totalIncome.toLocaleString()}</Text>
-                                </View>
-                                <View style={styles.divider} />
-                                <View style={styles.statBox}>
-                                    <Text style={styles.statLabel}>Total Expense</Text>
-                                    <Text style={[styles.statValue, { color: '#ef4444' }]}>₹ {reportData.totalExpense.toLocaleString()}</Text>
-                                </View>
+                <FlatList
+                    data={transactions}
+                    keyExtractor={(t: any) => String(t.id)}
+                    renderItem={({ item }) => <TransactionRow t={item} />}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    ListHeaderComponent={
+                        <>
+                            {/* Period Tabs */}
+                            <View style={styles.tabRow}>
+                                {(['month', 'week', 'day'] as const).map(p => (
+                                    <TouchableOpacity
+                                        key={p}
+                                        style={[styles.tabBtn, period === p && styles.tabBtnActive]}
+                                        onPress={() => setPeriod(p)}
+                                    >
+                                        <Text style={[styles.tabBtnText, period === p && styles.tabBtnTextActive]}>
+                                            {p.toUpperCase()}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
-                            
-                            <View style={styles.savingsBox}>
-                                <Text style={styles.savingsLabel}>Total Savings</Text>
-                                <Text style={styles.savingsValue}>₹ {reportData.savings.toLocaleString()}</Text>
-                            </View>
-                        </View>
-                    )}
 
-                    {/* Dynamic Analytics Visual Chart */}
-                    <Text style={styles.sectionTitle}>Inflow & Outflow Analytics</Text>
-                    {reportData?.chartData?.length > 0 ? (
-                        <View style={styles.chartCard}>
-                            <View style={styles.chartContainer}>
-                                {reportData.chartData.map((d: any, index: number) => {
-                                    const maxVal = Math.max(...reportData.chartData.map((x: any) => Math.max(x.income, x.expense)), 1);
-                                    const incHeight = (d.income / maxVal) * 100;
-                                    const expHeight = (d.expense / maxVal) * 100;
-
-                                    return (
-                                        <View key={index} style={styles.chartBarCol}>
-                                            <View style={styles.barsRow}>
-                                                <View style={[styles.bar, { height: `${incHeight}%`, backgroundColor: '#10b981' }]} />
-                                                <View style={[styles.bar, { height: `${expHeight}%`, backgroundColor: '#ef4444' }]} />
-                                            </View>
-                                            <Text style={styles.barLabel} numberOfLines={1}>{d.label.split(' ')[0]}</Text>
+                            {/* Stats Summary Card */}
+                            {reportData && (
+                                <View style={styles.summaryCard}>
+                                    <View style={styles.statRow}>
+                                        <View style={styles.statBox}>
+                                            <Text style={styles.statLabel}>Total Income</Text>
+                                            <Text style={[styles.statValue, { color: '#10b981' }]}>₹ {reportData.totalIncome.toLocaleString()}</Text>
                                         </View>
-                                    );
-                                })}
-                            </View>
-                            <View style={styles.chartLegend}>
-                                <View style={styles.legendItem}>
-                                    <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
-                                    <Text style={styles.legendText}>Income</Text>
-                                </View>
-                                <View style={styles.legendItem}>
-                                    <View style={[styles.legendDot, { backgroundColor: '#ef4444' }]} />
-                                    <Text style={styles.legendText}>Expense</Text>
-                                </View>
-                            </View>
-                        </View>
-                    ) : (
-                        <View style={styles.emptyChartCard}>
-                            <Text style={styles.emptyChartText}>No cashflow records logged yet for this year.</Text>
-                        </View>
-                    )}
+                                        <View style={styles.divider} />
+                                        <View style={styles.statBox}>
+                                            <Text style={styles.statLabel}>Total Expense</Text>
+                                            <Text style={[styles.statValue, { color: '#ef4444' }]}>₹ {reportData.totalExpense.toLocaleString()}</Text>
+                                        </View>
+                                    </View>
 
-                    {/* Transaction Ledger */}
-                    <View style={styles.ledgerHeader}>
-                        <Text style={styles.sectionTitle}>Transaction Ledger</Text>
-                        <Text style={styles.ledgerCount}>{transactions.length} total</Text>
-                    </View>
+                                    <View style={styles.savingsBox}>
+                                        <Text style={styles.savingsLabel}>Total Savings</Text>
+                                        <Text style={styles.savingsValue}>₹ {reportData.savings.toLocaleString()}</Text>
+                                    </View>
+                                </View>
+                            )}
 
-                    {transactions.length === 0 ? (
+                            {/* Dynamic Analytics Visual Chart */}
+                            <Text style={styles.sectionTitle}>Inflow & Outflow Analytics</Text>
+                            {reportData?.chartData?.length > 0 ? (
+                                <View style={styles.chartCard}>
+                                    <View style={styles.chartContainer}>
+                                        {reportData.chartData.map((d: any, index: number) => {
+                                            const maxVal = Math.max(...reportData.chartData.map((x: any) => Math.max(x.income, x.expense)), 1);
+                                            const incHeight = (d.income / maxVal) * 100;
+                                            const expHeight = (d.expense / maxVal) * 100;
+
+                                            return (
+                                                <View key={index} style={styles.chartBarCol}>
+                                                    <View style={styles.barsRow}>
+                                                        <View style={[styles.bar, { height: `${incHeight}%`, backgroundColor: '#10b981' }]} />
+                                                        <View style={[styles.bar, { height: `${expHeight}%`, backgroundColor: '#ef4444' }]} />
+                                                    </View>
+                                                    <Text style={styles.barLabel} numberOfLines={1}>{d.label.split(' ')[0]}</Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                    <View style={styles.chartLegend}>
+                                        <View style={styles.legendItem}>
+                                            <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
+                                            <Text style={styles.legendText}>Income</Text>
+                                        </View>
+                                        <View style={styles.legendItem}>
+                                            <View style={[styles.legendDot, { backgroundColor: '#ef4444' }]} />
+                                            <Text style={styles.legendText}>Expense</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.emptyChartCard}>
+                                    <Text style={styles.emptyChartText}>No cashflow records logged yet for this year.</Text>
+                                </View>
+                            )}
+
+                            {/* Transaction Ledger */}
+                            <View style={styles.ledgerHeader}>
+                                <Text style={styles.sectionTitle}>Transaction Ledger</Text>
+                                <Text style={styles.ledgerCount}>{transactions.length} total</Text>
+                            </View>
+                        </>
+                    }
+                    ListEmptyComponent={
                         <View style={styles.emptyLedger}>
                             <Text style={styles.emptyLedgerText}>No transactions logged yet.</Text>
                         </View>
-                    ) : (
-                        transactions.map(t => (
-                            <View key={t.id} style={styles.transactionCard}>
-                                <View style={styles.ledgerLeft}>
-                                    <View style={[styles.ledgerIconBox, { backgroundColor: t.type === 'INCOME' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
-                                        <Ionicons 
-                                            name={t.type === 'INCOME' ? 'arrow-down-circle' : 'arrow-up-circle'} 
-                                            size={22} 
-                                            color={t.type === 'INCOME' ? '#10b981' : '#ef4444'} 
-                                        />
-                                    </View>
-                                    <View style={{ marginLeft: 15 }}>
-                                        <Text style={styles.ledgerCategory}>{t.category}</Text>
-                                        <Text style={styles.ledgerDesc} numberOfLines={1}>{t.description || 'No description'}</Text>
-                                        <Text style={styles.ledgerDate}>{new Date(t.date).toLocaleDateString()}</Text>
-                                    </View>
-                                </View>
-                                <Text style={[styles.ledgerAmount, { color: t.type === 'INCOME' ? '#10b981' : '#fff' }]}>
-                                    {t.type === 'INCOME' ? '+' : '-'} ₹{t.amount.toLocaleString()}
-                                </Text>
-                            </View>
-                        ))
-                    )}
-                </ScrollView>
+                    }
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                />
             )}
 
             {/* Create Transaction Modal */}

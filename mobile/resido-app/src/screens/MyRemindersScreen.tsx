@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -95,11 +95,17 @@ export default function MyRemindersScreen() {
             {loading ? (
                 <ActivityIndicator size="large" color="#fbbf24" style={{ marginTop: 60 }} />
             ) : (
-                <ScrollView
+                <FlatList
+                    data={reminders}
+                    keyExtractor={(item) => String(item.id)}
+                    renderItem={({ item }) => <ReminderCard rem={item} />}
                     contentContainerStyle={styles.content}
                     refreshControl={<RefreshControl tintColor="#fbbf24" refreshing={refreshing} onRefresh={onRefresh} />}
-                >
-                    {reminders.length === 0 ? (
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                    ListEmptyComponent={
                         <View style={styles.empty}>
                             <Ionicons name="notifications-off-outline" size={56} color="rgba(255,255,255,0.08)" />
                             <Text style={styles.emptyTitle}>No reminders for you yet</Text>
@@ -107,62 +113,62 @@ export default function MyRemindersScreen() {
                                 When an admin sends or schedules a reminder that targets you, it will appear here.
                             </Text>
                         </View>
-                    ) : (
-                        reminders.map((rem) => {
-                            const photo = rem.imageUrl ? resolveMediaUrl(rem.imageUrl) : null;
-                            return (
-                                <View key={rem.id} style={styles.card}>
-                                    <View style={styles.cardHeader}>
-                                        <View style={styles.iconBox}>
-                                            <Ionicons name="alarm-outline" size={20} color="#fbbf24" />
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.cardTitle}>{rem.title}</Text>
-                                            <Text style={styles.cardCategory}>{(rem.category || 'GENERAL').replace(/_/g, ' ')}</Text>
-                                        </View>
-                                        <View style={[styles.statusPill, rem.status === 'SENT'
-                                            ? { backgroundColor: 'rgba(16,185,129,0.15)' }
-                                            : rem.status === 'PENDING'
-                                                ? { backgroundColor: 'rgba(245,158,11,0.15)' }
-                                                : { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-                                            <Text style={[styles.statusPillText, { color: rem.status === 'SENT' ? '#10b981' : rem.status === 'PENDING' ? '#f59e0b' : '#ef4444' }]}>
-                                                {rem.status}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <Text style={styles.cardMessage}>{rem.message}</Text>
-
-                                    {photo ? <ReminderImage uri={photo} /> : null}
-
-                                    <View style={styles.metaRow}>
-                                        <View style={styles.metaItem}>
-                                            <Ionicons name="repeat-outline" size={13} color="#94a3b8" />
-                                            <Text style={styles.metaText}>{describeRecurrence(rem)}</Text>
-                                        </View>
-                                        <View style={styles.metaItem}>
-                                            <Ionicons name="people-outline" size={13} color="#94a3b8" />
-                                            <Text style={styles.metaText}>{targetLabel(rem)}</Text>
-                                        </View>
-                                    </View>
-
-                                    {rem.sentAt ? (
-                                        <View style={styles.metaItem}>
-                                            <Ionicons name="checkmark-circle-outline" size={13} color="#10b981" />
-                                            <Text style={[styles.metaText, { color: '#10b981' }]}>
-                                                Last sent {new Date(rem.sentAt).toLocaleString()}
-                                            </Text>
-                                        </View>
-                                    ) : null}
-                                </View>
-                            );
-                        })
-                    )}
-                </ScrollView>
+                    }
+                />
             )}
         </SafeAreaView>
     );
 }
+
+const ReminderCard = React.memo(function ReminderCard({ rem }: { rem: any }) {
+    const photo = rem.imageUrl ? resolveMediaUrl(rem.imageUrl) : null;
+    return (
+        <View style={styles.card}>
+            <View style={styles.cardHeader}>
+                <View style={styles.iconBox}>
+                    <Ionicons name="alarm-outline" size={20} color="#fbbf24" />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>{rem.title}</Text>
+                    <Text style={styles.cardCategory}>{(rem.category || 'GENERAL').replace(/_/g, ' ')}</Text>
+                </View>
+                <View style={[styles.statusPill, rem.status === 'SENT'
+                    ? { backgroundColor: 'rgba(16,185,129,0.15)' }
+                    : rem.status === 'PENDING'
+                        ? { backgroundColor: 'rgba(245,158,11,0.15)' }
+                        : { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+                    <Text style={[styles.statusPillText, { color: rem.status === 'SENT' ? '#10b981' : rem.status === 'PENDING' ? '#f59e0b' : '#ef4444' }]}>
+                        {rem.status}
+                    </Text>
+                </View>
+            </View>
+
+            <Text style={styles.cardMessage}>{rem.message}</Text>
+
+            {photo ? <ReminderImage uri={photo} /> : null}
+
+            <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                    <Ionicons name="repeat-outline" size={13} color="#94a3b8" />
+                    <Text style={styles.metaText}>{describeRecurrence(rem)}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                    <Ionicons name="people-outline" size={13} color="#94a3b8" />
+                    <Text style={styles.metaText}>{targetLabel(rem)}</Text>
+                </View>
+            </View>
+
+            {rem.sentAt ? (
+                <View style={styles.metaItem}>
+                    <Ionicons name="checkmark-circle-outline" size={13} color="#10b981" />
+                    <Text style={[styles.metaText, { color: '#10b981' }]}>
+                        Last sent {new Date(rem.sentAt).toLocaleString()}
+                    </Text>
+                </View>
+            ) : null}
+        </View>
+    );
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },

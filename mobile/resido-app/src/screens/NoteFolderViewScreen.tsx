@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, StatusBar, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl, TextInput, StatusBar, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,11 +10,56 @@ import { mySpaceApi } from '../services/api';
 const { width } = Dimensions.get('window');
 const columnWidth = (width - 50) / 2;
 
+// Single note card, memoized so unrelated cards don't re-render.
+const NoteCard = React.memo(function NoteCard({
+    note,
+    onOpen,
+    onMenu,
+}: {
+    note: any;
+    onOpen: (note: any) => void;
+    onMenu: (note: any) => void;
+}) {
+    return (
+        <TouchableOpacity
+            style={[styles.noteCard, { backgroundColor: note.color || '#fff' }]}
+            onPress={() => onOpen(note)}
+        >
+            <View style={styles.cardHeader}>
+                <Text
+                    style={[styles.noteTitle, note.color === '#1d4ed8' && { color: '#2D2445' }]}
+                    numberOfLines={1}
+                >
+                    {note.title}
+                </Text>
+                <TouchableOpacity
+                    style={styles.noteDotsBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={(e) => {
+                        e.stopPropagation?.();
+                        onMenu(note);
+                    }}
+                >
+                    <Ionicons name="ellipsis-vertical" size={16} color="#7A6B9C" />
+                </TouchableOpacity>
+            </View>
+            <Text
+                style={[styles.noteBody, note.color === '#1d4ed8' && { color: '#5B4B8A' }]}
+                numberOfLines={5}
+            >
+                {note.content}
+            </Text>
+            <Text style={[styles.noteDate, note.color === '#1d4ed8' && { color: '#7A6B9C' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
+        </TouchableOpacity>
+    );
+});
+
 export default function NoteFolderViewScreen() {
     const router = useRouter();
     const { id, name } = useLocalSearchParams();
     const [pages, setPages] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [menuNote, setMenuNote] = useState<any | null>(null);
 
     useFocusEffect(
@@ -35,11 +80,24 @@ export default function NoteFolderViewScreen() {
         }
     };
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadPages();
+        setRefreshing(false);
+    }, [id]);
+
     // 3-dot action sheet for a single note: share or delete. Opens the
     // shared bottom-sheet action menu with color-coded options.
-    const openNoteMenu = (note: any) => {
+    const openNoteMenu = useCallback((note: any) => {
         setMenuNote(note);
-    };
+    }, []);
+
+    const openNote = useCallback(
+        (note: any) => {
+            router.push({ pathname: '/create-note', params: { id: note.id, folderId: id, title: note.title, body: note.content } });
+        },
+        [router, id]
+    );
 
     const buildNoteMenuItems = (note: any): ActionMenuItem[] => [
         {
@@ -92,6 +150,19 @@ export default function NoteFolderViewScreen() {
         );
     };
 
+    const renderItem = useCallback(
+        ({ item }: { item: any }) => <NoteCard note={item} onOpen={openNote} onMenu={openNoteMenu} />,
+        [openNote, openNoteMenu]
+    );
+
+    const ListEmpty = loading ? (
+        <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
+    ) : (
+        <Text style={styles.emptyText}>No notes here yet. Create one!</Text>
+    );
+
+    const isEmpty = loading || pages.length === 0;
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
@@ -128,49 +199,22 @@ export default function NoteFolderViewScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-                {loading ? (
-                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
-                ) : pages.length === 0 ? (
-                    <Text style={styles.emptyText}>No notes here yet. Create one!</Text>
-                ) : (
-                    <View style={styles.gridContainer}>
-                        {pages.map((note) => (
-                            <TouchableOpacity
-                                key={note.id}
-                                style={[styles.noteCard, { backgroundColor: note.color || '#fff' }]}
-                                onPress={() => router.push({ pathname: '/create-note', params: { id: note.id, folderId: id, title: note.title, body: note.content } })}
-                            >
-                                <View style={styles.cardHeader}>
-                                    <Text
-                                        style={[styles.noteTitle, note.color === '#1d4ed8' && { color: '#2D2445' }]}
-                                        numberOfLines={1}
-                                    >
-                                        {note.title}
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={styles.noteDotsBtn}
-                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                        onPress={(e) => {
-                                            e.stopPropagation?.();
-                                            openNoteMenu(note);
-                                        }}
-                                    >
-                                        <Ionicons name="ellipsis-vertical" size={16} color="#7A6B9C" />
-                                    </TouchableOpacity>
-                                </View>
-                                <Text
-                                    style={[styles.noteBody, note.color === '#1d4ed8' && { color: '#5B4B8A' }]}
-                                    numberOfLines={5}
-                                >
-                                    {note.content}
-                                </Text>
-                                <Text style={[styles.noteDate, note.color === '#1d4ed8' && { color: '#7A6B9C' }]}>{new Date(note.updatedAt).toLocaleDateString()}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-            </ScrollView>
+            <FlatList
+                data={loading ? [] : pages}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={renderItem}
+                numColumns={2}
+                columnWrapperStyle={isEmpty ? undefined : styles.columnWrapper}
+                ListEmptyComponent={ListEmpty}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                keyboardShouldPersistTaps="handled"
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" />}
+            />
 
             {/* FAB */}
             <TouchableOpacity style={styles.fab} onPress={() => router.push({ pathname: '/create-note', params: { folderId: id } })}>
@@ -204,7 +248,8 @@ const styles = StyleSheet.create({
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#C4B5DC' },
     searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
-    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', padding: 15, gap: 15 },
+    listContent: { padding: 15, gap: 15, paddingBottom: 120 },
+    columnWrapper: { gap: 15 },
     noteCard: { width: columnWidth, padding: 16, borderRadius: 20, minHeight: 180, justifyContent: 'space-between' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
     noteTitle: { fontSize: 16, fontWeight: '800', color: '#2D2445', flex: 1, marginRight: 8 },

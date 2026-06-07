@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { communityApi, residentApi, authApi } from '../src/services/api';
@@ -165,123 +165,147 @@ export default function ViewFamiliesScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView style={styles.content}>
-                <Text style={styles.subtitle}>Browse blocks, units, and resident details.</Text>
-
-                {loadingBlocks ? (
-                    <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 20 }} />
-                ) : (
-                    <View style={styles.blocksList}>
-                        {blocks.map(block => {
-                            const isBlockExpanded = expandedBlockId === block.id;
-                            const isUnitsLoading = loadingUnits[block.id];
-                            const blockUnits = unitsCache[block.id] || [];
-
-                            return (
-                                <View key={block.id} style={styles.blockContainer}>
-                                    <TouchableOpacity 
-                                        style={[styles.blockHeader, isBlockExpanded && styles.blockHeaderActive]}
-                                        onPress={() => toggleBlock(block.id)}
-                                    >
-                                        <View style={styles.blockIconBox}>
-                                            <Ionicons name="business" size={20} color={isBlockExpanded ? '#fff' : '#4c1d95'} />
-                                        </View>
-                                        <View style={styles.blockInfo}>
-                                            <Text style={[styles.blockTitle, isBlockExpanded && styles.blockTitleActive]}>{block.name}</Text>
-                                            <Text style={[styles.blockSub, isBlockExpanded && styles.blockSubActive]}>{block._count?.units || 0} Units</Text>
-                                        </View>
-                                        <TouchableOpacity onPress={() => handleEditBlock(block)} style={{ padding: 8 }}>
-                                            <Ionicons name="pencil" size={18} color={isBlockExpanded ? '#e2e8f0' : '#64748b'} />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => handleDeleteBlock(block)} style={{ padding: 8 }}>
-                                            <Ionicons name="trash" size={18} color={isBlockExpanded ? '#fca5a5' : '#ef4444'} />
-                                        </TouchableOpacity>
-                                        <Ionicons name={isBlockExpanded ? "chevron-up" : "chevron-down"} size={20} color={isBlockExpanded ? '#fff' : '#94a3b8'} style={{ marginLeft: 8 }} />
-                                    </TouchableOpacity>
-
-                                    {isBlockExpanded && (
-                                        <View style={styles.unitsContainer}>
-                                            {isUnitsLoading ? (
-                                                <ActivityIndicator size="small" color="#4c1d95" style={{ marginVertical: 15 }} />
-                                            ) : blockUnits.length === 0 ? (
-                                                <Text style={styles.emptyText}>No units found in this block.</Text>
-                                            ) : (
-                                                blockUnits.map(unit => {
-                                                    const isUnitExpanded = expandedUnitId === unit.id;
-                                                    
-                                                    // Aggregate all members from all families in this unit
-                                                    const allMembers = unit.families?.flatMap((f: any) => f.members || []) || [];
-
-                                                    return (
-                                                        <View key={unit.id} style={styles.unitContainer}>
-                                                            <TouchableOpacity 
-                                                                style={[styles.unitHeader, isUnitExpanded && styles.unitHeaderActive]}
-                                                                onPress={() => toggleUnit(unit.id)}
-                                                            >
-                                                                <View style={styles.unitInfoRow}>
-                                                                    <Ionicons name="home" size={16} color="#4c1d95" style={{ marginRight: 8 }} />
-                                                                    <Text style={styles.unitTitle}>Unit {unit.number}</Text>
-                                                                </View>
-                                                                <View style={styles.unitInfoRow}>
-                                                                    <Text style={styles.unitSub}>{allMembers.length} Members</Text>
-                                                                    <TouchableOpacity onPress={() => handleEditUnit(unit, block.id)} style={{ padding: 6, marginLeft: 8 }}>
-                                                                        <Ionicons name="pencil" size={16} color="#64748b" />
-                                                                    </TouchableOpacity>
-                                                                    <TouchableOpacity onPress={() => handleDeleteUnit(unit, block.id)} style={{ padding: 6 }}>
-                                                                        <Ionicons name="trash" size={16} color="#ef4444" />
-                                                                    </TouchableOpacity>
-                                                                    <Ionicons name={isUnitExpanded ? "chevron-up" : "chevron-down"} size={16} color="#94a3b8" style={{ marginLeft: 8 }} />
-                                                                </View>
-                                                            </TouchableOpacity>
-
-                                                            {isUnitExpanded && (
-                                                                <View style={styles.membersContainer}>
-                                                                    {allMembers.length === 0 ? (
-                                                                        <Text style={styles.emptyText}>No residents registered here.</Text>
-                                                                    ) : (
-                                                                        allMembers.map((member: any) => (
-                                                                            <View key={member.id} style={styles.memberCard}>
-                                                                                <View style={styles.memberAvatar}>
-                                                                                    <Text style={styles.memberAvatarText}>{member.name.substring(0, 1).toUpperCase()}</Text>
-                                                                                </View>
-                                                                                <View style={styles.memberInfo}>
-                                                                                    <Text style={styles.memberName}>{member.name}</Text>
-                                                                                    <Text style={styles.memberPhone}>{member.phone}</Text>
-                                                                                </View>
-                                                                                <View style={styles.memberRoleBadge}>
-                                                                                    <Text style={styles.memberRoleText}>{member.role}</Text>
-                                                                                </View>
-                                                                                <TouchableOpacity onPress={() => handleEditMember(member, block.id)} style={{ padding: 8, marginLeft: 8 }}>
-                                                                                    <Ionicons name="pencil" size={16} color="#64748b" />
-                                                                                </TouchableOpacity>
-                                                                                <TouchableOpacity onPress={() => handleDeleteMember(member, block.id)} style={{ padding: 8 }}>
-                                                                                    <Ionicons name="trash" size={16} color="#ef4444" />
-                                                                                </TouchableOpacity>
-                                                                            </View>
-                                                                        ))
-                                                                    )}
-                                                                </View>
-                                                            )}
-                                                        </View>
-                                                    );
-                                                })
-                                            )}
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        })}
-
-                        {blocks.length === 0 && (
-                            <View style={styles.emptyState}>
-                                <Ionicons name="folder-open-outline" size={48} color="#e2e8f0" />
-                                <Text style={styles.emptyText}>No blocks available.</Text>
-                            </View>
+            <SectionList
+                style={styles.content}
+                contentContainerStyle={styles.listContent}
+                sections={loadingBlocks ? [] : blocks.map((block: any) => ({
+                    block,
+                    data: expandedBlockId === block.id ? (unitsCache[block.id] || []) : [],
+                }))}
+                keyExtractor={(item: any) => String(item.id)}
+                stickySectionHeadersEnabled={false}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                ListHeaderComponent={
+                    <View>
+                        <Text style={styles.subtitle}>Browse blocks, units, and resident details.</Text>
+                        {loadingBlocks && (
+                            <ActivityIndicator size="large" color="#4c1d95" style={{ marginTop: 20 }} />
                         )}
                     </View>
-                )}
-                <View style={{ height: 40 }} />
-            </ScrollView>
+                }
+                ListEmptyComponent={
+                    loadingBlocks ? null : (
+                        <View style={styles.emptyState}>
+                            <Ionicons name="folder-open-outline" size={48} color="#e2e8f0" />
+                            <Text style={styles.emptyText}>No blocks available.</Text>
+                        </View>
+                    )
+                }
+                ListFooterComponent={<View style={{ height: 40 }} />}
+                renderSectionHeader={({ section }: any) => {
+                    const block = section.block;
+                    const isBlockExpanded = expandedBlockId === block.id;
+                    return (
+                        <View style={[styles.blockSectionHeader, isBlockExpanded ? styles.blockSectionHeaderExpanded : styles.blockSectionHeaderCollapsed]}>
+                            <TouchableOpacity 
+                                style={[styles.blockHeader, isBlockExpanded && styles.blockHeaderActive]}
+                                onPress={() => toggleBlock(block.id)}
+                            >
+                                <View style={styles.blockIconBox}>
+                                    <Ionicons name="business" size={20} color={isBlockExpanded ? '#fff' : '#4c1d95'} />
+                                </View>
+                                <View style={styles.blockInfo}>
+                                    <Text style={[styles.blockTitle, isBlockExpanded && styles.blockTitleActive]}>{block.name}</Text>
+                                    <Text style={[styles.blockSub, isBlockExpanded && styles.blockSubActive]}>{block._count?.units || 0} Units</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => handleEditBlock(block)} style={{ padding: 8 }}>
+                                    <Ionicons name="pencil" size={18} color={isBlockExpanded ? '#e2e8f0' : '#64748b'} />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => handleDeleteBlock(block)} style={{ padding: 8 }}>
+                                    <Ionicons name="trash" size={18} color={isBlockExpanded ? '#fca5a5' : '#ef4444'} />
+                                </TouchableOpacity>
+                                <Ionicons name={isBlockExpanded ? "chevron-up" : "chevron-down"} size={20} color={isBlockExpanded ? '#fff' : '#94a3b8'} style={{ marginLeft: 8 }} />
+                            </TouchableOpacity>
+                        </View>
+                    );
+                }}
+                renderItem={({ item: unit, index, section }: any) => {
+                    const block = section.block;
+                    const isUnitExpanded = expandedUnitId === unit.id;
+                    // Aggregate all members from all families in this unit
+                    const allMembers = unit.families?.flatMap((f: any) => f.members || []) || [];
+
+                    return (
+                        <View style={[styles.unitsRowWrap, index === 0 && styles.unitsRowWrapFirst]}>
+                            <View style={styles.unitContainer}>
+                                <TouchableOpacity 
+                                    style={[styles.unitHeader, isUnitExpanded && styles.unitHeaderActive]}
+                                    onPress={() => toggleUnit(unit.id)}
+                                >
+                                    <View style={styles.unitInfoRow}>
+                                        <Ionicons name="home" size={16} color="#4c1d95" style={{ marginRight: 8 }} />
+                                        <Text style={styles.unitTitle}>Unit {unit.number}</Text>
+                                    </View>
+                                    <View style={styles.unitInfoRow}>
+                                        <Text style={styles.unitSub}>{allMembers.length} Members</Text>
+                                        <TouchableOpacity onPress={() => handleEditUnit(unit, block.id)} style={{ padding: 6, marginLeft: 8 }}>
+                                            <Ionicons name="pencil" size={16} color="#64748b" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleDeleteUnit(unit, block.id)} style={{ padding: 6 }}>
+                                            <Ionicons name="trash" size={16} color="#ef4444" />
+                                        </TouchableOpacity>
+                                        <Ionicons name={isUnitExpanded ? "chevron-up" : "chevron-down"} size={16} color="#94a3b8" style={{ marginLeft: 8 }} />
+                                    </View>
+                                </TouchableOpacity>
+
+                                {isUnitExpanded && (
+                                    <View style={styles.membersContainer}>
+                                        {allMembers.length === 0 ? (
+                                            <Text style={styles.emptyText}>No residents registered here.</Text>
+                                        ) : (
+                                            allMembers.map((member: any) => (
+                                                <View key={member.id} style={styles.memberCard}>
+                                                    <View style={styles.memberAvatar}>
+                                                        <Text style={styles.memberAvatarText}>{member.name.substring(0, 1).toUpperCase()}</Text>
+                                                    </View>
+                                                    <View style={styles.memberInfo}>
+                                                        <Text style={styles.memberName}>{member.name}</Text>
+                                                        <Text style={styles.memberPhone}>{member.phone}</Text>
+                                                    </View>
+                                                    <View style={styles.memberRoleBadge}>
+                                                        <Text style={styles.memberRoleText}>{member.role}</Text>
+                                                    </View>
+                                                    <TouchableOpacity onPress={() => handleEditMember(member, block.id)} style={{ padding: 8, marginLeft: 8 }}>
+                                                        <Ionicons name="pencil" size={16} color="#64748b" />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity onPress={() => handleDeleteMember(member, block.id)} style={{ padding: 8 }}>
+                                                        <Ionicons name="trash" size={16} color="#ef4444" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            ))
+                                        )}
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+                    );
+                }}
+                renderSectionFooter={({ section }: any) => {
+                    const block = section.block;
+                    const isBlockExpanded = expandedBlockId === block.id;
+                    if (!isBlockExpanded) return null;
+                    const isUnitsLoading = loadingUnits[block.id];
+                    const blockUnits = unitsCache[block.id] || [];
+                    if (isUnitsLoading) {
+                        return (
+                            <View style={[styles.unitsFooter, styles.unitsFooterTopBorder]}>
+                                <ActivityIndicator size="small" color="#4c1d95" style={{ marginVertical: 15 }} />
+                            </View>
+                        );
+                    }
+                    if (blockUnits.length === 0) {
+                        return (
+                            <View style={[styles.unitsFooter, styles.unitsFooterTopBorder]}>
+                                <Text style={styles.emptyText}>No units found in this block.</Text>
+                            </View>
+                        );
+                    }
+                    return <View style={styles.unitsFooter} />;
+                }}
+            />
         </SafeAreaView>
     );
 }
@@ -291,12 +315,21 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     headerTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    content: { flex: 1, padding: 20 },
+    content: { flex: 1 },
+    listContent: { padding: 20 },
     subtitle: { fontSize: 14, color: '#64748b', fontWeight: '600', marginBottom: 25 },
     
     blocksList: { gap: 12 },
     
     blockContainer: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
+    // SectionList card-continuation styling for block sections
+    blockSectionHeader: { backgroundColor: '#fff', borderColor: '#e2e8f0', overflow: 'hidden' },
+    blockSectionHeaderCollapsed: { borderRadius: 16, borderWidth: 1, marginBottom: 12 },
+    blockSectionHeaderExpanded: { borderTopLeftRadius: 16, borderTopRightRadius: 16, borderLeftWidth: 1, borderRightWidth: 1, borderTopWidth: 1 },
+    unitsRowWrap: { backgroundColor: '#f8fafc', paddingHorizontal: 12, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#e2e8f0' },
+    unitsRowWrapFirst: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 12 },
+    unitsFooter: { backgroundColor: '#f8fafc', paddingHorizontal: 12, paddingBottom: 12, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#e2e8f0', marginBottom: 12 },
+    unitsFooterTopBorder: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 4 },
     blockHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff' },
     blockHeaderActive: { backgroundColor: '#4c1d95' },
     blockIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f3e8ff', alignItems: 'center', justifyContent: 'center', marginRight: 15 },

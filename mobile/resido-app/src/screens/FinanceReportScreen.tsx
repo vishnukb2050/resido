@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Dimensions, ActivityIndicator, Linking, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar, Dimensions, ActivityIndicator, Linking, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -32,6 +32,65 @@ const shortDate = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
 };
+
+type TxRowProps = {
+    tx: any;
+    onEdit: (tx: any) => void;
+    onDelete: (tx: any) => void;
+};
+
+const TxRow = React.memo(function TxRow({ tx, onEdit, onDelete }: TxRowProps) {
+    return (
+        <TouchableOpacity
+            style={styles.txCard}
+            activeOpacity={0.85}
+            onPress={() => onEdit(tx)}
+            onLongPress={() => onDelete(tx)}
+        >
+            <View style={[styles.txIconBox, { backgroundColor: tx._kind === 'INCOME' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)' }]}>
+                <FontAwesome5
+                    name={tx._kind === 'INCOME' ? 'wallet' : 'shopping-bag'}
+                    size={16}
+                    color={tx._kind === 'INCOME' ? '#10b981' : '#ef4444'}
+                />
+            </View>
+            <View style={styles.txInfo}>
+                <Text style={styles.txTitle} numberOfLines={1}>{tx.source || tx.category}</Text>
+                <View style={styles.txSubRow}>
+                    <Text style={styles.txSubText}>{new Date(tx.date).toLocaleDateString()}</Text>
+                    {tx.paymentMethod ? (
+                        <>
+                            <View style={styles.smallDot} />
+                            <Text style={styles.txSubText}>{tx.paymentMethod}</Text>
+                        </>
+                    ) : null}
+                </View>
+                {tx.description ? <Text style={styles.txDesc} numberOfLines={1}>{tx.description}</Text> : null}
+            </View>
+            <View style={styles.txRight}>
+                <Text style={[styles.txAmount, { color: tx._kind === 'INCOME' ? '#10b981' : '#ef4444' }]}>
+                    {tx._kind === 'INCOME' ? '+' : '-'} ₹ {Number(tx.amount).toLocaleString()}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                    {(tx.billUrl || tx.receiptUrl) ? (
+                        <TouchableOpacity
+                            onPress={() => Linking.openURL(tx.billUrl || tx.receiptUrl)}
+                            style={styles.miniBtn}
+                        >
+                            <Ionicons name="receipt-outline" size={12} color="#8b5cf6" />
+                        </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity onPress={() => onEdit(tx)} style={styles.miniBtn}>
+                        <Ionicons name="create-outline" size={12} color="#8b5cf6" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => onDelete(tx)} style={styles.miniBtn}>
+                        <Ionicons name="trash-outline" size={12} color="#ef4444" />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+});
 
 export default function FinanceReportScreen() {
     const router = useRouter();
@@ -87,16 +146,16 @@ export default function FinanceReportScreen() {
         return 'All time';
     })();
 
-    const openEdit = (tx: any) => {
+    const openEdit = useCallback((tx: any) => {
         const payload = encodeURIComponent(JSON.stringify(tx));
         if (tx._kind === 'INCOME') {
             router.push({ pathname: '/add-income', params: { id: tx.id, data: payload } });
         } else {
             router.push({ pathname: '/add-expense', params: { id: tx.id, data: payload } });
         }
-    };
+    }, [router]);
 
-    const handleDelete = (tx: any) => {
+    const handleDelete = useCallback((tx: any) => {
         Alert.alert(
             'Delete entry?',
             'This entry will be removed permanently.',
@@ -117,7 +176,7 @@ export default function FinanceReportScreen() {
                 },
             ],
         );
-    };
+    }, [loadData]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -183,103 +242,63 @@ export default function FinanceReportScreen() {
                 )}
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {loading ? (
-                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
-                ) : (
-                    <>
-                        {/* Summary */}
-                        <View style={styles.summaryGrid}>
-                            <View style={styles.mainSummaryCard}>
-                                <Text style={styles.summaryLabel}>Net Balance · {periodLabel}</Text>
-                                <Text style={[styles.summaryValue, { color: summary.balance < 0 ? '#ef4444' : '#2D2445' }]}>
-                                    ₹ {Number(summary.balance).toLocaleString()}
-                                </Text>
-                                <View style={styles.summaryRow}>
-                                    <View style={styles.summaryItem}>
-                                        <View style={[styles.dot, { backgroundColor: '#10b981' }]} />
-                                        <Text style={styles.summarySubLabel}>Income</Text>
-                                        <Text style={styles.summarySubValue}>₹ {Number(summary.totalIncome).toLocaleString()}</Text>
-                                    </View>
-                                    <View style={styles.divider} />
-                                    <View style={styles.summaryItem}>
-                                        <View style={[styles.dot, { backgroundColor: '#ef4444' }]} />
-                                        <Text style={styles.summarySubLabel}>Expenses</Text>
-                                        <Text style={styles.summarySubValue}>₹ {Number(summary.totalExpense).toLocaleString()}</Text>
+            <FlatList
+                data={loading ? [] : allTransactions}
+                keyExtractor={(tx: any) => `${tx._kind}-${tx.id}`}
+                renderItem={({ item }) => (
+                    <TxRow tx={item} onEdit={openEdit} onDelete={handleDelete} />
+                )}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                ListHeaderComponent={
+                    loading ? (
+                        <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
+                    ) : (
+                        <>
+                            {/* Summary */}
+                            <View style={styles.summaryGrid}>
+                                <View style={styles.mainSummaryCard}>
+                                    <Text style={styles.summaryLabel}>Net Balance · {periodLabel}</Text>
+                                    <Text style={[styles.summaryValue, { color: summary.balance < 0 ? '#ef4444' : '#2D2445' }]}>
+                                        ₹ {Number(summary.balance).toLocaleString()}
+                                    </Text>
+                                    <View style={styles.summaryRow}>
+                                        <View style={styles.summaryItem}>
+                                            <View style={[styles.dot, { backgroundColor: '#10b981' }]} />
+                                            <Text style={styles.summarySubLabel}>Income</Text>
+                                            <Text style={styles.summarySubValue}>₹ {Number(summary.totalIncome).toLocaleString()}</Text>
+                                        </View>
+                                        <View style={styles.divider} />
+                                        <View style={styles.summaryItem}>
+                                            <View style={[styles.dot, { backgroundColor: '#ef4444' }]} />
+                                            <Text style={styles.summarySubLabel}>Expenses</Text>
+                                            <Text style={styles.summarySubValue}>₹ {Number(summary.totalExpense).toLocaleString()}</Text>
+                                        </View>
                                     </View>
                                 </View>
                             </View>
-                        </View>
 
-                        {/* Transactions */}
-                        <View style={styles.section}>
+                            {/* Transactions */}
                             <View style={styles.sectionHeader}>
                                 <Text style={styles.sectionTitle}>Transactions</Text>
                                 <Text style={styles.sectionCount}>{allTransactions.length}</Text>
                             </View>
-
-                            {allTransactions.length === 0 ? (
-                                <View style={styles.emptyContainer}>
-                                    <FontAwesome5 name="receipt" size={36} color="#D4C9E8" />
-                                    <Text style={styles.emptyText}>No transactions for this period</Text>
-                                </View>
-                            ) : (
-                                allTransactions.map((tx: any) => (
-                                    <TouchableOpacity
-                                        key={`${tx._kind}-${tx.id}`}
-                                        style={styles.txCard}
-                                        activeOpacity={0.85}
-                                        onPress={() => openEdit(tx)}
-                                        onLongPress={() => handleDelete(tx)}
-                                    >
-                                        <View style={[styles.txIconBox, { backgroundColor: tx._kind === 'INCOME' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)' }]}>
-                                            <FontAwesome5
-                                                name={tx._kind === 'INCOME' ? 'wallet' : 'shopping-bag'}
-                                                size={16}
-                                                color={tx._kind === 'INCOME' ? '#10b981' : '#ef4444'}
-                                            />
-                                        </View>
-                                        <View style={styles.txInfo}>
-                                            <Text style={styles.txTitle} numberOfLines={1}>{tx.source || tx.category}</Text>
-                                            <View style={styles.txSubRow}>
-                                                <Text style={styles.txSubText}>{new Date(tx.date).toLocaleDateString()}</Text>
-                                                {tx.paymentMethod ? (
-                                                    <>
-                                                        <View style={styles.smallDot} />
-                                                        <Text style={styles.txSubText}>{tx.paymentMethod}</Text>
-                                                    </>
-                                                ) : null}
-                                            </View>
-                                            {tx.description ? <Text style={styles.txDesc} numberOfLines={1}>{tx.description}</Text> : null}
-                                        </View>
-                                        <View style={styles.txRight}>
-                                            <Text style={[styles.txAmount, { color: tx._kind === 'INCOME' ? '#10b981' : '#ef4444' }]}>
-                                                {tx._kind === 'INCOME' ? '+' : '-'} ₹ {Number(tx.amount).toLocaleString()}
-                                            </Text>
-                                            <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                                                {(tx.billUrl || tx.receiptUrl) ? (
-                                                    <TouchableOpacity
-                                                        onPress={() => Linking.openURL(tx.billUrl || tx.receiptUrl)}
-                                                        style={styles.miniBtn}
-                                                    >
-                                                        <Ionicons name="receipt-outline" size={12} color="#8b5cf6" />
-                                                    </TouchableOpacity>
-                                                ) : null}
-                                                <TouchableOpacity onPress={() => openEdit(tx)} style={styles.miniBtn}>
-                                                    <Ionicons name="create-outline" size={12} color="#8b5cf6" />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity onPress={() => handleDelete(tx)} style={styles.miniBtn}>
-                                                    <Ionicons name="trash-outline" size={12} color="#ef4444" />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))
-                            )}
+                        </>
+                    )
+                }
+                ListEmptyComponent={
+                    loading ? null : (
+                        <View style={styles.emptyContainer}>
+                            <FontAwesome5 name="receipt" size={36} color="#D4C9E8" />
+                            <Text style={styles.emptyText}>No transactions for this period</Text>
                         </View>
-                    </>
-                )}
-            </ScrollView>
+                    )
+                }
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+            />
 
             {/* DAY picker */}
             <Modal visible={showDayPicker} transparent animationType="fade" onRequestClose={() => setShowDayPicker(false)}>
@@ -411,11 +430,11 @@ const styles = StyleSheet.create({
     divider: { width: 1, height: 30, backgroundColor: '#D4C9E8', marginHorizontal: 10 },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 24, paddingHorizontal: 20 },
     sectionTitle: { fontSize: 15, fontWeight: '800', color: '#2D2445' },
     sectionCount: { fontSize: 12, fontWeight: '800', color: '#7A6B9C' },
 
-    txCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 14, borderRadius: 18, marginBottom: 10, borderWidth: 1, borderColor: '#D4C9E8' },
+    txCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 14, borderRadius: 18, marginBottom: 10, marginHorizontal: 20, borderWidth: 1, borderColor: '#D4C9E8' },
     txIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     txInfo: { flex: 1, marginLeft: 12 },
     txTitle: { fontSize: 14, fontWeight: '800', color: '#2D2445' },
@@ -427,7 +446,7 @@ const styles = StyleSheet.create({
     txAmount: { fontSize: 14, fontWeight: '900' },
     miniBtn: { width: 24, height: 24, borderRadius: 8, backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' },
 
-    emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 30, gap: 12 },
+    emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 30, marginHorizontal: 20, gap: 12 },
     emptyText: { fontSize: 13, color: '#7A6B9C', fontWeight: '600' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(45,36,69,0.45)', justifyContent: 'center', paddingHorizontal: 20 },

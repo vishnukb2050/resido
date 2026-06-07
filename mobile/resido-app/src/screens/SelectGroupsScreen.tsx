@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, StatusBar, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, StatusBar, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,10 +32,9 @@ export default function SelectGroupsScreen() {
         }
     };
 
-    const toggleSelect = (id: string) => {
-        if (selected.includes(id)) setSelected(selected.filter(i => i !== id));
-        else setSelected([...selected, id]);
-    };
+    const toggleSelect = useCallback((id: string) => {
+        setSelected(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    }, []);
 
     const handleShare = async () => {
         if (selected.length === 0) return;
@@ -70,6 +69,14 @@ export default function SelectGroupsScreen() {
         g.name?.toLowerCase().includes(search.toLowerCase())
     );
 
+    const renderItem = useCallback(({ item }: { item: any }) => (
+        <GroupItem
+            group={item}
+            isSelected={selected.includes(item.id)}
+            onPress={toggleSelect}
+        />
+    ), [selected, toggleSelect]);
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
@@ -96,32 +103,23 @@ export default function SelectGroupsScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-                {loading ? (
-                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
-                ) : filteredGroups.length === 0 ? (
-                    <Text style={styles.emptyText}>No groups found</Text>
-                ) : (
-                    filteredGroups.map(group => (
-                        <TouchableOpacity 
-                            key={group.id} 
-                            style={styles.groupItem}
-                            onPress={() => toggleSelect(group.id)}
-                        >
-                            <View style={[styles.groupIconBox, { backgroundColor: '#8b5cf6' }]}>
-                                <Ionicons name="people" size={22} color="#fff" />
-                            </View>
-                            <View style={styles.groupInfo}>
-                                <Text style={styles.groupName}>{group.name || 'Unnamed Group'}</Text>
-                                <Text style={styles.groupSub}>{group.memberCount || group.members?.length || 0} Members</Text>
-                            </View>
-                            <View style={[styles.checkbox, selected.includes(group.id) && styles.checkboxActive]}>
-                                {selected.includes(group.id) && <Ionicons name="checkmark" size={14} color="#fff" />}
-                            </View>
-                        </TouchableOpacity>
-                    ))
-                )}
-            </ScrollView>
+            <FlatList
+                data={filteredGroups}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={renderItem}
+                extraData={selected}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 120 }}
+                keyboardShouldPersistTaps="handled"
+                removeClippedSubviews
+                initialNumToRender={12}
+                maxToRenderPerBatch={12}
+                windowSize={11}
+                ListEmptyComponent={loading
+                    ? <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
+                    : <Text style={styles.emptyText}>No groups found</Text>
+                }
+            />
 
             {/* Action Button */}
             <View style={styles.footer}>
@@ -136,6 +134,24 @@ export default function SelectGroupsScreen() {
         </SafeAreaView>
     );
 }
+
+const GroupItem = React.memo(({ group, isSelected, onPress }: any) => (
+    <TouchableOpacity
+        style={styles.groupItem}
+        onPress={() => onPress(group.id)}
+    >
+        <View style={[styles.groupIconBox, { backgroundColor: '#8b5cf6' }]}>
+            <Ionicons name="people" size={22} color="#fff" />
+        </View>
+        <View style={styles.groupInfo}>
+            <Text style={styles.groupName}>{group.name || 'Unnamed Group'}</Text>
+            <Text style={styles.groupSub}>{group.memberCount || group.members?.length || 0} Members</Text>
+        </View>
+        <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
+            {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+        </View>
+    </TouchableOpacity>
+));
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },

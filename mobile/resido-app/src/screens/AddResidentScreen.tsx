@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,7 +104,7 @@ export default function AddResidentScreen() {
                 <View style={{ width: 44 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            <View style={styles.scrollContent}>
                 <View style={styles.form}>
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Search Unit / Address</Text>
@@ -122,10 +122,17 @@ export default function AddResidentScreen() {
                         
                         {showUnits && (
                             <View style={styles.dropdown}>
-                                {filteredUnits.length > 0 ? (
-                                    filteredUnits.map((u: any) => (
+                                <FlatList
+                                    data={filteredUnits}
+                                    keyExtractor={(u: any) => String(u.id)}
+                                    style={{ maxHeight: 260 }}
+                                    keyboardShouldPersistTaps="handled"
+                                    removeClippedSubviews
+                                    initialNumToRender={10}
+                                    maxToRenderPerBatch={10}
+                                    windowSize={11}
+                                    renderItem={({ item: u }: { item: any }) => (
                                         <TouchableOpacity 
-                                            key={u.id} 
                                             style={styles.dropdownItem}
                                             onPress={() => {
                                                 setSelectedUnit(u);
@@ -136,10 +143,11 @@ export default function AddResidentScreen() {
                                             <Text style={styles.dropdownItemText}>{u.number}</Text>
                                             <Text style={styles.dropdownSubText}>{u.block?.name}</Text>
                                         </TouchableOpacity>
-                                    ))
-                                ) : (
-                                    <View style={styles.dropdownItem}><Text style={styles.dropdownSubText}>No matches found</Text></View>
-                                )}
+                                    )}
+                                    ListEmptyComponent={
+                                        <View style={styles.dropdownItem}><Text style={styles.dropdownSubText}>No matches found</Text></View>
+                                    }
+                                />
                             </View>
                         )}
 
@@ -178,7 +186,7 @@ export default function AddResidentScreen() {
                         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Add Resident</Text>}
                     </TouchableOpacity>
                 </View>
-            </ScrollView>
+            </View>
         </SafeAreaView>
     );
 }

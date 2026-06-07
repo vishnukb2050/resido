@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -249,122 +249,79 @@ export default function AdminAssetsScreen() {
                     <ActivityIndicator size="large" color="#fff" />
                 </View>
             ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    
-                    {/* Workspace Tag */}
-                    <View style={styles.workspaceTagRow}>
-                        <Ionicons name="business" size={16} color="#d97706" />
-                        <Text style={styles.workspaceText}>{activeWorkspace?.tenantName || 'My Township'}</Text>
-                    </View>
+                <FlatList
+                    data={filteredAssets}
+                    keyExtractor={(item) => String(item.id)}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                    renderItem={({ item: asset }) => (
+                        <AssetCard
+                            asset={asset}
+                            onEdit={() => setEditingAsset(asset)}
+                            onDelete={() => handleDeleteAsset(asset.id)}
+                        />
+                    )}
+                    ListHeaderComponent={
+                        <View>
+                            {/* Workspace Tag */}
+                            <View style={styles.workspaceTagRow}>
+                                <Ionicons name="business" size={16} color="#d97706" />
+                                <Text style={styles.workspaceText}>{activeWorkspace?.tenantName || 'My Township'}</Text>
+                            </View>
 
-                    {/* Stats Metric Panel */}
-                    <View style={styles.metricsRow}>
-                        <View style={styles.metricItem}>
-                            <Text style={styles.metricVal}>{totalCount}</Text>
-                            <Text style={styles.metricLabel}>Total Assets</Text>
+                            {/* Stats Metric Panel */}
+                            <View style={styles.metricsRow}>
+                                <View style={styles.metricItem}>
+                                    <Text style={styles.metricVal}>{totalCount}</Text>
+                                    <Text style={styles.metricLabel}>Total Assets</Text>
+                                </View>
+                                <View style={styles.verticalDivider} />
+                                <View style={styles.metricItem}>
+                                    <Text style={[styles.metricVal, { color: '#10b981' }]}>{activeCount}</Text>
+                                    <Text style={styles.metricLabel}>Operational</Text>
+                                </View>
+                                <View style={styles.verticalDivider} />
+                                <View style={styles.metricItem}>
+                                    <Text style={[styles.metricVal, { color: '#f59e0b' }]}>{maintenanceCount}</Text>
+                                    <Text style={styles.metricLabel}>In Service</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.valuationCard}>
+                                <Text style={styles.valuationLabel}>Total Inventory Valuation</Text>
+                                <Text style={styles.valuationValue}>₹ {totalValuation.toLocaleString()}</Text>
+                            </View>
+
+                            {/* Top Category Filter Slider */}
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryFilterRow}>
+                                {['ALL', 'MACHINERY', 'ELECTRONICS', 'INFRASTRUCTURE', 'FURNITURE', 'OTHER'].map(cat => (
+                                    <TouchableOpacity 
+                                        key={cat} 
+                                        style={[styles.categoryTab, filterCategory === cat && styles.categoryTabActive]}
+                                        onPress={() => setFilterCategory(cat)}
+                                    >
+                                        <Text style={[styles.categoryTabText, filterCategory === cat && styles.categoryTabTextActive]}>
+                                            {cat}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+
+                            {/* Assets Listing */}
+                            <Text style={styles.sectionTitle}>Asset Directory ({filteredAssets.length})</Text>
                         </View>
-                        <View style={styles.verticalDivider} />
-                        <View style={styles.metricItem}>
-                            <Text style={[styles.metricVal, { color: '#10b981' }]}>{activeCount}</Text>
-                            <Text style={styles.metricLabel}>Operational</Text>
-                        </View>
-                        <View style={styles.verticalDivider} />
-                        <View style={styles.metricItem}>
-                            <Text style={[styles.metricVal, { color: '#f59e0b' }]}>{maintenanceCount}</Text>
-                            <Text style={styles.metricLabel}>In Service</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.valuationCard}>
-                        <Text style={styles.valuationLabel}>Total Inventory Valuation</Text>
-                        <Text style={styles.valuationValue}>₹ {totalValuation.toLocaleString()}</Text>
-                    </View>
-
-                    {/* Top Category Filter Slider */}
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryFilterRow}>
-                        {['ALL', 'MACHINERY', 'ELECTRONICS', 'INFRASTRUCTURE', 'FURNITURE', 'OTHER'].map(cat => (
-                            <TouchableOpacity 
-                                key={cat} 
-                                style={[styles.categoryTab, filterCategory === cat && styles.categoryTabActive]}
-                                onPress={() => setFilterCategory(cat)}
-                            >
-                                <Text style={[styles.categoryTabText, filterCategory === cat && styles.categoryTabTextActive]}>
-                                    {cat}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-
-                    {/* Assets Listing */}
-                    <Text style={styles.sectionTitle}>Asset Directory ({filteredAssets.length})</Text>
-                    {filteredAssets.length === 0 ? (
+                    }
+                    ListEmptyComponent={
                         <View style={styles.emptyCard}>
                             <Ionicons name="cube-outline" size={40} color="#cbd5e1" />
                             <Text style={styles.emptyText}>No registered assets found in this category.</Text>
                         </View>
-                    ) : (
-                        filteredAssets.map(asset => (
-                            <View key={asset.id} style={styles.assetCard}>
-                                {asset.photoUrl && (
-                                    <Image source={{ uri: asset.photoUrl }} style={styles.assetImage} />
-                                )}
-                                <View style={styles.assetCardBody}>
-                                    <View style={styles.cardHeaderRow}>
-                                        <View style={{ flex: 1, marginRight: 10 }}>
-                                            <Text style={styles.assetName}>{asset.name}</Text>
-                                            <Text style={styles.assetCategory}>{asset.category}</Text>
-                                        </View>
-                                        <View style={[styles.statusBadge, getStatusStyle(asset.status)]}>
-                                            <Text style={styles.statusBadgeText}>{asset.status}</Text>
-                                        </View>
-                                    </View>
-
-                                    {/* Parameter details */}
-                                    <View style={styles.paramsGrid}>
-                                        <DetailRow icon="location" label="Location" value={asset.location || 'Not Specified'} />
-                                        <DetailRow icon="barcode" label="Serial No." value={asset.serialNumber || 'N/A'} />
-                                        <DetailRow icon="cash" label="Cost" value={asset.purchaseCost ? `₹ ${asset.purchaseCost.toLocaleString()}` : 'N/A'} />
-                                        <DetailRow icon="calendar" label="Purchased" value={asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString() : 'N/A'} />
-                                        <DetailRow icon="shield-checkmark" label="Warranty" value={asset.warrantyExpiry ? new Date(asset.warrantyExpiry).toLocaleDateString() : 'N/A'} />
-                                    </View>
-
-                                    {asset.billUrl && (
-                                        <TouchableOpacity 
-                                            style={styles.billRow} 
-                                            onPress={() => Linking.openURL(asset.billUrl)}
-                                        >
-                                            <Ionicons name="document-text" size={14} color="#10b981" style={{ marginRight: 6 }} />
-                                            <Text style={styles.billLabel}>Invoice / Bill Uploaded</Text>
-                                            <Text style={styles.billValue}>View Bill ↗</Text>
-                                        </TouchableOpacity>
-                                    )}
-
-                                    {asset.description && (
-                                        <Text style={styles.assetDescription} numberOfLines={2}>{asset.description}</Text>
-                                    )}
-
-                                    {/* Buttons */}
-                                    <View style={styles.actionsRow}>
-                                        <TouchableOpacity 
-                                            style={styles.actionBtn}
-                                            onPress={() => setEditingAsset(asset)}
-                                        >
-                                            <Ionicons name="create-outline" size={16} color="#cbd5e1" style={{ marginRight: 6 }} />
-                                            <Text style={styles.actionBtnText}>Status</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity 
-                                            style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.4)' }]}
-                                            onPress={() => handleDeleteAsset(asset.id)}
-                                        >
-                                            <Ionicons name="trash-outline" size={16} color="#ef4444" style={{ marginRight: 6 }} />
-                                            <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </View>
-                        ))
-                    )}
-                </ScrollView>
+                    }
+                />
             )}
 
             {/* Asset Status Editor Modal */}
@@ -593,6 +550,69 @@ export default function AdminAssetsScreen() {
         </SafeAreaView>
     );
 }
+
+const AssetCard = React.memo(function AssetCard({ asset, onEdit, onDelete }: { asset: any; onEdit: () => void; onDelete: () => void }) {
+    return (
+        <View style={styles.assetCard}>
+            {asset.photoUrl && (
+                <Image source={{ uri: asset.photoUrl }} style={styles.assetImage} />
+            )}
+            <View style={styles.assetCardBody}>
+                <View style={styles.cardHeaderRow}>
+                    <View style={{ flex: 1, marginRight: 10 }}>
+                        <Text style={styles.assetName}>{asset.name}</Text>
+                        <Text style={styles.assetCategory}>{asset.category}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, getStatusStyle(asset.status)]}>
+                        <Text style={styles.statusBadgeText}>{asset.status}</Text>
+                    </View>
+                </View>
+
+                {/* Parameter details */}
+                <View style={styles.paramsGrid}>
+                    <DetailRow icon="location" label="Location" value={asset.location || 'Not Specified'} />
+                    <DetailRow icon="barcode" label="Serial No." value={asset.serialNumber || 'N/A'} />
+                    <DetailRow icon="cash" label="Cost" value={asset.purchaseCost ? `₹ ${asset.purchaseCost.toLocaleString()}` : 'N/A'} />
+                    <DetailRow icon="calendar" label="Purchased" value={asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString() : 'N/A'} />
+                    <DetailRow icon="shield-checkmark" label="Warranty" value={asset.warrantyExpiry ? new Date(asset.warrantyExpiry).toLocaleDateString() : 'N/A'} />
+                </View>
+
+                {asset.billUrl && (
+                    <TouchableOpacity 
+                        style={styles.billRow} 
+                        onPress={() => Linking.openURL(asset.billUrl)}
+                    >
+                        <Ionicons name="document-text" size={14} color="#10b981" style={{ marginRight: 6 }} />
+                        <Text style={styles.billLabel}>Invoice / Bill Uploaded</Text>
+                        <Text style={styles.billValue}>View Bill ↗</Text>
+                    </TouchableOpacity>
+                )}
+
+                {asset.description && (
+                    <Text style={styles.assetDescription} numberOfLines={2}>{asset.description}</Text>
+                )}
+
+                {/* Buttons */}
+                <View style={styles.actionsRow}>
+                    <TouchableOpacity 
+                        style={styles.actionBtn}
+                        onPress={onEdit}
+                    >
+                        <Ionicons name="create-outline" size={16} color="#cbd5e1" style={{ marginRight: 6 }} />
+                        <Text style={styles.actionBtnText}>Status</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.actionBtn, { borderColor: 'rgba(239, 68, 68, 0.4)' }]}
+                        onPress={onDelete}
+                    >
+                        <Ionicons name="trash-outline" size={16} color="#ef4444" style={{ marginRight: 6 }} />
+                        <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+    );
+});
 
 function DetailRow({ icon, label, value }: { icon: string, label: string, value: string }) {
     return (

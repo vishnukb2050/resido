@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -145,83 +145,96 @@ export default function StaffDocumentsScreen() {
                     <ActivityIndicator size="large" color="#1d4ed8" />
                 </View>
             ) : (
-                <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }}>
-                    {Object.keys(staffGrouped).length === 0 ? (
+                <SectionList
+                    style={styles.content}
+                    contentContainerStyle={styles.listContent}
+                    sections={Object.keys(staffGrouped).map((category) => ({
+                        category,
+                        data: expandedCategories.includes(category) ? staffGrouped[category] : [],
+                    }))}
+                    keyExtractor={(item: any) => String(item.id)}
+                    stickySectionHeadersEnabled={false}
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                    ListEmptyComponent={
                         <View style={styles.emptyState}>
                             <Ionicons name="folder-open-outline" size={64} color="#cbd5e1" />
                             <Text style={styles.emptyStateTitle}>No Staff Found</Text>
                             <Text style={styles.emptyStateSub}>Add staff members to automatically generate category folders.</Text>
                         </View>
-                    ) : (
-                        Object.keys(staffGrouped).map((category) => {
-                            const isExpanded = expandedCategories.includes(category);
-                            const staffList = staffGrouped[category];
-
-                            return (
-                                <View key={category} style={styles.folderContainer}>
-                                    <TouchableOpacity 
-                                        style={styles.folderHeader}
-                                        onPress={() => toggleCategory(category)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <View style={styles.folderHeaderLeft}>
-                                            <Ionicons name={isExpanded ? "folder-open" : "folder"} size={28} color="#1d4ed8" />
-                                            <View style={styles.folderTitleWrapper}>
-                                                <Text style={styles.folderTitle}>{formatCategoryName(category)}</Text>
-                                                <Text style={styles.folderSubtitle}>{staffList.length} member{staffList.length !== 1 ? 's' : ''}</Text>
-                                            </View>
+                    }
+                    renderSectionHeader={({ section }: any) => {
+                        const category = section.category;
+                        const isExpanded = expandedCategories.includes(category);
+                        const staffList = staffGrouped[category] || [];
+                        return (
+                            <View style={[styles.folderSection, isExpanded ? styles.folderSectionExpanded : styles.folderSectionCollapsed]}>
+                                <TouchableOpacity 
+                                    style={styles.folderHeader}
+                                    onPress={() => toggleCategory(category)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.folderHeaderLeft}>
+                                        <Ionicons name={isExpanded ? "folder-open" : "folder"} size={28} color="#1d4ed8" />
+                                        <View style={styles.folderTitleWrapper}>
+                                            <Text style={styles.folderTitle}>{formatCategoryName(category)}</Text>
+                                            <Text style={styles.folderSubtitle}>{staffList.length} member{staffList.length !== 1 ? 's' : ''}</Text>
                                         </View>
-                                        <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={20} color="#64748b" />
-                                    </TouchableOpacity>
-
-                                    {isExpanded && (
-                                        <View style={styles.folderContent}>
-                                            {staffList.map((staff) => (
-                                                <View key={staff.id} style={styles.staffCard}>
-                                                    <View style={styles.staffCardHeader}>
-                                                        {staff.profilePhoto ? (
-                                                            <Image source={{ uri: staff.profilePhoto }} style={styles.avatar} />
-                                                        ) : (
-                                                            <View style={styles.avatarPlaceholder}>
-                                                                <Text style={styles.avatarInitial}>{staff.name.charAt(0)}</Text>
-                                                            </View>
-                                                        )}
-                                                        <View style={styles.staffInfo}>
-                                                            <Text style={styles.staffName}>{staff.name}</Text>
-                                                            <Text style={styles.staffPhone}>{staff.phone}</Text>
-                                                        </View>
-                                                    </View>
-
-                                                    <View style={styles.staffCardActions}>
-                                                        <TouchableOpacity 
-                                                            style={[styles.actionBtn, !staff.docUrl && styles.actionBtnDisabled]}
-                                                            onPress={() => handleViewDocument(staff.docUrl)}
-                                                            disabled={!staff.docUrl}
-                                                        >
-                                                            <Ionicons name="document-text" size={16} color={staff.docUrl ? "#1d4ed8" : "#94a3b8"} />
-                                                            <Text style={[styles.actionBtnText, !staff.docUrl && styles.actionBtnTextDisabled]}>
-                                                                {staff.docUrl ? 'View ID' : 'No ID'}
-                                                            </Text>
-                                                        </TouchableOpacity>
-                                                        
-                                                        <View style={styles.adminActions}>
-                                                            <TouchableOpacity style={styles.iconBtn} onPress={() => handleEdit(staff)}>
-                                                                <Ionicons name="pencil" size={18} color="#64748b" />
-                                                            </TouchableOpacity>
-                                                            <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(staff)}>
-                                                                <Ionicons name="trash" size={18} color="#ef4444" />
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    </View>
-                                                </View>
-                                            ))}
+                                    </View>
+                                    <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={20} color="#64748b" />
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    }}
+                    renderItem={({ item: staff, index }: any) => (
+                        <View style={[styles.folderContentWrap, index === 0 && styles.folderContentWrapFirst]}>
+                            <View style={styles.staffCard}>
+                                <View style={styles.staffCardHeader}>
+                                    {staff.profilePhoto ? (
+                                        <Image source={{ uri: staff.profilePhoto }} style={styles.avatar} />
+                                    ) : (
+                                        <View style={styles.avatarPlaceholder}>
+                                            <Text style={styles.avatarInitial}>{staff.name.charAt(0)}</Text>
                                         </View>
                                     )}
+                                    <View style={styles.staffInfo}>
+                                        <Text style={styles.staffName}>{staff.name}</Text>
+                                        <Text style={styles.staffPhone}>{staff.phone}</Text>
+                                    </View>
                                 </View>
-                            );
-                        })
+
+                                <View style={styles.staffCardActions}>
+                                    <TouchableOpacity 
+                                        style={[styles.actionBtn, !staff.docUrl && styles.actionBtnDisabled]}
+                                        onPress={() => handleViewDocument(staff.docUrl)}
+                                        disabled={!staff.docUrl}
+                                    >
+                                        <Ionicons name="document-text" size={16} color={staff.docUrl ? "#1d4ed8" : "#94a3b8"} />
+                                        <Text style={[styles.actionBtnText, !staff.docUrl && styles.actionBtnTextDisabled]}>
+                                            {staff.docUrl ? 'View ID' : 'No ID'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    
+                                    <View style={styles.adminActions}>
+                                        <TouchableOpacity style={styles.iconBtn} onPress={() => handleEdit(staff)}>
+                                            <Ionicons name="pencil" size={18} color="#64748b" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(staff)}>
+                                            <Ionicons name="trash" size={18} color="#ef4444" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
                     )}
-                </ScrollView>
+                    renderSectionFooter={({ section }: any) => {
+                        const isExpanded = expandedCategories.includes(section.category);
+                        if (!isExpanded) return null;
+                        return <View style={styles.folderContentFooter} />;
+                    }}
+                />
             )}
 
             <TouchableOpacity 
@@ -241,13 +254,21 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b' },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     
-    content: { padding: 16 },
+    content: { flex: 1 },
+    listContent: { padding: 16, paddingBottom: 100 },
     
     emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
     emptyStateTitle: { fontSize: 18, fontWeight: '700', color: '#475569', marginTop: 16 },
     emptyStateSub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 },
 
     folderContainer: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#94a3b8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+    // SectionList card-continuation styling for category folders
+    folderSection: { backgroundColor: '#fff', borderColor: '#e2e8f0', overflow: 'hidden' },
+    folderSectionCollapsed: { borderRadius: 16, borderWidth: 1, marginBottom: 16, shadowColor: '#94a3b8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+    folderSectionExpanded: { borderTopLeftRadius: 16, borderTopRightRadius: 16, borderLeftWidth: 1, borderRightWidth: 1, borderTopWidth: 1 },
+    folderContentWrap: { backgroundColor: '#fcfcfd', paddingHorizontal: 16, borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#e2e8f0' },
+    folderContentWrapFirst: { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 },
+    folderContentFooter: { backgroundColor: '#fcfcfd', paddingBottom: 4, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#e2e8f0', marginBottom: 16 },
     folderHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff' },
     folderHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
     folderTitleWrapper: { marginLeft: 16 },

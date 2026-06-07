@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Image, Dimensions, StatusBar, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, TextInput, Image, Dimensions, StatusBar, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -622,16 +622,13 @@ export default function ServiceSearchScreen() {
         }
     };
 
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-            >
-                
+    // Primary marketplace list is the root virtualized scroller. When the
+    // user must pick a location first, or while results are loading, we feed
+    // an empty list so the ListEmptyComponent renders the right gate/spinner.
+    const listData = locationRequired || loading ? [] : profiles;
+
+    const ListHeader = (
+        <>
                 <View style={styles.header}>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.headerTitle}>Services</Text>
@@ -1011,170 +1008,110 @@ export default function ServiceSearchScreen() {
                         <TouchableOpacity><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
                     ) : null}
                 </View>
+        </>
+    );
 
-                {locationRequired ? (
-                    <View style={styles.locationGate}>
-                        <Ionicons name="location" size={28} color="#1d4ed8" style={{ marginBottom: 10 }} />
-                        <Text style={styles.locationGateTitle}>Select a location</Text>
-                        <Text style={styles.locationGateText}>
-                            Tell us where you need this service and we'll show you matching professionals
-                            who serve that area.
-                        </Text>
-                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                            <TouchableOpacity
-                                style={styles.locationGateBtn}
-                                onPress={() => {
-                                    setTimeout(() => locationInputRef.current?.focus(), 100);
-                                }}
-                            >
-                                <Ionicons name="search" size={14} color="#ffffff" />
-                                <Text style={styles.locationGateBtnText}>Type Area / Pincode</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.locationGateBtn, { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#1d4ed8' }]}
-                                onPress={handleUseCurrentLocation}
-                            >
-                                <MaterialCommunityIcons name="crosshairs-gps" size={14} color="#1d4ed8" />
-                                <Text style={[styles.locationGateBtnText, { color: '#1d4ed8' }]}>Use My GPS</Text>
-                            </TouchableOpacity>
+    const ListEmpty = locationRequired ? (
+        <View style={styles.locationGate}>
+            <Ionicons name="location" size={28} color="#1d4ed8" style={{ marginBottom: 10 }} />
+            <Text style={styles.locationGateTitle}>Select a location</Text>
+            <Text style={styles.locationGateText}>
+                Tell us where you need this service and we'll show you matching professionals
+                who serve that area.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                    style={styles.locationGateBtn}
+                    onPress={() => {
+                        setTimeout(() => locationInputRef.current?.focus(), 100);
+                    }}
+                >
+                    <Ionicons name="search" size={14} color="#ffffff" />
+                    <Text style={styles.locationGateBtnText}>Type Area / Pincode</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.locationGateBtn, { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#1d4ed8' }]}
+                    onPress={handleUseCurrentLocation}
+                >
+                    <MaterialCommunityIcons name="crosshairs-gps" size={14} color="#1d4ed8" />
+                    <Text style={[styles.locationGateBtnText, { color: '#1d4ed8' }]}>Use My GPS</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    ) : loading ? (
+        <View style={{ padding: 40, alignItems: 'center' }}>
+            <ActivityIndicator color="#1d4ed8" size="large" />
+            <Text style={{ marginTop: 12, color: '#64748b' }}>Finding best matches...</Text>
+        </View>
+    ) : (
+        <View style={styles.prosList}>
+            <View style={{ padding: 40, alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 10 }}>
+                <Ionicons name="business-outline" size={48} color="#94a3b8" style={{ marginBottom: 12 }} />
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 4 }}>No Providers in this Area</Text>
+                <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 18 }}>
+                    {selectedLocationName
+                        ? `No professionals are registered for "${activeCat !== 'all' ? CATEGORIES.find(c => c.id === activeCat)?.name + ' in ' : ''}${selectedLocationName}". Try a different area or category.`
+                        : isSearching
+                            ? 'No professionals match your filters. Try changing the category or selecting a different location.'
+                            : 'Pick an area or use "Near Me" to discover nearby professionals.'}
+                </Text>
+            </View>
+        </View>
+    );
+
+    const ListFooter = (
+        <>
+            {!isSearching && (
+                <View style={{ marginTop: 25 }}>
+                    <View style={styles.featuresRow}>
+                        <FeatureItem icon="shield-checkmark-outline" label="Verified" sub="Background verified" />
+                        <FeatureItem icon="star-outline" label="Ratings" sub="Real customer reviews" />
+                        <FeatureItem icon="shield-outline" label="Secure" sub="Safe & trusted payments" />
+                        <FeatureItem icon="headset-outline" label="Support" sub="24/7 customer support" />
+                    </View>
+
+                    <View style={styles.postJobCard}>
+                        <View style={styles.postJobIcon}>
+                            <Ionicons name="pricetag" size={24} color="#1d4ed8" />
                         </View>
+                        <View style={styles.postJobText}>
+                            <Text style={styles.postJobTitle}>Post a Job for Free</Text>
+                            <Text style={styles.postJobSubtitle}>Tell us what you need, professionals will reach out to you.</Text>
+                        </View>
+                        <TouchableOpacity style={styles.postJobBtn}>
+                            <Text style={styles.postJobBtnText}>Post a Job</Text>
+                        </TouchableOpacity>
                     </View>
-                ) : loading ? (
-                    <View style={{ padding: 40, alignItems: 'center' }}>
-                        <ActivityIndicator color="#1d4ed8" size="large" />
-                        <Text style={{ marginTop: 12, color: '#64748b' }}>Finding best matches...</Text>
-                    </View>
-                ) : (
-                    <View style={styles.prosList}>
-                        {profiles.length > 0 ? (
-                            profiles.map((pro: any) => {
-                                // Lowest priced billable service for this profile.
-                                // Show "Starts ₹X" only when at least one service
-                                // has a real, positive price; otherwise omit the
-                                // badge entirely so we never render a "₹---" or
-                                // "₹0" placeholder.
-                                const positiveServicePrices = (pro.services || [])
-                                    .map((s: any) => Number(s?.price))
-                                    .filter((n: number) => Number.isFinite(n) && n > 0);
-                                const minPrice = positiveServicePrices.length
-                                    ? Math.min(...positiveServicePrices)
-                                    : null;
+                </View>
+            )}
 
-                                const owner = pro.userId ? ownerIdentities[pro.userId] : null;
-                                const ownerLocked =
-                                    !!owner &&
-                                    owner.profileVisibility &&
-                                    owner.profileVisibility !== 'GLOBAL';
-                                return (
-                                <TouchableOpacity 
-                                    key={pro.id} 
-                                    style={styles.proCard}
-                                    onPress={() => router.push({ pathname: '/business-detail', params: { id: pro.id } })}
-                                >
-                                    <View style={styles.proImagePlaceholder}>
-                                        {pro.logo ? (
-                                            <Image source={{ uri: pro.logo }} style={{ width: 60, height: 60, borderRadius: 30, resizeMode: 'cover' }} />
-                                        ) : (
-                                            <Ionicons name="person" size={30} color="#cbd5e1" />
-                                        )}
-                                    </View>
-                                    <View style={styles.proInfo}>
-                                        <View style={styles.proNameRow}>
-                                            <Text style={styles.proName}>{pro.businessName || pro.name}</Text>
-                                            {pro.isVerified && <Ionicons name="checkmark-circle" size={16} color="#1d4ed8" />}
-                                        </View>
-                                        <Text style={styles.proCat}>{pro.category} • {pro.experience || 'Experienced'}</Text>
-                                        <View style={styles.proLocRow}>
-                                            <Ionicons name="location-outline" size={14} color="#64748b" />
-                                            <Text style={styles.proLocText}>
-                                                {pro.distanceKm != null
-                                                    ? `${Number(pro.distanceKm).toFixed(1)} km away`
-                                                    : (pro.area || pro.location || 'Service area')}
-                                            </Text>
-                                        </View>
-                                        {pro.slots && pro.slots.length > 0 ? (
-                                            <View style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                                <Ionicons name="calendar" size={10} color="#10b981" />
-                                                <Text style={{ color: '#10b981', fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>Book Online</Text>
-                                            </View>
-                                        ) : null}
-                                        {owner ? (
-                                            <TouchableOpacity
-                                                style={styles.ownerChip}
-                                                activeOpacity={0.8}
-                                                onPress={(e) => {
-                                                    e.stopPropagation?.();
-                                                    router.push({ pathname: '/user-profile', params: { id: owner.id } });
-                                                }}
-                                            >
-                                                {owner.profilePhoto ? (
-                                                    <Image source={{ uri: owner.profilePhoto }} style={styles.ownerChipAvatar} />
-                                                ) : (
-                                                    <View style={[styles.ownerChipAvatar, { backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' }]}>
-                                                        <Ionicons name="person" size={10} color="#8b5cf6" />
-                                                    </View>
-                                                )}
-                                                <Text style={styles.ownerChipText} numberOfLines={1}>
-                                                    by {owner.name || `@${owner.profileName}` || 'owner'}
-                                                </Text>
-                                                {ownerLocked ? (
-                                                    <Ionicons name="lock-closed" size={10} color="#8b5cf6" style={{ marginLeft: 4 }} />
-                                                ) : null}
-                                            </TouchableOpacity>
-                                        ) : null}
-                                    </View>
-                                    {minPrice != null && (
-                                        <View style={styles.proRight}>
-                                            <View style={styles.priceBadge}>
-                                                <Text style={styles.priceText}>Starts ₹{minPrice.toLocaleString()}</Text>
-                                            </View>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                                );
-                            })
-                        ) : (
-                            <View style={{ padding: 40, alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 10 }}>
-                                <Ionicons name="business-outline" size={48} color="#94a3b8" style={{ marginBottom: 12 }} />
-                                <Text style={{ fontSize: 16, fontWeight: '800', color: '#2D2445', marginBottom: 4 }}>No Providers in this Area</Text>
-                                <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 18 }}>
-                                    {selectedLocationName
-                                        ? `No professionals are registered for "${activeCat !== 'all' ? CATEGORIES.find(c => c.id === activeCat)?.name + ' in ' : ''}${selectedLocationName}". Try a different area or category.`
-                                        : isSearching
-                                            ? 'No professionals match your filters. Try changing the category or selecting a different location.'
-                                            : 'Pick an area or use "Near Me" to discover nearby professionals.'}
-                                </Text>
-                            </View>
-                        )}
+            <View style={{ height: 120 }} />
+        </>
+    );
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
+            <FlatList
+                data={listData}
+                keyExtractor={(item: any) => String(item.id)}
+                renderItem={({ item }) => (
+                    <View style={{ paddingHorizontal: 20 }}>
+                        <ProCard pro={item} ownerIdentities={ownerIdentities} router={router} />
                     </View>
                 )}
-
-                {!isSearching && (
-                    <>
-                        <View style={styles.featuresRow}>
-                            <FeatureItem icon="shield-checkmark-outline" label="Verified" sub="Background verified" />
-                            <FeatureItem icon="star-outline" label="Ratings" sub="Real customer reviews" />
-                            <FeatureItem icon="shield-outline" label="Secure" sub="Safe & trusted payments" />
-                            <FeatureItem icon="headset-outline" label="Support" sub="24/7 customer support" />
-                        </View>
-
-                        <View style={styles.postJobCard}>
-                            <View style={styles.postJobIcon}>
-                                <Ionicons name="pricetag" size={24} color="#1d4ed8" />
-                            </View>
-                            <View style={styles.postJobText}>
-                                <Text style={styles.postJobTitle}>Post a Job for Free</Text>
-                                <Text style={styles.postJobSubtitle}>Tell us what you need, professionals will reach out to you.</Text>
-                            </View>
-                            <TouchableOpacity style={styles.postJobBtn}>
-                                <Text style={styles.postJobBtnText}>Post a Job</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </>
-                )}
-
-                <View style={{ height: 120 }} />
-            </ScrollView>
+                ListHeaderComponent={ListHeader}
+                ListEmptyComponent={ListEmpty}
+                ListFooterComponent={ListFooter}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+            />
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>
@@ -1194,6 +1131,91 @@ function FeatureItem({ icon, label, sub }: any) {
         </View>
     );
 }
+
+const ProCard = React.memo(function ProCard({ pro, ownerIdentities, router }: any) {
+    // Lowest priced billable service for this profile. Show "Starts ₹X" only
+    // when at least one service has a real, positive price; otherwise omit the
+    // badge entirely so we never render a "₹---" or "₹0" placeholder.
+    const positiveServicePrices = (pro.services || [])
+        .map((s: any) => Number(s?.price))
+        .filter((n: number) => Number.isFinite(n) && n > 0);
+    const minPrice = positiveServicePrices.length
+        ? Math.min(...positiveServicePrices)
+        : null;
+
+    const owner = pro.userId ? ownerIdentities[pro.userId] : null;
+    const ownerLocked =
+        !!owner &&
+        owner.profileVisibility &&
+        owner.profileVisibility !== 'GLOBAL';
+
+    return (
+        <TouchableOpacity
+            style={styles.proCard}
+            onPress={() => router.push({ pathname: '/business-detail', params: { id: pro.id } })}
+        >
+            <View style={styles.proImagePlaceholder}>
+                {pro.logo ? (
+                    <Image source={{ uri: pro.logo }} style={{ width: 60, height: 60, borderRadius: 30, resizeMode: 'cover' }} />
+                ) : (
+                    <Ionicons name="person" size={30} color="#cbd5e1" />
+                )}
+            </View>
+            <View style={styles.proInfo}>
+                <View style={styles.proNameRow}>
+                    <Text style={styles.proName}>{pro.businessName || pro.name}</Text>
+                    {pro.isVerified && <Ionicons name="checkmark-circle" size={16} color="#1d4ed8" />}
+                </View>
+                <Text style={styles.proCat}>{pro.category} • {pro.experience || 'Experienced'}</Text>
+                <View style={styles.proLocRow}>
+                    <Ionicons name="location-outline" size={14} color="#64748b" />
+                    <Text style={styles.proLocText}>
+                        {pro.distanceKm != null
+                            ? `${Number(pro.distanceKm).toFixed(1)} km away`
+                            : (pro.area || pro.location || 'Service area')}
+                    </Text>
+                </View>
+                {pro.slots && pro.slots.length > 0 ? (
+                    <View style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name="calendar" size={10} color="#10b981" />
+                        <Text style={{ color: '#10b981', fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>Book Online</Text>
+                    </View>
+                ) : null}
+                {owner ? (
+                    <TouchableOpacity
+                        style={styles.ownerChip}
+                        activeOpacity={0.8}
+                        onPress={(e) => {
+                            e.stopPropagation?.();
+                            router.push({ pathname: '/user-profile', params: { id: owner.id } });
+                        }}
+                    >
+                        {owner.profilePhoto ? (
+                            <Image source={{ uri: owner.profilePhoto }} style={styles.ownerChipAvatar} />
+                        ) : (
+                            <View style={[styles.ownerChipAvatar, { backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' }]}>
+                                <Ionicons name="person" size={10} color="#8b5cf6" />
+                            </View>
+                        )}
+                        <Text style={styles.ownerChipText} numberOfLines={1}>
+                            by {owner.name || `@${owner.profileName}` || 'owner'}
+                        </Text>
+                        {ownerLocked ? (
+                            <Ionicons name="lock-closed" size={10} color="#8b5cf6" style={{ marginLeft: 4 }} />
+                        ) : null}
+                    </TouchableOpacity>
+                ) : null}
+            </View>
+            {minPrice != null && (
+                <View style={styles.proRight}>
+                    <View style={styles.priceBadge}>
+                        <Text style={styles.priceText}>Starts ₹{minPrice.toLocaleString()}</Text>
+                    </View>
+                </View>
+            )}
+        </TouchableOpacity>
+    );
+});
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fcfcfd' },

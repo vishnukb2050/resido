@@ -338,7 +338,27 @@ export default function EventsScreen() {
                 {!isAdmin && <View style={{ width: 44 }} />}
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <FlatList
+                data={loading ? [] : visibleEvents}
+                keyExtractor={(item: any) => String(item.id)}
+                renderItem={({ item }: { item: any }) => (
+                    <View style={{ paddingHorizontal: 20 }}>
+                        <EventCard
+                            event={item}
+                            isAdmin={isAdmin}
+                            deleting={deleting === item.id}
+                            onDelete={() => handleDelete(item.id, item.title)}
+                            viewMode={viewMode}
+                        />
+                    </View>
+                )}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                ListHeaderComponent={
+                    <View>
                 {/* Calendar */}
                 {viewMode === 'month' && (
                     <Calendar
@@ -481,8 +501,8 @@ export default function EventsScreen() {
                     ))}
                 </View>
 
-                {/* Events List */}
-                <View style={styles.eventsSection}>
+                {/* Events List Header */}
+                <View style={[styles.eventsSection, { paddingBottom: 0 }]}>
                     <View style={styles.sectionHeaderRow}>
                         <View style={styles.dateChip}>
                             <Ionicons name="calendar" size={14} color="#3b82f6" />
@@ -492,20 +512,12 @@ export default function EventsScreen() {
                             {visibleEvents.length} event{visibleEvents.length !== 1 ? 's' : ''}
                         </Text>
                     </View>
-
-                    {loading ? (
+                </View>
+                    </View>
+                }
+                ListEmptyComponent={
+                    loading ? (
                         <ActivityIndicator color="#3b82f6" style={{ marginTop: 30 }} />
-                    ) : visibleEvents.length > 0 ? (
-                        visibleEvents.map((item: any) => (
-                            <EventCard
-                                key={item.id}
-                                event={item}
-                                isAdmin={isAdmin}
-                                deleting={deleting === item.id}
-                                onDelete={() => handleDelete(item.id, item.title)}
-                                viewMode={viewMode}
-                            />
-                        ))
                     ) : (
                         <View style={styles.emptyState}>
                             <View style={styles.emptyIconBox}>
@@ -526,9 +538,10 @@ export default function EventsScreen() {
                                 </TouchableOpacity>
                             )}
                         </View>
-                    )}
-                </View>
-            </ScrollView>
+                    )
+                }
+                contentContainerStyle={{ paddingBottom: 20 }}
+            />
 
             {/* Create Event Modal */}
             <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
@@ -747,7 +760,7 @@ export default function EventsScreen() {
 
 // ── EventCard ──────────────────────────────────────────────────────────────
 
-function EventCard({ event, isAdmin, deleting, onDelete, viewMode }: any) {
+const EventCard = React.memo(function EventCard({ event, isAdmin, deleting, onDelete, viewMode }: any) {
     const start = eventTime(event.startDate);
     const end   = event.endDate ? eventTime(event.endDate) : null;
     const audiences: string[] = event.audience || [];
@@ -818,7 +831,7 @@ function EventCard({ event, isAdmin, deleting, onDelete, viewMode }: any) {
             </View>
         </View>
     );
-}
+});
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 

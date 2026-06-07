@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, Dimensions, StatusBar, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl, Dimensions, StatusBar, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -120,117 +120,31 @@ export default function ManageBusinessScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView 
+            <FlatList
+                data={profiles}
+                keyExtractor={(item: any) => String(item.id)}
+                renderItem={({ item }) => (
+                    <ProfileCard
+                        profile={item}
+                        router={router}
+                        onDelete={handleDeleteProfile}
+                        onShowQr={(p: any) => {
+                            setSelectedQrProfile(p);
+                            setQrVisible(true);
+                        }}
+                    />
+                )}
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />}
-            >
-                {profiles.length === 0 ? renderEmptyState() : (
-                    <>
+                ListHeaderComponent={
+                    profiles.length > 0 ? (
                         <Text style={styles.sectionTitle}>Your Businesses ({profiles.length})</Text>
-                        {profiles.map((profile) => (
-                            <TouchableOpacity 
-                                key={profile.id} 
-                                style={styles.profileCard}
-                                onPress={() => router.push({ pathname: '/business-detail', params: { id: profile.id } })}
-                            >
-                                <View style={styles.profileInfo}>
-                                    <View style={styles.logoContainer}>
-                                        {profile.logo ? (
-                                            <Image source={{ uri: profile.logo }} style={styles.logo} />
-                                        ) : (
-                                            <View style={styles.logoPlaceholder}>
-                                                <Ionicons name="business" size={24} color="#8b5cf6" />
-                                            </View>
-                                        )}
-                                    </View>
-                                    <View style={styles.textDetails}>
-                                        <Text style={styles.businessName}>{profile.businessName}</Text>
-                                        <Text style={styles.categoryText}>{profile.category}</Text>
-                                        <View style={styles.statusBadge}>
-                                            <View style={[styles.statusDot, { backgroundColor: profile.isActive ? '#10b981' : '#ef4444' }]} />
-                                            <Text style={styles.statusText}>{profile.isActive ? 'Active' : 'Inactive'}</Text>
-                                        </View>
-                                    </View>
-                                    <TouchableOpacity 
-                                        style={styles.editBtn}
-                                        onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id } })}
-                                    >
-                                        <Feather name="edit-3" size={20} color="#8b5cf6" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        style={styles.deleteBtn}
-                                        onPress={() => handleDeleteProfile(profile)}
-                                    >
-                                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                                    </TouchableOpacity>
-                                </View>
-                                
-                                <View style={styles.quickActionsContainer}>
-                                    <TouchableOpacity 
-                                        style={styles.quickActionBtn}
-                                        onPress={() => {
-                                            setSelectedQrProfile(profile);
-                                            setQrVisible(true);
-                                        }}
-                                    >
-                                        <Ionicons name="qr-code-outline" size={16} color="#fbbf24" />
-                                        <Text style={styles.quickActionText}>QR Code</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <TouchableOpacity 
-                                    style={styles.manageSlotsBtn}
-                                    onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, manageSlots: 'true' } })}
-                                >
-                                    <Ionicons name="time" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                                    <Text style={styles.manageSlotsBtnText}>Manage Booking Slots</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.manageBookingsBtn}
-                                    onPress={() => router.push({ pathname: '/business-bookings-manage', params: { profileId: profile.id } })}
-                                >
-                                    <Ionicons name="people" size={16} color="#8b5cf6" style={{ marginRight: 6 }} />
-                                    <Text style={styles.manageBookingsBtnText}>Manage Bookings</Text>
-                                </TouchableOpacity>
-
-                                {profile.workingHours && typeof profile.workingHours === 'object' && (profile.workingHours as any).enableBills && (
-                                    <TouchableOpacity
-                                        style={styles.manageInvoicesBtn}
-                                        onPress={() => router.push({ pathname: '/business-invoices', params: { profileId: profile.id } })}
-                                    >
-                                        <Ionicons name="document-text" size={16} color="#10b981" style={{ marginRight: 6 }} />
-                                        <Text style={styles.manageInvoicesBtnText}>Bills & Invoices</Text>
-                                    </TouchableOpacity>
-                                )}
-
-                                {/* Two-tab strip: live view count + tappable Reports.
-                                    Replaces the old Services/Views/Leads triad —
-                                    owners now get analytics they can actually
-                                    drill into. */}
-                                <View style={styles.statsRow}>
-                                    <View style={styles.statBox}>
-                                        <Ionicons name="eye" size={16} color="#8b5cf6" style={{ marginBottom: 4 }} />
-                                        <Text style={styles.statValue}>{profile.viewCount || 0}</Text>
-                                        <Text style={styles.statLabel}>Views</Text>
-                                    </View>
-                                    <View style={styles.statDivider} />
-                                    <TouchableOpacity
-                                        style={styles.statBox}
-                                        onPress={(e) => {
-                                            e.stopPropagation?.();
-                                            router.push({ pathname: '/business-reports', params: { profileId: profile.id } });
-                                        }}
-                                    >
-                                        <Ionicons name="document-text" size={16} color="#10b981" style={{ marginBottom: 4 }} />
-                                        <Text style={[styles.statValue, { color: '#10b981' }]}>Open</Text>
-                                        <Text style={styles.statLabel}>Reports</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                        
-                        <TouchableOpacity 
+                    ) : null
+                }
+                ListEmptyComponent={renderEmptyState()}
+                ListFooterComponent={
+                    profiles.length > 0 ? (
+                        <TouchableOpacity
                             style={styles.addAnotherCard}
                             onPress={() => router.push('/business-profile')}
                         >
@@ -239,9 +153,13 @@ export default function ManageBusinessScreen() {
                             </View>
                             <Text style={styles.addText}>Add Another Business</Text>
                         </TouchableOpacity>
-                    </>
-                )}
-            </ScrollView>
+                    ) : null
+                }
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+            />
 
             {/* Modal for QR Code Display */}
             {selectedQrProfile && (
@@ -286,6 +204,107 @@ export default function ManageBusinessScreen() {
         </SafeAreaView>
     );
 }
+
+const ProfileCard = React.memo(function ProfileCard({ profile, router, onDelete, onShowQr }: any) {
+    return (
+        <TouchableOpacity
+            style={styles.profileCard}
+            onPress={() => router.push({ pathname: '/business-detail', params: { id: profile.id } })}
+        >
+            <View style={styles.profileInfo}>
+                <View style={styles.logoContainer}>
+                    {profile.logo ? (
+                        <Image source={{ uri: profile.logo }} style={styles.logo} />
+                    ) : (
+                        <View style={styles.logoPlaceholder}>
+                            <Ionicons name="business" size={24} color="#8b5cf6" />
+                        </View>
+                    )}
+                </View>
+                <View style={styles.textDetails}>
+                    <Text style={styles.businessName}>{profile.businessName}</Text>
+                    <Text style={styles.categoryText}>{profile.category}</Text>
+                    <View style={styles.statusBadge}>
+                        <View style={[styles.statusDot, { backgroundColor: profile.isActive ? '#10b981' : '#ef4444' }]} />
+                        <Text style={styles.statusText}>{profile.isActive ? 'Active' : 'Inactive'}</Text>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    style={styles.editBtn}
+                    onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id } })}
+                >
+                    <Feather name="edit-3" size={20} color="#8b5cf6" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => onDelete(profile)}
+                >
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.quickActionsContainer}>
+                <TouchableOpacity
+                    style={styles.quickActionBtn}
+                    onPress={() => onShowQr(profile)}
+                >
+                    <Ionicons name="qr-code-outline" size={16} color="#fbbf24" />
+                    <Text style={styles.quickActionText}>QR Code</Text>
+                </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+                style={styles.manageSlotsBtn}
+                onPress={() => router.push({ pathname: '/business-profile', params: { id: profile.id, manageSlots: 'true' } })}
+            >
+                <Ionicons name="time" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.manageSlotsBtnText}>Manage Booking Slots</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.manageBookingsBtn}
+                onPress={() => router.push({ pathname: '/business-bookings-manage', params: { profileId: profile.id } })}
+            >
+                <Ionicons name="people" size={16} color="#8b5cf6" style={{ marginRight: 6 }} />
+                <Text style={styles.manageBookingsBtnText}>Manage Bookings</Text>
+            </TouchableOpacity>
+
+            {profile.workingHours && typeof profile.workingHours === 'object' && (profile.workingHours as any).enableBills && (
+                <TouchableOpacity
+                    style={styles.manageInvoicesBtn}
+                    onPress={() => router.push({ pathname: '/business-invoices', params: { profileId: profile.id } })}
+                >
+                    <Ionicons name="document-text" size={16} color="#10b981" style={{ marginRight: 6 }} />
+                    <Text style={styles.manageInvoicesBtnText}>Bills & Invoices</Text>
+                </TouchableOpacity>
+            )}
+
+            {/* Two-tab strip: live view count + tappable Reports.
+                Replaces the old Services/Views/Leads triad —
+                owners now get analytics they can actually
+                drill into. */}
+            <View style={styles.statsRow}>
+                <View style={styles.statBox}>
+                    <Ionicons name="eye" size={16} color="#8b5cf6" style={{ marginBottom: 4 }} />
+                    <Text style={styles.statValue}>{profile.viewCount || 0}</Text>
+                    <Text style={styles.statLabel}>Views</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <TouchableOpacity
+                    style={styles.statBox}
+                    onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push({ pathname: '/business-reports', params: { profileId: profile.id } });
+                    }}
+                >
+                    <Ionicons name="document-text" size={16} color="#10b981" style={{ marginBottom: 4 }} />
+                    <Text style={[styles.statValue, { color: '#10b981' }]}>Open</Text>
+                    <Text style={styles.statLabel}>Reports</Text>
+                </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
+    );
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, Alert, FlatList, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, StatusBar, ActivityIndicator, Alert, FlatList, Modal, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -145,10 +145,25 @@ export default function UserProfileScreen() {
         ? profile.linkedBusinessProfiles
         : [];
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+    // The vertical `threads` list is the only unbounded list on this screen, so
+    // it becomes the root FlatList. Everything else (hero, identity, bio,
+    // contact, tabs, and the horizontal flares strip) rides in ListHeaderComponent
+    // — a horizontal FlatList inside a vertical list header is allowed and avoids
+    // the "VirtualizedLists should never be nested" warning we had before.
+    const showThreadList = !isRestricted && tab === 'POSTS' && !postsLoading;
+    const threadData = showThreadList ? threads : [];
+
+    const renderThread = ({ item: t }: { item: any }) => (
+        <View style={styles.threadItemWrap}>
+            <ThreadCard
+                thread={t}
+                onPress={() => router.push({ pathname: '/thread-detail', params: { id: t.id } })}
+            />
+        </View>
+    );
+
+    const listHeader = (
+        <>
                 <View style={styles.heroHeader}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
                         <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -441,41 +456,7 @@ export default function UserProfileScreen() {
                                         ) : null}
 
                                         {threads.length > 0 ? (
-                                            <>
-                                                <Text style={[styles.subSection, { marginTop: 16 }]}>Threads</Text>
-                                                {threads.map((t) => (
-                                                    <TouchableOpacity
-                                                        key={t.id}
-                                                        style={styles.threadCard}
-                                                        activeOpacity={0.85}
-                                                        onPress={() => router.push({ pathname: '/thread-detail', params: { id: t.id } })}
-                                                    >
-                                                        {t.title ? (
-                                                            <Text style={styles.threadTitle} numberOfLines={2}>
-                                                                {t.title}
-                                                            </Text>
-                                                        ) : null}
-                                                        {t.content ? (
-                                                            <Text style={styles.threadContent} numberOfLines={3}>
-                                                                {t.content}
-                                                            </Text>
-                                                        ) : null}
-                                                        <View style={styles.threadMetaRow}>
-                                                            <View style={styles.threadVisChip}>
-                                                                <Ionicons
-                                                                    name={t.visibility === 'PUBLIC' ? 'earth' : 'lock-closed'}
-                                                                    size={10}
-                                                                    color="#7A6B9C"
-                                                                />
-                                                                <Text style={styles.threadVisText}>{t.visibility || 'PUBLIC'}</Text>
-                                                            </View>
-                                                            <Text style={styles.threadDate}>
-                                                                {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : ''}
-                                                            </Text>
-                                                        </View>
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </>
+                                            <Text style={[styles.subSection, { marginTop: 16 }]}>Threads</Text>
                                         ) : null}
                                     </>
                                 )}
@@ -483,7 +464,24 @@ export default function UserProfileScreen() {
                         )}
                     </>
                 )}
-            </ScrollView>
+        </>
+    );
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+            <FlatList
+                data={threadData}
+                keyExtractor={(t) => t.id}
+                renderItem={renderThread}
+                ListHeaderComponent={listHeader}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 80 }}
+                removeClippedSubviews
+                initialNumToRender={8}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+            />
 
             {/* Full-screen flare player */}
             <Modal
@@ -519,6 +517,36 @@ export default function UserProfileScreen() {
         </SafeAreaView>
     );
 }
+
+const ThreadCard = React.memo(function ThreadCard({ thread: t, onPress }: { thread: any; onPress: () => void }) {
+    return (
+        <TouchableOpacity style={styles.threadCard} activeOpacity={0.85} onPress={onPress}>
+            {t.title ? (
+                <Text style={styles.threadTitle} numberOfLines={2}>
+                    {t.title}
+                </Text>
+            ) : null}
+            {t.content ? (
+                <Text style={styles.threadContent} numberOfLines={3}>
+                    {t.content}
+                </Text>
+            ) : null}
+            <View style={styles.threadMetaRow}>
+                <View style={styles.threadVisChip}>
+                    <Ionicons
+                        name={t.visibility === 'PUBLIC' ? 'earth' : 'lock-closed'}
+                        size={10}
+                        color="#7A6B9C"
+                    />
+                    <Text style={styles.threadVisText}>{t.visibility || 'PUBLIC'}</Text>
+                </View>
+                <Text style={styles.threadDate}>
+                    {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : ''}
+                </Text>
+            </View>
+        </TouchableOpacity>
+    );
+});
 
 function BusinessCard({ biz, onOpen }: { biz: any; onOpen: () => void }) {
     const logo = resolveMediaUrl(biz.logo);
@@ -645,6 +673,7 @@ const styles = StyleSheet.create({
     },
 
     section: { paddingHorizontal: 20, marginTop: 24 },
+    threadItemWrap: { paddingHorizontal: 20 },
     sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2D2445', marginBottom: 12 },
     subSection: { fontSize: 13, fontWeight: '800', color: '#7A6B9C', marginBottom: 8, letterSpacing: 0.3 },
     bioText: { fontSize: 14, color: '#7A6B9C', lineHeight: 22 },

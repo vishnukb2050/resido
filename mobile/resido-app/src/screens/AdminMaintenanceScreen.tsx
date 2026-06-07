@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SectionList, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,147 @@ import { resolveMediaUrl } from '../utils/mediaUrl';
 type SectionMode = 'maintenance' | 'splits';
 type MaintTab = 'pending' | 'due' | 'paid';
 type SplitTab = 'pending' | 'due' | 'paid';
+
+type MaintSection = {
+    key: string;
+    variant: 'maint' | 'split-card' | 'global-share';
+    tab?: MaintTab;
+    showGlobalHeader?: boolean;
+    data: any[];
+};
+
+const ShareRow = React.memo(function ShareRow({ sh, onPress }: { sh: any; onPress?: () => void }) {
+    return (
+        <TouchableOpacity style={styles.billItem} onPress={onPress} disabled={!onPress}>
+            <View style={styles.billLeft}>
+                <Ionicons
+                    name={sh.status === 'PAID' ? 'checkmark-circle' : sh.status === 'PENDING_VERIFICATION' ? 'time' : 'alert-circle'}
+                    size={22}
+                    color={sh.status === 'PAID' ? '#10b981' : sh.status === 'PENDING_VERIFICATION' ? '#f59e0b' : '#ef4444'}
+                />
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={styles.unitNum}>{sh.unitNumber}</Text>
+                    <Text style={styles.residentName}>{sh.residentName}</Text>
+                    {sh.splitPurpose ? <Text style={styles.splitPurposeTag}>{sh.splitPurpose}</Text> : null}
+                </View>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.amountText}>₹ {(sh.amountPaid ?? sh.amount).toLocaleString()}</Text>
+                {onPress && <Text style={styles.verifyBtnText}>Tap to verify</Text>}
+            </View>
+        </TouchableOpacity>
+    );
+});
+
+const MaintBillItem = React.memo(function MaintBillItem({ bill, variant, onVerify }: { bill: any; variant: MaintTab; onVerify?: (b: any) => void }) {
+    if (variant === 'pending') {
+        return (
+            <TouchableOpacity style={styles.billItem} onPress={() => onVerify?.(bill)}>
+                <View style={styles.billLeft}>
+                    <Ionicons name="time" size={24} color="#f59e0b" />
+                    <View style={{ marginLeft: 15 }}>
+                        <Text style={styles.unitNum}>{bill.unitNumber}</Text>
+                        <Text style={styles.residentName}>{bill.residentName}</Text>
+                        {bill.amountPaid ? <Text style={styles.amountPaidTag}>Paid ₹{bill.amountPaid.toLocaleString()}</Text> : null}
+                    </View>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.amountText, { color: '#f59e0b' }]}>₹ {bill.totalAmount.toLocaleString()}</Text>
+                    <Text style={styles.verifyBtnText}>Tap to verify</Text>
+                </View>
+            </TouchableOpacity>
+        );
+    }
+    if (variant === 'due') {
+        return (
+            <View style={styles.billItem}>
+                <View style={styles.billLeft}>
+                    <Ionicons name="alert-circle" size={24} color="#ef4444" />
+                    <View style={{ marginLeft: 15 }}>
+                        <Text style={styles.unitNum}>{bill.unitNumber}</Text>
+                        <Text style={styles.residentName}>{bill.residentName}</Text>
+                    </View>
+                </View>
+                <Text style={[styles.amountText, { color: '#ef4444' }]}>₹ {bill.totalAmount.toLocaleString()}</Text>
+            </View>
+        );
+    }
+    return (
+        <View style={styles.billItem}>
+            <View style={styles.billLeft}>
+                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                <View style={{ marginLeft: 15 }}>
+                    <Text style={styles.unitNum}>{bill.unitNumber}</Text>
+                    <Text style={styles.residentName}>{bill.residentName}</Text>
+                    {bill.adminNote ? <Text style={styles.adminNoteTag}>{bill.adminNote}</Text> : null}
+                </View>
+            </View>
+            <Text style={[styles.amountText, { color: '#10b981' }]}>₹ {(bill.amountPaid ?? bill.totalAmount).toLocaleString()}</Text>
+        </View>
+    );
+});
+
+type SplitCardProps = {
+    split: any;
+    expanded: boolean;
+    splitTab: SplitTab;
+    onToggle: (id: string) => void;
+    onSetSplitTab: (t: SplitTab) => void;
+    onDelete: (id: string, purpose: string) => void;
+    onVerifyShare: (sh: any) => void;
+};
+
+const SplitCard = React.memo(function SplitCard({ split, expanded, splitTab, onToggle, onSetSplitTab, onDelete, onVerifyShare }: SplitCardProps) {
+    return (
+        <View style={styles.splitCard}>
+            <TouchableOpacity style={styles.splitHeader} onPress={() => onToggle(split.id)}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.splitTitle}>{split.purpose}</Text>
+                    {split.description ? <Text style={styles.splitDesc}>{split.description}</Text> : null}
+                    <Text style={styles.splitMeta}>
+                        ₹{split.totalAmount.toLocaleString()} · {split.paidCount}/{split.totalShares} paid · {split.targetType}
+                    </Text>
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
+                    <TouchableOpacity onPress={() => onDelete(split.id, split.purpose)}>
+                        <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                </View>
+            </TouchableOpacity>
+
+            {expanded && (
+                <View style={styles.splitShares}>
+                    <View style={styles.tabRow}>
+                        {([
+                            { key: 'pending' as SplitTab, label: `Pending (${(split.shares || []).filter((s: any) => s.status === 'PENDING_VERIFICATION').length})` },
+                            { key: 'due' as SplitTab, label: `Due (${(split.shares || []).filter((s: any) => s.status === 'UNPAID').length})` },
+                            { key: 'paid' as SplitTab, label: `Paid (${(split.shares || []).filter((s: any) => s.status === 'PAID').length})` },
+                        ]).map(t => (
+                            <TouchableOpacity key={t.key} style={[styles.tabBtn, splitTab === t.key && styles.tabBtnActive]} onPress={() => onSetSplitTab(t.key)}>
+                                <Text style={[styles.tabBtnText, splitTab === t.key && styles.tabBtnTextActive]}>{t.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    {(split.shares || [])
+                        .filter((sh: any) => {
+                            if (splitTab === 'pending') return sh.status === 'PENDING_VERIFICATION';
+                            if (splitTab === 'paid') return sh.status === 'PAID';
+                            return sh.status === 'UNPAID' || sh.status === 'OVERDUE';
+                        })
+                        .map((sh: any) => (
+                            <ShareRow
+                                key={sh.id}
+                                sh={sh}
+                                onPress={sh.status === 'PENDING_VERIFICATION' ? () => onVerifyShare(sh) : undefined}
+                            />
+                        ))}
+                </View>
+            )}
+        </View>
+    );
+});
 
 export default function AdminMaintenanceScreen() {
     const router = useRouter();
@@ -219,7 +360,7 @@ export default function AdminMaintenanceScreen() {
         }
     };
 
-    const handleDeleteSplit = (id: string, purpose: string) => {
+    const handleDeleteSplit = useCallback((id: string, purpose: string) => {
         Alert.alert('Delete Split', `Remove "${purpose}" and all its shares?`, [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -233,7 +374,7 @@ export default function AdminMaintenanceScreen() {
                 },
             },
         ]);
-    };
+    }, []);
 
     const toggleBlock = (id: string) => {
         setSelectedBlockIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -254,26 +395,47 @@ export default function AdminMaintenanceScreen() {
     const splitDue = allSplitShares.filter(s => s.status === 'UNPAID' || s.status === 'OVERDUE');
     const splitPaid = allSplitShares.filter(s => s.status === 'PAID');
 
-    const renderShareRow = (sh: any, onPress?: () => void) => (
-        <TouchableOpacity key={sh.id} style={styles.billItem} onPress={onPress} disabled={!onPress}>
-            <View style={styles.billLeft}>
-                <Ionicons
-                    name={sh.status === 'PAID' ? 'checkmark-circle' : sh.status === 'PENDING_VERIFICATION' ? 'time' : 'alert-circle'}
-                    size={22}
-                    color={sh.status === 'PAID' ? '#10b981' : sh.status === 'PENDING_VERIFICATION' ? '#f59e0b' : '#ef4444'}
-                />
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                    <Text style={styles.unitNum}>{sh.unitNumber}</Text>
-                    <Text style={styles.residentName}>{sh.residentName}</Text>
-                    {sh.splitPurpose ? <Text style={styles.splitPurposeTag}>{sh.splitPurpose}</Text> : null}
-                </View>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.amountText}>₹ {(sh.amountPaid ?? sh.amount).toLocaleString()}</Text>
-                {onPress && <Text style={styles.verifyBtnText}>Tap to verify</Text>}
-            </View>
-        </TouchableOpacity>
-    );
+    const sections: MaintSection[] = [];
+    if (sectionMode === 'maintenance') {
+        const activeList = activeTab === 'pending' ? pendingList : activeTab === 'due' ? dueList : paidList;
+        const emptyMsg = activeTab === 'pending'
+            ? 'No pending payment proofs to verify.'
+            : activeTab === 'due'
+                ? 'No due bills for this month.'
+                : 'No paid collections this month.';
+        sections.push({
+            key: 'maint',
+            variant: 'maint',
+            tab: activeTab,
+            data: activeList.length ? activeList : [{ __emptyMsg: emptyMsg }],
+        });
+    } else {
+        sections.push({
+            key: 'splits-list',
+            variant: 'split-card',
+            data: splits.length ? splits : [{ __emptyMsg: 'No payment splits yet. Create one to share costs with residents.' }],
+        });
+        if (splits.length > 0) {
+            const globalList = splitTab === 'pending' ? splitPending : splitTab === 'paid' ? splitPaid : splitDue;
+            sections.push({ key: 'global', variant: 'global-share', showGlobalHeader: true, data: globalList });
+        }
+    }
+
+    const toggleExpand = useCallback((id: string) => {
+        setExpandedSplitId(prev => (prev === id ? null : id));
+    }, []);
+
+    const openVerifyBill = useCallback((bill: any) => {
+        setSelectedBill(bill);
+        setAdminNote('');
+        setRejectionReason('');
+    }, []);
+
+    const openVerifyShare = useCallback((sh: any) => {
+        setSelectedShare(sh);
+        setShareAdminNote('');
+        setShareRejectionReason('');
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -310,218 +472,135 @@ export default function AdminMaintenanceScreen() {
             {loading ? (
                 <View style={styles.center}><ActivityIndicator size="large" color="#fff" /></View>
             ) : (
-                <ScrollView
+                <SectionList
+                    sections={sections}
+                    keyExtractor={(item: any, index) => (item.__emptyMsg ? `empty-${index}` : String(item.id)) + index}
+                    stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
-                >
-                    {sectionMode === 'maintenance' ? (
-                        <>
-                            <View style={styles.periodCard}>
-                                <TouchableOpacity style={styles.periodArrow} onPress={() => {
-                                    if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1);
-                                }}>
-                                    <Ionicons name="chevron-back" size={20} color="#fff" />
-                                </TouchableOpacity>
-                                <Text style={styles.periodText}>{getMonthName(month)} {year}</Text>
-                                <TouchableOpacity style={styles.periodArrow} onPress={() => {
-                                    if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1);
-                                }}>
-                                    <Ionicons name="chevron-forward" size={20} color="#fff" />
-                                </TouchableOpacity>
-                            </View>
-
-                            <View style={styles.statsContainer}>
-                                <View style={styles.statBox}>
-                                    <Text style={styles.statLabel}>Collected</Text>
-                                    <Text style={[styles.statVal, { color: '#10b981' }]}>₹ {totalCollected.toLocaleString()}</Text>
-                                    <Text style={styles.statSub}>{paidList.length} Units Paid</Text>
-                                </View>
-                                <View style={styles.divider} />
-                                <View style={styles.statBox}>
-                                    <Text style={styles.statLabel}>Outstanding</Text>
-                                    <Text style={[styles.statVal, { color: '#ef4444' }]}>₹ {totalOutstanding.toLocaleString()}</Text>
-                                    <Text style={styles.statSub}>{dueList.length} Units Due</Text>
-                                </View>
-                            </View>
-
-                            {totalBills > 0 && (
-                                <View style={styles.progressCard}>
-                                    <View style={styles.progressRow}>
-                                        <Text style={styles.progressText}>Collection Rate</Text>
-                                        <Text style={styles.progressPercent}>{Math.round((paidList.length / totalBills) * 100)}%</Text>
-                                    </View>
-                                    <View style={styles.progressBg}>
-                                        <View style={[styles.progressFill, { width: `${(paidList.length / totalBills) * 100}%` }]} />
-                                    </View>
-                                </View>
-                            )}
-
-                            {totalBills === 0 && (
-                                <TouchableOpacity style={styles.runGenBtn} onPress={() => setShowGen(true)}>
-                                    <Ionicons name="flash" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                    <Text style={styles.runGenText}>Generate Bills for {getMonthName(month)}</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            <View style={styles.tabRow}>
-                                {([
-                                    { key: 'pending' as MaintTab, label: `Pending (${pendingList.length})` },
-                                    { key: 'due' as MaintTab, label: `Due (${dueList.length})` },
-                                    { key: 'paid' as MaintTab, label: `Paid (${paidList.length})` },
-                                ]).map(t => (
-                                    <TouchableOpacity key={t.key} style={[styles.tabBtn, activeTab === t.key && styles.tabBtnActive]} onPress={() => setActiveTab(t.key)}>
-                                        <Text style={[styles.tabBtnText, activeTab === t.key && styles.tabBtnTextActive]}>{t.label}</Text>
+                    ListHeaderComponent={
+                        sectionMode === 'maintenance' ? (
+                            <>
+                                <View style={styles.periodCard}>
+                                    <TouchableOpacity style={styles.periodArrow} onPress={() => {
+                                        if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1);
+                                    }}>
+                                        <Ionicons name="chevron-back" size={20} color="#fff" />
                                     </TouchableOpacity>
-                                ))}
-                            </View>
+                                    <Text style={styles.periodText}>{getMonthName(month)} {year}</Text>
+                                    <TouchableOpacity style={styles.periodArrow} onPress={() => {
+                                        if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1);
+                                    }}>
+                                        <Ionicons name="chevron-forward" size={20} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
 
-                            {activeTab === 'pending' && (
-                                pendingList.length === 0
-                                    ? <Text style={styles.emptyText}>No pending payment proofs to verify.</Text>
-                                    : pendingList.map(bill => (
-                                        <TouchableOpacity key={bill.id} style={styles.billItem} onPress={() => { setSelectedBill(bill); setAdminNote(''); setRejectionReason(''); }}>
-                                            <View style={styles.billLeft}>
-                                                <Ionicons name="time" size={24} color="#f59e0b" />
-                                                <View style={{ marginLeft: 15 }}>
-                                                    <Text style={styles.unitNum}>{bill.unitNumber}</Text>
-                                                    <Text style={styles.residentName}>{bill.residentName}</Text>
-                                                    {bill.amountPaid ? <Text style={styles.amountPaidTag}>Paid ₹{bill.amountPaid.toLocaleString()}</Text> : null}
-                                                </View>
-                                            </View>
-                                            <View style={{ alignItems: 'flex-end' }}>
-                                                <Text style={[styles.amountText, { color: '#f59e0b' }]}>₹ {bill.totalAmount.toLocaleString()}</Text>
-                                                <Text style={styles.verifyBtnText}>Tap to verify</Text>
-                                            </View>
+                                <View style={styles.statsContainer}>
+                                    <View style={styles.statBox}>
+                                        <Text style={styles.statLabel}>Collected</Text>
+                                        <Text style={[styles.statVal, { color: '#10b981' }]}>₹ {totalCollected.toLocaleString()}</Text>
+                                        <Text style={styles.statSub}>{paidList.length} Units Paid</Text>
+                                    </View>
+                                    <View style={styles.divider} />
+                                    <View style={styles.statBox}>
+                                        <Text style={styles.statLabel}>Outstanding</Text>
+                                        <Text style={[styles.statVal, { color: '#ef4444' }]}>₹ {totalOutstanding.toLocaleString()}</Text>
+                                        <Text style={styles.statSub}>{dueList.length} Units Due</Text>
+                                    </View>
+                                </View>
+
+                                {totalBills > 0 && (
+                                    <View style={styles.progressCard}>
+                                        <View style={styles.progressRow}>
+                                            <Text style={styles.progressText}>Collection Rate</Text>
+                                            <Text style={styles.progressPercent}>{Math.round((paidList.length / totalBills) * 100)}%</Text>
+                                        </View>
+                                        <View style={styles.progressBg}>
+                                            <View style={[styles.progressFill, { width: `${(paidList.length / totalBills) * 100}%` }]} />
+                                        </View>
+                                    </View>
+                                )}
+
+                                {totalBills === 0 && (
+                                    <TouchableOpacity style={styles.runGenBtn} onPress={() => setShowGen(true)}>
+                                        <Ionicons name="flash" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                        <Text style={styles.runGenText}>Generate Bills for {getMonthName(month)}</Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                <View style={styles.tabRow}>
+                                    {([
+                                        { key: 'pending' as MaintTab, label: `Pending (${pendingList.length})` },
+                                        { key: 'due' as MaintTab, label: `Due (${dueList.length})` },
+                                        { key: 'paid' as MaintTab, label: `Paid (${paidList.length})` },
+                                    ]).map(t => (
+                                        <TouchableOpacity key={t.key} style={[styles.tabBtn, activeTab === t.key && styles.tabBtnActive]} onPress={() => setActiveTab(t.key)}>
+                                            <Text style={[styles.tabBtnText, activeTab === t.key && styles.tabBtnTextActive]}>{t.label}</Text>
                                         </TouchableOpacity>
-                                    ))
-                            )}
-
-                            {activeTab === 'due' && (
-                                dueList.length === 0
-                                    ? <Text style={styles.emptyText}>No due bills for this month.</Text>
-                                    : dueList.map(bill => (
-                                        <View key={bill.id} style={styles.billItem}>
-                                            <View style={styles.billLeft}>
-                                                <Ionicons name="alert-circle" size={24} color="#ef4444" />
-                                                <View style={{ marginLeft: 15 }}>
-                                                    <Text style={styles.unitNum}>{bill.unitNumber}</Text>
-                                                    <Text style={styles.residentName}>{bill.residentName}</Text>
-                                                </View>
-                                            </View>
-                                            <Text style={[styles.amountText, { color: '#ef4444' }]}>₹ {bill.totalAmount.toLocaleString()}</Text>
-                                        </View>
-                                    ))
-                            )}
-
-                            {activeTab === 'paid' && (
-                                paidList.length === 0
-                                    ? <Text style={styles.emptyText}>No paid collections this month.</Text>
-                                    : paidList.map(bill => (
-                                        <View key={bill.id} style={styles.billItem}>
-                                            <View style={styles.billLeft}>
-                                                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-                                                <View style={{ marginLeft: 15 }}>
-                                                    <Text style={styles.unitNum}>{bill.unitNumber}</Text>
-                                                    <Text style={styles.residentName}>{bill.residentName}</Text>
-                                                    {bill.adminNote ? <Text style={styles.adminNoteTag}>{bill.adminNote}</Text> : null}
-                                                </View>
-                                            </View>
-                                            <Text style={[styles.amountText, { color: '#10b981' }]}>₹ {(bill.amountPaid ?? bill.totalAmount).toLocaleString()}</Text>
-                                        </View>
-                                    ))
-                            )}
-                        </>
-                    ) : (
-                        <>
+                                    ))}
+                                </View>
+                            </>
+                        ) : (
                             <TouchableOpacity style={styles.runGenBtn} onPress={() => { loadPickerData(); setShowCreateSplit(true); }}>
                                 <Ionicons name="add-circle" size={18} color="#fff" style={{ marginRight: 8 }} />
                                 <Text style={styles.runGenText}>Create New Payment Split</Text>
                             </TouchableOpacity>
-
-                            {splits.length === 0 ? (
-                                <Text style={styles.emptyText}>No payment splits yet. Create one to share costs with residents.</Text>
-                            ) : splits.map(split => (
-                                <View key={split.id} style={styles.splitCard}>
-                                    <TouchableOpacity
-                                        style={styles.splitHeader}
-                                        onPress={() => setExpandedSplitId(expandedSplitId === split.id ? null : split.id)}
-                                    >
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.splitTitle}>{split.purpose}</Text>
-                                            {split.description ? <Text style={styles.splitDesc}>{split.description}</Text> : null}
-                                            <Text style={styles.splitMeta}>
-                                                ₹{split.totalAmount.toLocaleString()} · {split.paidCount}/{split.totalShares} paid · {split.targetType}
-                                            </Text>
-                                        </View>
-                                        <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                                            <Ionicons name={expandedSplitId === split.id ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
-                                            <TouchableOpacity onPress={() => handleDeleteSplit(split.id, split.purpose)}>
-                                                <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </TouchableOpacity>
-
-                                    {expandedSplitId === split.id && (
-                                        <View style={styles.splitShares}>
-                                            <View style={styles.tabRow}>
-                                                {([
-                                                    { key: 'pending' as SplitTab, label: `Pending (${(split.shares || []).filter((s: any) => s.status === 'PENDING_VERIFICATION').length})` },
-                                                    { key: 'due' as SplitTab, label: `Due (${(split.shares || []).filter((s: any) => s.status === 'UNPAID').length})` },
-                                                    { key: 'paid' as SplitTab, label: `Paid (${(split.shares || []).filter((s: any) => s.status === 'PAID').length})` },
-                                                ]).map(t => (
-                                                    <TouchableOpacity key={t.key} style={[styles.tabBtn, splitTab === t.key && styles.tabBtnActive]} onPress={() => setSplitTab(t.key)}>
-                                                        <Text style={[styles.tabBtnText, splitTab === t.key && styles.tabBtnTextActive]}>{t.label}</Text>
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </View>
-
-                                            {(split.shares || [])
-                                                .filter((sh: any) => {
-                                                    if (splitTab === 'pending') return sh.status === 'PENDING_VERIFICATION';
-                                                    if (splitTab === 'paid') return sh.status === 'PAID';
-                                                    return sh.status === 'UNPAID' || sh.status === 'OVERDUE';
-                                                })
-                                                .map((sh: any) => renderShareRow(
-                                                    sh,
-                                                    sh.status === 'PENDING_VERIFICATION'
-                                                        ? () => { setSelectedShare(sh); setShareAdminNote(''); setShareRejectionReason(''); }
-                                                        : undefined,
-                                                ))
-                                            }
-                                        </View>
-                                    )}
+                        )
+                    }
+                    renderSectionHeader={({ section }) => {
+                        const s = section as unknown as MaintSection;
+                        if (!s.showGlobalHeader) return null;
+                        return (
+                            <>
+                                <Text style={styles.globalSplitTitle}>All Split Payments</Text>
+                                <View style={styles.tabRow}>
+                                    {([
+                                        { key: 'pending' as SplitTab, label: `Pending (${splitPending.length})` },
+                                        { key: 'due' as SplitTab, label: `Due (${splitDue.length})` },
+                                        { key: 'paid' as SplitTab, label: `Paid (${splitPaid.length})` },
+                                    ]).map(t => (
+                                        <TouchableOpacity key={t.key} style={[styles.tabBtn, splitTab === t.key && styles.tabBtnActive]} onPress={() => setSplitTab(t.key)}>
+                                            <Text style={[styles.tabBtnText, splitTab === t.key && styles.tabBtnTextActive]}>{t.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
                                 </View>
-                            ))}
-
-                            {/* Global split share tabs (all splits combined) */}
-                            {splits.length > 0 && (
-                                <>
-                                    <Text style={styles.globalSplitTitle}>All Split Payments</Text>
-                                    <View style={styles.tabRow}>
-                                        {([
-                                            { key: 'pending' as SplitTab, label: `Pending (${splitPending.length})` },
-                                            { key: 'due' as SplitTab, label: `Due (${splitDue.length})` },
-                                            { key: 'paid' as SplitTab, label: `Paid (${splitPaid.length})` },
-                                        ]).map(t => (
-                                            <TouchableOpacity key={t.key} style={[styles.tabBtn, splitTab === t.key && styles.tabBtnActive]} onPress={() => setSplitTab(t.key)}>
-                                                <Text style={[styles.tabBtnText, splitTab === t.key && styles.tabBtnTextActive]}>{t.label}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                    {(splitTab === 'pending' ? splitPending : splitTab === 'paid' ? splitPaid : splitDue).map(sh =>
-                                        renderShareRow(
-                                            sh,
-                                            sh.status === 'PENDING_VERIFICATION'
-                                                ? () => { setSelectedShare(sh); setShareAdminNote(''); setShareRejectionReason(''); }
-                                                : undefined,
-                                        ),
-                                    )}
-                                </>
-                            )}
-                        </>
-                    )}
-                </ScrollView>
+                            </>
+                        );
+                    }}
+                    renderItem={({ item, section }) => {
+                        if (item.__emptyMsg) {
+                            return <Text style={styles.emptyText}>{item.__emptyMsg}</Text>;
+                        }
+                        const s = section as unknown as MaintSection;
+                        if (s.variant === 'maint') {
+                            return <MaintBillItem bill={item} variant={s.tab as MaintTab} onVerify={openVerifyBill} />;
+                        }
+                        if (s.variant === 'split-card') {
+                            return (
+                                <SplitCard
+                                    split={item}
+                                    expanded={expandedSplitId === item.id}
+                                    splitTab={splitTab}
+                                    onToggle={toggleExpand}
+                                    onSetSplitTab={setSplitTab}
+                                    onDelete={handleDeleteSplit}
+                                    onVerifyShare={openVerifyShare}
+                                />
+                            );
+                        }
+                        return (
+                            <ShareRow
+                                sh={item}
+                                onPress={item.status === 'PENDING_VERIFICATION' ? () => openVerifyShare(item) : undefined}
+                            />
+                        );
+                    }}
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                />
             )}
 
             {/* Bill Verification Modal */}

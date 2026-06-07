@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -172,10 +172,40 @@ export default function AdminStatsScreen() {
                 </View>
             </View>
 
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
+            <FlatList
+                data={activeTab === 'finance' ? data.finance.recentPendingDues : []}
+                keyExtractor={(_item, idx) => `due-${idx}`}
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
-            >
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                renderItem={({ item, index }) => (
+                    <View style={styles.section}>
+                        <View style={[styles.pendingRowContinue, { backgroundColor: theme.surface, paddingTop: index === 0 ? 0 : 14 }]}>
+                            <View style={styles.pendingItem}>
+                                <View style={styles.pendingIconBox}>
+                                    <Ionicons name="warning" size={18} color="#f59e0b" />
+                                </View>
+                                <View style={styles.pendingInfo}>
+                                    <Text style={styles.pendingUnit}>{item.unit}</Text>
+                                    <Text style={styles.pendingLabel}>Maintenance Levy</Text>
+                                </View>
+                                <Text style={styles.pendingAmount}>₹{item.amount.toLocaleString()}</Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
+                ListFooterComponent={
+                    activeTab === 'finance' && data.finance.recentPendingDues.length > 0 ? (
+                        <View style={styles.section}>
+                            <View style={[styles.pendingCardBottom, { backgroundColor: theme.surface }]} />
+                        </View>
+                    ) : null
+                }
+                ListHeaderComponent={
+                    <View>
                 {/* 1. PEOPLE & OCCUPANCY DASHBOARD */}
                 {activeTab === 'people' && (
                     <View style={styles.section}>
@@ -298,31 +328,20 @@ export default function AdminStatsScreen() {
                             </View>
                         </View>
 
-                        {/* Outstanding Units List Table */}
-                        <View style={[styles.glassCard, { backgroundColor: theme.surface, marginTop: 20 }]}>
-                            <Text style={styles.cardTitle}>Top Outstanding Payment Dues</Text>
-                            {data.finance.recentPendingDues.length === 0 ? (
+                        {/* Outstanding Units List Table — header/title; rows are virtualized below */}
+                        {data.finance.recentPendingDues.length === 0 ? (
+                            <View style={[styles.glassCard, { backgroundColor: theme.surface, marginTop: 20 }]}>
+                                <Text style={styles.cardTitle}>Top Outstanding Payment Dues</Text>
                                 <View style={styles.emptyContainer}>
                                     <Ionicons name="happy" size={32} color="#10b981" style={{ marginBottom: 8 }} />
                                     <Text style={styles.emptyText}>Awesome! All units are fully paid!</Text>
                                 </View>
-                            ) : (
-                                <View style={styles.pendingList}>
-                                    {data.finance.recentPendingDues.map((item, idx) => (
-                                        <View key={idx} style={styles.pendingItem}>
-                                            <View style={styles.pendingIconBox}>
-                                                <Ionicons name="warning" size={18} color="#f59e0b" />
-                                            </View>
-                                            <View style={styles.pendingInfo}>
-                                                <Text style={styles.pendingUnit}>{item.unit}</Text>
-                                                <Text style={styles.pendingLabel}>Maintenance Levy</Text>
-                                            </View>
-                                            <Text style={styles.pendingAmount}>₹{item.amount.toLocaleString()}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            )}
-                        </View>
+                            </View>
+                        ) : (
+                            <View style={[styles.glassCard, styles.pendingCardTop, { backgroundColor: theme.surface, marginTop: 20 }]}>
+                                <Text style={[styles.cardTitle, { marginBottom: 0 }]}>Top Outstanding Payment Dues</Text>
+                            </View>
+                        )}
                     </View>
                 )}
 
@@ -395,7 +414,9 @@ export default function AdminStatsScreen() {
                         </View>
                     </View>
                 )}
-            </ScrollView>
+                    </View>
+                }
+            />
             
             <BottomNav activeTab="Home" />
         </SafeAreaView>
@@ -488,6 +509,9 @@ const styles = StyleSheet.create({
     emptyContainer: { alignItems: 'center', paddingVertical: 20 },
     emptyText: { fontSize: 12, color: '#10b981', fontWeight: '700' },
     pendingList: { gap: 14 },
+    pendingCardTop: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0, paddingBottom: 0 },
+    pendingRowContinue: { paddingHorizontal: 20 },
+    pendingCardBottom: { height: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, borderWidth: 1, borderTopWidth: 0, borderColor: 'rgba(255,255,255,0.05)' },
     pendingItem: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)', paddingBottom: 12 },
     pendingIconBox: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(245,158,11,0.1)', alignItems: 'center', justifyContent: 'center' },
     pendingInfo: { flex: 1, marginLeft: 12 },

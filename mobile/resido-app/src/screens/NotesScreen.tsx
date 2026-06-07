@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, StatusBar, Dimensions, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl, StatusBar, Dimensions, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,12 +10,96 @@ import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
 
+// Single folder row, memoized so unrelated rows don't re-render when one
+// item or the parent's unrelated state changes.
+const NoteFolderRow = React.memo(function NoteFolderRow({
+    folder,
+    onOpen,
+    onMenu,
+}: {
+    folder: any;
+    onOpen: (folder: any) => void;
+    onMenu: (folder: any) => void;
+}) {
+    return (
+        <TouchableOpacity style={styles.folderCard} onPress={() => onOpen(folder)}>
+            <View style={[styles.folderIconBox, { backgroundColor: folder.color || '#1d4ed8' }]}>
+                <MaterialCommunityIcons name="folder" size={24} color="#fff" />
+            </View>
+            <View style={styles.folderInfo}>
+                <Text style={styles.folderName}>{folder.name}</Text>
+                <Text style={styles.folderSub}>{folder._count?.pages || 0} Notes</Text>
+            </View>
+            <View style={styles.folderRight}>
+                <Text style={styles.folderDate}>{new Date(folder.updatedAt).toLocaleDateString()}</Text>
+                <TouchableOpacity
+                    style={styles.dotsBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={(e) => {
+                        e.stopPropagation?.();
+                        onMenu(folder);
+                    }}
+                >
+                    <Ionicons name="ellipsis-vertical" size={18} color="#7A6B9C" />
+                </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
+    );
+});
+
+// Single "shared with me" row, memoized for the same reason.
+const SharedNoteRow = React.memo(function SharedNoteRow({
+    item,
+    onOpen,
+}: {
+    item: any;
+    onOpen: (item: any) => void;
+}) {
+    const photo =
+        resolveMediaUrl(item.user?.profilePhoto) ||
+        `https://i.pravatar.cc/100?u=${item.user?.id || item.id}`;
+    const sharerName = item.user?.name || item.user?.profileName || 'Someone';
+    return (
+        <TouchableOpacity style={styles.folderCard} onPress={() => onOpen(item)}>
+            <View style={[styles.folderIconBox, { backgroundColor: item.folder ? '#a78bfa' : '#60a5fa' }]}>
+                <MaterialCommunityIcons
+                    name={item.folder ? 'folder-account' : 'file-document-outline'}
+                    size={24}
+                    color="#fff"
+                />
+            </View>
+            <View style={styles.folderInfo}>
+                <Text style={styles.folderName} numberOfLines={1}>
+                    {item.folder?.name || item.page?.title || 'Untitled'}
+                </Text>
+                <View style={styles.sharedByRow}>
+                    <Image source={{ uri: photo }} style={styles.sharedByAvatar} />
+                    <Text style={styles.sharedByText} numberOfLines={1}>
+                        Shared by {sharerName}
+                    </Text>
+                </View>
+            </View>
+            <View style={styles.folderRight}>
+                <Text style={styles.folderDate}>
+                    {new Date(item.createdAt).toLocaleDateString()}
+                </Text>
+                <View style={styles.sharedTypeBadge}>
+                    <Text style={styles.sharedTypeBadgeText}>
+                        {item.folder ? 'FOLDER' : 'NOTE'}
+                    </Text>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+});
+
 export default function NotesScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('Folders');
     const [folders, setFolders] = useState<any[]>([]);
     const [sharedItems, setSharedItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [menuFolder, setMenuFolder] = useState<any | null>(null);
 
     useFocusEffect(
@@ -40,12 +124,51 @@ export default function NotesScreen() {
         }
     };
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    }, []);
+
     // Opens the styled bottom-sheet menu. Delete still routes through an
     // Alert for the destructive confirmation step so we don't lose the OS
     // native "are you sure" affordance for data loss.
-    const openFolderMenu = (folder: any) => {
+    const openFolderMenu = useCallback((folder: any) => {
         setMenuFolder(folder);
-    };
+    }, []);
+
+    const openFolder = useCallback(
+        (folder: any) => {
+            router.push({ pathname: '/note-folder-view', params: { id: folder.id, name: folder.name, count: folder._count?.pages || 0 } });
+        },
+        [router]
+    );
+
+    const openSharedItem = useCallback(
+        (item: any) => {
+            if (item.folder) {
+                router.push({
+                    pathname: '/note-folder-view',
+                    params: {
+                        id: item.folder.id,
+                        name: item.folder.name,
+                        isShared: 'true',
+                    },
+                });
+            } else if (item.page) {
+                router.push({
+                    pathname: '/create-note',
+                    params: {
+                        id: item.page.id,
+                        title: item.page.title,
+                        body: item.page.content,
+                        isShared: 'true',
+                    },
+                });
+            }
+        },
+        [router]
+    );
 
     const buildFolderMenuItems = (folder: any): ActionMenuItem[] => {
         const pageCount = folder._count?.pages || 0;
@@ -98,6 +221,47 @@ export default function NotesScreen() {
         );
     };
 
+    const isFolders = activeTab === 'Folders';
+    const data = loading ? [] : isFolders ? folders : sharedItems;
+
+    const renderItem = useCallback(
+        ({ item }: { item: any }) =>
+            isFolders ? (
+                <NoteFolderRow folder={item} onOpen={openFolder} onMenu={openFolderMenu} />
+            ) : (
+                <SharedNoteRow item={item} onOpen={openSharedItem} />
+            ),
+        [isFolders, openFolder, openFolderMenu, openSharedItem]
+    );
+
+    const ListHeader = (
+        <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{isFolders ? 'My Folders' : 'Shared with Me'}</Text>
+            {isFolders && (
+                <TouchableOpacity style={styles.sortBtn} onPress={() => router.push({ pathname: '/create-folder', params: { type: 'NOTE' } })}>
+                    <Ionicons name="add-circle" size={20} color="#8b5cf6" />
+                    <Text style={[styles.sortText, { color: '#8b5cf6' }]}>New Folder</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+
+    const ListEmpty = loading ? (
+        <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
+    ) : isFolders ? (
+        <Text style={styles.emptyText}>No folders yet. Create one!</Text>
+    ) : (
+        <View style={styles.sharedEmptyWrap}>
+            <View style={styles.sharedEmptyIcon}>
+                <MaterialCommunityIcons name="folder-account-outline" size={40} color="#8b5cf6" />
+            </View>
+            <Text style={styles.sharedEmptyTitle}>Nothing shared with you yet</Text>
+            <Text style={styles.sharedEmptySub}>
+                Notes and folders that others share with your profile will appear here.
+            </Text>
+        </View>
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
@@ -139,141 +303,21 @@ export default function NotesScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {loading ? (
-                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 20 }} />
-                ) : activeTab === 'Folders' ? (
-                    /* ─── Folders tab ───────────────────────────────────── */
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>My Folders</Text>
-                            <TouchableOpacity style={styles.sortBtn} onPress={() => router.push({ pathname: '/create-folder', params: { type: 'NOTE' } })}>
-                                <Ionicons name="add-circle" size={20} color="#8b5cf6" />
-                                <Text style={[styles.sortText, { color: '#8b5cf6' }]}>New Folder</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {folders.length === 0 ? (
-                            <Text style={styles.emptyText}>No folders yet. Create one!</Text>
-                        ) : (
-                            folders.map((folder) => (
-                                <TouchableOpacity
-                                    key={folder.id}
-                                    style={styles.folderCard}
-                                    onPress={() => router.push({ pathname: '/note-folder-view', params: { id: folder.id, name: folder.name, count: folder._count?.pages || 0 } })}
-                                >
-                                    <View style={[styles.folderIconBox, { backgroundColor: folder.color || '#1d4ed8' }]}>
-                                        <MaterialCommunityIcons name="folder" size={24} color="#fff" />
-                                    </View>
-                                    <View style={styles.folderInfo}>
-                                        <Text style={styles.folderName}>{folder.name}</Text>
-                                        <Text style={styles.folderSub}>{folder._count?.pages || 0} Notes</Text>
-                                    </View>
-                                    <View style={styles.folderRight}>
-                                        <Text style={styles.folderDate}>{new Date(folder.updatedAt).toLocaleDateString()}</Text>
-                                        <TouchableOpacity
-                                            style={styles.dotsBtn}
-                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                            onPress={(e) => {
-                                                e.stopPropagation?.();
-                                                openFolderMenu(folder);
-                                            }}
-                                        >
-                                            <Ionicons name="ellipsis-vertical" size={18} color="#7A6B9C" />
-                                        </TouchableOpacity>
-                                    </View>
-                                </TouchableOpacity>
-                            ))
-                        )}
-                    </View>
-                ) : (
-                    /* ─── Shared with Me tab ────────────────────────────── */
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Shared with Me</Text>
-                        </View>
-
-                        {sharedItems.length === 0 ? (
-                            <View style={styles.sharedEmptyWrap}>
-                                <View style={styles.sharedEmptyIcon}>
-                                    <MaterialCommunityIcons name="folder-account-outline" size={40} color="#8b5cf6" />
-                                </View>
-                                <Text style={styles.sharedEmptyTitle}>Nothing shared with you yet</Text>
-                                <Text style={styles.sharedEmptySub}>
-                                    Notes and folders that others share with your profile will appear here.
-                                </Text>
-                            </View>
-                        ) : (
-                            sharedItems.map((item) => {
-                                const photo =
-                                    resolveMediaUrl(item.user?.profilePhoto) ||
-                                    `https://i.pravatar.cc/100?u=${item.user?.id || item.id}`;
-                                const sharerName =
-                                    item.user?.name ||
-                                    item.user?.profileName ||
-                                    'Someone';
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        style={styles.folderCard}
-                                        onPress={() => {
-                                            if (item.folder) {
-                                                router.push({
-                                                    pathname: '/note-folder-view',
-                                                    params: {
-                                                        id: item.folder.id,
-                                                        name: item.folder.name,
-                                                        isShared: 'true',
-                                                    },
-                                                });
-                                            } else if (item.page) {
-                                                router.push({
-                                                    pathname: '/create-note',
-                                                    params: {
-                                                        id: item.page.id,
-                                                        title: item.page.title,
-                                                        body: item.page.content,
-                                                        isShared: 'true',
-                                                    },
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        <View style={[styles.folderIconBox, { backgroundColor: item.folder ? '#a78bfa' : '#60a5fa' }]}>
-                                            <MaterialCommunityIcons
-                                                name={item.folder ? 'folder-account' : 'file-document-outline'}
-                                                size={24}
-                                                color="#fff"
-                                            />
-                                        </View>
-                                        <View style={styles.folderInfo}>
-                                            <Text style={styles.folderName} numberOfLines={1}>
-                                                {item.folder?.name || item.page?.title || 'Untitled'}
-                                            </Text>
-                                            <View style={styles.sharedByRow}>
-                                                <Image source={{ uri: photo }} style={styles.sharedByAvatar} />
-                                                <Text style={styles.sharedByText} numberOfLines={1}>
-                                                    Shared by {sharerName}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        <View style={styles.folderRight}>
-                                            <Text style={styles.folderDate}>
-                                                {new Date(item.createdAt).toLocaleDateString()}
-                                            </Text>
-                                            <View style={styles.sharedTypeBadge}>
-                                                <Text style={styles.sharedTypeBadgeText}>
-                                                    {item.folder ? 'FOLDER' : 'NOTE'}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    </TouchableOpacity>
-                                );
-                            })
-                        )}
-                    </View>
-                )}
-            </ScrollView>
+            <FlatList
+                data={data}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={renderItem}
+                ListHeaderComponent={ListHeader}
+                ListEmptyComponent={ListEmpty}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                keyboardShouldPersistTaps="handled"
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" />}
+            />
 
             {/* FAB — hide on Shared tab; you can't author into someone else's note from here */}
             {activeTab === 'Folders' && (
@@ -312,7 +356,7 @@ const styles = StyleSheet.create({
     tabText: { fontSize: 14, fontWeight: '700', color: '#9A8EBA' },
     activeTabText: { color: '#2D2445' },
 
-    section: { paddingHorizontal: 20, marginTop: 24 },
+    listContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 100 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#8b5cf6' },
     sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },

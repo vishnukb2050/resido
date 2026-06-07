@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, StatusBar, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl, TextInput, StatusBar, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,12 +9,63 @@ import { mySpaceApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
+const getFileColor = (type: string) => {
+    if (type === 'IMAGE') return '#3b82f6';
+    if (type?.toLowerCase().includes('pdf')) return '#ef4444';
+    return '#8b5cf6';
+};
+
+const getTypeBadge = (type: string) => {
+    if (type === 'IMAGE') return 'IMG';
+    if (type?.toLowerCase().includes('pdf')) return 'PDF';
+    return 'DOC';
+};
+
+// Single document row, memoized so unrelated rows don't re-render.
+const DocFileRow = React.memo(function DocFileRow({
+    doc,
+    onOpen,
+}: {
+    doc: any;
+    onOpen: (doc: any) => void;
+}) {
+    return (
+        <TouchableOpacity style={styles.docCard} onPress={() => onOpen(doc)}>
+            <View style={[styles.typeIconBox, { backgroundColor: getFileColor(doc.type) }]}>
+                <Text style={styles.typeText}>{getTypeBadge(doc.type)}</Text>
+            </View>
+            <View style={styles.docInfo}>
+                <Text style={styles.docName} numberOfLines={1}>
+                    {doc.title || doc.name}
+                </Text>
+                {doc.description ? (
+                    <Text style={styles.docDesc} numberOfLines={2}>{doc.description}</Text>
+                ) : null}
+                <Text style={styles.docSub}>
+                    {doc.size ? (doc.size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size'} · {new Date(doc.updatedAt).toLocaleDateString()}
+                </Text>
+            </View>
+            <TouchableOpacity
+                style={styles.dotsBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={(e) => {
+                    e.stopPropagation?.();
+                    onOpen(doc);
+                }}
+            >
+                <Ionicons name="ellipsis-vertical" size={18} color="#7A6B9C" />
+            </TouchableOpacity>
+        </TouchableOpacity>
+    );
+});
+
 export default function FolderViewScreen() {
     const router = useRouter();
     const { id, name, isShared } = useLocalSearchParams();
     const readOnly = isShared === 'true';
     const [files, setFiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [menuFile, setMenuFile] = useState<any | null>(null);
 
     useFocusEffect(
@@ -35,12 +86,18 @@ export default function FolderViewScreen() {
         }
     };
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadFiles();
+        setRefreshing(false);
+    }, [id]);
+
     // 3-dot menu on a single file: Share or Delete. Uses the shared
     // bottom-sheet ActionMenu so colors/list format stay consistent
     // with notes and folder menus.
-    const openFileMenu = (file: any) => {
+    const openFileMenu = useCallback((file: any) => {
         setMenuFile(file);
-    };
+    }, []);
 
     const buildFileMenuItems = (file: any): ActionMenuItem[] => {
         const items: ActionMenuItem[] = [
@@ -101,17 +158,18 @@ export default function FolderViewScreen() {
         );
     };
 
-    const getFileColor = (type: string) => {
-        if (type === 'IMAGE') return '#3b82f6';
-        if (type?.toLowerCase().includes('pdf')) return '#ef4444';
-        return '#8b5cf6';
-    };
+    const renderItem = useCallback(
+        ({ item }: { item: any }) => <DocFileRow doc={item} onOpen={openFileMenu} />,
+        [openFileMenu]
+    );
 
-    const getTypeBadge = (type: string) => {
-        if (type === 'IMAGE') return 'IMG';
-        if (type?.toLowerCase().includes('pdf')) return 'PDF';
-        return 'DOC';
-    };
+    const ListEmpty = loading ? (
+        <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
+    ) : (
+        <Text style={styles.emptyText}>
+            {readOnly ? 'This folder is empty.' : 'No documents here yet. Tap the + button to upload one!'}
+        </Text>
+    );
 
     return (
         <SafeAreaView style={styles.container}>
@@ -155,50 +213,20 @@ export default function FolderViewScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
-                {loading ? (
-                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
-                ) : files.length === 0 ? (
-                    <Text style={styles.emptyText}>
-                        {readOnly ? 'This folder is empty.' : 'No documents here yet. Tap the + button to upload one!'}
-                    </Text>
-                ) : (
-                    <View style={styles.listContainer}>
-                        {files.map((doc) => (
-                            <TouchableOpacity
-                                key={doc.id}
-                                style={styles.docCard}
-                                onPress={() => openFileMenu(doc)}
-                            >
-                                <View style={[styles.typeIconBox, { backgroundColor: getFileColor(doc.type) }]}>
-                                    <Text style={styles.typeText}>{getTypeBadge(doc.type)}</Text>
-                                </View>
-                                <View style={styles.docInfo}>
-                                    <Text style={styles.docName} numberOfLines={1}>
-                                        {doc.title || doc.name}
-                                    </Text>
-                                    {doc.description ? (
-                                        <Text style={styles.docDesc} numberOfLines={2}>{doc.description}</Text>
-                                    ) : null}
-                                    <Text style={styles.docSub}>
-                                        {doc.size ? (doc.size / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown size'} · {new Date(doc.updatedAt).toLocaleDateString()}
-                                    </Text>
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.dotsBtn}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                    onPress={(e) => {
-                                        e.stopPropagation?.();
-                                        openFileMenu(doc);
-                                    }}
-                                >
-                                    <Ionicons name="ellipsis-vertical" size={18} color="#7A6B9C" />
-                                </TouchableOpacity>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-            </ScrollView>
+            <FlatList
+                data={loading ? [] : files}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={renderItem}
+                ListEmptyComponent={ListEmpty}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                keyboardShouldPersistTaps="handled"
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" />}
+            />
 
             {/* Upload FAB → opens upload screen prefilled with this folder */}
             {!readOnly && (
@@ -241,7 +269,7 @@ const styles = StyleSheet.create({
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4EEFC', borderRadius: 16, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#C4B5DC' },
     searchInput: { flex: 1, marginLeft: 10, color: '#2D2445', fontSize: 15 },
 
-    listContainer: { paddingHorizontal: 20, marginTop: 12 },
+    listContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 140 },
     docCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#ffffff', padding: 14, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8' },
     typeIconBox: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     typeText: { color: '#ffffff', fontSize: 11, fontWeight: '900' },

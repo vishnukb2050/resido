@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Image, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView, FlatList, Image, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -685,114 +685,108 @@ export default function ManageCommunityScreen() {
                 <View style={{ width: 44 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                
-                {/* 1. COVER PHOTO */}
-                <Text style={styles.sectionLabel}>Community Cover Photo</Text>
-                <TouchableOpacity style={styles.photoPicker} onPress={() => handlePickPhoto(false)}>
-                    {photoUri ? (
-                        <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                    ) : (
-                        <View style={styles.photoPlaceholder}>
-                            <Ionicons name="camera-outline" size={32} color="#64748b" />
-                            <Text style={styles.photoPlaceholderText}>Upload Cover Photo</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-
-                {/* 2. COMMUNITY DETAILS FORM */}
-                <View style={styles.card}>
-                    <Text style={styles.cardLabel}>Community Name</Text>
-                    <TextInput
-                        style={[styles.input, { backgroundColor: theme.surface }]}
-                        value={name}
-                        onChangeText={setName}
-                        placeholder="e.g. Greenwood Residency"
-                        placeholderTextColor="#64748b"
+            <FlatList
+                data={loadingStaff ? [] : staffList}
+                keyExtractor={(item) => String(item.id)}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                renderItem={({ item: member }) => (
+                    <StaffCard
+                        member={member}
+                        surface={theme.surface}
+                        onRemove={() => handleRemoveStaff(member)}
                     />
-
-                    <TouchableOpacity 
-                        style={[styles.saveBtn, { backgroundColor: theme.primary }]} 
-                        onPress={handleSaveDetails}
-                        disabled={updatingDetails}
-                    >
-                        {updatingDetails ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.saveBtnText}>Save Details</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-                {/* 3. ADMIN STAFF SECTION */}
-                <View style={styles.staffHeader}>
-                    <Text style={styles.sectionLabel}>Admin Staff Members</Text>
-                    <TouchableOpacity 
-                        style={[styles.addStaffBtn, { borderColor: theme.primary }]} 
-                        onPress={() => setShowAddStaffModal(true)}
-                    >
-                        <Ionicons name="add" size={16} color={theme.primary} />
-                        <Text style={[styles.addStaffBtnText, { color: theme.primary }]}>Add Staff</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {loadingStaff ? (
-                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
-                ) : staffList.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="people-outline" size={48} color="#475569" />
-                        <Text style={styles.emptyText}>No admin staff configured.</Text>
-                    </View>
-                ) : (
-                    <View style={[styles.staffListContainer, { marginBottom: 32 }]}>
-                        {staffList.map((member) => (
-                            <View key={member.id} style={[styles.staffCard, { backgroundColor: theme.surface }]}>
-                                <Image 
-                                    source={{ uri: member.user?.profilePhoto || 'https://i.pravatar.cc/150?u=' + member.userId }} 
-                                    style={styles.staffAvatar} 
-                                />
-                                <View style={styles.staffInfo}>
-                                    <Text style={styles.staffName}>{member.user?.name || 'Unknown Staff'}</Text>
-                                    <Text style={styles.staffPhone}>{member.user?.phone}</Text>
-                                    <View style={[styles.roleBadge, { backgroundColor: member.role === 'APARTMENT_ADMIN' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)' }]}>
-                                        <Text style={[styles.roleBadgeText, { color: member.role === 'APARTMENT_ADMIN' ? '#f87171' : '#60a5fa' }]}>
-                                            {member.role.replace('_', ' ')}
-                                        </Text>
-                                    </View>
+                )}
+                ListHeaderComponent={
+                    <View>
+                        {/* 1. COVER PHOTO */}
+                        <Text style={styles.sectionLabel}>Community Cover Photo</Text>
+                        <TouchableOpacity style={styles.photoPicker} onPress={() => handlePickPhoto(false)}>
+                            {photoUri ? (
+                                <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                            ) : (
+                                <View style={styles.photoPlaceholder}>
+                                    <Ionicons name="camera-outline" size={32} color="#64748b" />
+                                    <Text style={styles.photoPlaceholderText}>Upload Cover Photo</Text>
                                 </View>
-                                <TouchableOpacity 
-                                    style={styles.removeBtn} 
-                                    onPress={() => handleRemoveStaff(member)}
-                                >
-                                    <Ionicons name="trash-outline" size={20} color="#f87171" />
-                                </TouchableOpacity>
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                {/* 4. DANGER ZONE — Permanently delete this community */}
-                {String(editingWorkspace.role || '').toUpperCase() === 'APARTMENT_ADMIN' && (
-                    <View style={styles.dangerZone}>
-                        <View style={styles.dangerHeader}>
-                            <Ionicons name="warning-outline" size={18} color="#b91c1c" />
-                            <Text style={styles.dangerTitle}>Danger Zone</Text>
-                        </View>
-                        <Text style={styles.dangerSub}>
-                            Permanently deleting this community removes all admin staff accounts and revokes every member's access. Existing posts, attendance records and chats tied to this community will become inaccessible. This action cannot be undone.
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.dangerBtn}
-                            onPress={handleDeleteCommunity}
-                            disabled={deletingCommunity}
-                        >
-                            <Ionicons name="trash-outline" size={18} color="#ffffff" />
-                            <Text style={styles.dangerBtnText}>Delete this community</Text>
+                            )}
                         </TouchableOpacity>
-                    </View>
-                )}
 
-            </ScrollView>
+                        {/* 2. COMMUNITY DETAILS FORM */}
+                        <View style={styles.card}>
+                            <Text style={styles.cardLabel}>Community Name</Text>
+                            <TextInput
+                                style={[styles.input, { backgroundColor: theme.surface }]}
+                                value={name}
+                                onChangeText={setName}
+                                placeholder="e.g. Greenwood Residency"
+                                placeholderTextColor="#64748b"
+                            />
+
+                            <TouchableOpacity 
+                                style={[styles.saveBtn, { backgroundColor: theme.primary }]} 
+                                onPress={handleSaveDetails}
+                                disabled={updatingDetails}
+                            >
+                                {updatingDetails ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Save Details</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* 3. ADMIN STAFF SECTION */}
+                        <View style={styles.staffHeader}>
+                            <Text style={styles.sectionLabel}>Admin Staff Members</Text>
+                            <TouchableOpacity 
+                                style={[styles.addStaffBtn, { borderColor: theme.primary }]} 
+                                onPress={() => setShowAddStaffModal(true)}
+                            >
+                                <Ionicons name="add" size={16} color={theme.primary} />
+                                <Text style={[styles.addStaffBtnText, { color: theme.primary }]}>Add Staff</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                }
+                ListEmptyComponent={
+                    loadingStaff ? (
+                        <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="people-outline" size={48} color="#475569" />
+                            <Text style={styles.emptyText}>No admin staff configured.</Text>
+                        </View>
+                    )
+                }
+                ListFooterComponent={
+                    /* 4. DANGER ZONE — Permanently delete this community */
+                    String(editingWorkspace.role || '').toUpperCase() === 'APARTMENT_ADMIN' ? (
+                        <View style={[styles.dangerZone, { marginTop: 32 }]}>
+                            <View style={styles.dangerHeader}>
+                                <Ionicons name="warning-outline" size={18} color="#b91c1c" />
+                                <Text style={styles.dangerTitle}>Danger Zone</Text>
+                            </View>
+                            <Text style={styles.dangerSub}>
+                                Permanently deleting this community removes all admin staff accounts and revokes every member's access. Existing posts, attendance records and chats tied to this community will become inaccessible. This action cannot be undone.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.dangerBtn}
+                                onPress={handleDeleteCommunity}
+                                disabled={deletingCommunity}
+                            >
+                                <Ionicons name="trash-outline" size={18} color="#ffffff" />
+                                <Text style={styles.dangerBtnText}>Delete this community</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : null
+                }
+            />
 
             {/* ADD STAFF MODAL */}
             <Modal
@@ -957,6 +951,32 @@ export default function ManageCommunityScreen() {
         </KeyboardAvoidingView>
     );
 }
+
+const StaffCard = React.memo(function StaffCard({ member, surface, onRemove }: { member: any; surface: string; onRemove: () => void }) {
+    return (
+        <View style={[styles.staffCard, { backgroundColor: surface }]}>
+            <Image 
+                source={{ uri: member.user?.profilePhoto || 'https://i.pravatar.cc/150?u=' + member.userId }} 
+                style={styles.staffAvatar} 
+            />
+            <View style={styles.staffInfo}>
+                <Text style={styles.staffName}>{member.user?.name || 'Unknown Staff'}</Text>
+                <Text style={styles.staffPhone}>{member.user?.phone}</Text>
+                <View style={[styles.roleBadge, { backgroundColor: member.role === 'APARTMENT_ADMIN' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)' }]}>
+                    <Text style={[styles.roleBadgeText, { color: member.role === 'APARTMENT_ADMIN' ? '#f87171' : '#60a5fa' }]}>
+                        {member.role.replace('_', ' ')}
+                    </Text>
+                </View>
+            </View>
+            <TouchableOpacity 
+                style={styles.removeBtn} 
+                onPress={onRemove}
+            >
+                <Ionicons name="trash-outline" size={20} color="#f87171" />
+            </TouchableOpacity>
+        </View>
+    );
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1 },

@@ -18,7 +18,7 @@ export default function BusinessDetailScreen() {
     const { id } = useLocalSearchParams();
     const { user } = useAuthStore();
 
-    const scrollViewRef = useRef<ScrollView>(null);
+    const scrollViewRef = useRef<FlatList>(null);
     const [bookingY, setBookingY] = useState(0);
 
     // Data states
@@ -417,7 +417,20 @@ export default function BusinessDetailScreen() {
                 </View>
             )}
 
-            <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <FlatList
+                ref={scrollViewRef}
+                data={[] as any[]}
+                keyExtractor={(_: any, i: number) => String(i)}
+                renderItem={() => null}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                ListHeaderComponent={(
+                <>
                 {/* Hero / Cover */}
                 <View style={styles.heroSection}>
                     {profile.logo ? (
@@ -486,7 +499,7 @@ export default function BusinessDetailScreen() {
                     {profile.slots && profile.slots.length > 0 ? (
                         <TouchableOpacity 
                             style={styles.topBookBtn} 
-                            onPress={() => scrollViewRef.current?.scrollTo({ y: bookingY, animated: true })}
+                            onPress={() => scrollViewRef.current?.scrollToOffset({ offset: bookingY, animated: true })}
                         >
                             <Ionicons name="calendar-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
                             <Text style={styles.topBookBtnText}>Book a Slot</Text>
@@ -536,70 +549,18 @@ export default function BusinessDetailScreen() {
                                 <Text style={styles.slotLoaderText}>Loading posts...</Text>
                             </View>
                         ) : (
-                            <ScrollView
+                            <FlatList
                                 horizontal
+                                data={businessPosts}
+                                keyExtractor={(item: any) => String(item.id)}
                                 showsHorizontalScrollIndicator={false}
                                 contentContainerStyle={styles.galleryScroll}
-                            >
-                                {businessPosts.map((post: any) => {
-                                    const firstMedia = resolveMediaUrl(post.mediaUrls?.[0]);
-                                    const isFlare = post.type === 'FLARE';
-                                    const isVideo =
-                                        post.mediaType === 'VIDEO' ||
-                                        (firstMedia && (/\.(mp4|mov|m4v|webm)(\?|$)/i.test(firstMedia) || firstMedia.includes('/videos/')));
-                                    return (
-                                        <TouchableOpacity
-                                            key={post.id}
-                                            style={styles.galleryCard}
-                                            activeOpacity={0.85}
-                                            onPress={() => {
-                                                if (isFlare) {
-                                                    router.push({ pathname: '/flare-player', params: { initialId: post.id, feedType: 'PUBLIC' } });
-                                                } else {
-                                                    router.push(`/thread/${post.id}` as any);
-                                                }
-                                            }}
-                                        >
-                                            <View style={styles.galleryMediaBox}>
-                                                {firstMedia ? (
-                                                    isVideo ? (
-                                                        <Video
-                                                            source={{ uri: firstMedia, overrideFileExtension: 'mp4' } as any}
-                                                            style={styles.galleryMedia}
-                                                            resizeMode={ResizeMode.COVER}
-                                                            isMuted
-                                                            shouldPlay={false}
-                                                            useNativeControls={false}
-                                                        />
-                                                    ) : (
-                                                        <Image source={{ uri: firstMedia }} style={styles.galleryMedia} />
-                                                    )
-                                                ) : (
-                                                    <View style={styles.imagePlaceholder}>
-                                                        <Ionicons name={isFlare ? 'play-circle' : 'chatbubble-ellipses-outline'} size={36} color="#475569" />
-                                                    </View>
-                                                )}
-                                                <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: isFlare ? '#ef4444' : '#1d4ed8', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-                                                    <Text style={{ color: '#2D2445', fontSize: 10, fontWeight: '900' }}>
-                                                        {isFlare ? 'FLARE' : 'THREAD'}
-                                                    </Text>
-                                                </View>
-                                                {isVideo && (
-                                                    <View style={{ position: 'absolute', bottom: 8, right: 8 }}>
-                                                        <Ionicons name="play-circle" size={28} color="#fff" />
-                                                    </View>
-                                                )}
-                                            </View>
-                                            <View style={styles.galleryMeta}>
-                                                <Text style={styles.galleryItemTitle} numberOfLines={1}>{post.title || post.content || 'Post'}</Text>
-                                                {post.content && post.title ? (
-                                                    <Text style={styles.galleryItemDesc} numberOfLines={2}>{post.content}</Text>
-                                                ) : null}
-                                            </View>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </ScrollView>
+                                renderItem={({ item }) => <BusinessPostCard post={item} router={router} />}
+                                removeClippedSubviews
+                                initialNumToRender={10}
+                                maxToRenderPerBatch={10}
+                                windowSize={11}
+                            />
                         )}
                     </View>
                 )}
@@ -779,7 +740,9 @@ export default function BusinessDetailScreen() {
                 )}
                 
                 <View style={{ height: 60 }} />
-            </ScrollView>
+                </>
+                )}
+            />
 
             {/* Modal 1: Booking Modifiers Form */}
             <Modal
@@ -908,6 +871,64 @@ export default function BusinessDetailScreen() {
         </SafeAreaView>
     );
 }
+
+const BusinessPostCard = React.memo(function BusinessPostCard({ post, router }: any) {
+    const firstMedia = resolveMediaUrl(post.mediaUrls?.[0]);
+    const isFlare = post.type === 'FLARE';
+    const isVideo =
+        post.mediaType === 'VIDEO' ||
+        (firstMedia && (/\.(mp4|mov|m4v|webm)(\?|$)/i.test(firstMedia) || firstMedia.includes('/videos/')));
+    return (
+        <TouchableOpacity
+            style={styles.galleryCard}
+            activeOpacity={0.85}
+            onPress={() => {
+                if (isFlare) {
+                    router.push({ pathname: '/flare-player', params: { initialId: post.id, feedType: 'PUBLIC' } });
+                } else {
+                    router.push(`/thread/${post.id}` as any);
+                }
+            }}
+        >
+            <View style={styles.galleryMediaBox}>
+                {firstMedia ? (
+                    isVideo ? (
+                        <Video
+                            source={{ uri: firstMedia, overrideFileExtension: 'mp4' } as any}
+                            style={styles.galleryMedia}
+                            resizeMode={ResizeMode.COVER}
+                            isMuted
+                            shouldPlay={false}
+                            useNativeControls={false}
+                        />
+                    ) : (
+                        <Image source={{ uri: firstMedia }} style={styles.galleryMedia} />
+                    )
+                ) : (
+                    <View style={styles.imagePlaceholder}>
+                        <Ionicons name={isFlare ? 'play-circle' : 'chatbubble-ellipses-outline'} size={36} color="#475569" />
+                    </View>
+                )}
+                <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: isFlare ? '#ef4444' : '#1d4ed8', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                    <Text style={{ color: '#2D2445', fontSize: 10, fontWeight: '900' }}>
+                        {isFlare ? 'FLARE' : 'THREAD'}
+                    </Text>
+                </View>
+                {isVideo && (
+                    <View style={{ position: 'absolute', bottom: 8, right: 8 }}>
+                        <Ionicons name="play-circle" size={28} color="#fff" />
+                    </View>
+                )}
+            </View>
+            <View style={styles.galleryMeta}>
+                <Text style={styles.galleryItemTitle} numberOfLines={1}>{post.title || post.content || 'Post'}</Text>
+                {post.content && post.title ? (
+                    <Text style={styles.galleryItemDesc} numberOfLines={2}>{post.content}</Text>
+                ) : null}
+            </View>
+        </TouchableOpacity>
+    );
+});
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F5FF' },

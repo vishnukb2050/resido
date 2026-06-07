@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert, Linking, StatusBar, Dimensions, Modal, TextInput, Image, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, SectionList, ActivityIndicator, RefreshControl, Alert, Linking, StatusBar, Dimensions, Modal, TextInput, Image, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +18,169 @@ const formatToken = (n?: number | null): string | null => {
 };
 
 type TabKey = 'ACTIVE' | 'CANCELLED' | 'DETAILS';
+
+type BookingCardProps = {
+    booking: any;
+    isExpanded: boolean;
+    onToggleExpand: (id: string) => void;
+    onCall: (phone: string) => void;
+    onCancel: (bookingId: string) => void;
+    onOpenUpdate: (booking: any) => void;
+    onDeleteUpdate: (bookingId: string, updateId: string) => void;
+};
+
+const BookingCard = React.memo(function BookingCard({
+    booking,
+    isExpanded,
+    onToggleExpand,
+    onCall,
+    onCancel,
+    onOpenUpdate,
+    onDeleteUpdate,
+}: BookingCardProps) {
+    const token = formatToken(booking.tokenNumber);
+    const updates: any[] = Array.isArray(booking.updates) ? booking.updates : [];
+    const isConfirmed = booking.status === 'CONFIRMED';
+
+    return (
+        <View style={styles.bookingCard}>
+            <View style={styles.cardHeader}>
+                <View style={styles.slotBadge}>
+                    <Ionicons name="bookmark-outline" size={14} color="#c084fc" style={{ marginRight: 6 }} />
+                    <Text style={styles.slotNameText}>{booking.slot?.name || 'Service Slot'}</Text>
+                </View>
+                <View style={styles.guestBadge}>
+                    <Ionicons name="people-outline" size={14} color="#64748b" style={{ marginRight: 4 }} />
+                    <Text style={styles.guestText}>{booking.persons} {booking.persons === 1 ? 'Guest' : 'Guests'}</Text>
+                </View>
+            </View>
+
+            {token && isConfirmed ? (
+                <View style={styles.tokenStrip}>
+                    <View style={styles.tokenChip}>
+                        <Ionicons name="pricetag" size={14} color="#8b5cf6" style={{ marginRight: 6 }} />
+                        <Text style={styles.tokenLabel}>Token</Text>
+                        <Text style={styles.tokenValue}>#{token}</Text>
+                    </View>
+                </View>
+            ) : null}
+
+            <View style={styles.customerBox}>
+                <Text style={styles.customerLabel}>Customer Details</Text>
+                <Text style={styles.customerName}>{booking.userName || 'Resident'}</Text>
+                {booking.userPhone ? (
+                    <TouchableOpacity style={styles.phoneLink} onPress={() => onCall(booking.userPhone)}>
+                        <Ionicons name="call-outline" size={14} color="#a084ca" style={{ marginRight: 4 }} />
+                        <Text style={styles.phoneLinkText}>{booking.userPhone}</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <Text style={styles.noPhoneText}>No phone number provided</Text>
+                )}
+            </View>
+
+            <View style={styles.dateTimeGrid}>
+                <View style={styles.dateTimeCol}>
+                    <Text style={styles.gridLabel}>Date</Text>
+                    <Text style={styles.gridValue}>
+                        {new Date(booking.bookingDate).toLocaleDateString(undefined, {
+                            weekday: 'short', month: 'short', day: 'numeric',
+                        })}
+                    </Text>
+                </View>
+                <View style={styles.dateTimeCol}>
+                    <Text style={styles.gridLabel}>Time Window</Text>
+                    <Text style={styles.gridValue}>{booking.timeSlot}</Text>
+                </View>
+            </View>
+
+            {booking.notes ? (
+                <View style={styles.notesBox}>
+                    <Text style={styles.notesLabel}>Notes from Customer</Text>
+                    <Text style={styles.notesText}>{booking.notes}</Text>
+                </View>
+            ) : null}
+
+            {isConfirmed ? (
+                <View style={styles.actionRow}>
+                    <TouchableOpacity style={styles.postUpdateBtn} onPress={() => onOpenUpdate(booking)}>
+                        <Ionicons name="megaphone-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.postUpdateBtnText}>Post Update</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={() => onCancel(booking.id)}>
+                        <Ionicons name="close-circle-outline" size={16} color="#ef4444" style={{ marginRight: 6 }} />
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <View style={styles.cancelledBadge}>
+                    <Ionicons name="alert-circle-outline" size={14} color="#ef4444" style={{ marginRight: 6 }} />
+                    <Text style={styles.cancelledText}>Cancelled Reservation</Text>
+                </View>
+            )}
+
+            {isConfirmed ? (
+                <TouchableOpacity
+                    style={styles.updatesToggle}
+                    onPress={() => onToggleExpand(booking.id)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons
+                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color="#8b5cf6"
+                        style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.updatesToggleText}>
+                        {updates.length > 0
+                            ? `${isExpanded ? 'Hide' : 'View'} updates posted (${updates.length})`
+                            : `${isExpanded ? 'Hide' : 'View'} updates posted`}
+                    </Text>
+                </TouchableOpacity>
+            ) : null}
+
+            {isConfirmed && isExpanded ? (
+                <View style={styles.updatesBox}>
+                    {updates.length === 0 ? (
+                        <Text style={styles.updatesEmpty}>
+                            No updates yet. Tap "Post Update" to share a status or photo with the customer.
+                        </Text>
+                    ) : (
+                        updates.map((u) => {
+                            const photo = resolveMediaUrl(u.photoUrl);
+                            return (
+                                <View key={u.id} style={styles.updateRow}>
+                                    <View style={styles.updateHeader}>
+                                        <Ionicons name="megaphone-outline" size={14} color="#8b5cf6" />
+                                        <Text style={styles.updateAuthor}>You</Text>
+                                        <Text style={styles.updateTime}>
+                                            {new Date(u.createdAt).toLocaleString(undefined, {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </Text>
+                                        <TouchableOpacity
+                                            onPress={() => onDeleteUpdate(booking.id, u.id)}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            style={{ marginLeft: 8 }}
+                                        >
+                                            <Ionicons name="trash-outline" size={14} color="#ef4444" />
+                                        </TouchableOpacity>
+                                    </View>
+                                    {u.message ? <Text style={styles.updateMessage}>{u.message}</Text> : null}
+                                    {photo ? (
+                                        <Image source={{ uri: photo }} style={styles.updatePhoto} resizeMode="cover" />
+                                    ) : null}
+                                </View>
+                            );
+                        })
+                    )}
+                </View>
+            ) : null}
+        </View>
+    );
+});
 
 export default function ManageBusinessBookingsScreen() {
     const router = useRouter();
@@ -277,164 +440,62 @@ export default function ManageBusinessBookingsScreen() {
         );
     }
 
-    const renderBookingCard = (booking: any, opts?: { compact?: boolean }) => {
-        const token = formatToken(booking.tokenNumber);
-        const updates: any[] = Array.isArray(booking.updates) ? booking.updates : [];
-        const isExpanded = expandedIds.has(booking.id);
-        const isConfirmed = booking.status === 'CONFIRMED';
-        return (
-            <View key={booking.id} style={styles.bookingCard}>
-                <View style={styles.cardHeader}>
-                    <View style={styles.slotBadge}>
-                        <Ionicons name="bookmark-outline" size={14} color="#c084fc" style={{ marginRight: 6 }} />
-                        <Text style={styles.slotNameText}>{booking.slot?.name || 'Service Slot'}</Text>
-                    </View>
-                    <View style={styles.guestBadge}>
-                        <Ionicons name="people-outline" size={14} color="#64748b" style={{ marginRight: 4 }} />
-                        <Text style={styles.guestText}>{booking.persons} {booking.persons === 1 ? 'Guest' : 'Guests'}</Text>
-                    </View>
-                </View>
+    const renderBookingCard = ({ item: booking }: { item: any }) => (
+        <BookingCard
+            booking={booking}
+            isExpanded={expandedIds.has(booking.id)}
+            onToggleExpand={toggleExpand}
+            onCall={handleCallCustomer}
+            onCancel={handleCancelBooking}
+            onOpenUpdate={openUpdateModal}
+            onDeleteUpdate={handleDeleteUpdate}
+        />
+    );
 
-                {token && isConfirmed ? (
-                    <View style={styles.tokenStrip}>
-                        <View style={styles.tokenChip}>
-                            <Ionicons name="pricetag" size={14} color="#8b5cf6" style={{ marginRight: 6 }} />
-                            <Text style={styles.tokenLabel}>Token</Text>
-                            <Text style={styles.tokenValue}>#{token}</Text>
-                        </View>
-                    </View>
-                ) : null}
-
-                <View style={styles.customerBox}>
-                    <Text style={styles.customerLabel}>Customer Details</Text>
-                    <Text style={styles.customerName}>{booking.userName || 'Resident'}</Text>
-                    {booking.userPhone ? (
-                        <TouchableOpacity
-                            style={styles.phoneLink}
-                            onPress={() => handleCallCustomer(booking.userPhone)}
-                        >
-                            <Ionicons name="call-outline" size={14} color="#a084ca" style={{ marginRight: 4 }} />
-                            <Text style={styles.phoneLinkText}>{booking.userPhone}</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <Text style={styles.noPhoneText}>No phone number provided</Text>
-                    )}
-                </View>
-
-                <View style={styles.dateTimeGrid}>
-                    <View style={styles.dateTimeCol}>
-                        <Text style={styles.gridLabel}>Date</Text>
-                        <Text style={styles.gridValue}>
-                            {new Date(booking.bookingDate).toLocaleDateString(undefined, {
-                                weekday: 'short', month: 'short', day: 'numeric',
-                            })}
-                        </Text>
-                    </View>
-                    <View style={styles.dateTimeCol}>
-                        <Text style={styles.gridLabel}>Time Window</Text>
-                        <Text style={styles.gridValue}>{booking.timeSlot}</Text>
-                    </View>
-                </View>
-
-                {booking.notes ? (
-                    <View style={styles.notesBox}>
-                        <Text style={styles.notesLabel}>Notes from Customer</Text>
-                        <Text style={styles.notesText}>{booking.notes}</Text>
-                    </View>
-                ) : null}
-
-                {isConfirmed ? (
-                    <View style={styles.actionRow}>
-                        <TouchableOpacity
-                            style={styles.postUpdateBtn}
-                            onPress={() => openUpdateModal(booking)}
-                        >
-                            <Ionicons name="megaphone-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.postUpdateBtnText}>Post Update</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.cancelBtn}
-                            onPress={() => handleCancelBooking(booking.id)}
-                        >
-                            <Ionicons name="close-circle-outline" size={16} color="#ef4444" style={{ marginRight: 6 }} />
-                            <Text style={styles.cancelBtnText}>Cancel</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.cancelledBadge}>
-                        <Ionicons name="alert-circle-outline" size={14} color="#ef4444" style={{ marginRight: 6 }} />
-                        <Text style={styles.cancelledText}>Cancelled Reservation</Text>
-                    </View>
-                )}
-
-                {isConfirmed ? (
-                    <TouchableOpacity
-                        style={styles.updatesToggle}
-                        onPress={() => toggleExpand(booking.id)}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons
-                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                            size={16}
-                            color="#8b5cf6"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text style={styles.updatesToggleText}>
-                            {updates.length > 0
-                                ? `${isExpanded ? 'Hide' : 'View'} updates posted (${updates.length})`
-                                : `${isExpanded ? 'Hide' : 'View'} updates posted`}
-                        </Text>
-                    </TouchableOpacity>
-                ) : null}
-
-                {isConfirmed && isExpanded ? (
-                    <View style={styles.updatesBox}>
-                        {updates.length === 0 ? (
-                            <Text style={styles.updatesEmpty}>
-                                No updates yet. Tap "Post Update" to share a status or photo with the customer.
-                            </Text>
-                        ) : (
-                            updates.map((u) => {
-                                const photo = resolveMediaUrl(u.photoUrl);
-                                return (
-                                    <View key={u.id} style={styles.updateRow}>
-                                        <View style={styles.updateHeader}>
-                                            <Ionicons name="megaphone-outline" size={14} color="#8b5cf6" />
-                                            <Text style={styles.updateAuthor}>You</Text>
-                                            <Text style={styles.updateTime}>
-                                                {new Date(u.createdAt).toLocaleString(undefined, {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                })}
-                                            </Text>
-                                            <TouchableOpacity
-                                                onPress={() => handleDeleteUpdate(booking.id, u.id)}
-                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                                style={{ marginLeft: 8 }}
-                                            >
-                                                <Ionicons name="trash-outline" size={14} color="#ef4444" />
-                                            </TouchableOpacity>
-                                        </View>
-                                        {u.message ? (
-                                            <Text style={styles.updateMessage}>{u.message}</Text>
-                                        ) : null}
-                                        {photo ? (
-                                            <Image
-                                                source={{ uri: photo }}
-                                                style={styles.updatePhoto}
-                                                resizeMode="cover"
-                                            />
-                                        ) : null}
-                                    </View>
-                                );
-                            })
-                        )}
-                    </View>
-                ) : null}
+    const emptyList = (
+        <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconBox}>
+                <MaterialCommunityIcons
+                    name={
+                        activeTab === 'DETAILS'
+                            ? 'ticket-confirmation-outline'
+                            : activeTab === 'ACTIVE'
+                            ? 'calendar-blank'
+                            : 'calendar-remove'
+                    }
+                    size={64}
+                    color="#9A8EBA"
+                />
             </View>
-        );
+            <Text style={styles.emptyTitle}>
+                {activeTab === 'DETAILS'
+                    ? 'No Booking Details Yet'
+                    : activeTab === 'ACTIVE'
+                    ? 'No Active Reservations'
+                    : 'No Cancelled Bookings'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+                {activeTab === 'DETAILS'
+                    ? 'Confirmed customer bookings (with their token number, time and contact) will appear here organised by day.'
+                    : activeTab === 'ACTIVE'
+                    ? 'When customers book your services or slots, they will appear here instantly.'
+                    : 'Bookings that are cancelled by you or your customers will be shown in this list.'}
+            </Text>
+        </View>
+    );
+
+    const listPerfProps = {
+        removeClippedSubviews: true as const,
+        initialNumToRender: 10,
+        maxToRenderPerBatch: 10,
+        windowSize: 11,
+        extraData: expandedIds,
+        contentContainerStyle: styles.scrollContent,
+        refreshControl: (
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c084fc" />
+        ),
+        showsVerticalScrollIndicator: false,
+        ListEmptyComponent: emptyList,
     };
 
     return (
@@ -544,70 +605,59 @@ export default function ManageBusinessBookingsScreen() {
                 />
             )}
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c084fc" />
-                }
-                showsVerticalScrollIndicator={false}
-            >
-                {activeTab === 'DETAILS' ? (
-                    detailsByDay.length === 0 ? (
-                        <View style={styles.emptyContainer}>
-                            <View style={styles.emptyIconBox}>
-                                <MaterialCommunityIcons name="ticket-confirmation-outline" size={64} color="#9A8EBA" />
-                            </View>
-                            <Text style={styles.emptyTitle}>No Booking Details Yet</Text>
-                            <Text style={styles.emptySubtitle}>
-                                Confirmed customer bookings (with their token number, time and contact)
-                                will appear here organised by day.
+            {activeTab === 'DETAILS' ? (
+                <SectionList
+                    sections={detailsByDay.map(([day, list]) => ({ day, data: list }))}
+                    keyExtractor={(item: any) => String(item.id)}
+                    stickySectionHeadersEnabled={false}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c084fc" />
+                    }
+                    renderSectionHeader={({ section }: any) => (
+                        <View style={styles.daySectionHeader}>
+                            <Ionicons name="calendar" size={14} color="#5b21b6" style={{ marginRight: 6 }} />
+                            <Text style={styles.daySectionTitle}>
+                                {(() => {
+                                    try {
+                                        return new Date(section.day).toLocaleDateString(undefined, {
+                                            weekday: 'long', month: 'short', day: 'numeric',
+                                        });
+                                    } catch {
+                                        return section.day;
+                                    }
+                                })()}
                             </Text>
+                            <Text style={styles.daySectionCount}>{section.data.length} booking{section.data.length === 1 ? '' : 's'}</Text>
                         </View>
-                    ) : (
-                        detailsByDay.map(([day, list]) => (
-                            <View key={day} style={styles.daySection}>
-                                <View style={styles.daySectionHeader}>
-                                    <Ionicons name="calendar" size={14} color="#5b21b6" style={{ marginRight: 6 }} />
-                                    <Text style={styles.daySectionTitle}>
-                                        {(() => {
-                                            try {
-                                                return new Date(day).toLocaleDateString(undefined, {
-                                                    weekday: 'long', month: 'short', day: 'numeric',
-                                                });
-                                            } catch {
-                                                return day;
-                                            }
-                                        })()}
-                                    </Text>
-                                    <Text style={styles.daySectionCount}>{list.length} booking{list.length === 1 ? '' : 's'}</Text>
-                                </View>
-                                {list.map((b: any) => renderBookingCard(b, { compact: true }))}
-                            </View>
-                        ))
-                    )
-                ) : filteredBookings.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <View style={styles.emptyIconBox}>
-                            <MaterialCommunityIcons
-                                name={activeTab === 'ACTIVE' ? 'calendar-blank' : 'calendar-remove'}
-                                size={64}
-                                color="#9A8EBA"
-                            />
-                        </View>
-                        <Text style={styles.emptyTitle}>
-                            {activeTab === 'ACTIVE' ? 'No Active Reservations' : 'No Cancelled Bookings'}
-                        </Text>
-                        <Text style={styles.emptySubtitle}>
-                            {activeTab === 'ACTIVE'
-                                ? 'When customers book your services or slots, they will appear here instantly.'
-                                : 'Bookings that are cancelled by you or your customers will be shown in this list.'
-                            }
-                        </Text>
-                    </View>
-                ) : (
-                    filteredBookings.map((booking) => renderBookingCard(booking))
-                )}
-            </ScrollView>
+                    )}
+                    renderItem={renderBookingCard}
+                    extraData={expandedIds}
+                    ListEmptyComponent={emptyList}
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                />
+            ) : (
+                <FlatList
+                    data={filteredBookings}
+                    keyExtractor={(item: any) => String(item.id)}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c084fc" />
+                    }
+                    renderItem={renderBookingCard}
+                    extraData={expandedIds}
+                    ListEmptyComponent={emptyList}
+                    removeClippedSubviews
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                />
+            )}
 
             {/* ── Post-update modal ─────────────────────────────────────────── */}
             <Modal

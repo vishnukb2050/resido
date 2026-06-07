@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, Dimensions, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, TextInput, Alert, ActivityIndicator, Dimensions, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -665,6 +665,428 @@ export default function ParkingScreen() {
         );
     }
 
+    // Pick the primary virtualized list + surrounding chrome for the active
+    // role/tab. The largest data list becomes the FlatList rows; bounded
+    // selectors and forms live in the header/footer.
+    const parkingView = isAdmin ? `admin_${adminTab}` : isResident ? `resident_${residentTab}` : isSecurity ? 'security' : 'none';
+
+    let listData: any[] = [];
+    let renderListItem: (info: { item: any; index: number }) => React.ReactElement | null = () => null;
+    let listHeader: React.ReactElement | null = null;
+    let listFooter: React.ReactElement | null = null;
+    let listEmpty: React.ReactElement | null = null;
+
+    if (parkingView === 'admin_slots') {
+        listData = slots;
+        listHeader = (
+            <View style={styles.section}>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Create Parking Slot</Text>
+                    <TextInput
+                        style={[styles.input, { borderColor: theme.border, color: theme.textPrimary }]}
+                        value={newSlotName}
+                        onChangeText={setNewSlotName}
+                        placeholder="Enter Slot Name (e.g. R-101, Guest-A)"
+                        placeholderTextColor={theme.textFaint}
+                    />
+
+                    <Text style={[styles.label, { color: theme.textMuted, marginTop: 12 }]}>Slot Type</Text>
+                    <View style={styles.typeSelectorRow}>
+                        <TouchableOpacity
+                            onPress={() => setNewSlotType('RESIDENT')}
+                            style={[styles.typeButton, newSlotType === 'RESIDENT' && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                        >
+                            <Text style={[styles.typeButtonText, newSlotType === 'RESIDENT' ? { color: '#fff' } : { color: theme.textPrimary }]}>Resident Slot</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setNewSlotType('GUEST')}
+                            style={[styles.typeButton, newSlotType === 'GUEST' && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                        >
+                            <Text style={[styles.typeButtonText, newSlotType === 'GUEST' ? { color: '#fff' } : { color: theme.textPrimary }]}>Guest Slot</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity 
+                        style={[styles.submitBtn, { backgroundColor: theme.primary }]} 
+                        onPress={handleCreateSlot}
+                        disabled={actionLoading}
+                    >
+                        {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Create Slot</Text>}
+                    </TouchableOpacity>
+                </View>
+
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: 24 }]}>Existing Slots ({slots.length})</Text>
+            </View>
+        );
+        listEmpty = <Text style={[styles.emptyText, { color: theme.textMuted }]}>No slots created yet. Use the form above to add slots.</Text>;
+        renderListItem = ({ item }) => (
+            <View style={[styles.slotItemCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
+                <View style={styles.slotDetails}>
+                    <Text style={[styles.slotName, { color: theme.textPrimary }]}>{item.name}</Text>
+                    <View style={[styles.badge, { backgroundColor: item.type === 'RESIDENT' ? '#eff6ff' : '#f0fdf4' }]}>
+                        <Text style={[styles.badgeText, { color: item.type === 'RESIDENT' ? '#1e40af' : '#166534' }]}>
+                            {item.type}
+                        </Text>
+                    </View>
+                </View>
+                <TouchableOpacity onPress={() => handleDeleteSlot(item.id, item.name)} style={styles.deleteBtn}>
+                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                </TouchableOpacity>
+            </View>
+        );
+    } else if (parkingView === 'admin_assign') {
+        listData = [];
+        listHeader = (
+            <View style={styles.section}>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Assign Resident Parking</Text>
+
+                    <Text style={[styles.label, { color: theme.textMuted }]}>Select Resident Slot</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
+                        {slots.filter(s => s.type === 'RESIDENT').map(s => {
+                            const isAssigned = !!s.assignedUnitNumber;
+                            const isSelected = selectedSlotId === s.id;
+                            return (
+                                <TouchableOpacity
+                                    key={s.id}
+                                    onPress={() => setSelectedSlotId(s.id)}
+                                    style={[
+                                        styles.pillOption,
+                                        isSelected && { backgroundColor: theme.primary, borderColor: theme.primary },
+                                        !isSelected && isAssigned && { backgroundColor: theme.surfaceMuted }
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.pillOptionText,
+                                        isSelected ? { color: '#fff' } : { color: theme.textPrimary },
+                                        !isSelected && isAssigned && { textDecorationLine: 'line-through', color: theme.textMuted }
+                                    ]}>
+                                        {s.name} {isAssigned && `(Unit ${s.assignedUnitNumber})`}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                        {slots.filter(s => s.type === 'RESIDENT').length === 0 && (
+                            <Text style={{ color: theme.textFaint, fontSize: 12 }}>No Resident Slots. Create some in Slots tab first.</Text>
+                        )}
+                    </ScrollView>
+
+                    <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Select Block</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
+                        {blocks.map(b => (
+                            <TouchableOpacity
+                                key={b.id}
+                                onPress={() => setSelectedBlockId(b.id)}
+                                style={[styles.pillOption, selectedBlockId === b.id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                            >
+                                <Text style={[styles.pillOptionText, selectedBlockId === b.id ? { color: '#fff' } : { color: theme.textPrimary }]}>
+                                    {b.name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+
+                    <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Select Unit</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
+                        {units.map(u => (
+                            <TouchableOpacity
+                                key={u.id}
+                                onPress={() => setSelectedUnitId(u.id)}
+                                style={[styles.pillOption, selectedUnitId === u.id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                            >
+                                <Text style={[styles.pillOptionText, selectedUnitId === u.id ? { color: '#fff' } : { color: theme.textPrimary }]}>
+                                    Unit {u.number}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                        {units.length === 0 && (
+                            <Text style={{ color: theme.textFaint, fontSize: 12 }}>Please select a block with units.</Text>
+                        )}
+                    </ScrollView>
+
+                    <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Vehicle Number</Text>
+                    <TextInput
+                        style={[styles.input, { borderColor: theme.border, color: theme.textPrimary }]}
+                        value={residentVehicle}
+                        onChangeText={setResidentVehicle}
+                        placeholder="Enter vehicle registration number (e.g. KA-01-MJ-1234)"
+                        placeholderTextColor={theme.textFaint}
+                    />
+
+                    <TouchableOpacity 
+                        style={[styles.submitBtn, { backgroundColor: theme.primary, marginTop: 16 }]} 
+                        onPress={handleAssignResidentSlot}
+                        disabled={actionLoading}
+                    >
+                        {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Assign Slot</Text>}
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    } else if (parkingView === 'admin_bookings') {
+        listData = bookings;
+        listHeader = (
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Guest Bookings History ({bookings.length})</Text>
+        );
+        listEmpty = <Text style={[styles.emptyText, { color: theme.textMuted }]}>No bookings found.</Text>;
+        renderListItem = ({ item }) => (
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSoft, marginBottom: 12 }]}>
+                <View style={styles.bookingHeader}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>{item.slotName}</Text>
+                    <View style={[styles.badge, { backgroundColor: item.status === 'BOOKED' ? '#fef3c7' : item.status === 'ACTIVE' ? '#dbeafe' : '#f1f5f9' }]}>
+                        <Text style={[styles.badgeText, { color: item.status === 'BOOKED' ? '#d97706' : item.status === 'ACTIVE' ? '#1d4ed8' : '#475569' }]}>
+                            {item.status}
+                        </Text>
+                    </View>
+                </View>
+                <Text style={[styles.bookingText, { color: theme.textMuted, marginTop: 8 }]}>Guest Vehicle: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{item.vehicleNumber}</Text></Text>
+                <Text style={[styles.bookingText, { color: theme.textMuted }]}>Resident: {item.residentName} ({item.unitInfo})</Text>
+                <Text style={[styles.bookingText, { color: theme.textMuted }]}>Duration: {dayjs(item.startTime).format('MMM DD, hh:mm A')} to {dayjs(item.endTime).format('hh:mm A')}</Text>
+                {item.markedFreedAt && (
+                    <Text style={[styles.bookingText, { color: theme.primarySoft }]}>Freed early at: {dayjs(item.markedFreedAt).format('hh:mm A')}</Text>
+                )}
+            </View>
+        );
+    } else if (parkingView === 'resident_view') {
+        listData = myAssignedSlots;
+        listHeader = (
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Assigned Parking</Text>
+        );
+        listEmpty = (
+            <View style={[styles.infoBanner, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
+                <Ionicons name="information-circle-outline" size={20} color={theme.textPrimary} style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 12, color: theme.textPrimary, flex: 1 }}>
+                    No Resident parking slot has been assigned to your unit yet. Please contact the administrator.
+                </Text>
+            </View>
+        );
+        renderListItem = ({ item: s }) => (
+            <View style={[styles.slotItemCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
+                <View>
+                    <Text style={[styles.slotName, { color: theme.textPrimary }]}>{s.name}</Text>
+                    <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Vehicle: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{s.assignedVehicle}</Text></Text>
+                </View>
+                <View style={[styles.badge, { backgroundColor: '#dbeafe' }]}>
+                    <Text style={[styles.badgeText, { color: '#1d4ed8' }]}>Resident</Text>
+                </View>
+            </View>
+        );
+        listFooter = (
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, marginTop: 24 }]}>
+                <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Book Guest Parking Slot</Text>
+                <Text style={{ fontSize: 12, color: theme.textMuted, marginBottom: 12 }}>
+                    Guests can be registered for a fixed duration of exactly 4 hours.
+                </Text>
+
+                <Text style={[styles.label, { color: theme.textMuted }]}>Select Available Guest Slot</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
+                    {availableGuestSlots.map(s => (
+                        <TouchableOpacity
+                            key={s.id}
+                            onPress={() => setBookingGuestSlotId(s.id)}
+                            style={[styles.pillOption, bookingGuestSlotId === s.id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                        >
+                            <Text style={[styles.pillOptionText, bookingGuestSlotId === s.id ? { color: '#fff' } : { color: theme.textPrimary }]}>
+                                {s.name}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                    {availableGuestSlots.length === 0 && (
+                        <Text style={{ color: theme.textFaint, fontSize: 12 }}>No available guest slots at this moment.</Text>
+                    )}
+                </ScrollView>
+
+                <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Guest Vehicle Number</Text>
+                <TextInput
+                    style={[styles.input, { borderColor: theme.border, color: theme.textPrimary }]}
+                    value={guestVehicleNumber}
+                    onChangeText={setGuestVehicleNumber}
+                    placeholder="Enter guest vehicle registration number"
+                    placeholderTextColor={theme.textFaint}
+                />
+
+                <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Start Date</Text>
+                <TouchableOpacity
+                    style={[styles.input, { borderColor: theme.border, justifyContent: 'center' }]}
+                    onPress={() => setShowBookingDatePicker(true)}
+                >
+                    <Text style={{ color: theme.textPrimary }}>
+                        {dayjs(bookingStartTime).format('YYYY-MM-DD')}
+                    </Text>
+                </TouchableOpacity>
+                {showBookingDatePicker && (
+                    <DateTimePicker
+                        value={bookingStartTime}
+                        mode="date"
+                        minimumDate={new Date()}
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={onBookingDateChange}
+                    />
+                )}
+
+                <Text style={[styles.label, { color: theme.textMuted, marginTop: 12 }]}>Start Time</Text>
+                <TouchableOpacity
+                    style={[styles.input, { borderColor: theme.border, justifyContent: 'center' }]}
+                    onPress={() => setShowBookingTimePicker(true)}
+                >
+                    <Text style={{ color: theme.textPrimary }}>
+                        {dayjs(bookingStartTime).format('hh:mm A')}
+                    </Text>
+                </TouchableOpacity>
+                {showBookingTimePicker && (
+                    <DateTimePicker
+                        value={bookingStartTime}
+                        mode="time"
+                        is24Hour={false}
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={onBookingTimeChange}
+                    />
+                )}
+
+                <Text style={{ fontSize: 12, color: theme.primary, fontWeight: '600', marginTop: 12 }}>
+                    End Time (Auto-calculated): {dayjs(bookingStartTime).add(4, 'hour').format('YYYY-MM-DD hh:mm A')}
+                </Text>
+
+                <TouchableOpacity 
+                    style={[styles.submitBtn, { backgroundColor: theme.primary, marginTop: 16 }]} 
+                    onPress={handleBookGuestSlot}
+                    disabled={actionLoading}
+                >
+                    {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Book Slot</Text>}
+                </TouchableOpacity>
+            </View>
+        );
+    } else if (parkingView === 'resident_history') {
+        listData = myBookingsList;
+        listHeader = (
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Guest Bookings History</Text>
+        );
+        listEmpty = <Text style={[styles.emptyText, { color: theme.textMuted }]}>No bookings found under your unit.</Text>;
+        renderListItem = ({ item }) => (
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSoft, marginBottom: 12 }]}>
+                <View style={styles.bookingHeader}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>{item.slotName}</Text>
+                    <View style={[styles.badge, { backgroundColor: item.status === 'BOOKED' ? '#fef3c7' : item.status === 'ACTIVE' ? '#dbeafe' : '#f1f5f9' }]}>
+                        <Text style={[styles.badgeText, { color: item.status === 'BOOKED' ? '#d97706' : item.status === 'ACTIVE' ? '#1d4ed8' : '#475569' }]}>
+                            {item.status}
+                        </Text>
+                    </View>
+                </View>
+                <Text style={[styles.bookingText, { color: theme.textMuted, marginTop: 8 }]}>Guest Vehicle: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{item.vehicleNumber}</Text></Text>
+                <Text style={[styles.bookingText, { color: theme.textMuted }]}>Duration: {dayjs(item.startTime).format('MMM DD, hh:mm A')} to {dayjs(item.endTime).format('hh:mm A')}</Text>
+                {item.markedFreedAt && (
+                    <Text style={[styles.bookingText, { color: theme.primarySoft }]}>Released early at: {dayjs(item.markedFreedAt).format('hh:mm A')}</Text>
+                )}
+            </View>
+        );
+    } else if (parkingView === 'security') {
+        listData = filteredSlots;
+        listHeader = (
+            <View>
+                {/* Search input */}
+                <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
+                    <Ionicons name="search" size={20} color={theme.textMuted} />
+                    <TextInput
+                        style={[styles.searchInput, { color: theme.textPrimary }]}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholder="Search by Slot, Vehicle, Unit, Block, Resident..."
+                        placeholderTextColor={theme.textFaint}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close" size={20} color={theme.textMuted} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Active guest bookings section (bounded) */}
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: 16 }]}>Active Guest Bookings ({activeGuestBookingsForSecurity.length})</Text>
+                {activeGuestBookingsForSecurity.length === 0 ? (
+                    <Text style={[styles.emptyText, { color: theme.textMuted, marginBottom: 16 }]}>No active guest bookings currently.</Text>
+                ) : (
+                    activeGuestBookingsForSecurity.map(item => (
+                        <View key={item.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSoft, marginBottom: 12 }]}>
+                            <View style={styles.bookingHeader}>
+                                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>{item.slotName}</Text>
+                                <TouchableOpacity 
+                                    style={[styles.actionBadgeBtn, { backgroundColor: '#fef2f2' }]} 
+                                    onPress={() => handleMarkFreed(item.id)}
+                                    disabled={actionLoading}
+                                >
+                                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#ef4444' }}>Mark Freed</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={[styles.bookingText, { color: theme.textMuted, marginTop: 8 }]}>Vehicle Number: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{item.vehicleNumber}</Text></Text>
+                            <Text style={[styles.bookingText, { color: theme.textMuted }]}>Resident: {item.residentName} ({item.unitInfo})</Text>
+                            <Text style={[styles.bookingText, { color: theme.textMuted }]}>Time: {dayjs(item.startTime).format('hh:mm A')} - {dayjs(item.endTime).format('hh:mm A')}</Text>
+                        </View>
+                    ))
+                )}
+
+                {/* All Slots Searchable Grid */}
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>All Parking Slots ({filteredSlots.length})</Text>
+            </View>
+        );
+        listEmpty = <Text style={[styles.emptyText, { color: theme.textMuted }]}>No matching parking slots found.</Text>;
+        renderListItem = ({ item: s }) => {
+            // Find current active booking for guest slot
+            const now = new Date();
+            const activeBooking = s.type === 'GUEST' ? bookings.find(b => 
+                b.slotId === s.id && 
+                (b.status === 'BOOKED' || b.status === 'ACTIVE') &&
+                new Date(b.endTime) >= now
+            ) : null;
+
+            return (
+                <View style={[styles.slotItemCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft, paddingVertical: 14 }]}>
+                    <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={[styles.slotName, { color: theme.textPrimary, marginRight: 8 }]}>{s.name}</Text>
+                            <View style={[styles.badge, { backgroundColor: s.type === 'RESIDENT' ? '#eff6ff' : '#f0fdf4' }]}>
+                                <Text style={[styles.badgeText, { color: s.type === 'RESIDENT' ? '#1e40af' : '#166534', fontSize: 9 }]}>
+                                    {s.type}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {s.type === 'RESIDENT' ? (
+                            <View style={{ marginTop: 8 }}>
+                                {s.assignedUnitNumber ? (
+                                    <>
+                                        <Text style={{ fontSize: 12, color: theme.textMuted }}>Assigned Unit: <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>{s.assignedBlockName} - {s.assignedUnitNumber}</Text></Text>
+                                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>Vehicle: <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{s.assignedVehicle}</Text></Text>
+                                    </>
+                                ) : (
+                                    <Text style={{ fontSize: 12, color: theme.textFaint, fontStyle: 'italic' }}>Unassigned</Text>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={{ marginTop: 8 }}>
+                                {activeBooking ? (
+                                    <>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444', marginRight: 6 }} />
+                                            <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '700' }}>OCCUPIED</Text>
+                                        </View>
+                                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Vehicle: <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{activeBooking.vehicleNumber}</Text></Text>
+                                        <Text style={{ fontSize: 12, color: theme.textMuted }}>Resident: {activeBooking.residentName} ({activeBooking.unitInfo})</Text>
+                                        <Text style={{ fontSize: 12, color: theme.textMuted }}>Until: {dayjs(activeBooking.endTime).format('hh:mm A')}</Text>
+                                    </>
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e', marginRight: 6 }} />
+                                        <Text style={{ fontSize: 12, color: '#22c55e', fontWeight: '700' }}>AVAILABLE</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                </View>
+            );
+        };
+    }
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             {/* Header */}
@@ -711,438 +1133,21 @@ export default function ParkingScreen() {
                 </View>
             )}
 
-            <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
-                
-                {/* 1. ADMIN - CREATE SLOTS TAB */}
-                {isAdmin && adminTab === 'slots' && (
-                    <View style={styles.section}>
-                        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Create Parking Slot</Text>
-                            <TextInput
-                                style={[styles.input, { borderColor: theme.border, color: theme.textPrimary }]}
-                                value={newSlotName}
-                                onChangeText={setNewSlotName}
-                                placeholder="Enter Slot Name (e.g. R-101, Guest-A)"
-                                placeholderTextColor={theme.textFaint}
-                            />
-                            
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 12 }]}>Slot Type</Text>
-                            <View style={styles.typeSelectorRow}>
-                                <TouchableOpacity
-                                    onPress={() => setNewSlotType('RESIDENT')}
-                                    style={[styles.typeButton, newSlotType === 'RESIDENT' && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                                >
-                                    <Text style={[styles.typeButtonText, newSlotType === 'RESIDENT' ? { color: '#fff' } : { color: theme.textPrimary }]}>Resident Slot</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() => setNewSlotType('GUEST')}
-                                    style={[styles.typeButton, newSlotType === 'GUEST' && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                                >
-                                    <Text style={[styles.typeButtonText, newSlotType === 'GUEST' ? { color: '#fff' } : { color: theme.textPrimary }]}>Guest Slot</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            <TouchableOpacity 
-                                style={[styles.submitBtn, { backgroundColor: theme.primary }]} 
-                                onPress={handleCreateSlot}
-                                disabled={actionLoading}
-                            >
-                                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Create Slot</Text>}
-                            </TouchableOpacity>
-                        </View>
-
-                        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: 24 }]}>Existing Slots ({slots.length})</Text>
-                        {slots.length === 0 ? (
-                            <Text style={[styles.emptyText, { color: theme.textMuted }]}>No slots created yet. Use the form above to add slots.</Text>
-                        ) : (
-                            slots.map(item => (
-                                <View key={item.id} style={[styles.slotItemCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
-                                    <View style={styles.slotDetails}>
-                                        <Text style={[styles.slotName, { color: theme.textPrimary }]}>{item.name}</Text>
-                                        <View style={[styles.badge, { backgroundColor: item.type === 'RESIDENT' ? '#eff6ff' : '#f0fdf4' }]}>
-                                            <Text style={[styles.badgeText, { color: item.type === 'RESIDENT' ? '#1e40af' : '#166534' }]}>
-                                                {item.type}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <TouchableOpacity onPress={() => handleDeleteSlot(item.id, item.name)} style={styles.deleteBtn}>
-                                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))
-                        )}
-                    </View>
-                )}
-
-                {/* 2. ADMIN - ASSIGN RESIDENT TAB */}
-                {isAdmin && adminTab === 'assign' && (
-                    <View style={styles.section}>
-                        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Assign Resident Parking</Text>
-                            
-                            <Text style={[styles.label, { color: theme.textMuted }]}>Select Resident Slot</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
-                                {slots.filter(s => s.type === 'RESIDENT').map(s => {
-                                    const isAssigned = !!s.assignedUnitNumber;
-                                    const isSelected = selectedSlotId === s.id;
-                                    return (
-                                        <TouchableOpacity
-                                            key={s.id}
-                                            onPress={() => setSelectedSlotId(s.id)}
-                                            style={[
-                                                styles.pillOption,
-                                                isSelected && { backgroundColor: theme.primary, borderColor: theme.primary },
-                                                !isSelected && isAssigned && { backgroundColor: theme.surfaceMuted }
-                                            ]}
-                                        >
-                                            <Text style={[
-                                                styles.pillOptionText,
-                                                isSelected ? { color: '#fff' } : { color: theme.textPrimary },
-                                                !isSelected && isAssigned && { textDecorationLine: 'line-through', color: theme.textMuted }
-                                            ]}>
-                                                {s.name} {isAssigned && `(Unit ${s.assignedUnitNumber})`}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                                {slots.filter(s => s.type === 'RESIDENT').length === 0 && (
-                                    <Text style={{ color: theme.textFaint, fontSize: 12 }}>No Resident Slots. Create some in Slots tab first.</Text>
-                                )}
-                            </ScrollView>
-
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Select Block</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
-                                {blocks.map(b => (
-                                    <TouchableOpacity
-                                        key={b.id}
-                                        onPress={() => setSelectedBlockId(b.id)}
-                                        style={[styles.pillOption, selectedBlockId === b.id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                                    >
-                                        <Text style={[styles.pillOptionText, selectedBlockId === b.id ? { color: '#fff' } : { color: theme.textPrimary }]}>
-                                            {b.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Select Unit</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
-                                {units.map(u => (
-                                    <TouchableOpacity
-                                        key={u.id}
-                                        onPress={() => setSelectedUnitId(u.id)}
-                                        style={[styles.pillOption, selectedUnitId === u.id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                                    >
-                                        <Text style={[styles.pillOptionText, selectedUnitId === u.id ? { color: '#fff' } : { color: theme.textPrimary }]}>
-                                            Unit {u.number}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                                {units.length === 0 && (
-                                    <Text style={{ color: theme.textFaint, fontSize: 12 }}>Please select a block with units.</Text>
-                                )}
-                            </ScrollView>
-
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Vehicle Number</Text>
-                            <TextInput
-                                style={[styles.input, { borderColor: theme.border, color: theme.textPrimary }]}
-                                value={residentVehicle}
-                                onChangeText={setResidentVehicle}
-                                placeholder="Enter vehicle registration number (e.g. KA-01-MJ-1234)"
-                                placeholderTextColor={theme.textFaint}
-                            />
-
-                            <TouchableOpacity 
-                                style={[styles.submitBtn, { backgroundColor: theme.primary, marginTop: 16 }]} 
-                                onPress={handleAssignResidentSlot}
-                                disabled={actionLoading}
-                            >
-                                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Assign Slot</Text>}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
-
-                {/* 3. ADMIN - BOOKINGS TAB */}
-                {isAdmin && adminTab === 'bookings' && (
-                    <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Guest Bookings History ({bookings.length})</Text>
-                        {bookings.length === 0 ? (
-                            <Text style={[styles.emptyText, { color: theme.textMuted }]}>No bookings found.</Text>
-                        ) : (
-                            bookings.map(item => (
-                                <View key={item.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSoft, marginBottom: 12 }]}>
-                                    <View style={styles.bookingHeader}>
-                                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>{item.slotName}</Text>
-                                        <View style={[styles.badge, { backgroundColor: item.status === 'BOOKED' ? '#fef3c7' : item.status === 'ACTIVE' ? '#dbeafe' : '#f1f5f9' }]}>
-                                            <Text style={[styles.badgeText, { color: item.status === 'BOOKED' ? '#d97706' : item.status === 'ACTIVE' ? '#1d4ed8' : '#475569' }]}>
-                                                {item.status}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted, marginTop: 8 }]}>Guest Vehicle: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{item.vehicleNumber}</Text></Text>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted }]}>Resident: {item.residentName} ({item.unitInfo})</Text>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted }]}>Duration: {dayjs(item.startTime).format('MMM DD, hh:mm A')} to {dayjs(item.endTime).format('hh:mm A')}</Text>
-                                    {item.markedFreedAt && (
-                                        <Text style={[styles.bookingText, { color: theme.primarySoft }]}>Freed early at: {dayjs(item.markedFreedAt).format('hh:mm A')}</Text>
-                                    )}
-                                </View>
-                            ))
-                        )}
-                    </View>
-                )}
-
-                {/* 4. RESIDENT - VIEW TAB */}
-                {isResident && residentTab === 'view' && (
-                    <View style={styles.section}>
-                        {/* Resident assigned slot */}
-                        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Assigned Parking</Text>
-                        {myAssignedSlots.length === 0 ? (
-                            <View style={[styles.infoBanner, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
-                                <Ionicons name="information-circle-outline" size={20} color={theme.textPrimary} style={{ marginRight: 8 }} />
-                                <Text style={{ fontSize: 12, color: theme.textPrimary, flex: 1 }}>
-                                    No Resident parking slot has been assigned to your unit yet. Please contact the administrator.
-                                </Text>
-                            </View>
-                        ) : (
-                            myAssignedSlots.map(s => (
-                                <View key={s.id} style={[styles.slotItemCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
-                                    <View>
-                                        <Text style={[styles.slotName, { color: theme.textPrimary }]}>{s.name}</Text>
-                                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Vehicle: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{s.assignedVehicle}</Text></Text>
-                                    </View>
-                                    <View style={[styles.badge, { backgroundColor: '#dbeafe' }]}>
-                                        <Text style={[styles.badgeText, { color: '#1d4ed8' }]}>Resident</Text>
-                                    </View>
-                                </View>
-                            ))
-                        )}
-
-                        {/* Guest slot booking */}
-                        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, marginTop: 24 }]}>
-                            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Book Guest Parking Slot</Text>
-                            <Text style={{ fontSize: 12, color: theme.textMuted, marginBottom: 12 }}>
-                                Guests can be registered for a fixed duration of exactly 4 hours.
-                            </Text>
-
-                            <Text style={[styles.label, { color: theme.textMuted }]}>Select Available Guest Slot</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalSelectScroll}>
-                                {availableGuestSlots.map(s => (
-                                    <TouchableOpacity
-                                        key={s.id}
-                                        onPress={() => setBookingGuestSlotId(s.id)}
-                                        style={[styles.pillOption, bookingGuestSlotId === s.id && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                                    >
-                                        <Text style={[styles.pillOptionText, bookingGuestSlotId === s.id ? { color: '#fff' } : { color: theme.textPrimary }]}>
-                                            {s.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                                {availableGuestSlots.length === 0 && (
-                                    <Text style={{ color: theme.textFaint, fontSize: 12 }}>No available guest slots at this moment.</Text>
-                                )}
-                            </ScrollView>
-
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Guest Vehicle Number</Text>
-                            <TextInput
-                                style={[styles.input, { borderColor: theme.border, color: theme.textPrimary }]}
-                                value={guestVehicleNumber}
-                                onChangeText={setGuestVehicleNumber}
-                                placeholder="Enter guest vehicle registration number"
-                                placeholderTextColor={theme.textFaint}
-                            />
-
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 16 }]}>Start Date</Text>
-                            <TouchableOpacity
-                                style={[styles.input, { borderColor: theme.border, justifyContent: 'center' }]}
-                                onPress={() => setShowBookingDatePicker(true)}
-                            >
-                                <Text style={{ color: theme.textPrimary }}>
-                                    {dayjs(bookingStartTime).format('YYYY-MM-DD')}
-                                </Text>
-                            </TouchableOpacity>
-                            {showBookingDatePicker && (
-                                <DateTimePicker
-                                    value={bookingStartTime}
-                                    mode="date"
-                                    minimumDate={new Date()}
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    onChange={onBookingDateChange}
-                                />
-                            )}
-
-                            <Text style={[styles.label, { color: theme.textMuted, marginTop: 12 }]}>Start Time</Text>
-                            <TouchableOpacity
-                                style={[styles.input, { borderColor: theme.border, justifyContent: 'center' }]}
-                                onPress={() => setShowBookingTimePicker(true)}
-                            >
-                                <Text style={{ color: theme.textPrimary }}>
-                                    {dayjs(bookingStartTime).format('hh:mm A')}
-                                </Text>
-                            </TouchableOpacity>
-                            {showBookingTimePicker && (
-                                <DateTimePicker
-                                    value={bookingStartTime}
-                                    mode="time"
-                                    is24Hour={false}
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    onChange={onBookingTimeChange}
-                                />
-                            )}
-
-                            <Text style={{ fontSize: 12, color: theme.primary, fontWeight: '600', marginTop: 12 }}>
-                                End Time (Auto-calculated): {dayjs(bookingStartTime).add(4, 'hour').format('YYYY-MM-DD hh:mm A')}
-                            </Text>
-
-                            <TouchableOpacity 
-                                style={[styles.submitBtn, { backgroundColor: theme.primary, marginTop: 16 }]} 
-                                onPress={handleBookGuestSlot}
-                                disabled={actionLoading}
-                            >
-                                {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Book Slot</Text>}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
-
-                {/* 5. RESIDENT - HISTORY TAB */}
-                {isResident && residentTab === 'history' && (
-                    <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>My Guest Bookings History</Text>
-                        {myBookingsList.length === 0 ? (
-                            <Text style={[styles.emptyText, { color: theme.textMuted }]}>No bookings found under your unit.</Text>
-                        ) : (
-                            myBookingsList.map(item => (
-                                <View key={item.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSoft, marginBottom: 12 }]}>
-                                    <View style={styles.bookingHeader}>
-                                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>{item.slotName}</Text>
-                                        <View style={[styles.badge, { backgroundColor: item.status === 'BOOKED' ? '#fef3c7' : item.status === 'ACTIVE' ? '#dbeafe' : '#f1f5f9' }]}>
-                                            <Text style={[styles.badgeText, { color: item.status === 'BOOKED' ? '#d97706' : item.status === 'ACTIVE' ? '#1d4ed8' : '#475569' }]}>
-                                                {item.status}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted, marginTop: 8 }]}>Guest Vehicle: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{item.vehicleNumber}</Text></Text>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted }]}>Duration: {dayjs(item.startTime).format('MMM DD, hh:mm A')} to {dayjs(item.endTime).format('hh:mm A')}</Text>
-                                    {item.markedFreedAt && (
-                                        <Text style={[styles.bookingText, { color: theme.primarySoft }]}>Released early at: {dayjs(item.markedFreedAt).format('hh:mm A')}</Text>
-                                    )}
-                                </View>
-                            ))
-                        )}
-                    </View>
-                )}
-
-                {/* 6. SECURITY - SEARCH / MANAGEMENT VIEW */}
-                {isSecurity && (
-                    <View style={styles.section}>
-                        {/* Search input */}
-                        <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
-                            <Ionicons name="search" size={20} color={theme.textMuted} />
-                            <TextInput
-                                style={[styles.searchInput, { color: theme.textPrimary }]}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                placeholder="Search by Slot, Vehicle, Unit, Block, Resident..."
-                                placeholderTextColor={theme.textFaint}
-                            />
-                            {searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                    <Ionicons name="close" size={20} color={theme.textMuted} />
-                                </TouchableOpacity>
-                            )}
-                        </View>
-
-                        {/* Active guest bookings section */}
-                        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: 16 }]}>Active Guest Bookings ({activeGuestBookingsForSecurity.length})</Text>
-                        {activeGuestBookingsForSecurity.length === 0 ? (
-                            <Text style={[styles.emptyText, { color: theme.textMuted, marginBottom: 16 }]}>No active guest bookings currently.</Text>
-                        ) : (
-                            activeGuestBookingsForSecurity.map(item => (
-                                <View key={item.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSoft, marginBottom: 12 }]}>
-                                    <View style={styles.bookingHeader}>
-                                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>{item.slotName}</Text>
-                                        <TouchableOpacity 
-                                            style={[styles.actionBadgeBtn, { backgroundColor: '#fef2f2' }]} 
-                                            onPress={() => handleMarkFreed(item.id)}
-                                            disabled={actionLoading}
-                                        >
-                                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#ef4444' }}>Mark Freed</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted, marginTop: 8 }]}>Vehicle Number: <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{item.vehicleNumber}</Text></Text>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted }]}>Resident: {item.residentName} ({item.unitInfo})</Text>
-                                    <Text style={[styles.bookingText, { color: theme.textMuted }]}>Time: {dayjs(item.startTime).format('hh:mm A')} - {dayjs(item.endTime).format('hh:mm A')}</Text>
-                                </View>
-                            ))
-                        )}
-
-                        {/* All Slots Searchable Grid */}
-                        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>All Parking Slots ({filteredSlots.length})</Text>
-                        {filteredSlots.length === 0 ? (
-                            <Text style={[styles.emptyText, { color: theme.textMuted }]}>No matching parking slots found.</Text>
-                        ) : (
-                            filteredSlots.map(s => {
-                                // Find current active booking for guest slot
-                                const now = new Date();
-                                const activeBooking = s.type === 'GUEST' ? bookings.find(b => 
-                                    b.slotId === s.id && 
-                                    (b.status === 'BOOKED' || b.status === 'ACTIVE') &&
-                                    new Date(b.endTime) >= now
-                                ) : null;
-
-                                return (
-                                    <View key={s.id} style={[styles.slotItemCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft, paddingVertical: 14 }]}>
-                                        <View style={{ flex: 1 }}>
-                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                <Text style={[styles.slotName, { color: theme.textPrimary, marginRight: 8 }]}>{s.name}</Text>
-                                                <View style={[styles.badge, { backgroundColor: s.type === 'RESIDENT' ? '#eff6ff' : '#f0fdf4' }]}>
-                                                    <Text style={[styles.badgeText, { color: s.type === 'RESIDENT' ? '#1e40af' : '#166534', fontSize: 9 }]}>
-                                                        {s.type}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            
-                                            {s.type === 'RESIDENT' ? (
-                                                <View style={{ marginTop: 8 }}>
-                                                    {s.assignedUnitNumber ? (
-                                                        <>
-                                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>Assigned Unit: <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>{s.assignedBlockName} - {s.assignedUnitNumber}</Text></Text>
-                                                            <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>Vehicle: <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{s.assignedVehicle}</Text></Text>
-                                                        </>
-                                                    ) : (
-                                                        <Text style={{ fontSize: 12, color: theme.textFaint, fontStyle: 'italic' }}>Unassigned</Text>
-                                                    )}
-                                                </View>
-                                            ) : (
-                                                <View style={{ marginTop: 8 }}>
-                                                    {activeBooking ? (
-                                                        <>
-                                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444', marginRight: 6 }} />
-                                                                <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '700' }}>OCCUPIED</Text>
-                                                            </View>
-                                                            <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Vehicle: <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{activeBooking.vehicleNumber}</Text></Text>
-                                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>Resident: {activeBooking.residentName} ({activeBooking.unitInfo})</Text>
-                                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>Until: {dayjs(activeBooking.endTime).format('hh:mm A')}</Text>
-                                                        </>
-                                                    ) : (
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e', marginRight: 6 }} />
-                                                            <Text style={{ fontSize: 12, color: '#22c55e', fontWeight: '700' }}>AVAILABLE</Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                            )}
-                                        </View>
-                                    </View>
-                                );
-                            })
-                        )}
-                    </View>
-                )}
-
-            </ScrollView>
+            <FlatList
+                style={styles.content}
+                contentContainerStyle={styles.scrollContent}
+                data={listData}
+                keyExtractor={(item, index) => String(item?.id ?? index)}
+                renderItem={renderListItem}
+                ListHeaderComponent={listHeader}
+                ListFooterComponent={listFooter}
+                ListEmptyComponent={listEmpty}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                keyboardShouldPersistTaps="handled"
+            />
         </SafeAreaView>
     );
 }

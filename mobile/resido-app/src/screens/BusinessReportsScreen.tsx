@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, SectionList, TouchableOpacity, ActivityIndicator, StatusBar, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -140,144 +140,161 @@ export default function BusinessReportsScreen() {
                 </View>
             </View>
 
-            <ScrollView
+            <SectionList
+                sections={[
+                    { key: 'daily', title: 'Daily breakdown', data: byDate },
+                    { key: 'bookings', title: `Bookings (${bookings.length})`, data: bookings },
+                ]}
+                keyExtractor={(item: any, index: number) => String(item?.id ?? item?.date ?? index)}
+                stickySectionHeadersEnabled={false}
                 contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchReport(); }} tintColor="#8b5cf6" />}
-            >
-                {/* Preset chips */}
-                <View style={styles.presetRow}>
-                    {([
-                        { key: 'today', label: 'Today' },
-                        { key: '7', label: 'Last 7 days' },
-                        { key: '30', label: 'Last 30 days' },
-                        { key: '90', label: 'Last 90 days' },
-                        { key: 'custom', label: 'Custom' },
-                    ] as { key: PresetKey; label: string }[]).map(p => (
-                        <TouchableOpacity
-                            key={p.key}
-                            style={[styles.presetChip, activePreset === p.key && styles.presetChipActive]}
-                            onPress={() => applyPreset(p.key)}
-                        >
-                            <Text style={[styles.presetText, activePreset === p.key && styles.presetTextActive]}>{p.label}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
-                {/* Date range picker */}
-                <View style={styles.rangeCard}>
-                    <TouchableOpacity style={styles.rangeBox} onPress={() => setShowFromPicker(true)}>
-                        <Text style={styles.rangeLabel}>From</Text>
-                        <Text style={styles.rangeValue}>{formatDisplayDate(from)}</Text>
-                    </TouchableOpacity>
-                    <Ionicons name="arrow-forward" size={18} color="#8b5cf6" />
-                    <TouchableOpacity style={styles.rangeBox} onPress={() => setShowToPicker(true)}>
-                        <Text style={styles.rangeLabel}>To</Text>
-                        <Text style={styles.rangeValue}>{formatDisplayDate(to)}</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {showFromPicker && (
-                    <DateTimePicker
-                        value={new Date(from)}
-                        mode="date"
-                        display="calendar"
-                        maximumDate={new Date(to)}
-                        onChange={onPickFrom}
-                    />
-                )}
-                {showToPicker && (
-                    <DateTimePicker
-                        value={new Date(to)}
-                        mode="date"
-                        display="calendar"
-                        minimumDate={new Date(from)}
-                        maximumDate={new Date()}
-                        onChange={onPickTo}
-                    />
-                )}
-
-                {/* Summary tiles */}
-                <View style={styles.summaryGrid}>
-                    <SummaryTile color="#8b5cf6" icon="calendar" label="Total" value={summary.totalBookings} />
-                    <SummaryTile color="#10b981" icon="checkmark-circle" label="Confirmed" value={summary.confirmedBookings} />
-                    <SummaryTile color="#ef4444" icon="close-circle" label="Cancelled" value={summary.cancelledBookings} />
-                    <SummaryTile color="#f59e0b" icon="people" label="Guests" value={summary.totalGuests} />
-                </View>
-
-                {/* Per-day breakdown */}
-                <Text style={styles.sectionTitle}>Daily breakdown</Text>
-                {byDate.length === 0 ? (
-                    <View style={styles.emptyCard}>
-                        <Ionicons name="document-text-outline" size={36} color="#9A8EBA" />
-                        <Text style={styles.emptyText}>No bookings in this date range.</Text>
-                    </View>
-                ) : (
-                    byDate.map((day: any) => (
-                        <View key={day.date} style={styles.dayCard}>
-                            <View style={styles.dayHeader}>
-                                <View>
-                                    <Text style={styles.dayDate}>{formatDisplayDate(day.date)}</Text>
-                                    <Text style={styles.daySub}>
-                                        {day.confirmed} confirmed
-                                        {day.cancelled ? ` · ${day.cancelled} cancelled` : ''}
-                                    </Text>
-                                </View>
-                                <View style={styles.dayCountPill}>
-                                    <Text style={styles.dayCountText}>{day.persons}</Text>
-                                </View>
-                            </View>
+                ListHeaderComponent={
+                    <View>
+                        {/* Preset chips */}
+                        <View style={styles.presetRow}>
+                            {([
+                                { key: 'today', label: 'Today' },
+                                { key: '7', label: 'Last 7 days' },
+                                { key: '30', label: 'Last 30 days' },
+                                { key: '90', label: 'Last 90 days' },
+                                { key: 'custom', label: 'Custom' },
+                            ] as { key: PresetKey; label: string }[]).map(p => (
+                                <TouchableOpacity
+                                    key={p.key}
+                                    style={[styles.presetChip, activePreset === p.key && styles.presetChipActive]}
+                                    onPress={() => applyPreset(p.key)}
+                                >
+                                    <Text style={[styles.presetText, activePreset === p.key && styles.presetTextActive]}>{p.label}</Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
-                    ))
-                )}
 
-                {/* Booking-level detail */}
-                <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Bookings ({bookings.length})</Text>
-                {bookings.length === 0 ? (
-                    <View style={styles.emptyCard}>
-                        <Ionicons name="ticket-outline" size={36} color="#9A8EBA" />
-                        <Text style={styles.emptyText}>No booking records for this window.</Text>
+                        {/* Date range picker */}
+                        <View style={styles.rangeCard}>
+                            <TouchableOpacity style={styles.rangeBox} onPress={() => setShowFromPicker(true)}>
+                                <Text style={styles.rangeLabel}>From</Text>
+                                <Text style={styles.rangeValue}>{formatDisplayDate(from)}</Text>
+                            </TouchableOpacity>
+                            <Ionicons name="arrow-forward" size={18} color="#8b5cf6" />
+                            <TouchableOpacity style={styles.rangeBox} onPress={() => setShowToPicker(true)}>
+                                <Text style={styles.rangeLabel}>To</Text>
+                                <Text style={styles.rangeValue}>{formatDisplayDate(to)}</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {showFromPicker && (
+                            <DateTimePicker
+                                value={new Date(from)}
+                                mode="date"
+                                display="calendar"
+                                maximumDate={new Date(to)}
+                                onChange={onPickFrom}
+                            />
+                        )}
+                        {showToPicker && (
+                            <DateTimePicker
+                                value={new Date(to)}
+                                mode="date"
+                                display="calendar"
+                                minimumDate={new Date(from)}
+                                maximumDate={new Date()}
+                                onChange={onPickTo}
+                            />
+                        )}
+
+                        {/* Summary tiles */}
+                        <View style={styles.summaryGrid}>
+                            <SummaryTile color="#8b5cf6" icon="calendar" label="Total" value={summary.totalBookings} />
+                            <SummaryTile color="#10b981" icon="checkmark-circle" label="Confirmed" value={summary.confirmedBookings} />
+                            <SummaryTile color="#ef4444" icon="close-circle" label="Cancelled" value={summary.cancelledBookings} />
+                            <SummaryTile color="#f59e0b" icon="people" label="Guests" value={summary.totalGuests} />
+                        </View>
                     </View>
-                ) : (
-                    bookings.map((b: any) => {
-                        const isCancelled = b.status === 'CANCELLED';
-                        const tokenStr = b.tokenNumber ? String(b.tokenNumber).padStart(4, '0') : '—';
-                        return (
-                            <View key={b.id} style={[styles.bookingCard, isCancelled && { opacity: 0.55 }]}>
-                                <View style={styles.bookingTokenBox}>
-                                    <Text style={styles.bookingTokenLabel}>TOKEN</Text>
-                                    <Text style={styles.bookingTokenValue}>{tokenStr}</Text>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.bookingName} numberOfLines={1}>
-                                        {b.userName || 'Customer'}
-                                    </Text>
-                                    <Text style={styles.bookingMeta} numberOfLines={1}>
-                                        {b.userPhone || 'No phone'} · {b.persons || 1} guest{(b.persons || 1) === 1 ? '' : 's'}
-                                    </Text>
-                                    <Text style={styles.bookingMeta} numberOfLines={1}>
-                                        {formatShortDate(b.bookingDate)} · {b.timeSlot}
-                                        {b.slot?.name ? ` · ${b.slot.name}` : ''}
-                                    </Text>
-                                </View>
-                                <View style={[
-                                    styles.bookingStatusBadge,
-                                    { backgroundColor: isCancelled ? '#FEE2E2' : '#DCFCE7' },
-                                ]}>
-                                    <Text style={[
-                                        styles.bookingStatusText,
-                                        { color: isCancelled ? '#dc2626' : '#16a34a' },
-                                    ]}>
-                                        {b.status}
-                                    </Text>
-                                </View>
-                            </View>
-                        );
-                    })
+                }
+                renderSectionHeader={({ section }: any) => (
+                    <Text style={[styles.sectionTitle, section.key === 'bookings' && { marginTop: 18 }]}>{section.title}</Text>
                 )}
-            </ScrollView>
+                renderSectionFooter={({ section }: any) => (
+                    section.data.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <Ionicons name={section.key === 'bookings' ? 'ticket-outline' : 'document-text-outline'} size={36} color="#9A8EBA" />
+                            <Text style={styles.emptyText}>
+                                {section.key === 'bookings'
+                                    ? 'No booking records for this window.'
+                                    : 'No bookings in this date range.'}
+                            </Text>
+                        </View>
+                    ) : null
+                )}
+                renderItem={({ item, section }: any) => (
+                    section.key === 'daily'
+                        ? <DayCard day={item} />
+                        : <BookingReportCard booking={item} />
+                )}
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+            />
         </SafeAreaView>
     );
 }
+
+const DayCard = React.memo(function DayCard({ day }: any) {
+    return (
+        <View style={styles.dayCard}>
+            <View style={styles.dayHeader}>
+                <View>
+                    <Text style={styles.dayDate}>{formatDisplayDate(day.date)}</Text>
+                    <Text style={styles.daySub}>
+                        {day.confirmed} confirmed
+                        {day.cancelled ? ` · ${day.cancelled} cancelled` : ''}
+                    </Text>
+                </View>
+                <View style={styles.dayCountPill}>
+                    <Text style={styles.dayCountText}>{day.persons}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
+const BookingReportCard = React.memo(function BookingReportCard({ booking: b }: any) {
+    const isCancelled = b.status === 'CANCELLED';
+    const tokenStr = b.tokenNumber ? String(b.tokenNumber).padStart(4, '0') : '—';
+    return (
+        <View style={[styles.bookingCard, isCancelled && { opacity: 0.55 }]}>
+            <View style={styles.bookingTokenBox}>
+                <Text style={styles.bookingTokenLabel}>TOKEN</Text>
+                <Text style={styles.bookingTokenValue}>{tokenStr}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={styles.bookingName} numberOfLines={1}>
+                    {b.userName || 'Customer'}
+                </Text>
+                <Text style={styles.bookingMeta} numberOfLines={1}>
+                    {b.userPhone || 'No phone'} · {b.persons || 1} guest{(b.persons || 1) === 1 ? '' : 's'}
+                </Text>
+                <Text style={styles.bookingMeta} numberOfLines={1}>
+                    {formatShortDate(b.bookingDate)} · {b.timeSlot}
+                    {b.slot?.name ? ` · ${b.slot.name}` : ''}
+                </Text>
+            </View>
+            <View style={[
+                styles.bookingStatusBadge,
+                { backgroundColor: isCancelled ? '#FEE2E2' : '#DCFCE7' },
+            ]}>
+                <Text style={[
+                    styles.bookingStatusText,
+                    { color: isCancelled ? '#dc2626' : '#16a34a' },
+                ]}>
+                    {b.status}
+                </Text>
+            </View>
+        </View>
+    );
+});
 
 function SummaryTile({ color, icon, label, value }: any) {
     return (

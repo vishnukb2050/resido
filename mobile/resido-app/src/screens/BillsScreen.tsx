@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Image, ActivityIndicator, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar, Image, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,6 +22,83 @@ function isImageUrl(url: string) {
     const lower = url.toLowerCase();
     return /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(lower) || lower.includes('image/');
 }
+
+type BillRowProps = {
+    bill: BillItem;
+    onOpenFile: (url: string) => void;
+    onEdit: (bill: BillItem) => void;
+};
+
+const BillRow = React.memo(function BillRow({ bill, onOpenFile, onEdit }: BillRowProps) {
+    const previewUrl = resolveMediaUrl(bill.fileUrl) || bill.fileUrl;
+    const showImage = isImageUrl(previewUrl);
+    return (
+        <View style={styles.billCard}>
+            <TouchableOpacity
+                style={styles.previewBox}
+                onPress={() => onOpenFile(bill.fileUrl)}
+                activeOpacity={0.85}
+            >
+                {showImage ? (
+                    <Image source={{ uri: previewUrl }} style={styles.previewImage} resizeMode="cover" />
+                ) : (
+                    <View style={styles.previewDoc}>
+                        <MaterialCommunityIcons name="file-pdf-box" size={36} color="#ef4444" />
+                        <Text style={styles.previewDocText}>PDF / Doc</Text>
+                    </View>
+                )}
+                <View style={styles.openBadge}>
+                    <Ionicons name="open-outline" size={14} color="#fff" />
+                </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.billInfo}
+                onPress={() => onEdit(bill)}
+                activeOpacity={0.85}
+            >
+                <View style={styles.billTitleRow}>
+                    <Text style={styles.billLabel} numberOfLines={1}>{bill.label}</Text>
+                    <View
+                        style={[
+                            styles.kindBadge,
+                            { backgroundColor: bill.kind === 'INCOME' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.12)' },
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.kindBadgeText,
+                                { color: bill.kind === 'INCOME' ? '#10b981' : '#ef4444' },
+                            ]}
+                        >
+                            {bill.kind === 'INCOME' ? 'INCOME' : 'EXPENSE'}
+                        </Text>
+                    </View>
+                </View>
+                {bill.description ? (
+                    <Text style={styles.billDesc} numberOfLines={2}>{bill.description}</Text>
+                ) : null}
+                <Text
+                    style={[
+                        styles.billAmount,
+                        { color: bill.kind === 'INCOME' ? '#10b981' : '#ef4444' },
+                    ]}
+                >
+                    {bill.kind === 'INCOME' ? '+' : '-'} ₹ {bill.amount.toLocaleString()}
+                </Text>
+                <Text style={styles.billDate}>{new Date(bill.date).toLocaleDateString()}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => onEdit(bill)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+                <Ionicons name="create-outline" size={20} color="#8b5cf6" />
+            </TouchableOpacity>
+        </View>
+    );
+});
 
 export default function BillsScreen() {
     const router = useRouter();
@@ -78,7 +155,7 @@ export default function BillsScreen() {
         }
     };
 
-    const openBillFile = async (url: string) => {
+    const openBillFile = useCallback(async (url: string) => {
         const resolved = resolveMediaUrl(url) || url;
         try {
             const supported = await Linking.canOpenURL(resolved);
@@ -90,16 +167,16 @@ export default function BillsScreen() {
         } catch {
             Alert.alert('Error', 'Failed to open the bill file.');
         }
-    };
+    }, []);
 
-    const openEdit = (bill: BillItem) => {
+    const openEdit = useCallback((bill: BillItem) => {
         const payload = encodeURIComponent(JSON.stringify(bill.raw));
         if (bill.kind === 'INCOME') {
             router.push({ pathname: '/add-income', params: { id: bill.id, data: payload } });
         } else {
             router.push({ pathname: '/add-expense', params: { id: bill.id, data: payload } });
         }
-    };
+    }, [router]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -120,98 +197,42 @@ export default function BillsScreen() {
                 </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {loading ? (
-                    <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
-                ) : bills.length === 0 ? (
-                    <View style={styles.emptyWrap}>
-                        <View style={styles.emptyIcon}>
-                            <MaterialCommunityIcons name="file-upload-outline" size={44} color="#8b5cf6" />
-                        </View>
-                        <Text style={styles.emptyTitle}>No bills uploaded yet</Text>
-                        <Text style={styles.emptySub}>
-                            Attach a bill when you add an expense, or a receipt when you add income — they will show up here.
-                        </Text>
-                        <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/add-expense')}>
-                            <Text style={styles.emptyBtnText}>Add expense with bill</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.section}>
-                        <Text style={styles.countLabel}>{bills.length} uploaded bill{bills.length === 1 ? '' : 's'}</Text>
-                        {bills.map((bill) => {
-                            const previewUrl = resolveMediaUrl(bill.fileUrl) || bill.fileUrl;
-                            const showImage = isImageUrl(previewUrl);
-                            return (
-                                <View key={`${bill.kind}-${bill.id}`} style={styles.billCard}>
-                                    <TouchableOpacity
-                                        style={styles.previewBox}
-                                        onPress={() => openBillFile(bill.fileUrl)}
-                                        activeOpacity={0.85}
-                                    >
-                                        {showImage ? (
-                                            <Image source={{ uri: previewUrl }} style={styles.previewImage} resizeMode="cover" />
-                                        ) : (
-                                            <View style={styles.previewDoc}>
-                                                <MaterialCommunityIcons name="file-pdf-box" size={36} color="#ef4444" />
-                                                <Text style={styles.previewDocText}>PDF / Doc</Text>
-                                            </View>
-                                        )}
-                                        <View style={styles.openBadge}>
-                                            <Ionicons name="open-outline" size={14} color="#fff" />
-                                        </View>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={styles.billInfo}
-                                        onPress={() => openEdit(bill)}
-                                        activeOpacity={0.85}
-                                    >
-                                        <View style={styles.billTitleRow}>
-                                            <Text style={styles.billLabel} numberOfLines={1}>{bill.label}</Text>
-                                            <View
-                                                style={[
-                                                    styles.kindBadge,
-                                                    { backgroundColor: bill.kind === 'INCOME' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.12)' },
-                                                ]}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.kindBadgeText,
-                                                        { color: bill.kind === 'INCOME' ? '#10b981' : '#ef4444' },
-                                                    ]}
-                                                >
-                                                    {bill.kind === 'INCOME' ? 'INCOME' : 'EXPENSE'}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        {bill.description ? (
-                                            <Text style={styles.billDesc} numberOfLines={2}>{bill.description}</Text>
-                                        ) : null}
-                                        <Text
-                                            style={[
-                                                styles.billAmount,
-                                                { color: bill.kind === 'INCOME' ? '#10b981' : '#ef4444' },
-                                            ]}
-                                        >
-                                            {bill.kind === 'INCOME' ? '+' : '-'} ₹ {bill.amount.toLocaleString()}
-                                        </Text>
-                                        <Text style={styles.billDate}>{new Date(bill.date).toLocaleDateString()}</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={styles.editBtn}
-                                        onPress={() => openEdit(bill)}
-                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                    >
-                                        <Ionicons name="create-outline" size={20} color="#8b5cf6" />
-                                    </TouchableOpacity>
-                                </View>
-                            );
-                        })}
-                    </View>
+            <FlatList
+                data={loading ? [] : bills}
+                keyExtractor={(bill) => `${bill.kind}-${bill.id}`}
+                renderItem={({ item }) => (
+                    <BillRow bill={item} onOpenFile={openBillFile} onEdit={openEdit} />
                 )}
-            </ScrollView>
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                ListHeaderComponent={
+                    !loading && bills.length > 0 ? (
+                        <Text style={styles.countLabel}>{bills.length} uploaded bill{bills.length === 1 ? '' : 's'}</Text>
+                    ) : null
+                }
+                ListEmptyComponent={
+                    loading ? (
+                        <ActivityIndicator color="#8b5cf6" style={{ marginTop: 40 }} />
+                    ) : (
+                        <View style={styles.emptyWrap}>
+                            <View style={styles.emptyIcon}>
+                                <MaterialCommunityIcons name="file-upload-outline" size={44} color="#8b5cf6" />
+                            </View>
+                            <Text style={styles.emptyTitle}>No bills uploaded yet</Text>
+                            <Text style={styles.emptySub}>
+                                Attach a bill when you add an expense, or a receipt when you add income — they will show up here.
+                            </Text>
+                            <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/add-expense')}>
+                                <Text style={styles.emptyBtnText}>Add expense with bill</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )
+                }
+                removeClippedSubviews
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+            />
 
             <BottomNav activeTab="Home" />
         </SafeAreaView>
@@ -234,13 +255,13 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 22, fontWeight: '900', color: '#2D2445' },
     headerSub: { fontSize: 12, color: '#9A8EBA', marginTop: 2 },
 
-    section: { paddingHorizontal: 20, marginTop: 8 },
-    countLabel: { fontSize: 13, color: '#7A6B9C', fontWeight: '700', marginBottom: 14 },
+    listContent: { paddingBottom: 100 },
+    countLabel: { fontSize: 13, color: '#7A6B9C', fontWeight: '700', marginBottom: 14, paddingHorizontal: 20, marginTop: 8 },
 
     billCard: {
         flexDirection: 'row', alignItems: 'flex-start',
         backgroundColor: '#ffffff', padding: 12, borderRadius: 20,
-        marginBottom: 12, borderWidth: 1, borderColor: '#D4C9E8',
+        marginBottom: 12, marginHorizontal: 20, borderWidth: 1, borderColor: '#D4C9E8',
     },
     previewBox: {
         width: 72, height: 72, borderRadius: 14, overflow: 'hidden',
