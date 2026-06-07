@@ -124,68 +124,21 @@ export default function ParkingScreen() {
     const fetchParkingProfile = async () => {
         try {
             if (!activeWorkspace?.tenantId) return;
-            const res = await businessApi.getProfiles({
-                tenantId: activeWorkspace.tenantId,
-                category: 'Community Parking'
-            });
-            const { items } = unpackBusinessProfileList(res.data);
+            setProfile({ id: 'relational_parking', enabled: true });
             
-            if (items && items.length > 0) {
-                const p = items[0];
-                setProfile(p);
-                const wh =
-                    p.workingHours && typeof p.workingHours === 'object' && !Array.isArray(p.workingHours)
-                        ? p.workingHours
-                        : {};
-                const loadedSlots = Array.isArray(wh.slots) ? wh.slots : [];
-                const loadedBookings = Array.isArray(wh.bookings) ? wh.bookings : [];
-                setSlots(loadedSlots);
-                setBookings(loadedBookings);
-
-                // Run auto free logic on loaded bookings
-                await runAutoFree(p, loadedSlots, loadedBookings);
-            } else {
-                // If not found and role is admin, automatically create it!
-                if (isAdmin) {
-                    await initializeShadowProfile();
-                } else {
-                    setProfile(null);
-                }
-            }
+            const [slotsRes, bookingsRes] = await Promise.all([
+                communityApi.getParkingSlots({ limit: 100 }),
+                communityApi.getActiveParkingBookings({ limit: 100 }),
+            ]);
+            
+            setSlots(slotsRes.data?.items || []);
+            setBookings(bookingsRes.data?.items || []);
         } catch (err) {
-            console.error('Error fetching parking profile:', err);
+            console.error('Error fetching parking data:', err);
         }
     };
 
-    const initializeShadowProfile = async () => {
-        if (!activeWorkspace) return;
-        try {
-            const { data: newProfile } = await businessApi.createProfile({
-                businessName: activeWorkspace.tenantName + ' Parking',
-                category: 'Community Parking',
-                businessType: 'INDIVIDUAL',
-                about: 'Community Parking slot and booking management for ' + activeWorkspace.tenantName,
-                phone: user?.phone || '',
-                email: user?.email || '',
-                enableBooking: false,
-                // Belt-and-suspenders: even though listProfiles now bypasses
-                // the visibility filter when tenantId is set, marking the
-                // shadow profile as PAN_INDIA keeps it discoverable from any
-                // older client that still passes location-less filters.
-                serviceAreaType: 'PAN_INDIA',
-                workingHours: {
-                    slots: [],
-                    bookings: []
-                }
-            });
-            setProfile(newProfile);
-            setSlots([]);
-            setBookings([]);
-        } catch (e) {
-            console.error('Failed to initialize parking shadow profile:', e);
-            Alert.alert('Error', 'Failed to initialize parking slots workspace.');
-        }
-    };
+    const initializeShadowProfile = async () => {};
 
     const fetchBlocks = async () => {
         try {
@@ -220,40 +173,7 @@ export default function ParkingScreen() {
         }
     };
 
-    // Auto-free expired bookings
-    const runAutoFree = async (currentProfile: any, _currentSlots: ParkingSlot[], currentBookings: ParkingBooking[]) => {
-        const now = new Date();
-        let updated = false;
-        const safeBookings = Array.isArray(currentBookings) ? currentBookings : [];
-        const newBookings = safeBookings.map((b: any) => {
-            if ((b.status === 'BOOKED' || b.status === 'ACTIVE') && new Date(b.endTime) < now) {
-                updated = true;
-                return { ...b, status: 'FREED', autoFreed: true };
-            }
-            return b;
-        });
-
-        if (updated) {
-            try {
-                const baseWh =
-                    currentProfile.workingHours &&
-                    typeof currentProfile.workingHours === 'object' &&
-                    !Array.isArray(currentProfile.workingHours)
-                        ? currentProfile.workingHours
-                        : {};
-                const updatedWorkingHours = {
-                    ...baseWh,
-                    bookings: newBookings,
-                };
-                await businessApi.updateProfile(currentProfile.id, {
-                    workingHours: updatedWorkingHours
-                });
-                setBookings(newBookings);
-            } catch (err) {
-                console.error('Failed to update auto-freed bookings on backend:', err);
-            }
-        }
-    };
+    const runAutoFree = async () => {};
 
     // --- Admin Operations ---
 
@@ -262,7 +182,6 @@ export default function ParkingScreen() {
             Alert.alert('Validation Error', 'Please enter a slot name.');
             return;
         }
-        if (!profile) return;
 
         // Check duplicate name
         if (slots.some(s => s.name.toLowerCase() === newSlotName.trim().toLowerCase())) {
@@ -272,32 +191,22 @@ export default function ParkingScreen() {
 
         setActionLoading(true);
         try {
-            const newSlot: ParkingSlot = {
-                id: 'slot_' + Date.now(),
+            const { data: createdSlot } = await communityApi.createParkingSlot({
                 name: newSlotName.trim(),
                 type: newSlotType
-            };
-            const updatedSlots = [...slots, newSlot];
-            const updatedWorkingHours = {
-                ...profile.workingHours,
-                slots: updatedSlots
-            };
-            await businessApi.updateProfile(profile.id, {
-                workingHours: updatedWorkingHours
             });
-            setSlots(updatedSlots);
+            setSlots([...slots, createdSlot]);
             setNewSlotName('');
-            Alert.alert('Success', `Parking slot "${newSlot.name}" created.`);
-        } catch (err) {
+            Alert.alert('Success', `Parking slot "${createdSlot.name}" created.`);
+        } catch (err: any) {
             console.error(err);
-            Alert.alert('Error', 'Failed to create parking slot.');
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to create parking slot.');
         } finally {
             setActionLoading(false);
         }
     };
 
     const handleDeleteSlot = async (slotId: string, slotName: string) => {
-        if (!profile) return;
         Alert.alert(
             'Delete Slot',
             `Are you sure you want to delete slot "${slotName}"? All assignments for this slot will be lost.`,
@@ -309,26 +218,12 @@ export default function ParkingScreen() {
                     onPress: async () => {
                         setActionLoading(true);
                         try {
-                            const updatedSlots = slots.filter(s => s.id !== slotId);
-                            // Also clear active bookings on this slot
-                            const updatedBookings = bookings.map(b => 
-                                b.slotId === slotId && (b.status === 'BOOKED' || b.status === 'ACTIVE') 
-                                    ? { ...b, status: 'FREED' as const } 
-                                    : b
-                            );
-                            const updatedWorkingHours = {
-                                ...profile.workingHours,
-                                slots: updatedSlots,
-                                bookings: updatedBookings
-                            };
-                            await businessApi.updateProfile(profile.id, {
-                                workingHours: updatedWorkingHours
-                            });
-                            setSlots(updatedSlots);
-                            setBookings(updatedBookings);
-                        } catch (err) {
+                            await communityApi.deleteParkingSlot(slotId);
+                            setSlots(slots.filter(s => s.id !== slotId));
+                            setBookings(bookings.filter(b => b.slotId !== slotId));
+                        } catch (err: any) {
                             console.error(err);
-                            Alert.alert('Error', 'Failed to delete parking slot.');
+                            Alert.alert('Error', err?.response?.data?.message || 'Failed to delete parking slot.');
                         } finally {
                             setActionLoading(false);
                         }
@@ -351,14 +246,19 @@ export default function ParkingScreen() {
             Alert.alert('Validation Error', 'Please enter a vehicle registration number.');
             return;
         }
-        if (!profile) return;
 
         setActionLoading(true);
         try {
+            const vehicle = residentVehicle.trim().toUpperCase();
+            await communityApi.assignParkingSlot(selectedSlotId, {
+                assignedUnitId: selectedUnitId,
+                assignedVehicle: vehicle
+            });
+
             const blockName = blocks.find(b => b.id === selectedBlockId)?.name || 'Block';
             const unitNumber = units.find(u => u.id === selectedUnitId)?.number || 'Unit';
 
-            const updatedSlots = slots.map(s => {
+            setSlots(slots.map(s => {
                 if (s.id === selectedSlotId) {
                     return {
                         ...s,
@@ -366,26 +266,16 @@ export default function ParkingScreen() {
                         assignedBlockName: blockName,
                         assignedUnitId: selectedUnitId,
                         assignedUnitNumber: unitNumber,
-                        assignedVehicle: residentVehicle.trim().toUpperCase()
+                        assignedVehicle: vehicle
                     };
                 }
                 return s;
-            });
-
-            const updatedWorkingHours = {
-                ...profile.workingHours,
-                slots: updatedSlots
-            };
-
-            await businessApi.updateProfile(profile.id, {
-                workingHours: updatedWorkingHours
-            });
-            setSlots(updatedSlots);
+            }));
             setResidentVehicle('');
             Alert.alert('Success', 'Resident slot assigned successfully.');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            Alert.alert('Error', 'Failed to assign resident parking slot.');
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to assign resident parking slot.');
         } finally {
             setActionLoading(false);
         }
@@ -478,33 +368,13 @@ export default function ParkingScreen() {
             Alert.alert('Validation Error', 'Please enter a vehicle registration number.');
             return;
         }
-        if (!profile?.id) {
-            Alert.alert(
-                'Parking Unavailable',
-                'Community parking has not been set up yet. Please ask your administrator to open Community Parking once.',
-            );
-            return;
-        }
 
         const startTimeStr = bookingStartTime.toISOString();
         const endTime = dayjs(bookingStartTime).add(4, 'hour');
         const endTimeStr = endTime.toISOString();
 
-        // Overlap verification
-        const hasOverlap = bookings.some(b => 
-            b.slotId === bookingGuestSlotId &&
-            (b.status === 'BOOKED' || b.status === 'ACTIVE') &&
-            !(dayjs(startTimeStr).isAfter(dayjs(b.endTime)) || endTime.isBefore(dayjs(b.startTime)))
-        );
-
-        if (hasOverlap) {
-            Alert.alert('Overlap Warning', 'This slot is already booked for the selected 4-hour time window.');
-            return;
-        }
-
         setActionLoading(true);
         try {
-            const guestSlot = slots.find(s => s.id === bookingGuestSlotId);
             const residentName = myMember?.name || user?.name || 'Resident';
             const unit = myMember?.family?.unit;
             const blockLabel = unit?.block?.name;
@@ -513,36 +383,16 @@ export default function ParkingScreen() {
                 ? `${blockLabel ? `Block ${blockLabel} - ` : ''}Unit ${unitNumber}`
                 : 'N/A';
 
-            const newBooking: ParkingBooking = {
-                id: 'bk_' + Date.now(),
-                slotId: bookingGuestSlotId,
-                slotName: guestSlot?.name || 'Guest Slot',
+            const { data: newBooking } = await communityApi.bookParkingSlot(bookingGuestSlotId, {
                 memberId: myMember?.id || activeWorkspace?.memberId || user?.id || 'N/A',
                 residentName,
                 unitInfo,
                 vehicleNumber: guestVehicleNumber.trim().toUpperCase(),
                 startTime: startTimeStr,
                 endTime: endTimeStr,
-                status: 'BOOKED'
-            };
-
-            const updatedBookings = [newBooking, ...bookings];
-            const baseWh =
-                profile.workingHours &&
-                typeof profile.workingHours === 'object' &&
-                !Array.isArray(profile.workingHours)
-                    ? profile.workingHours
-                    : {};
-            const updatedWorkingHours = {
-                ...baseWh,
-                slots: Array.isArray(baseWh.slots) ? baseWh.slots : slots,
-                bookings: updatedBookings,
-            };
-
-            await businessApi.updateProfile(profile.id, {
-                workingHours: updatedWorkingHours,
             });
-            setBookings(updatedBookings);
+
+            setBookings([newBooking, ...bookings]);
             setGuestVehicleNumber('');
             setBookingGuestSlotId('');
             Alert.alert('Success', `Slot booked successfully for guest from ${dayjs(startTimeStr).format('hh:mm A')} to ${endTime.format('hh:mm A')}.`);
@@ -563,7 +413,6 @@ export default function ParkingScreen() {
     // --- Security Operations ---
 
     const handleMarkFreed = async (bookingId: string) => {
-        if (!profile) return;
         Alert.alert(
             'Mark Freed / Check-out',
             'Are you sure you want to release this guest slot early?',
@@ -574,22 +423,14 @@ export default function ParkingScreen() {
                     onPress: async () => {
                         setActionLoading(true);
                         try {
-                            const updatedBookings = bookings.map(b => 
+                            const { data: updatedBooking } = await communityApi.freeParkingBooking(bookingId);
+                            setBookings(bookings.map(b => 
                                 b.id === bookingId 
-                                    ? { ...b, status: 'FREED' as const, markedFreedAt: new Date().toISOString() } 
+                                    ? updatedBooking 
                                     : b
-                            );
-                            const updatedWorkingHours = {
-                                ...profile.workingHours,
-                                bookings: updatedBookings
-                            };
-
-                            await businessApi.updateProfile(profile.id, {
-                                workingHours: updatedWorkingHours
-                            });
-                            setBookings(updatedBookings);
+                            ));
                             Alert.alert('Success', 'Guest slot released.');
-                        } catch (err) {
+                        } catch (err: any) {
                             console.error(err);
                             Alert.alert('Error', 'Failed to update slot status.');
                         } finally {

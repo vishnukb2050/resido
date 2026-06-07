@@ -48,6 +48,40 @@ export default function BusinessInvoicesScreen() {
     // 2. Invoices List / History State
     const [invoices, setInvoices] = useState<any[]>([]);
 
+    // Pagination & Loading state for Invoices
+    const [invoicesLimit] = useState(30);
+    const [hasMoreInvoices, setHasMoreInvoices] = useState(false);
+    const [loadingInvoices, setLoadingInvoices] = useState(false);
+
+    const loadInvoices = async (reset = false) => {
+        if (!profileId) return;
+        setLoadingInvoices(true);
+        try {
+            const nextOffset = reset ? 0 : invoices.length;
+            const res = await businessApi.getInvoices(profileId as string, {
+                limit: invoicesLimit,
+                offset: nextOffset
+            });
+            const newItems = res.data?.items || [];
+            const hasMore = res.data?.hasMore || false;
+            
+            if (reset) {
+                setInvoices(newItems);
+            } else {
+                setInvoices(prev => {
+                    const existingIds = new Set(prev.map(item => item.id));
+                    const filtered = newItems.filter((item: any) => !existingIds.has(item.id));
+                    return [...prev, ...filtered];
+                });
+            }
+            setHasMoreInvoices(hasMore);
+        } catch (error) {
+            console.error('Failed to load invoices:', error);
+        } finally {
+            setLoadingInvoices(false);
+        }
+    };
+
     // Catalog Inputs
     const [newProductName, setNewProductName] = useState('');
     const [newProductPrice, setNewProductPrice] = useState('');
@@ -83,6 +117,12 @@ export default function BusinessInvoicesScreen() {
         }
     }, [profileId]);
 
+    useEffect(() => {
+        if (activeTab === 'history') {
+            loadInvoices(true);
+        }
+    }, [activeTab]);
+
     const loadProfileData = async () => {
         setLoading(true);
         try {
@@ -93,7 +133,6 @@ export default function BusinessInvoicesScreen() {
             const wh = pData.workingHours;
             if (wh && typeof wh === 'object') {
                 setEnableBills((wh as any).enableBills || false);
-                setInvoices((wh as any).invoices || []);
                 
                 const loadedSettings = (wh as any).invoiceSettings || {};
                 setInvoiceSettings({
@@ -115,6 +154,9 @@ export default function BusinessInvoicesScreen() {
                 }));
             }
             
+            // Fetch initial invoices
+            await loadInvoices(true);
+            
             // Auto generate invoice ID on load
             setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
         } catch (error) {
@@ -132,9 +174,10 @@ export default function BusinessInvoicesScreen() {
             const updatedWorkingHours = {
                 ...(profile.workingHours || {}),
                 enableBills: true, // Force true since we are in manage screen
-                invoiceSettings,
-                invoices // Preserve historical invoices
+                invoiceSettings
             };
+            // Clean up any historical invoices from JSON field to save DB size
+            delete (updatedWorkingHours as any).invoices;
 
             await businessApi.updateProfile(profileId as string, {
                 workingHours: updatedWorkingHours
@@ -346,18 +389,28 @@ export default function BusinessInvoicesScreen() {
             ? `<img src="${signatureSrc}" class="signature" />`
             : '<div style="height: 40px; border-bottom: 1px dashed #ccc; width: 150px; margin: 0 auto 5px auto;"></div>';
 
-        // Render invoice rows
-        const rowsHtml = invoiceData.items.map((item: any, idx: number) => `
-            <tr>
-                <td style="text-align: center;">${idx + 1}</td>
-                <td>${escapeHtml(item.product.name)}</td>
-                <td style="text-align: right;">₹${item.product.price.toFixed(2)}</td>
-                <td style="text-align: center;">${item.quantity}</td>
-                <td style="text-align: right;">₹${(item.product.price * item.quantity).toFixed(2)}</td>
-            </tr>
-        `).join('');
+        // Render invoice rows - compatible with both formats
+        const itemsList = Array.isArray(invoiceData.items) ? invoiceData.items : [];
+        const rowsHtml = itemsList.map((item: any, idx: number) => {
+            const prodName = item.product?.name || item.name || '';
+            const prodPrice = item.product?.price !== undefined ? item.product.price : (item.price || 0);
+            const qty = item.quantity || 0;
+            return `
+                <tr>
+                    <td style="text-align: center;">${idx + 1}</td>
+                    <td>${escapeHtml(prodName)}</td>
+                    <td style="text-align: right;">₹${prodPrice.toFixed(2)}</td>
+                    <td style="text-align: center;">${qty}</td>
+                    <td style="text-align: right;">₹${(prodPrice * qty).toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
 
+        const invoiceId = invoiceData.invoiceNumber || invoiceData.id;
         const formattedDate = dayjs(invoiceData.date).format(invoiceSettings.dateTimeFormat);
+        const subtotalVal = invoiceData.subtotal !== undefined ? invoiceData.subtotal : ((invoiceData.totalAmount || invoiceData.total || 0) - (invoiceData.gstAmount || 0));
+        const gstVal = invoiceData.gstAmount || 0;
+        const totalVal = invoiceData.totalAmount !== undefined ? invoiceData.totalAmount : (invoiceData.total || 0);
 
         // Standard CSS
         let css = '';
@@ -394,7 +447,7 @@ export default function BusinessInvoicesScreen() {
                     <div>${logoHtml}</div>
                     <div class="title-area">
                         <div class="title">INVOICE</div>
-                        <div class="inv-num">Number: <b>#${escapeHtml(invoiceData.id)}</b></div>
+                        <div class="inv-num">Number: <b>#${escapeHtml(invoiceId)}</b></div>
                         <div class="inv-num">Date: ${escapeHtml(formattedDate)}</div>
                     </div>
                 </div>
@@ -432,15 +485,15 @@ export default function BusinessInvoicesScreen() {
                     <div class="totals-box">
                         <div class="totals-row">
                             <span>Subtotal:</span>
-                            <span>₹${invoiceData.subtotal.toFixed(2)}</span>
+                            <span>₹${subtotalVal.toFixed(2)}</span>
                         </div>
                         <div class="totals-row">
                             <span>Tax (GST ${invoiceSettings.gstRate}%):</span>
-                            <span>₹${invoiceData.gstAmount.toFixed(2)}</span>
+                            <span>₹${gstVal.toFixed(2)}</span>
                         </div>
                         <div class="totals-row grand-total">
                             <span>Grand Total:</span>
-                            <span>₹${invoiceData.total.toFixed(2)}</span>
+                            <span>₹${totalVal.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -493,7 +546,7 @@ export default function BusinessInvoicesScreen() {
                         </td>
                         <td style="width: 50%; text-align: right;">
                             <b>INVOICE DETAILS:</b><br/>
-                            Invoice No: #${escapeHtml(invoiceData.id)}<br/>
+                            Invoice No: #${escapeHtml(invoiceId)}<br/>
                             Date: ${escapeHtml(formattedDate)}<br/>
                             Currency: INR (₹)
                         </td>
@@ -516,15 +569,15 @@ export default function BusinessInvoicesScreen() {
                 <div class="totals-box">
                     <div class="totals-row">
                         <span>Subtotal:</span>
-                        <span>₹${invoiceData.subtotal.toFixed(2)}</span>
+                        <span>₹${subtotalVal.toFixed(2)}</span>
                     </div>
                     <div class="totals-row">
                         <span>GST (${invoiceSettings.gstRate}%):</span>
-                        <span>₹${invoiceData.gstAmount.toFixed(2)}</span>
+                        <span>₹${gstVal.toFixed(2)}</span>
                     </div>
                     <div class="totals-row grand-total">
                         <span>Net Payable:</span>
-                        <span>₹${invoiceData.total.toFixed(2)}</span>
+                        <span>₹${totalVal.toFixed(2)}</span>
                     </div>
                 </div>
                 <div class="seal-sig-row">
@@ -568,7 +621,7 @@ export default function BusinessInvoicesScreen() {
                     <div class="col" style="width: 50%; text-align: right;">
                         <div class="invoice-title">INVOICE</div>
                         <div style="font-size: 13px; color: #555; margin-top: 5px;">
-                            Invoice Ref: <b>#${escapeHtml(invoiceData.id)}</b><br/>
+                            Invoice Ref: <b>#${escapeHtml(invoiceId)}</b><br/>
                             Date of Issue: ${escapeHtml(formattedDate)}
                         </div>
                     </div>
@@ -604,15 +657,15 @@ export default function BusinessInvoicesScreen() {
                 <table class="summary-table">
                     <tr>
                         <td>Subtotal:</td>
-                        <td style="text-align: right;">₹${invoiceData.subtotal.toFixed(2)}</td>
+                        <td style="text-align: right;">₹${subtotalVal.toFixed(2)}</td>
                     </tr>
                     <tr>
                         <td>Tax (GST ${invoiceSettings.gstRate}%):</td>
-                        <td style="text-align: right;">₹${invoiceData.gstAmount.toFixed(2)}</td>
+                        <td style="text-align: right;">₹${gstVal.toFixed(2)}</td>
                     </tr>
                     <tr class="grand-total-row">
                         <td><b>Total Due:</b></td>
-                        <td style="text-align: right;"><b>₹${invoiceData.total.toFixed(2)}</b></td>
+                        <td style="text-align: right;"><b>₹${totalVal.toFixed(2)}</b></td>
                     </tr>
                 </table>
                 <div class="graphics-row">
@@ -660,7 +713,7 @@ export default function BusinessInvoicesScreen() {
         }
 
         // Check if invoice ID is already taken
-        const conflict = invoices.find(inv => inv.id.toLowerCase() === invoiceNumber.trim().toLowerCase());
+        const conflict = invoices.find(inv => (inv.invoiceNumber || inv.id).toLowerCase() === invoiceNumber.trim().toLowerCase());
         if (conflict) {
             Alert.alert('Conflict Error', 'An invoice with this ID already exists. Please choose a unique Invoice ID.');
             return;
@@ -684,15 +737,11 @@ export default function BusinessInvoicesScreen() {
             // Build HTML (async: inlines local images as base64 data URLs).
             const html = await generateHtmlTemplate(invoiceData);
 
-            // Print HTML to local PDF file. `printToFileAsync` returns a
-            // file:// URI that lives in the app cache directory.
+            // Print HTML to local PDF file.
             const { uri } = await Print.printToFileAsync({ html, base64: false });
             console.log('PDF rendered successfully at:', uri);
 
-            // Upload PDF to S3/R2 using storageApi. We bubble the upload
-            // failure up rather than silently falling back to a local-only
-            // `file://` URI — that "fallback" was the cause of historic
-            // "PDF disappears after app restart" reports.
+            // Upload PDF to S3/R2 using storageApi.
             const pdfFileName = `inv_${invoiceNumber.trim()}_${Date.now()}.pdf`;
             let remotePdfUrl = '';
             try {
@@ -711,27 +760,24 @@ export default function BusinessInvoicesScreen() {
                 remotePdfUrl = uri;
             }
 
-            // Create final record containing remote URL
-            const invoiceRecord = {
-                ...invoiceData,
-                pdfUri: remotePdfUrl
-            };
-
-            // Update local state and DB payload
-            const updatedInvoices = [invoiceRecord, ...invoices];
-            const updatedWorkingHours = {
-                ...(profile.workingHours || {}),
-                enableBills: true,
-                invoiceSettings,
-                invoices: updatedInvoices
-            };
-
-            await businessApi.updateProfile(profileId as string, {
-                workingHours: updatedWorkingHours
+            // Create relational database record on the server
+            const { data: createdInvoice } = await businessApi.createInvoice(profileId as string, {
+                clientName: clientName.trim(),
+                items: invoiceItems.map(item => ({
+                    name: item.product.name,
+                    price: item.product.price,
+                    quantity: item.quantity
+                })),
+                totalAmount: summaryCalculations.total,
+                gstRate: parseFloat(invoiceSettings.gstRate) || 0,
+                gstAmount: summaryCalculations.gstAmount,
+                invoiceNumber: invoiceNumber.trim(),
+                date: invoiceDate.toISOString(),
+                pdfUrl: remotePdfUrl || null
             });
 
-            setInvoices(updatedInvoices);
-            setProfile((prev: any) => ({ ...prev, workingHours: updatedWorkingHours }));
+            // Update local state - prepend the newly created invoice to the list
+            setInvoices(prev => [createdInvoice, ...prev]);
 
             Alert.alert('✅ Invoice Generated!', 'PDF bill created successfully.', [
                 {
@@ -773,7 +819,7 @@ export default function BusinessInvoicesScreen() {
             await Sharing.shareAsync(uri, {
                 mimeType: 'application/pdf',
                 UTI: 'com.adobe.pdf',
-                dialogTitle: `Invoice ${invoiceRecord.id}`,
+                dialogTitle: `Invoice ${invoiceRecord.invoiceNumber || invoiceRecord.id}`,
             });
         } catch (error: any) {
             console.error('Failed to share invoice:', error);
@@ -787,9 +833,10 @@ export default function BusinessInvoicesScreen() {
     // Invoice History Filtering
     const filteredInvoices = useMemo(() => {
         return invoices.filter(inv => {
+            const displayId = inv.invoiceNumber || inv.id;
             // Search Query Filter
             const matchesSearch = 
-                inv.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                displayId.toLowerCase().includes(searchQuery.toLowerCase()) || 
                 inv.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (inv.clientEmail && inv.clientEmail.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -1248,6 +1295,24 @@ export default function BusinessInvoicesScreen() {
                 initialNumToRender={10}
                 maxToRenderPerBatch={10}
                 windowSize={11}
+                onEndReached={() => {
+                    if (hasMoreInvoices && !loadingInvoices) {
+                        loadInvoices(false);
+                    }
+                }}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={() => {
+                    if (loadingInvoices && invoices.length > 0) {
+                        return (
+                            <View style={{ paddingVertical: 20 }}>
+                                <ActivityIndicator size="small" color="#10b981" />
+                            </View>
+                        );
+                    }
+                    return null;
+                }}
+                refreshing={loadingInvoices}
+                onRefresh={() => loadInvoices(true)}
                 ListEmptyComponent={(
                     <View style={styles.emptyHistoryCard}>
                         <Ionicons name="folder-open-outline" size={40} color="#94a3b8" />
@@ -1349,16 +1414,18 @@ export default function BusinessInvoicesScreen() {
 }
 
 const InvoiceHistoryCard = React.memo(function InvoiceHistoryCard({ inv, dateFormat, onShare, saving }: any) {
+    const displayId = inv.invoiceNumber || inv.id;
+    const displayTotal = inv.totalAmount !== undefined ? inv.totalAmount : (inv.total || 0);
     return (
         <View style={styles.invoiceCard}>
             <View style={styles.invoiceCardHeader}>
                 <View>
-                    <Text style={styles.invoiceCardId}>#{inv.id}</Text>
+                    <Text style={styles.invoiceCardId}>#{displayId}</Text>
                     <Text style={styles.invoiceCardDate}>
                         {dayjs(inv.date).format(dateFormat)}
                     </Text>
                 </View>
-                <Text style={styles.invoiceCardTotal}>₹{inv.total.toFixed(2)}</Text>
+                <Text style={styles.invoiceCardTotal}>₹{displayTotal.toFixed(2)}</Text>
             </View>
             <View style={styles.invoiceCardBody}>
                 <Text style={styles.invoiceCardClient}>Client: <b>{inv.clientName}</b></Text>

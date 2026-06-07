@@ -65,6 +65,7 @@ model Unit {
   superBuiltUpArea Float @default(0) // Size in sq. ft. for area-based billing
   maintenanceBills MaintenanceBill[]
   paymentSplitShares PaymentSplitShare[]
+  parkingSlots       ParkingSlot[]
 
   @@index([tenantId])
   @@index([tenantId, blockId])
@@ -154,6 +155,7 @@ model Member {
   financeTransactions   FinanceTransaction[]
   financeBudgets        FinanceBudget[]
   amenityBookings       AmenityBooking[]
+  parkingBookings       ParkingBooking[]
 
   @@index([tenantId])
   @@index([tenantId, userId])
@@ -781,6 +783,7 @@ model BusinessProfile {
 
   services        ServiceItem[]
   slots           BusinessSlot[]
+  invoices        BusinessInvoice[]
 
   @@index([userId])
   @@index([tenantId])
@@ -1310,4 +1313,70 @@ model Reminder {
 
   @@index([tenantId])
   @@map("reminders")
+}
+
+// ─── Community Parking ────────────────────────────────────────────────────────
+model ParkingSlot {
+  id              String           @id @default(cuid())
+  tenantId        String
+  name            String           // e.g. "A-12"
+  type            String           @default("RESIDENT") // "RESIDENT" or "GUEST"
+  assignedUnitId  String?          // Links to Unit.id
+  assignedVehicle String?          // Vehicle number (optional default vehicle)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  unit            Unit?            @relation(fields: [assignedUnitId], references: [id])
+  bookings        ParkingBooking[]
+
+  @@index([tenantId])
+  @@index([tenantId, assignedUnitId])
+  @@map("parking_slots")
+}
+
+model ParkingBooking {
+  id              String           @id @default(cuid())
+  tenantId        String
+  slotId          String
+  memberId        String           // Member/Resident booking
+  residentName    String           // Snapshot of resident name
+  unitInfo        String           // Snapshot of block/unit
+  vehicleNumber   String
+  startTime       DateTime
+  endTime         DateTime
+  status          String           @default("BOOKED") // "BOOKED", "ACTIVE", "FREED"
+  markedFreedAt   DateTime?
+  autoFreed       Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+
+  slot            ParkingSlot      @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  member          Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([slotId])
+  @@index([memberId])
+  @@index([tenantId, slotId, startTime, endTime])
+  @@map("parking_bookings")
+}
+
+// ─── Business Invoices ───────────────────────────────────────────────────────
+model BusinessInvoice {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  clientName        String
+  clientGst         String?
+  items             Json            // Array of line items [{ name, price, quantity }]
+  totalAmount       Float
+  gstRate           Float
+  gstAmount         Float
+  invoiceNumber     String
+  date              DateTime
+  pdfUrl            String?
+  createdAt         DateTime        @default(now())
+
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  @@index([businessProfileId, createdAt(sort: Desc)])
+  @@unique([businessProfileId, invoiceNumber])
+  @@map("business_invoices")
 }

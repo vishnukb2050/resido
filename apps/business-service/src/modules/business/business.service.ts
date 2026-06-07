@@ -1482,5 +1482,64 @@ export class BusinessService {
             data: { status: 'CANCELLED' }
         });
     }
+
+    async createInvoice(userId: string, profileId: string, data: any) {
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { id: profileId },
+            select: { id: true, userId: true },
+        });
+        if (!profile) {
+            throw new NotFoundException('Business profile not found');
+        }
+
+        if (profile.userId !== userId) {
+            throw new ForbiddenException('You can only generate invoices for business profiles you own');
+        }
+
+        return this.prisma.businessInvoice.create({
+            data: {
+                businessProfileId: profileId,
+                clientName: data.clientName,
+                clientGst: data.clientGst || null,
+                items: data.items,
+                totalAmount: Number(data.totalAmount) || 0,
+                gstRate: Number(data.gstRate) || 0,
+                gstAmount: Number(data.gstAmount) || 0,
+                invoiceNumber: data.invoiceNumber,
+                date: new Date(data.date),
+                pdfUrl: data.pdfUrl || null,
+            },
+        });
+    }
+
+    async getInvoices(userId: string, profileId: string, limit = 30, offset = 0) {
+        const profile = await this.prisma.businessProfile.findUnique({
+            where: { id: profileId },
+            select: { id: true, userId: true },
+        });
+        if (!profile) {
+            throw new NotFoundException('Business profile not found');
+        }
+        if (profile.userId !== userId) {
+            throw new ForbiddenException('You do not have access to these invoices');
+        }
+
+        const safeLimit = Math.min(Math.max(limit, 1), 50);
+        const safeOffset = Math.max(offset, 0);
+
+        const [items, total] = await Promise.all([
+            this.prisma.businessInvoice.findMany({
+                where: { businessProfileId: profileId },
+                orderBy: { createdAt: 'desc' },
+                take: safeLimit,
+                skip: safeOffset,
+            }),
+            this.prisma.businessInvoice.count({
+                where: { businessProfileId: profileId },
+            }),
+        ]);
+
+        return { items, total, hasMore: safeOffset + items.length < total };
+    }
 }
 

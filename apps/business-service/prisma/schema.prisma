@@ -53,6 +53,7 @@ model BusinessProfile {
 
   services        ServiceItem[]
   slots           BusinessSlot[]
+  invoices        BusinessInvoice[]
 
   @@index([userId])
   @@index([tenantId])
@@ -160,4 +161,25 @@ model BusinessBookingUpdate {
 
   @@index([bookingId])
   @@map("business_booking_updates")
+}
+
+model BusinessInvoice {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  clientName        String
+  clientGst         String?
+  items             Json            // Array of line items [{ name, price, quantity }]
+  totalAmount       Float
+  gstRate           Float
+  gstAmount         Float
+  invoiceNumber     String
+  date              DateTime
+  pdfUrl            String?
+  createdAt         DateTime        @default(now())
+
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  @@index([businessProfileId, createdAt(sort: Desc)])
+  @@unique([businessProfileId, invoiceNumber])
+  @@map("business_invoices")
 }

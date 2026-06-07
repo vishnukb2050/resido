@@ -354,6 +354,15 @@ export const communityApi = {
     createUnit: (data: any) => api.post('/community/units', data),
     updateUnit: (id: string, data: any) => api.patch(`/community/units/${id}`, data),
     deleteUnit: (id: string) => api.delete(`/community/units/${id}`),
+
+    // Parking
+    getParkingSlots: (params?: { limit?: number; offset?: number }) => api.get('/community/parking/slots', { params }),
+    createParkingSlot: (data: { name: string; type: 'RESIDENT' | 'GUEST'; assignedUnitId?: string; assignedVehicle?: string }) => api.post('/community/parking/slots', data),
+    deleteParkingSlot: (id: string) => api.delete(`/community/parking/slots/${id}`),
+    assignParkingSlot: (id: string, data: { assignedUnitId: string | null; assignedVehicle: string | null }) => api.post(`/community/parking/slots/${id}/assign`, data),
+    bookParkingSlot: (id: string, data: { memberId: string; residentName: string; unitInfo: string; vehicleNumber: string; startTime: string; endTime: string }) => api.post(`/community/parking/slots/${id}/book`, data),
+    freeParkingBooking: (id: string) => api.post(`/community/parking/bookings/${id}/free`),
+    getActiveParkingBookings: (params?: { limit?: number; offset?: number }) => api.get('/community/parking/bookings/active', { params }),
 };
 
 
@@ -447,6 +456,10 @@ export const businessApi = {
         api.post(`/business/profiles/${profileId}/view`),
     getBookingReport: (profileId: string, params?: { from?: string; to?: string }) =>
         api.get(`/business/profiles/${profileId}/report`, { params }),
+
+    // Invoices
+    createInvoice: (profileId: string, data: any) => api.post(`/business/profiles/${profileId}/invoices`, data),
+    getInvoices: (profileId: string, params?: { limit?: number; offset?: number }) => api.get(`/business/profiles/${profileId}/invoices`, { params }),
 };
 
 export type FeedListParams = {

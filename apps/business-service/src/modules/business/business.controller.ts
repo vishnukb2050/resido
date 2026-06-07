@@ -239,4 +239,28 @@ export class BusinessController {
     ) {
         return this.businessService.getBookingReport(userId, profileId, { from, to });
     }
+
+    @Post('profiles/:profileId/invoices')
+    createInvoice(
+        @Headers('x-user-id') userId: string,
+        @Param('profileId') profileId: string,
+        @Body() data: any,
+    ) {
+        return this.businessService.createInvoice(userId, profileId, data);
+    }
+
+    @Get('profiles/:profileId/invoices')
+    getInvoices(
+        @Headers('x-user-id') userId: string,
+        @Param('profileId') profileId: string,
+        @Query('limit') limit?: string,
+        @Query('offset') offset?: string,
+    ) {
+        return this.businessService.getInvoices(
+            userId,
+            profileId,
+            limit ? parseInt(limit, 10) : 30,
+            offset ? parseInt(offset, 10) : 0,
+        );
+    }
 }

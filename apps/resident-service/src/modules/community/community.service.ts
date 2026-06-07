@@ -1,18 +1,13 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, InternalServerErrorException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
+import Redis from 'ioredis';
 
 @Injectable()
 export class CommunityService {
-    constructor(private prisma: PrismaService) {}
-
-    // Per-tenant, short-TTL in-memory cache for the dashboard summary. The
-    // summary runs ~15 aggregate queries + a full bill scan; on a busy
-    // community dashboard that hammered the DB on every open. A 30s TTL keeps
-    // the numbers fresh enough while collapsing repeated loads to one query
-    // burst per tenant per window. (Shared Redis would be even better across
-    // replicas, but this needs no new infra and removes the hot-path load.)
-    private static statsCache = new Map<string, { at: number; data: any }>();
-    private static readonly STATS_TTL_MS = 30_000;
+    constructor(
+        private prisma: PrismaService,
+        @Inject('REDIS_CLIENT') private redis: Redis,
+    ) {}
 
     // Defensive upper bounds for tenant-scoped list reads. These are single-
     // community queries, so the cap only matters for pathologically large
@@ -1176,9 +1171,15 @@ export class CommunityService {
 
     async getSummaryStats() {
         const tenantId = PrismaService.als.getStore()?.tenantId || 'global';
-        const cached = CommunityService.statsCache.get(tenantId);
-        if (cached && Date.now() - cached.at < CommunityService.STATS_TTL_MS) {
-            return cached.data;
+        const cacheKey = `resido:stats:tenant:${tenantId}`;
+
+        try {
+            const cached = await this.redis.get(cacheKey);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+        } catch (err: any) {
+            console.warn('[getSummaryStats] Redis read failed:', err?.message);
         }
 
         const safe = async <T>(fn: () => Promise<T>, fallback: T, tag: string): Promise<T> => {
@@ -1202,7 +1203,8 @@ export class CommunityService {
             cleaningStaff,
             adminStaff,
             maintenanceStaff,
-            allBills,
+            billAggregates,
+            pendingBillsByUnit,
             visitorsToday,
             openComplaints,
             progressComplaints,
@@ -1229,22 +1231,41 @@ export class CommunityService {
                 0,
                 'maintenance',
             ),
+            // Aggregate totals directly in the DB instead of reading all rows
             safe(
                 () =>
-                    this.prisma.reader.maintenanceBill.findMany({
-                        select: {
+                    this.prisma.reader.maintenanceBill.groupBy({
+                        by: ['status'],
+                        _sum: {
                             totalAmount: true,
-                            status: true,
-                            unit: {
-                                select: {
-                                    number: true,
-                                    block: { select: { name: true } },
-                                },
-                            },
+                        },
+                        _count: {
+                            id: true,
                         },
                     }),
                 [] as any[],
-                'allBills',
+                'billAggregates',
+            ),
+            // Fetch top 5 pending units directly by DB sorting
+            safe(
+                () =>
+                    this.prisma.reader.maintenanceBill.groupBy({
+                        by: ['unitId'],
+                        where: {
+                            status: { not: 'PAID' },
+                        },
+                        _sum: {
+                            totalAmount: true,
+                        },
+                        orderBy: {
+                            _sum: {
+                                totalAmount: 'desc',
+                            },
+                        },
+                        take: 5,
+                    }),
+                [] as any[],
+                'pendingBillsByUnit',
             ),
             safe(
                 () => this.prisma.reader.visitor.count({ where: { createdAt: { gte: startOfDay } } }),
@@ -1279,30 +1300,47 @@ export class CommunityService {
         let totalDues = 0;
         let unitsPaid = 0;
         let unitsDue = 0;
-        const pendingUnitsMap = new Map<string, { unit: string; amount: number }>();
 
-        (allBills as any[]).forEach((bill: any) => {
-            const amount = Number(bill.totalAmount) || 0;
-            totalInvoiced += amount;
-            if (bill.status === 'PAID') {
-                totalCollected += amount;
-                unitsPaid++;
+        billAggregates.forEach((group: any) => {
+            const sum = Number(group._sum?.totalAmount) || 0;
+            const count = Number(group._count?.id) || 0;
+            totalInvoiced += sum;
+            if (group.status === 'PAID') {
+                totalCollected += sum;
+                unitsPaid += count;
             } else {
-                totalDues += amount;
-                unitsDue++;
-                const unitName = `${bill.unit?.block?.name || 'Block'} - ${bill.unit?.number || 'Unit'}`;
-                const existing = pendingUnitsMap.get(unitName);
-                if (existing) {
-                    existing.amount += amount;
-                } else {
-                    pendingUnitsMap.set(unitName, { unit: unitName, amount });
-                }
+                totalDues += sum;
+                unitsDue += count;
             }
         });
 
-        const recentPendingDues = Array.from(pendingUnitsMap.values())
-            .sort((a, b) => b.amount - a.amount)
-            .slice(0, 5);
+        // Hydrate block/unit names for top pending dues
+        let recentPendingDues: any[] = [];
+        if (pendingBillsByUnit.length > 0) {
+            const unitIds = pendingBillsByUnit.map((g: any) => g.unitId);
+            const units = await safe(
+                () =>
+                    this.prisma.reader.unit.findMany({
+                        where: { id: { in: unitIds } },
+                        select: {
+                            id: true,
+                            number: true,
+                            block: { select: { name: true } },
+                        },
+                    }),
+                [] as any[],
+                'pendingUnitsDetails',
+            );
+            const unitMap = new Map(units.map((u: any) => [u.id, u]));
+            recentPendingDues = pendingBillsByUnit.map((g: any) => {
+                const u = unitMap.get(g.unitId);
+                const unitName = u ? `${u.block?.name || 'Block'} - ${u.number || 'Unit'}` : 'Unknown Unit';
+                return {
+                    unit: unitName,
+                    amount: Number(g._sum?.totalAmount) || 0,
+                };
+            });
+        }
 
         const result = {
             people: {
@@ -1340,7 +1378,12 @@ export class CommunityService {
             },
         };
 
-        CommunityService.statsCache.set(tenantId, { at: Date.now(), data: result });
+        try {
+            await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 30);
+        } catch (err: any) {
+            console.warn('[getSummaryStats] Redis write failed:', err?.message);
+        }
+
         return result;
     }
 }
