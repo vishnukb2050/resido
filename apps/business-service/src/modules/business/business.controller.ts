@@ -65,8 +65,15 @@ export class BusinessController {
 
     // Must be defined before :id route so NestJS routes it correctly
     @Get('bookings/my')
-    getMyBookings(@Headers('x-user-id') userId: string) {
-        return this.businessService.getMyBookings(userId);
+    getMyBookings(
+        @Headers('x-user-id') userId: string,
+        @Query('limit') limit?: string,
+        @Query('cursor') cursor?: string,
+    ) {
+        return this.businessService.getMyBookings(userId, {
+            limit: limit ? parseInt(limit, 10) : undefined,
+            cursor,
+        });
     }
 
     @Patch('bookings/:bookingId/cancel')
@@ -209,9 +216,18 @@ export class BusinessController {
     @Get('profiles/:profileId/bookings')
     getProfileBookings(
         @Headers('x-user-id') userId: string,
-        @Param('profileId') profileId: string
+        @Param('profileId') profileId: string,
+        @Query('limit') limit?: string,
+        @Query('cursor') cursor?: string,
+        @Query('date') date?: string,
+        @Query('status') status?: string,
     ) {
-        return this.businessService.getProfileBookings(userId, profileId);
+        return this.businessService.getProfileBookings(userId, profileId, {
+            limit: limit ? parseInt(limit, 10) : undefined,
+            cursor,
+            date,
+            status,
+        });
     }
 
     /**

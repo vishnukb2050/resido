@@ -84,4 +84,17 @@ export class AuthController {
     ) {
         return this.authService.syncMembershipDeactivation(actingUserId, actingUserPhone, body);
     }
+
+    /**
+     * Register or refresh the FCM device token for the authenticated user.
+     * Called by the mobile app on startup / token refresh.
+     * POST /auth/fcm-token  { token: string }
+     */
+    @Post('fcm-token')
+    registerFcmToken(
+        @Headers('x-user-id') userId: string,
+        @Body() body: { token: string },
+    ) {
+        return this.authService.registerFcmToken(userId, body.token);
+    }
 }

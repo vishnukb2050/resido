@@ -10,14 +10,26 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
 import { Request, Response } from 'express';
+import { LRUCache } from 'lru-cache';
 
 @Controller()
 export class ProxyController {
     private readonly logger = new Logger('Proxy');
 
-    // In-memory cache for verified JWT payloads to avoid CPU-heavy verification on every request.
-    // Key: token string, Value: { payload: any, expiresAt: number }
-    private readonly jwtCache = new Map<string, { payload: any; expiresAt: number }>();
+    /**
+     * Fixed-size LRU cache for verified JWT payloads.
+     *
+     * Previously an unbounded Map that grew O(unique tokens) → memory leak under
+     * millions of concurrent users (each carrying a unique JWT). The LRU:
+     *   - Evicts the least-recently-used entry when full (max 2,000 entries).
+     *   - TTL of 60s prevents stale payloads from persisting after token rotation.
+     *   - Size stays constant regardless of concurrent user count.
+     */
+    private readonly jwtCache = new LRUCache<string, any>({
+        max: 2_000,
+        ttl: 60_000,          // 60 seconds
+        allowStale: false,
+    });
 
     constructor(
         private httpService: HttpService,
@@ -80,30 +92,17 @@ export class ProxyController {
     }
 
     private verifyTokenWithCache(token: string): any {
-        const now = Date.now();
         const cached = this.jwtCache.get(token);
-        if (cached && cached.expiresAt > now) {
-            return cached.payload;
-        }
-
-        // Clean up expired entries if the cache grows large
-        if (this.jwtCache.size > 5000) {
-            for (const [k, v] of this.jwtCache.entries()) {
-                if (v.expiresAt <= now) {
-                    this.jwtCache.delete(k);
-                }
-            }
+        if (cached !== undefined) {
+            return cached;
         }
 
         const payload = this.jwtService.verify(token, {
             secret: this.config.get('JWT_SECRET'),
         });
 
-        // Cache for 10 seconds
-        this.jwtCache.set(token, {
-            payload,
-            expiresAt: now + 10000,
-        });
+        // Cache for 60 seconds (LRU TTL handles eviction automatically)
+        this.jwtCache.set(token, payload);
 
         return payload;
     }

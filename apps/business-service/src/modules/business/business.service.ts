@@ -1265,9 +1265,57 @@ export class BusinessService {
         const recurringPeriod = data.recurringPeriod || null;
 
         const performSingleBooking = async (dateStr: string, slotTime: string, parentBookingId?: string) => {
-            // Wrap capacity check + token assignment + create in a single
-            // transaction so we never assign duplicate token numbers when
-            // two customers tap "Reserve" at the same time.
+            // ── Step 1: Atomic token assignment via Redis INCR ────────────────
+            // `SELECT MAX` inside a DB transaction creates a hot-row lock on
+            // popular profiles (two concurrent bookings for the same profile on
+            // the same day both lock the aggregate). Redis INCR is O(1),
+            // lock-free, and cross-pod, making it safe under ECS horizontal
+            // autoscaling. The counter is scoped to {profileId}:{date} and
+            // expires slightly after midnight so it resets daily.
+            let nextToken: number;
+            const tokenKey = `booking:token:${profileId}:${dateStr}`;
+            try {
+                // Set the key to expire 25h from midnight so late-night bookings
+                // still get a fresh counter the next day even on slow pods.
+                const tomorrowMidnight = new Date(dateStr);
+                tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
+                const secondsUntilExpiry = Math.max(
+                    Math.ceil((tomorrowMidnight.getTime() - Date.now()) / 1000) + 3600,
+                    3600,
+                );
+                const token = await this.redis.incr(tokenKey);
+                if (token === 1) {
+                    // First booking of the day: seed the counter from DB so a
+                    // service restart mid-day does not reset the sequence.
+                    const maxToken = await this.prisma.reader.businessBooking.aggregate({
+                        _max: { tokenNumber: true },
+                        where: { businessProfileId: profileId, bookingDate: dateStr },
+                    });
+                    const dbMax = maxToken._max.tokenNumber ?? 0;
+                    if (dbMax > 0) {
+                        await this.redis.set(tokenKey, dbMax + 1, 'EX', secondsUntilExpiry);
+                        nextToken = dbMax + 1;
+                    } else {
+                        await this.redis.expire(tokenKey, secondsUntilExpiry);
+                        nextToken = 1;
+                    }
+                } else {
+                    if (token === 2) await this.redis.expire(tokenKey, secondsUntilExpiry);
+                    nextToken = token;
+                }
+            } catch (redisErr: any) {
+                // Redis unavailable: fall back to DB MAX (safe but slower)
+                this.logger.warn(`[createBooking] Redis token INCR failed (${redisErr?.message}); falling back to DB MAX`);
+                const maxToken = await this.prisma.reader.businessBooking.aggregate({
+                    _max: { tokenNumber: true },
+                    where: { businessProfileId: profileId, bookingDate: dateStr },
+                });
+                nextToken = (maxToken._max.tokenNumber ?? 0) + 1;
+            }
+
+            // ── Step 2: Capacity check + insert in a single transaction ───────
+            // The transaction ensures no double-booking: two concurrent requests
+            // for the same slot/date/time get serialised by Postgres row locks.
             return this.prisma.$transaction(async (tx) => {
                 const existingBookings = await tx.businessBooking.findMany({
                     where: {
@@ -1277,6 +1325,7 @@ export class BusinessService {
                         timeSlot: slotTime,
                         status: 'CONFIRMED',
                     },
+                    select: { persons: true },
                 });
 
                 const totalBookedPersons = existingBookings.reduce((sum, b) => sum + b.persons, 0);
@@ -1285,18 +1334,6 @@ export class BusinessService {
                         `This time slot is fully booked. Please choose another time.`,
                     );
                 }
-
-                // Next token for this business profile on this calendar day.
-                // Confirmed bookings only — cancelled ones still own their old
-                // token so the sequence stays gap-free per customer.
-                const maxToken = await tx.businessBooking.aggregate({
-                    _max: { tokenNumber: true },
-                    where: {
-                        businessProfileId: profileId,
-                        bookingDate: dateStr,
-                    },
-                });
-                const nextToken = (maxToken._max.tokenNumber ?? 0) + 1;
 
                 return tx.businessBooking.create({
                     data: {
@@ -1318,6 +1355,7 @@ export class BusinessService {
                 });
             });
         };
+
 
         const primaryBooking = await performSingleBooking(bookingDate, timeSlot);
 
@@ -1353,13 +1391,22 @@ export class BusinessService {
         });
     }
 
-    async getMyBookings(userId: string) {
-        return this.prisma.reader.businessBooking.findMany({
+    async getMyBookings(userId: string, opts: { limit?: number; cursor?: string } = {}) {
+        const limit = Math.min(Math.max(opts.limit ?? 50, 1), 100);
+        const cursor = opts.cursor
+            ? (() => { try { return JSON.parse(Buffer.from(opts.cursor, 'base64').toString()); } catch { return undefined; } })()
+            : undefined;
+
+        const bookings = await this.prisma.reader.businessBooking.findMany({
             where: { userId },
             include: {
                 slot: {
                     include: {
-                        businessProfile: true,
+                        businessProfile: {
+                            // Return only fields the "My Bookings" card needs — avoids
+                            // shipping the full business profile payload on every booking.
+                            select: { id: true, businessName: true, category: true, logo: true, phone: true },
+                        },
                     },
                 },
                 updates: {
@@ -1367,18 +1414,41 @@ export class BusinessService {
                 },
             },
             orderBy: { createdAt: 'desc' },
+            take: limit + 1,
+            ...(cursor ? { cursor: { id: cursor.id }, skip: 1 } : {}),
         });
+
+        const hasMore = bookings.length > limit;
+        const items = hasMore ? bookings.slice(0, limit) : bookings;
+        const nextCursor = hasMore
+            ? Buffer.from(JSON.stringify({ id: items[items.length - 1].id })).toString('base64')
+            : null;
+
+        return { items, hasMore, nextCursor };
     }
 
-    async getProfileBookings(userId: string, profileId: string) {
+    async getProfileBookings(
+        userId: string,
+        profileId: string,
+        opts: { limit?: number; cursor?: string; date?: string; status?: string } = {},
+    ) {
         // Verify owner
         const profile = await this.prisma.reader.businessProfile.findFirst({
             where: { id: profileId, userId }
         });
         if (!profile) throw new Error('Unauthorized or Business Profile not found');
 
-        return this.prisma.reader.businessBooking.findMany({
-            where: { businessProfileId: profileId },
+        const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+        const cursor = opts.cursor
+            ? (() => { try { return JSON.parse(Buffer.from(opts.cursor, 'base64').toString()); } catch { return undefined; } })()
+            : undefined;
+
+        const where: any = { businessProfileId: profileId };
+        if (opts.date) where.bookingDate = opts.date;
+        if (opts.status) where.status = opts.status;
+
+        const bookings = await this.prisma.reader.businessBooking.findMany({
+            where,
             include: {
                 slot: true,
                 updates: { orderBy: { createdAt: 'asc' } },
@@ -1388,7 +1458,17 @@ export class BusinessService {
                 { tokenNumber: 'asc' },
                 { createdAt: 'desc' },
             ],
+            take: limit + 1,
+            ...(cursor ? { cursor: { id: cursor.id }, skip: 1 } : {}),
         });
+
+        const hasMore = bookings.length > limit;
+        const items = hasMore ? bookings.slice(0, limit) : bookings;
+        const nextCursor = hasMore
+            ? Buffer.from(JSON.stringify({ id: items[items.length - 1].id })).toString('base64')
+            : null;
+
+        return { items, hasMore, nextCursor };
     }
 
     // ─── Booking Updates ──────────────────────────────────────────────────────

@@ -517,42 +517,55 @@ export class CommunityService {
             });
         }
 
-        let passCode = '';
-        let isUnique = false;
-        while (!isUnique) {
-            passCode = Math.floor(1000 + Math.random() * 9000).toString();
-            const existing = await this.prisma.reader.visitor.findUnique({
-                where: {
-                    tenantId_passCode: {
-                        tenantId: member.tenantId,
-                        passCode
-                    }
-                }
-            });
-            if (!existing) {
-                isUnique = true;
-            }
-        }
-        
-        const visitorData = {
-            tenantId: member.tenantId,
-            name: data.visitorName || data.name || '',
-            phone: data.phone || data.mobile || '0000000000', 
-            purpose: data.purpose,
-            passCode,
-            status: 'PENDING' as any,
-            memberId: member.id, 
-            vehicleNumber: data.vehicleNumber,
-            category: data.category || 'Visitor',
-            description: data.description,
-            personsCount: typeof data.personsCount === 'string' ? parseInt(data.personsCount) || 1 : data.personsCount || 1,
-            unitToVisit: data.unitToVisit,
+        /**
+         * Generate a cryptographically random 6-character alphanumeric passcode.
+         * Previous implementation: 4-digit (9,000 possibilities) with a pre-check
+         * loop — susceptible to TOCTOU race (two concurrent inserts could read the
+         * same "no conflict" and both try to insert the same code). 6 chars gives
+         * ~2.1 billion possibilities, making collisions effectively impossible, and
+         * we retry on P2002 (unique constraint) instead of pre-checking, which is
+         * the only race-safe pattern.
+         */
+        const generatePassCode = (): string => {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/1/0 to avoid confusion
+            const bytes = require('crypto').randomBytes(6);
+            return Array.from(bytes as Uint8Array)
+                .map((b: number) => chars[b % chars.length])
+                .join('');
         };
 
-        return this.prisma.client.visitor.create({
-            data: visitorData
-        });
+        let createdVisitor: any;
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const passCode = generatePassCode();
+            try {
+                createdVisitor = await this.prisma.client.visitor.create({
+                    data: {
+                        tenantId: member.tenantId,
+                        name: data.visitorName || data.name || '',
+                        phone: data.phone || data.mobile || '0000000000',
+                        purpose: data.purpose,
+                        passCode,
+                        status: 'PENDING' as any,
+                        memberId: member.id,
+                        vehicleNumber: data.vehicleNumber,
+                        category: data.category || 'Visitor',
+                        description: data.description,
+                        personsCount: typeof data.personsCount === 'string' ? parseInt(data.personsCount) || 1 : data.personsCount || 1,
+                        unitToVisit: data.unitToVisit,
+                    },
+                });
+                break; // success
+            } catch (err: any) {
+                if (err?.code === 'P2002') continue; // unique conflict → retry with a new code
+                throw err;
+            }
+        }
+        if (!createdVisitor) {
+            throw new Error('Could not generate a unique visitor passcode. Please try again.');
+        }
+        return createdVisitor;
     }
+
 
     /**
      * Audience buckets a member belongs to. A user can belong to MULTIPLE

@@ -1,10 +1,14 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { Prisma } from '@resido/resident-client';
 import { PrismaService } from '../prisma/tenant-prisma.service';
+import Redis from 'ioredis';
 
 @Injectable()
 export class CommunityFinanceService {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        @Inject('REDIS_CLIENT') private redis: Redis,
+    ) {}
 
     // ─── Member resolver ───────────────────────────────────────
     // Looks up a tenant Member by any of: resident-service Member.id,
@@ -171,6 +175,12 @@ export class CommunityFinanceService {
     }
 
     async getMaintenanceStatus(tenantId: string, month: number, year: number) {
+        const cacheKey = `maintenance:status:${tenantId}:${year}:${month}`;
+        try {
+            const cached = await this.redis.get(cacheKey);
+            if (cached) return JSON.parse(cached);
+        } catch { /* Redis miss is non-fatal */ }
+
         const bills = await this.prisma.client.maintenanceBill.findMany({
             where: { tenantId, month: Number(month), year: Number(year) },
             include: {
@@ -226,7 +236,15 @@ export class CommunityFinanceService {
             else due.push(mappedBill);
         }
 
-        return { paid, pending, due };
+        const result = { paid, pending, due };
+
+        // Cache for 30 seconds — short enough to reflect a payment within the minute,
+        // long enough to absorb repeated admin reloads without hammering the DB.
+        try {
+            await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 30);
+        } catch { /* non-fatal */ }
+
+        return result;
     }
 
     // Unit-wise resolution: any member belonging to a unit (via Family) sees the SAME

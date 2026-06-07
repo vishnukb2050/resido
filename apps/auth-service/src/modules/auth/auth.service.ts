@@ -28,6 +28,29 @@ export class AuthService {
     async sendOtp(phone: string) {
         try {
             console.log(`[DEBUG] Attempting to send OTP to: ${phone}`);
+
+            // ── Per-phone rate limiting ──────────────────────────────────────
+            // Prevents SMS credit exhaustion from bots / misconfigured clients.
+            // Window: 5 attempts / 10 minutes per phone number.
+            const rateLimitKey = `otp:ratelimit:${phone}`;
+            try {
+                const attempts = await this.redis.incr(rateLimitKey);
+                if (attempts === 1) {
+                    // First attempt in the window — set the TTL.
+                    await this.redis.expire(rateLimitKey, 600); // 10 minutes
+                }
+                if (attempts > 5) {
+                    const ttl = await this.redis.ttl(rateLimitKey);
+                    throw new BadRequestException(
+                        `Too many OTP requests. Please wait ${Math.ceil(ttl / 60)} minute(s) before trying again.`,
+                    );
+                }
+            } catch (err: any) {
+                // Re-throw rate limit errors; swallow only Redis connectivity issues.
+                if (err instanceof BadRequestException) throw err;
+                console.warn('[WARN] OTP rate-limit Redis check failed:', err?.message);
+            }
+
             let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
             if (!user) {
                 console.log(`[DEBUG] User not found, creating new user for: ${phone}`);
@@ -54,6 +77,7 @@ export class AuthService {
             throw error;
         }
     }
+
 
     async verifyOtp(phone: string, otp: string) {
         const user = await this.prisma.userRead.user.findUnique({ where: { phone } });
@@ -106,6 +130,13 @@ export class AuthService {
                 ...this.profileMedia.resolvePhotoFields(user as any),
             } 
         };
+    }
+
+    async registerFcmToken(userId: string, token: string) {
+        return this.prisma.userClient.user.update({
+            where: { id: userId },
+            data: { fcmToken: token },
+        });
     }
 
     async adminLogin(email: string, password: string) {

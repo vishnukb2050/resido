@@ -40,6 +40,10 @@ model User {
   linkedin     String?
   website      String?
   location     String?
+  // Firebase Cloud Messaging device token for push notifications.
+  // Updated by the mobile app on login and whenever the token refreshes.
+  // Nullable — users who haven't granted notification permissions have no token.
+  fcmToken     String?
   isActive     Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
