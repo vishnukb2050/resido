@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, StatusBar, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Socket } from 'socket.io-client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import PollBuilderModal from '../components/PollBuilderModal';
+import AppImage from '../components/AppImage';
 import { Image as ImageCompressor, Video as VideoCompressor } from 'react-native-compressor';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -28,8 +29,79 @@ interface Message {
     mediaUrl?: string;
 }
 
+// Memoized message bubble so typing in the input (which re-renders the screen)
+// doesn't re-render every message in the scrollback. Re-renders only when its
+// own message data or the stable vote handler changes.
+const ChatMessageRow = React.memo(function ChatMessageRow({
+    item,
+    isMine,
+    onVote,
+}: {
+    item: Message;
+    isMine: boolean;
+    onVote: (pollId: string, optionId: string) => void;
+}) {
+    return (
+        <View style={[styles.messageWrapper, isMine ? styles.mineWrapper : styles.theirsWrapper]}>
+            {!isMine && <Text style={styles.senderName}>{item.senderName}</Text>}
+            <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
+                {item.type === 'IMAGE' ? (
+                    <AppImage source={{ uri: item.mediaUrl || item.content }} style={styles.messageImage} />
+                ) : item.type === 'VIDEO' ? (
+                    <View style={styles.videoPlaceholder}>
+                        <Ionicons name="play-circle" size={48} color="#fff" />
+                        <Text style={{ color: '#fff', marginTop: 8 }}>Video Content</Text>
+                    </View>
+                ) : item.type === 'FILE' ? (
+                    <TouchableOpacity style={styles.fileContainer} onPress={() => {}}>
+                        <Ionicons name="document-text" size={24} color={isMine ? "#fff" : "#1d4ed8"} />
+                        <Text style={[styles.fileName, isMine && { color: '#fff' }]}>{item.content}</Text>
+                    </TouchableOpacity>
+                ) : item.type === 'POLL' && item.poll ? (
+                    <View style={styles.pollContainer}>
+                        <Text style={[styles.pollQuestion, isMine && { color: '#fff' }]}>{item.poll.question}</Text>
+                        {item.poll.options.map((opt: any) => {
+                            const totalVotes = item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
+                            const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
+                            const hasVoted = item.poll.votes && item.poll.votes.length > 0;
+                            const isSelected = item.poll.votes && item.poll.votes[0]?.optionId === opt.id;
+
+                            return (
+                                <TouchableOpacity 
+                                    key={opt.id} 
+                                    style={[styles.pollOption, isSelected && styles.pollOptionSelected, isMine && { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }]}
+                                    onPress={() => onVote(item.poll.id, opt.id)}
+                                    disabled={hasVoted}
+                                >
+                                    <View style={[styles.pollProgress, { width: `${percentage}%` }, isMine && { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
+                                    <Text style={[styles.pollOptionText, isSelected && styles.pollOptionTextSelected, isMine && { color: '#fff' }]}>{opt.text}</Text>
+                                    {hasVoted && <Text style={[styles.pollPercentage, isMine && { color: '#fff' }]}>{percentage}%</Text>}
+                                </TouchableOpacity>
+                            );
+                        })}
+                        <Text style={[styles.pollMeta, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
+                            {item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0)} votes
+                        </Text>
+                    </View>
+                ) : (
+                    <Text style={[styles.bubbleText, isMine ? styles.mineText : styles.theirsText]}>
+                        {item.content}
+                    </Text>
+                )}
+                <View style={styles.bubbleFooter}>
+                    <Text style={[styles.time, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
+                        {dayjs((item as any).createdAt).format('H:mm A')}
+                    </Text>
+                    {isMine && <Ionicons name="checkmark-done" size={14} color="#fff" style={{ marginLeft: 4 }} />}
+                </View>
+            </View>
+        </View>
+    );
+});
+
 export default function ChatScreen({ conversationId }: { conversationId: string }) {
     const [messages, setMessages] = useState<Message[]>([]);
+    const messagesRef = useRef<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPollBuilder, setShowPollBuilder] = useState(false);
@@ -341,74 +413,44 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
         sendMessageWithBody({ type: 'POLL', poll: pollData });
     };
 
-    const handleVote = async (pollId: string, optionId: string) => {
+    // Keep a ref of the latest messages so the memoized vote handler can revert
+    // optimistically without depending on (and being recreated by) `messages`.
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
+
+    const handleVote = useCallback(async (pollId: string, optionId: string) => {
+        // Optimistic: update the poll bubble in place instead of refetching the
+        // entire message history on every vote.
+        const bump = (poll: any) => {
+            if (!poll || poll.id !== pollId) return poll;
+            if (poll.votes && poll.votes.length > 0) return poll;
+            return {
+                ...poll,
+                votes: [{ optionId }],
+                options: poll.options.map((o: any) =>
+                    o.id === optionId
+                        ? { ...o, _count: { ...o._count, votes: (o._count?.votes || 0) + 1 } }
+                        : o,
+                ),
+            };
+        };
+        const snapshot = messagesRef.current;
+        setMessages((prev) => prev.map((m: any) => ({ ...m, poll: bump(m.poll) })));
         try {
             await chatApi.votePoll(pollId, optionId);
-            loadMessages();
         } catch (e) {
             console.error(e);
+            setMessages(snapshot); // revert
         }
-    };
+    }, []);
 
-    const renderMessage = ({ item }: { item: Message }) => {
-        const isMine = item.senderId === user?.id;
-        return (
-            <View style={[styles.messageWrapper, isMine ? styles.mineWrapper : styles.theirsWrapper]}>
-                {!isMine && <Text style={styles.senderName}>{item.senderName}</Text>}
-                <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
-                    {item.type === 'IMAGE' ? (
-                        <Image source={{ uri: item.mediaUrl || item.content }} style={styles.messageImage} />
-                    ) : item.type === 'VIDEO' ? (
-                        <View style={styles.videoPlaceholder}>
-                            <Ionicons name="play-circle" size={48} color="#fff" />
-                            <Text style={{ color: '#fff', marginTop: 8 }}>Video Content</Text>
-                        </View>
-                    ) : item.type === 'FILE' ? (
-                        <TouchableOpacity style={styles.fileContainer} onPress={() => {}}>
-                            <Ionicons name="document-text" size={24} color={isMine ? "#fff" : "#1d4ed8"} />
-                            <Text style={[styles.fileName, isMine && { color: '#fff' }]}>{item.content}</Text>
-                        </TouchableOpacity>
-                    ) : item.type === 'POLL' && item.poll ? (
-                        <View style={styles.pollContainer}>
-                            <Text style={[styles.pollQuestion, isMine && { color: '#fff' }]}>{item.poll.question}</Text>
-                            {item.poll.options.map((opt: any) => {
-                                const totalVotes = item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0);
-                                const percentage = totalVotes > 0 ? Math.round(((opt._count?.votes || 0) / totalVotes) * 100) : 0;
-                                const hasVoted = item.poll.votes && item.poll.votes.length > 0;
-                                const isSelected = item.poll.votes && item.poll.votes[0]?.optionId === opt.id;
-
-                                return (
-                                    <TouchableOpacity 
-                                        key={opt.id} 
-                                        style={[styles.pollOption, isSelected && styles.pollOptionSelected, isMine && { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }]}
-                                        onPress={() => handleVote(item.poll.id, opt.id)}
-                                        disabled={hasVoted}
-                                    >
-                                        <View style={[styles.pollProgress, { width: `${percentage}%` }, isMine && { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
-                                        <Text style={[styles.pollOptionText, isSelected && styles.pollOptionTextSelected, isMine && { color: '#fff' }]}>{opt.text}</Text>
-                                        {hasVoted && <Text style={[styles.pollPercentage, isMine && { color: '#fff' }]}>{percentage}%</Text>}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                            <Text style={[styles.pollMeta, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
-                                {item.poll.options.reduce((sum: number, o: any) => sum + (o._count?.votes || 0), 0)} votes
-                            </Text>
-                        </View>
-                    ) : (
-                        <Text style={[styles.bubbleText, isMine ? styles.mineText : styles.theirsText]}>
-                            {item.content}
-                        </Text>
-                    )}
-                    <View style={styles.bubbleFooter}>
-                        <Text style={[styles.time, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
-                            {dayjs(item.createdAt).format('H:mm A')}
-                        </Text>
-                        {isMine && <Ionicons name="checkmark-done" size={14} color="#fff" style={{ marginLeft: 4 }} />}
-                    </View>
-                </View>
-            </View>
-        );
-    };
+    const renderMessage = useCallback(
+        ({ item }: { item: Message }) => (
+            <ChatMessageRow item={item} isMine={item.senderId === user?.id} onVote={handleVote} />
+        ),
+        [user?.id, handleVote],
+    );
 
     return (
         <SafeAreaView style={styles.container}>
@@ -453,6 +495,10 @@ export default function ChatScreen({ conversationId }: { conversationId: string 
                     keyExtractor={(m) => m.id}
                     renderItem={renderMessage}
                     contentContainerStyle={styles.listContent}
+                    initialNumToRender={15}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                    removeClippedSubviews
                     onContentSizeChange={() => {
                         if (!suppressAutoScroll.current) {
                             flatRef.current?.scrollToEnd({ animated: true });

@@ -636,6 +636,26 @@ export class BusinessService {
     }
 
     /**
+     * Batch fetch of profiles by id — lets the "Saved" tab resolve all saved
+     * businesses in ONE round trip instead of an N+1 fan-out of getProfile.
+     * Capped to a sane page size; unknown ids are simply omitted.
+     */
+    async getProfilesByIds(ids: string[]) {
+        const unique = Array.from(
+            new Set((ids || []).map((i) => (i || '').trim()).filter(Boolean)),
+        ).slice(0, 100);
+        if (unique.length === 0) return [];
+        const profiles = await this.prisma.businessProfile.findMany({
+            where: { id: { in: unique } },
+            include: { services: true, slots: true },
+        });
+        return profiles.map((profile) => ({
+            ...profile,
+            qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=resido://business/book?profileId=${profile.id}`,
+        }));
+    }
+
+    /**
      * Increments the public view counter for a business profile. Owners
      * viewing their own profile are skipped so the metric reflects genuine
      * customer interest. Errors are swallowed to avoid breaking the

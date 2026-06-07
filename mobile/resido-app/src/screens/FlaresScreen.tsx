@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, ScrollView, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import AppImage from '../components/AppImage';
+import { getFeedSnapshot, setFeedSnapshot } from '../services/feedSnapshotCache';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -20,6 +23,59 @@ const TABS = [
     { id: 'saved', label: 'Saved', icon: 'bookmark-outline' },
     { id: 'reshared', label: 'Reshared', icon: 'repeat' },
 ];
+
+type FlareGridItem = {
+    id: string;
+    author: string;
+    title: string;
+    likes: number;
+    liked: boolean;
+    mediaStatus: string;
+    image: string;
+};
+
+// Memoized grid cell so unrelated parent state (search toggle, refresh flag,
+// tab UI) doesn't re-render every visible tile. Only re-renders when its own
+// item identity or the stable callbacks change.
+const FlareGridCard = React.memo(function FlareGridCard({
+    item,
+    onOpen,
+    onLike,
+}: {
+    item: FlareGridItem;
+    onOpen: (id: string) => void;
+    onLike: (id: string) => void;
+}) {
+    return (
+        <TouchableOpacity style={styles.feedCard} onPress={() => onOpen(item.id)}>
+            <AppImage uri={item.image} style={styles.feedImage} />
+            {item.mediaStatus === 'PROCESSING' && (
+                <View style={styles.processingBadge}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.processingText}>Processing</Text>
+                </View>
+            )}
+            <View style={styles.feedGradient} />
+            <View style={styles.playIconOverlay}>
+                <Ionicons name="play" size={16} color="#fff" />
+            </View>
+            <View style={styles.feedOverlay}>
+                <View style={styles.feedBottomInfo}>
+                    <Text style={styles.feedAuthor}>@{item.author}</Text>
+                    <Text style={styles.feedTitle} numberOfLines={1}>{item.title}</Text>
+                </View>
+                <TouchableOpacity style={styles.likesContainer} onPress={() => onLike(item.id)}>
+                    <Ionicons
+                        name={item.liked ? 'heart' : 'heart-outline'}
+                        size={18}
+                        color={item.liked ? '#ff3b30' : '#fff'}
+                    />
+                    <Text style={styles.likesText}>{item.likes}</Text>
+                </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
+    );
+});
 
 export default function FlaresScreen() {
     const [followingIds, setFollowingIds] = useState<string[]>([]);
@@ -49,15 +105,31 @@ export default function FlaresScreen() {
         fetchInitialData();
     }, [activeTab, refresh, activeHashtag]);
 
-    // Warm the image cache for every thumbnail/poster we have so both the grid
-    // tiles and (later) the player's poster frame render instantly.
+    // Identifies the current feed slice for snapshot caching (instant revisits).
+    const feedKey = useMemo(
+        () => (activeHashtag ? `flare:hashtag:${activeHashtag}` : `flare:${activeTab}`),
+        [activeHashtag, activeTab],
+    );
+
+    // Persist the loaded grid so returning to Flares restores it instantly.
     useEffect(() => {
-        flares.forEach((f: any) => {
-            const uri = resolveMediaUrl(
-                f.thumbnailUrl || f.posterUrl || f.previewUrl || f.mediaUrls?.[0],
-            );
-            if (uri) Image.prefetch(uri).catch(() => undefined);
-        });
+        if (!loading && flares.length > 0) {
+            setFeedSnapshot(feedKey, { flares, nextCursor, hasMore, forYouCursors });
+        }
+    }, [flares, nextCursor, hasMore, forYouCursors, feedKey, loading]);
+
+    // Warm the (expo-image) disk cache for the first screenful of thumbnails so
+    // grid tiles and the player's poster frame render instantly. We cap the set
+    // instead of prefetching the entire feed on every update to avoid a request
+    // storm and wasted bandwidth on items the user may never scroll to.
+    useEffect(() => {
+        const uris = flares
+            .slice(0, 12)
+            .map((f: any) =>
+                resolveMediaUrl(f.thumbnailUrl || f.posterUrl || f.previewUrl || f.mediaUrls?.[0]),
+            )
+            .filter((u): u is string => !!u);
+        if (uris.length) ExpoImage.prefetch(uris).catch(() => undefined);
     }, [flares]);
 
     // The full-screen player normally re-fetches the feed on open. We hand it
@@ -69,7 +141,7 @@ export default function FlaresScreen() {
         ? 'MY'
         : (activeTab.toUpperCase() as string);
 
-    const openFlare = (id: string) => {
+    const openFlare = useCallback((id: string) => {
         setFlareFeedCache(playerFeedType, flares);
         router.push({
             pathname: '/flare-player',
@@ -79,7 +151,7 @@ export default function FlaresScreen() {
                 followingIds: followingIds.join(','),
             },
         });
-    };
+    }, [playerFeedType, flares, followingIds, router]);
 
     const resolveFollowingIds = async (): Promise<string[]> => {
         if (activeTab === 'following' || activeTab === 'foryou' || activeHashtag) {
@@ -166,10 +238,22 @@ export default function FlaresScreen() {
     };
 
     const fetchInitialData = async () => {
+        // Seed instantly from the last snapshot for this tab/hashtag so returning
+        // to the grid shows content immediately and refreshes in the background.
+        const cached = getFeedSnapshot<any>(feedKey);
+        const hasFresh = cached && Array.isArray(cached.flares) && cached.flares.length > 0;
         try {
-            setLoading(true);
-            setNextCursor(null);
-            setForYouCursors({ following: null, public: null, followingHasMore: false, publicHasMore: false });
+            if (hasFresh) {
+                setFlares(cached.flares);
+                setNextCursor(cached.nextCursor ?? null);
+                setHasMore(!!cached.hasMore);
+                setForYouCursors(cached.forYouCursors ?? { following: null, public: null, followingHasMore: false, publicHasMore: false });
+                setLoading(false);
+            } else {
+                setLoading(true);
+                setNextCursor(null);
+                setForYouCursors({ following: null, public: null, followingHasMore: false, publicHasMore: false });
+            }
             await fetchFeedPage(null, false);
         } catch (error) {
             console.error('Failed to fetch flares', error);
@@ -197,7 +281,9 @@ export default function FlaresScreen() {
         setRefreshing(false);
     };
 
-    const recentFlares = [
+    // Derived view-models — memoized so we don't rebuild/re-reduce the whole
+    // feed on every unrelated re-render (likes, refresh flag, search toggle).
+    const recentFlares = useMemo(() => [
         { id: 'create', type: 'create' },
         ...Object.values(flares.reduce((acc: any, flare: any) => {
             const authorId = flare.authorId || flare.createdBy;
@@ -208,7 +294,7 @@ export default function FlaresScreen() {
                     name: flare.authorName || 'Resident',
                     time: 'Just now',
                     image: resolveMediaUrl(flare.thumbnailUrl || flare.previewUrl || flare.mediaUrls?.[0]),
-                    avatar: resolveMediaUrl(flare.authorAvatarThumb || flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg`,
+                    avatar: resolveMediaUrl(flare.authorAvatarThumb || flare.authorAvatar),
                     count: 1,
                     allIds: [flare.id]
                 };
@@ -218,9 +304,9 @@ export default function FlaresScreen() {
             }
             return acc;
         }, {})).slice(0, 10)
-    ];
+    ], [flares]);
 
-    const gridFlares = flares.map((f: any) => ({
+    const gridFlares = useMemo(() => flares.map((f: any) => ({
         id: f.id,
         author: f.authorName || 'User',
         title: f.title,
@@ -230,7 +316,7 @@ export default function FlaresScreen() {
         image:
             resolveMediaUrl(f.thumbnailUrl || f.posterUrl || f.previewUrl || f.mediaUrls?.[0]) ||
             'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800',
-    }));
+    })), [flares]);
 
     const renderRecentItem = ({ item }: any) => {
         if (item.type === 'create') {
@@ -257,7 +343,7 @@ export default function FlaresScreen() {
                 ]}
                 onPress={() => openFlare(item.id)}
             >
-                <Image source={{ uri: item.image }} style={styles.recentBg} />
+                <AppImage uri={item.image} style={styles.recentBg} />
                 <View style={styles.recentGradient} />
                 
                 {/* Border for multiple flares */}
@@ -267,7 +353,7 @@ export default function FlaresScreen() {
                     styles.recentAvatarContainer,
                     hasMultiple && styles.groupedAvatarContainer
                 ]}>
-                    <Image source={{ uri: item.avatar }} style={styles.recentAvatar} />
+                    <AppImage uri={item.avatar} style={styles.recentAvatar} />
                 </View>
 
                 {/* Flare Count Badge */}
@@ -285,7 +371,7 @@ export default function FlaresScreen() {
         );
     };
 
-    const handleLike = async (flareId: string) => {
+    const handleLike = useCallback(async (flareId: string) => {
         try {
             // Optimistic update
             setFlares(current => current.map(f => 
@@ -297,42 +383,13 @@ export default function FlaresScreen() {
             // Revert on failure
             fetchInitialData();
         }
-    };
+    }, []);
 
-    const renderFeedItem = ({ item }: { item: any }) => (
-        <TouchableOpacity 
-            style={styles.feedCard}
-            onPress={() => openFlare(item.id)}
-        >
-            <Image source={{ uri: item.image }} style={styles.feedImage} />
-            {item.mediaStatus === 'PROCESSING' && (
-                <View style={styles.processingBadge}>
-                    <ActivityIndicator size="small" color="#fff" />
-                    <Text style={styles.processingText}>Processing</Text>
-                </View>
-            )}
-            <View style={styles.feedGradient} />
-            <View style={styles.playIconOverlay}>
-                <Ionicons name="play" size={16} color="#fff" />
-            </View>
-            <View style={styles.feedOverlay}>
-                <View style={styles.feedBottomInfo}>
-                    <Text style={styles.feedAuthor}>@{item.author}</Text>
-                    <Text style={styles.feedTitle} numberOfLines={1}>{item.title}</Text>
-                </View>
-                <TouchableOpacity 
-                    style={styles.likesContainer}
-                    onPress={() => handleLike(item.id)}
-                >
-                    <Ionicons 
-                        name={item.liked ? "heart" : "heart-outline"} 
-                        size={18} 
-                        color={item.liked ? "#ff3b30" : "#fff"} 
-                    />
-                    <Text style={styles.likesText}>{item.likes}</Text>
-                </TouchableOpacity>
-            </View>
-        </TouchableOpacity>
+    const renderFeedItem = useCallback(
+        ({ item }: { item: any }) => (
+            <FlareGridCard item={item} onOpen={openFlare} onLike={handleLike} />
+        ),
+        [openFlare, handleLike],
     );
 
     return (

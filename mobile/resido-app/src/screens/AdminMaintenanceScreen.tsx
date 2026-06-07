@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SectionList, StatusBar, ActivityIndicator, Alert, Modal, TextInput, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -240,8 +240,8 @@ export default function AdminMaintenanceScreen() {
         }
     };
 
-    useEffect(() => { loadData(); }, [month, year]);
-
+    // `useFocusEffect` fires on initial focus as well, so a separate mount
+    // effect would double-fetch on first open. Single trigger keyed on period.
     useFocusEffect(useCallback(() => { loadData(); }, [month, year]));
 
     const loadPickerData = async () => {

@@ -20,6 +20,7 @@ type Props = {
     isActive?: boolean;
     loop?: boolean;
     muted?: boolean;
+    useNativeControls?: boolean;
     onFinish?: () => void;
     onStatusUpdate?: (status: AVPlaybackStatus) => void;
 };
@@ -34,6 +35,7 @@ export function AdaptiveVideoPlayer({
     isActive = true,
     loop = true,
     muted = false,
+    useNativeControls = false,
     onFinish,
     onStatusUpdate,
 }: Props) {
@@ -102,6 +104,7 @@ export function AdaptiveVideoPlayer({
                 shouldPlay={isActive && autoPlay}
                 isLooping={loop}
                 isMuted={muted}
+                useNativeControls={useNativeControls}
                 usePoster={!!posterUrl}
                 posterSource={posterUrl ? { uri: resolveMediaUrl(posterUrl) || posterUrl } : undefined}
                 onPlaybackStatusUpdate={(s: AVPlaybackStatus) => {

@@ -109,6 +109,13 @@ export class BusinessController {
         return this.businessService.getProfilesByUserId(userId);
     }
 
+    // Must be defined before the :id route so "by-ids" isn't captured as an id.
+    @Get('profiles/by-ids')
+    getProfilesByIds(@Query('ids') ids?: string) {
+        const list = (ids || '').split(',').map((s) => s.trim()).filter(Boolean);
+        return this.businessService.getProfilesByIds(list);
+    }
+
     @Get('profiles/:id')
     getProfile(@Param('id') id: string) {
         return this.businessService.getProfile(id);

@@ -7,6 +7,9 @@ import { Calendar } from 'react-native-calendars';
 import { useAuthStore } from '../store/authStore';
 import { communityApi, authApi, chatApi } from '../services/api';
 import { getThemeColors } from '../utils/theme';
+import { getFeedSnapshot, setFeedSnapshot } from '../services/feedSnapshotCache';
+
+const EVENTS_CACHE_KEY = 'community:events';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -74,9 +77,9 @@ export default function EventsScreen() {
     const today = new Date();
     const [selectedDate, setSelectedDate] = useState(toDateStr(today));
     const [viewMode, setViewMode]         = useState<ViewMode>('day');
-    const [events, setEvents]             = useState<any[]>([]);
+    const [events, setEvents]             = useState<any[]>(() => getFeedSnapshot<any[]>(EVENTS_CACHE_KEY) || []);
     const [markedDates, setMarkedDates]   = useState<any>({});
-    const [loading, setLoading]           = useState(true);
+    const [loading, setLoading]           = useState(() => !getFeedSnapshot(EVENTS_CACHE_KEY));
     const [showAdd, setShowAdd]           = useState(false);
     const [saving, setSaving]             = useState(false);
     const [deleting, setDeleting]         = useState<string | null>(null);
@@ -128,12 +131,14 @@ export default function EventsScreen() {
     // ── Fetch ──────────────────────────────────────────────────────────────
 
     const fetchEvents = useCallback(async () => {
-        setLoading(true);
+        // Avoid a cold spinner on revisit if we already have a cached list.
+        setLoading(!getFeedSnapshot(EVENTS_CACHE_KEY));
         try {
             const memberId = activeWorkspace?.memberId || user?.id || '';
             const { data: fetched } = await communityApi.getEvents(memberId);
             const list: any[] = fetched || [];
             setEvents(list);
+            setFeedSnapshot(EVENTS_CACHE_KEY, list);
 
             const marks: any = {};
             list.forEach((ev: any) => {
@@ -149,10 +154,9 @@ export default function EventsScreen() {
         }
     }, [activeWorkspace?.memberId, user?.id, theme.primary, selectedDate]);
 
-    useEffect(() => { fetchEvents(); }, [fetchEvents]);
-
-    // Refresh on screen focus so audience changes from admin are reflected
-    // immediately when residents/staff open the calendar.
+    // `useFocusEffect` covers the initial focus too, so a separate mount effect
+    // would double-fetch on first open. Refresh on focus also reflects admin
+    // audience changes immediately when residents/staff reopen the calendar.
     useFocusEffect(
         useCallback(() => {
             fetchEvents();

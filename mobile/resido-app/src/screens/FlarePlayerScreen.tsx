@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Image, Share, Alert } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Share, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdaptiveVideoPlayer } from '../components/AdaptiveVideoPlayer';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,11 +8,25 @@ import { io } from 'socket.io-client';
 import { threadApi, FLARES_SOCKET_URL, flaresSocketOptions, getFlaresSocketOptions, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import CommentSheet from '../components/CommentSheet';
+import AppImage from '../components/AppImage';
+import { Image as ExpoImage } from 'expo-image';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import { takeFlareFeedCache } from '../services/feedCache';
 
 const { width, height } = Dimensions.get('window');
 const SCREEN_HEIGHT = height;
+
+function mergeForYouFlares(followingItems: any[], publicItems: any[], followingIds: string[]) {
+    const combined = [...followingItems, ...publicItems];
+    const unique = Array.from(new Map(combined.map((f) => [f.id, f])).values());
+    return unique.sort((a, b) => {
+        const aIsFollowing = followingIds.includes(a.authorId);
+        const bIsFollowing = followingIds.includes(b.authorId);
+        if (aIsFollowing && !bIsFollowing) return -1;
+        if (!aIsFollowing && bIsFollowing) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+}
 
 interface Flare {
     id: string;
@@ -41,6 +55,17 @@ export default function FlarePlayerScreen() {
     const [flares, setFlares] = useState<Flare[]>(seeded || []);
     const [activeIndex, setActiveIndex] = useState(seededIndex);
     const [loading, setLoading] = useState(!seeded);
+    // Cursor pagination so swiping never dead-ends — we fetch the next page as
+    // the user approaches the end of the loaded list.
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [forYouCursors, setForYouCursors] = useState<{
+        following: string | null;
+        public: string | null;
+        followingHasMore: boolean;
+        publicHasMore: boolean;
+    }>({ following: null, public: null, followingHasMore: false, publicHasMore: false });
+    const loadingMoreRef = useRef(false);
     const router = useRouter();
     const { user, activeWorkspace } = useAuthStore();
 
@@ -102,7 +127,17 @@ export default function FlarePlayerScreen() {
 
     const fetchFlares = async (showLoader = true) => {
         try {
-            if (showLoader) setLoading(true);
+            if (showLoader) {
+                setLoading(true);
+                setNextCursor(null);
+                setHasMore(false);
+                setForYouCursors({
+                    following: null,
+                    public: null,
+                    followingHasMore: false,
+                    publicHasMore: false,
+                });
+            }
             const fIds = typeof followingIds === 'string' ? followingIds.split(',') : [];
             const type = (feedType as string) || 'PUBLIC';
             
@@ -113,27 +148,27 @@ export default function FlarePlayerScreen() {
                     threadApi.getFlares({ feedType: 'FOLLOWING', followingIds: fIds, limit: 20 }),
                     threadApi.getFlares({ feedType: 'PUBLIC', limit: 20 }),
                 ]);
-                const combined = [
-                    ...unpackFeedPage(followingRes.data).items,
-                    ...unpackFeedPage(publicRes.data).items,
-                ];
-                fetchedFlares = Array.from(new Map(combined.map(f => [f.id, f])).values());
-                
-                // Sort: Following first, then by date
-                fetchedFlares.sort((a, b) => {
-                    const aIsFollowing = fIds.includes(a.authorId);
-                    const bIsFollowing = fIds.includes(b.authorId);
-                    if (aIsFollowing && !bIsFollowing) return -1;
-                    if (!aIsFollowing && bIsFollowing) return 1;
-                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                const fPage = unpackFeedPage(followingRes.data);
+                const pPage = unpackFeedPage(publicRes.data);
+                fetchedFlares = mergeForYouFlares(fPage.items, pPage.items, fIds);
+                setForYouCursors({
+                    following: fPage.nextCursor,
+                    public: pPage.nextCursor,
+                    followingHasMore: fPage.hasMore,
+                    publicHasMore: pPage.hasMore,
                 });
+                setNextCursor(null);
+                setHasMore(fPage.hasMore || pPage.hasMore);
             } else {
                 const { data } = await threadApi.getFlares({
                     feedType: type as any,
                     followingIds: fIds,
                     limit: 20,
                 });
-                fetchedFlares = unpackFeedPage(data).items;
+                const page = unpackFeedPage(data);
+                fetchedFlares = page.items;
+                setNextCursor(page.nextCursor);
+                setHasMore(page.hasMore);
             }
 
             setFlares(fetchedFlares);
@@ -149,6 +184,89 @@ export default function FlarePlayerScreen() {
             if (showLoader) setLoading(false);
         }
     };
+
+    const loadMoreFlares = async () => {
+        const type = (feedType as string) || 'PUBLIC';
+        if (!hasMore || loadingMoreRef.current) return;
+
+        const fIds = typeof followingIds === 'string' ? followingIds.split(',') : [];
+        loadingMoreRef.current = true;
+        try {
+            if (type === 'FORYOU') {
+                const fetchFollowing = forYouCursors.followingHasMore;
+                const fetchPublic = forYouCursors.publicHasMore;
+                if (!fetchFollowing && !fetchPublic) return;
+
+                const emptyPage = { data: { items: [], nextCursor: null, hasMore: false } };
+                const [fRes, pRes] = await Promise.all([
+                    fetchFollowing
+                        ? threadApi.getFlares({
+                              feedType: 'FOLLOWING',
+                              followingIds: fIds,
+                              limit: 20,
+                              cursor: forYouCursors.following || undefined,
+                          })
+                        : Promise.resolve(emptyPage),
+                    fetchPublic
+                        ? threadApi.getFlares({
+                              feedType: 'PUBLIC',
+                              limit: 20,
+                              cursor: forYouCursors.public || undefined,
+                          })
+                        : Promise.resolve(emptyPage),
+                ]);
+                const fPage = unpackFeedPage(fRes.data);
+                const pPage = unpackFeedPage(pRes.data);
+                const sorted = mergeForYouFlares(fPage.items, pPage.items, fIds);
+                setFlares((prev) => {
+                    const seen = new Set(prev.map((f) => f.id));
+                    const fresh = sorted.filter((f) => !seen.has(f.id));
+                    return [...prev, ...fresh];
+                });
+                setForYouCursors((prev) => ({
+                    following: fetchFollowing ? fPage.nextCursor : prev.following,
+                    public: fetchPublic ? pPage.nextCursor : prev.public,
+                    followingHasMore: fetchFollowing ? fPage.hasMore : false,
+                    publicHasMore: fetchPublic ? pPage.hasMore : false,
+                }));
+                setHasMore(
+                    (fetchFollowing && fPage.hasMore) || (fetchPublic && pPage.hasMore),
+                );
+                return;
+            }
+
+            if (!nextCursor) return;
+            const { data } = await threadApi.getFlares({
+                feedType: type as any,
+                followingIds: fIds,
+                limit: 20,
+                cursor: nextCursor,
+            });
+            const page = unpackFeedPage(data);
+            setFlares((prev) => {
+                const seen = new Set(prev.map((f) => f.id));
+                const fresh = page.items.filter((f: any) => !seen.has(f.id));
+                return [...prev, ...fresh];
+            });
+            setNextCursor(page.nextCursor);
+            setHasMore(page.hasMore);
+        } catch {
+            // Swipe should stay smooth even if the next page fails; user can retry.
+        } finally {
+            loadingMoreRef.current = false;
+        }
+    };
+
+    // Warm the next clip's poster so its frame is already cached when the user
+    // swipes to it — the video itself is mounted/buffered by the FlatList window.
+    useEffect(() => {
+        const next = flares[activeIndex + 1];
+        if (!next) return;
+        const uri = resolveMediaUrl(
+            (next as any).thumbnailUrl || (next as any).previewUrl || next.mediaUrls?.[0],
+        );
+        if (uri) ExpoImage.prefetch(uri).catch(() => undefined);
+    }, [activeIndex, flares]);
 
     const handleToggleSave = (id: string, saved: boolean, savesCount: number) => {
         setFlares(prev => prev.map(f => f.id === id ? { ...f, saved, savesCount } : f));
@@ -213,6 +331,8 @@ export default function FlarePlayerScreen() {
                     removeClippedSubviews={true}
                     maxToRenderPerBatch={3}
                     windowSize={5}
+                    onEndReached={loadMoreFlares}
+                    onEndReachedThreshold={1.5}
                 />
             )}
         </View>
@@ -393,8 +513,8 @@ function FlareItem({ flare, isActive, onBack, onFinish, onToggleSave, onToggleLi
                         }
                     })}
                 >
-                    <Image 
-                        source={{ uri: resolveMediaUrl(flare.authorAvatarThumb || flare.authorAvatar) || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg` }} 
+                    <AppImage 
+                        uri={flare.authorAvatarThumb || flare.authorAvatar} 
                         style={styles.authorAvatar} 
                     />
                     <TouchableOpacity style={styles.plusBtn}>

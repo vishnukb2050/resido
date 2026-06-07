@@ -74,6 +74,19 @@ export class FollowService {
         });
     }
 
+    async getFollowStatus(followerId: string, followingId: string) {
+        if (!followerId || followerId === followingId) {
+            return { isFollowing: false };
+        }
+        const existing = await this.prisma.userRead.follow.findUnique({
+            where: {
+                followerId_followingId: { followerId, followingId },
+            },
+            select: { followerId: true },
+        });
+        return { isFollowing: !!existing };
+    }
+
     async getFollowStats(userId: string) {
         const [followersCount, followingCount] = await Promise.all([
             this.prisma.userRead.follow.count({ where: { followingId: userId } }),

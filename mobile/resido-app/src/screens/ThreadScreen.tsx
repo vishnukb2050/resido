@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, ScrollView, Dimensions, StatusBar, Share, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions, StatusBar, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -8,7 +8,10 @@ import { useAuthStore } from '../store/authStore';
 import { io } from 'socket.io-client';
 import BottomNav from '../components/BottomNav';
 import PostSearchOverlay from '../components/PostSearchOverlay';
+import AppImage from '../components/AppImage';
+import { Image as ExpoImage } from 'expo-image';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { getFeedSnapshot, setFeedSnapshot } from '../services/feedSnapshotCache';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -94,6 +97,32 @@ export default function ThreadScreen() {
             socket.disconnect();
         };
     }, [activeWorkspace, activeTab, activeCategory, refresh, activeHashtag]);
+
+    // Identifies the current feed slice for snapshot caching (instant revisits).
+    const feedKey = useMemo(
+        () => (activeHashtag ? `thread:hashtag:${activeHashtag}` : `thread:${activeTab}:${activeCategory}`),
+        [activeHashtag, activeTab, activeCategory],
+    );
+
+    // Persist the loaded list so navigating away and back restores it instantly.
+    useEffect(() => {
+        if (!loading && threads.length > 0) {
+            setFeedSnapshot(feedKey, { threads, nextCursor, hasMore, forYouCursors });
+        }
+    }, [threads, nextCursor, hasMore, forYouCursors, feedKey, loading]);
+
+    // Warm the (expo-image) disk cache for the first screenful of thread
+    // posters/thumbnails so media tiles render instantly as the user scrolls.
+    // Capped so we don't fire a request per item across the whole feed.
+    useEffect(() => {
+        const uris = threads
+            .slice(0, 10)
+            .map((t: any) =>
+                resolveMediaUrl(t.thumbnailUrl || t.posterUrl || t.previewUrl || t.mediaUrls?.[0]),
+            )
+            .filter((u): u is string => !!u);
+        if (uris.length) ExpoImage.prefetch(uris).catch(() => undefined);
+    }, [threads]);
 
     // Keep the socket's watched flare set in sync with the rendered feed so
     // live comment-count updates only flow for visible posts.
@@ -188,10 +217,23 @@ export default function ThreadScreen() {
     };
 
     const fetchInitialData = async () => {
+        // Seed instantly from the last snapshot for this tab/category/hashtag so
+        // returning to the feed shows content immediately and we refresh quietly
+        // in the background instead of flashing a spinner + refetching cold.
+        const cached = getFeedSnapshot<any>(feedKey);
+        const hasFresh = cached && Array.isArray(cached.threads) && cached.threads.length > 0;
         try {
-            setLoading(true);
-            setNextCursor(null);
-            setForYouCursors({ following: null, public: null, followingHasMore: false, publicHasMore: false });
+            if (hasFresh) {
+                setThreads(cached.threads);
+                setNextCursor(cached.nextCursor ?? null);
+                setHasMore(!!cached.hasMore);
+                setForYouCursors(cached.forYouCursors ?? { following: null, public: null, followingHasMore: false, publicHasMore: false });
+                setLoading(false);
+            } else {
+                setLoading(true);
+                setNextCursor(null);
+                setForYouCursors({ following: null, public: null, followingHasMore: false, publicHasMore: false });
+            }
             await fetchFeedPage(null, false);
         } catch (e) {
             console.error('Failed to fetch threads', e);
@@ -315,12 +357,31 @@ export default function ThreadScreen() {
     };
 
     const handleVote = async (pollId: string, optionId: string) => {
+        // Optimistically reflect the vote in place instead of reloading the whole
+        // feed — keeps scroll position and feels instant.
+        const applyVote = (t: any) => {
+            if (!t.poll || t.poll.id !== pollId) return t;
+            if (t.poll.votes && t.poll.votes.length > 0) return t; // already voted
+            return {
+                ...t,
+                poll: {
+                    ...t.poll,
+                    votes: [{ optionId }],
+                    options: t.poll.options.map((o: any) =>
+                        o.id === optionId
+                            ? { ...o, _count: { ...o._count, votes: (o._count?.votes || 0) + 1 } }
+                            : o,
+                    ),
+                },
+            };
+        };
+        const snapshot = threads;
+        setThreads((prev) => prev.map(applyVote));
         try {
             await threadApi.votePoll(pollId, optionId);
-            // Instant refresh or optimistic update
-            fetchInitialData();
         } catch (e) {
             console.error(e);
+            setThreads(snapshot); // revert
             Alert.alert('Error', 'Failed to submit vote');
         }
     };
@@ -339,7 +400,7 @@ export default function ThreadScreen() {
                     onPress={() => item.authorId && router.push({ pathname: '/user-profile', params: { id: item.authorId } })}
                     activeOpacity={0.7}
                 >
-                    <Image source={{ uri: resolveMediaUrl(item.authorAvatarThumb || item.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.authorAvatar} />
+                    <AppImage uri={item.authorAvatarThumb || item.authorAvatar} style={styles.authorAvatar} />
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.authorInfo}
@@ -402,7 +463,7 @@ export default function ThreadScreen() {
                                 : resolved;
                             return (
                                 <View key={idx} style={styles.carouselItem}>
-                                    <Image source={{ uri: posterUri }} style={styles.carouselMedia} />
+                                    <AppImage source={{ uri: posterUri }} style={styles.carouselMedia} />
                                     {isVideo && (
                                         <View style={styles.videoPlayOverlay} pointerEvents="none">
                                             <View style={styles.videoPlayBadge}>
@@ -575,7 +636,7 @@ export default function ThreadScreen() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesList}>
                         <TouchableOpacity style={styles.storyItem} onPress={() => router.push('/create-flare')}>
                             <View style={[styles.storyAvatarContainer, { borderColor: '#e2e8f0', borderStyle: 'dashed' }]}>
-                                <Image source={{ uri: resolveMediaUrl(user?.profilePhoto) || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
+                                <AppImage uri={user?.profilePhoto} style={styles.storyAvatar} />
                                 <View style={styles.storyAddBtn}>
                                     <Ionicons name="add" size={12} color="#fff" />
                                 </View>
@@ -590,7 +651,7 @@ export default function ThreadScreen() {
                                 onPress={() => router.push({ pathname: '/flares', params: { initialId: flare.id } })}
                             >
                                 <View style={styles.storyAvatarContainer}>
-                                    <Image source={{ uri: resolveMediaUrl(flare.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.storyAvatar} />
+                                    <AppImage uri={flare.authorAvatar} style={styles.storyAvatar} />
                                     <View style={styles.flareBadge}>
                                         <Ionicons name="play" size={8} color="#fff" />
                                     </View>
@@ -605,7 +666,7 @@ export default function ThreadScreen() {
             {/* Thread Creator Quick Access */}
             {activeTab === 'PUBLIC' && (
                 <TouchableOpacity style={styles.quickAccess} onPress={() => router.push('/create-thread')}>
-                    <Image source={{ uri: resolveMediaUrl(user?.profilePhoto) || 'https://i.pravatar.cc/100' }} style={styles.miniAvatar} />
+                    <AppImage uri={user?.profilePhoto} style={styles.miniAvatar} />
                     <Text style={styles.quickPlaceholder}>What's on your mind?</Text>
                     <Ionicons name="image-outline" size={24} color="#94a3b8" />
                 </TouchableOpacity>

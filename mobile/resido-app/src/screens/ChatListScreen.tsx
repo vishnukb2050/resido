@@ -112,7 +112,7 @@ export default function ChatListScreen() {
         return userCache[otherMemberId]?.name || userCache[otherMemberId]?.phone || 'User';
     };
 
-    const filteredConversations = conversations.filter((conv: any) => {
+    const filteredConversations = useMemo(() => conversations.filter((conv: any) => {
         if (search.length >= 3) return false; // Hide main list while searching users
 
         if (activeFilter === 'All') return true;
@@ -128,16 +128,16 @@ export default function ChatListScreen() {
         if (activeFilter === 'Contacts') return conv.type === 'DIRECT';
         if (activeFilter === 'Groups') return conv.type === 'GROUP';
         return true;
-    });
+    }), [conversations, search, activeFilter]);
 
-    const displayContacts = registeredContacts.filter(contact => {
+    const displayContacts = useMemo(() => registeredContacts.filter(contact => {
         if (activeFilter !== 'Contacts') return false;
         // Don't show if already in conversations list
         return !conversations.some((c: any) => 
             c.type === 'DIRECT' && 
             c.members?.some((m: any) => m.memberId === contact.id)
         );
-    });
+    }), [registeredContacts, conversations, activeFilter]);
 
     // Flattened, typed rows for the virtualized list: conversations, then an
     // optional "Suggestions" section header followed by contact suggestions.

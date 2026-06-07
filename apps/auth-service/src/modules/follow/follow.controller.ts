@@ -22,6 +22,11 @@ export class FollowController {
         return this.followService.getFollowStats(userId);
     }
 
+    @Get('status/:id')
+    getStatus(@Headers('x-user-id') followerId: string, @Param('id') followingId: string) {
+        return this.followService.getFollowStatus(followerId, followingId);
+    }
+
     @Get('followers/:id')
     getFollowers(@Param('id') userId: string) {
         return this.followService.getFollowers(userId);

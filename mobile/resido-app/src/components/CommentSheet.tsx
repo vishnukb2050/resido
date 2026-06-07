@@ -17,6 +17,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { threadApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import PollBuilderModal from './PollBuilderModal';
+import AppImage from './AppImage';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -127,8 +128,8 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
         const isAuthor = item.userId === authorId;
         return (
             <View style={styles.commentItem}>
-                <Image 
-                    source={{ uri: item.userAvatar || `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 8)}.jpg` }} 
+                <AppImage 
+                    uri={item.userAvatar} 
                     style={styles.commentAvatar} 
                 />
                 <View style={styles.commentContent}>

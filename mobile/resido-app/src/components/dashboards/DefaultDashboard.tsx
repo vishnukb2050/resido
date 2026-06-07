@@ -1071,7 +1071,7 @@ const FeedCard = React.memo(function FeedCard({
                             }}
                         >
                             {isFlare ? (
-                                <Image
+                                <ExpoImage
                                     source={{
                                         uri:
                                             resolveMediaUrl(item.thumbnailUrl) ||
@@ -1079,9 +1079,18 @@ const FeedCard = React.memo(function FeedCard({
                                             mediaSrc,
                                     }}
                                     style={styles.activityMedia}
+                                    cachePolicy="memory-disk"
+                                    contentFit="cover"
+                                    transition={150}
                                 />
                             ) : (
-                                <Image source={{ uri: mediaSrc }} style={styles.activityMedia} />
+                                <ExpoImage
+                                    source={{ uri: mediaSrc }}
+                                    style={styles.activityMedia}
+                                    cachePolicy="memory-disk"
+                                    contentFit="cover"
+                                    transition={150}
+                                />
                             )}
                             {isFlare && (
                                 <>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, FlatList, Alert, RefreshControl, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -53,12 +53,8 @@ export default function BusinessBookingsScreen() {
         }
     }, [activeTab]);
 
-    useEffect(() => {
-        loadTabData();
-    }, [loadTabData]);
-
-    // Refresh whenever the user returns to this screen so newly saved
-    // business profiles (or new bookings) show up immediately.
+    // `useFocusEffect` already fires on the initial focus (mount), so a separate
+    // mount `useEffect` would double-fetch on first open. One trigger only.
     useFocusEffect(
         useCallback(() => {
             loadTabData();
@@ -91,18 +87,9 @@ export default function BusinessBookingsScreen() {
                 return;
             }
 
-            const fetched = await Promise.all(
-                ids.map(async (id) => {
-                    try {
-                        const { data } = await businessApi.getProfile(id);
-                        return data;
-                    } catch (err) {
-                        console.warn(`Saved profile ${id} not found:`, err);
-                        return null;
-                    }
-                }),
-            );
-            setSavedProfiles(fetched.filter((p) => p !== null));
+            // One batched request instead of an N+1 getProfile per saved id.
+            const { data } = await businessApi.getProfilesByIds(ids);
+            setSavedProfiles(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch saved services:', error);
             setSavedProfiles([]);

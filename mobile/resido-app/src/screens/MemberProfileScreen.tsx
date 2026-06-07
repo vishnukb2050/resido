@@ -28,16 +28,15 @@ export default function MemberProfileScreen() {
 
     const fetchProfileData = async () => {
         try {
-            const [statsRes, followingRes] = await Promise.all([
+            const [statsRes, statusRes] = await Promise.all([
                 api.get(`/follow/stats/${userId}`),
-                api.get(`/follow/following/${currentUser?.id}`)
+                // O(1) status check instead of downloading the viewer's entire
+                // following list just to test one membership.
+                api.get(`/follow/status/${userId}`),
             ]);
             
             setStats(statsRes.data);
-            
-            // Check if current user is following this user
-            const followingList = followingRes.data;
-            setIsFollowing(followingList.some((f: any) => f.followingId === userId));
+            setIsFollowing(!!statusRes.data?.isFollowing);
         } catch (error) {
             console.error('Failed to fetch profile data', error);
         } finally {

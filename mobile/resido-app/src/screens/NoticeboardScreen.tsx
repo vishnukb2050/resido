@@ -8,6 +8,9 @@ import { useAuthStore } from '../store/authStore';
 import { communityApi } from '../services/api';
 import { storageApi } from '../services/storage';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { getFeedSnapshot, setFeedSnapshot } from '../services/feedSnapshotCache';
+
+const NOTICES_CACHE_KEY = 'community:notices';
 
 /**
  * Renders a notice image at its natural aspect ratio so the full picture
@@ -47,8 +50,10 @@ function NoticeImage({ uri, style }: { uri: string; style?: any }) {
 export default function NoticeboardScreen() {
     const router = useRouter();
     const { activeWorkspace, user } = useAuthStore();
-    const [notices, setNotices] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // Seed from the last snapshot so revisiting the board is instant; refresh
+    // silently in the background instead of showing a cold spinner.
+    const [notices, setNotices] = useState<any[]>(() => getFeedSnapshot<any[]>(NOTICES_CACHE_KEY) || []);
+    const [loading, setLoading] = useState(() => !getFeedSnapshot(NOTICES_CACHE_KEY));
     const [refreshing, setRefreshing] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
     const [posting, setPosting] = useState(false);
@@ -62,7 +67,9 @@ export default function NoticeboardScreen() {
         try {
             if (!silent) setLoading(true);
             const { data } = await communityApi.getNotices();
-            setNotices(data || []);
+            const list = data || [];
+            setNotices(list);
+            setFeedSnapshot(NOTICES_CACHE_KEY, list);
         } catch (e) {
             console.error('Fetch notices failed', e);
         } finally {
@@ -73,7 +80,8 @@ export default function NoticeboardScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            fetchNotices();
+            // Silent refresh when we already have a cached list on screen.
+            fetchNotices(!!getFeedSnapshot(NOTICES_CACHE_KEY));
         }, [fetchNotices]),
     );
 

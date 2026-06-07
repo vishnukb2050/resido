@@ -172,6 +172,18 @@ api.interceptors.response.use(
     }
 );
 
+// Short-lived memo of the resolved following-id list (see getFollowingIds).
+let followingIdsCache: { ids: string[]; at: number } | null = null;
+let followingIdsInflight: Promise<string[]> | null = null;
+const FOLLOWING_IDS_TTL_MS = 3 * 60 * 1000;
+
+/** Drop the cached following-id list so the next read re-fetches. Call after
+ *  follow/unfollow so feeds reflect the change immediately. */
+export function invalidateFollowingIds() {
+    followingIdsCache = null;
+    followingIdsInflight = null;
+}
+
 // Auth APIs
 export const authApi = {
     sendOtp: (phone: string) => api.post('/auth/send-otp', { phone }),
@@ -210,9 +222,18 @@ export const authApi = {
     syncMembership: (data: any) => api.post('/auth/sync-membership', data),
     syncMembershipDeactivation: (data: { phone: string; tenantId: string; role: string }) => api.post('/auth/sync-membership-deactivation', data),
     getUser: (id: string) => api.get(`/auth/users/${id}`),
-    toggleFollow: (id: string, isFollowing: boolean) => isFollowing ? api.delete(`/profile/follow/${id}`) : api.post(`/profile/follow/${id}`),
-    follow: (id: string) => api.post(`/profile/follow/${id}`),
-    unfollow: (id: string) => api.delete(`/profile/follow/${id}`),
+    toggleFollow: (id: string, isFollowing: boolean) => {
+        invalidateFollowingIds();
+        return isFollowing ? api.delete(`/profile/follow/${id}`) : api.post(`/profile/follow/${id}`);
+    },
+    follow: (id: string) => {
+        invalidateFollowingIds();
+        return api.post(`/profile/follow/${id}`);
+    },
+    unfollow: (id: string) => {
+        invalidateFollowingIds();
+        return api.delete(`/profile/follow/${id}`);
+    },
     getFollowing: (params?: { skip?: number; take?: number }) => api.get('/profile/following', { params }),
     /**
      * Pages through the FULL following list. The endpoint caps a single page at
@@ -243,10 +264,28 @@ export const authApi = {
      * FOLLOWING feed matched nothing) — this normalizes to ids in one place.
      */
     getFollowingIds: async (): Promise<string[]> => {
-        const { data } = await authApi.getAllFollowing();
-        return (data || [])
-            .map((f: any) => (typeof f === 'string' ? f : f?.id))
-            .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+        // The following graph gates almost every feed request (For You / Following
+        // on Threads & Flares). `getAllFollowing` can be several paginated round
+        // trips for active users, so we memoize the result for a short window to
+        // collapse the repeated waterfalls fired on each tab/screen change.
+        const now = Date.now();
+        if (followingIdsCache && now - followingIdsCache.at < FOLLOWING_IDS_TTL_MS) {
+            return followingIdsCache.ids;
+        }
+        if (followingIdsInflight) return followingIdsInflight;
+        followingIdsInflight = (async () => {
+            try {
+                const { data } = await authApi.getAllFollowing();
+                const ids = (data || [])
+                    .map((f: any) => (typeof f === 'string' ? f : f?.id))
+                    .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+                followingIdsCache = { ids, at: Date.now() };
+                return ids;
+            } finally {
+                followingIdsInflight = null;
+            }
+        })();
+        return followingIdsInflight;
     },
     getFollowers: () => api.get('/profile/followers'),
     getFollowCounts: (id: string) => api.get(`/profile/follow/counts/${id}`),
@@ -374,6 +413,12 @@ export const businessApi = {
     suggestProfiles: (q: string, limit = 10) => api.get('/business/suggest', { params: { q, limit } }),
     getMyProfiles: () => api.get('/business/profiles/my'),
     getProfile: (id: string) => api.get(`/business/profiles/${id}`),
+    // Batch resolve multiple profiles in one request (Saved tab) — replaces an
+    // N+1 fan-out of getProfile per saved id.
+    getProfilesByIds: (ids: string[]) =>
+        api.get('/business/profiles/by-ids', {
+            params: { ids: (ids || []).filter(Boolean).join(',') },
+        }),
     updateProfile: (id: string, data: any) => api.patch(`/business/profiles/${id}`, data),
     deleteProfile: (id: string) => api.delete(`/business/profiles/${id}`),
     getCategories: () => api.get('/business/categories'),

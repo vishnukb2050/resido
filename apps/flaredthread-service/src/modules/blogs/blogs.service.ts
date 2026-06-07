@@ -809,7 +809,8 @@ export class BlogsService {
                             }
                         }
                     }
-                }
+                },
+                mediaAssets: true,
             }
         });
         if (!blog) return null;
@@ -846,7 +847,19 @@ export class BlogsService {
             }
         }
 
-        return this.decorateMedia(blog);
+        const assets = blog.mediaAssets || [];
+        const primary = assets[0];
+        const thumbKey = primary?.thumbnailKey || primary?.posterKey;
+        const thumbFromAsset = thumbKey ? this.storage.buildPublicUrl(thumbKey) : null;
+        return this.decorateMedia({
+            ...blog,
+            mediaStatus: blog.mediaStatus || 'READY',
+            thumbnailUrl: thumbFromAsset || blog.mediaUrls?.[0],
+            posterUrl: primary?.posterKey
+                ? this.storage.buildPublicUrl(primary.posterKey)
+                : thumbFromAsset,
+            playback: this.buildPlaybackFromAssets(assets),
+        });
     }
 
     async votePoll(pollId: string, optionId: string, userId: string, tenantId: string) {

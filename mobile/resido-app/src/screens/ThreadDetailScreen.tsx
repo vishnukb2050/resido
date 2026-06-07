@@ -6,7 +6,7 @@ import { threadApi, FLARES_SOCKET_URL, getFlaresSocketOptions } from '../service
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import PollBuilderModal from '../components/PollBuilderModal';
-import { Video, ResizeMode } from 'expo-av';
+import { AdaptiveVideoPlayer } from '../components/AdaptiveVideoPlayer';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import { io } from 'socket.io-client';
 import dayjs from 'dayjs';
@@ -73,11 +73,31 @@ export default function ThreadDetailScreen() {
     };
 
     const handleVote = async (pollId: string, optionId: string) => {
+        // Optimistic update for both the thread poll and any comment poll, so the
+        // bar fills instantly without a full detail refetch.
+        const bump = (poll: any) => {
+            if (!poll || poll.id !== pollId) return poll;
+            if (poll.votes && poll.votes.length > 0) return poll;
+            return {
+                ...poll,
+                votes: [{ optionId }],
+                options: poll.options.map((o: any) =>
+                    o.id === optionId
+                        ? { ...o, _count: { ...o._count, votes: (o._count?.votes || 0) + 1 } }
+                        : o,
+                ),
+            };
+        };
+        const threadSnapshot = thread;
+        const commentsSnapshot = comments;
+        setThread((prev: any) => (prev ? { ...prev, poll: bump(prev.poll) } : prev));
+        setComments((prev) => prev.map((c: any) => ({ ...c, poll: bump(c.poll) })));
         try {
             await threadApi.votePoll(pollId, optionId);
-            fetchThreadDetails(); // Refresh to get updated vote counts
         } catch (e) {
             console.error(e);
+            setThread(threadSnapshot);
+            setComments(commentsSnapshot);
             Alert.alert('Error', 'Failed to submit vote');
         }
     };
@@ -198,13 +218,19 @@ export default function ThreadDetailScreen() {
                                     /\.(mp4|mov|m4v|webm)(\?|$)/i.test(resolved) ||
                                     resolved.includes('/videos/');
                                 return isVideo ? (
-                                    <Video
-                                        key={i}
-                                        source={{ uri: resolved, overrideFileExtension: 'mp4' } as any}
-                                        style={styles.media}
-                                        resizeMode={ResizeMode.COVER}
+                                    <View key={i} style={[styles.media, { overflow: 'hidden', backgroundColor: '#000' }]}>
+                                        <AdaptiveVideoPlayer
+                                            playback={thread.playback}
+                                            posterUrl={thread.thumbnailUrl || thread.posterUrl}
+                                            fallbackUrl={resolved}
+                                        mediaStatus={thread.mediaStatus}
+                                        autoPlay={false}
+                                        isActive={false}
+                                        loop={false}
+                                        muted={false}
                                         useNativeControls
-                                    />
+                                        />
+                                    </View>
                                 ) : (
                                     <Image key={i} source={{ uri: resolved }} style={styles.media} resizeMode="cover" />
                                 );
