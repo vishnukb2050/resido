@@ -2,7 +2,7 @@
 // Rows are isolated by `tenantId`; migrations are applied via resident-service.
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/@resido/visitor-client"
+  output   = "../../node_modules/@resido/visitor-client"
 }
 
 datasource db {

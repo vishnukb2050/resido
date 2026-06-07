@@ -219,7 +219,9 @@ export default function ManageBusinessBookingsScreen() {
                 setProfileName(profileRes.data.businessName);
             }
             const bookingsRes = await businessApi.getProfileBookings(profileId as string);
-            setBookings(bookingsRes?.data || []);
+            const data = bookingsRes?.data;
+            const items = Array.isArray(data) ? data : (data?.items || []);
+            setBookings(items);
         } catch (error) {
             console.error('Failed to fetch bookings:', error);
             Alert.alert('Error', 'Failed to retrieve bookings for this business profile.');

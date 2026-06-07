@@ -4,7 +4,7 @@
 // (resido_core uses the same tenantId model). No database-per-community.
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/@resido/chat-client"
+  output   = "../../node_modules/@resido/chat-client"
 }
 
 datasource db {

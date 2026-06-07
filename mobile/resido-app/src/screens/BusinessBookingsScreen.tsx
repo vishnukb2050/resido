@@ -64,7 +64,8 @@ export default function BusinessBookingsScreen() {
     const fetchMyBookings = async () => {
         try {
             const { data } = await businessApi.getMyBookings();
-            const sorted = (data || []).sort((a: any, b: any) => {
+            const items = Array.isArray(data) ? data : (data?.items || []);
+            const sorted = [...items].sort((a: any, b: any) => {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             });
             setBookings(sorted);
