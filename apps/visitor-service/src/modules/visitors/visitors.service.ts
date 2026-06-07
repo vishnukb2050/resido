@@ -26,7 +26,7 @@ export class VisitorsService {
     const safeTake = Math.min(take > 0 ? take : 200, 500);
     const safeSkip = Math.max(skip, 0);
 
-    return this.prisma.visitorEntry.findMany({
+    return this.prisma.reader.visitorEntry.findMany({
       where,
       orderBy: { inTime: 'desc' },
       skip: safeSkip,

@@ -1,13 +1,15 @@
 // apps/auth-service/prisma/user/schema.prisma
 // User database for global identities and mobile app users
 generator client {
-  provider = "prisma-client-js"
-  output   = "../../node_modules/@resido/user-client"
+  provider        = "prisma-client-js"
+  output          = "../../node_modules/@resido/user-client"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("USER_WRITE_URL")
+  provider   = "postgresql"
+  url        = env("USER_WRITE_URL")
+  extensions = [pg_trgm]
 }
 
 model User {
@@ -58,6 +60,8 @@ model User {
   documentShares       DocumentShare[]
 
   @@index([isActive, linkBusinessProfile])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([profileName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("users")
 }
 

@@ -81,9 +81,38 @@ export function useChatNotifications() {
 
             const onInbox = (payload: { conversationId: string; message: any }) => {
                 const msg = payload?.message;
-                // Refresh the conversation list (and therefore unread counts + the
-                // chat-tab badge) for every inbox event.
-                queryClient.invalidateQueries({ queryKey: ['conversations'] });
+                if (!msg) return;
+
+                let found = false;
+                queryClient.setQueriesData<any[]>({ queryKey: ['conversations'] }, (oldData) => {
+                    if (!oldData) return [];
+                    const targetIdx = oldData.findIndex((c) => c.id === payload.conversationId);
+                    if (targetIdx === -1) {
+                        return oldData;
+                    }
+                    found = true;
+                    const next = [...oldData];
+                    const [target] = next.splice(targetIdx, 1);
+
+                    const isMine = msg.senderId === userId;
+                    const isActive = payload.conversationId === getActiveConversation();
+                    const newUnreadCount = (!isMine && !isActive)
+                        ? (target.unreadCount || 0) + 1
+                        : (target.unreadCount || 0);
+
+                    const remainingMessages = (target.messages || []).filter((m: any) => m.id !== msg.id);
+
+                    const updated = {
+                        ...target,
+                        messages: [msg, ...remainingMessages],
+                        unreadCount: newUnreadCount,
+                    };
+                    return [updated, ...next];
+                });
+
+                if (!found) {
+                    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+                }
 
                 // Only chime for messages from other people, when the app is in the
                 // foreground, and not for the conversation already open on screen.

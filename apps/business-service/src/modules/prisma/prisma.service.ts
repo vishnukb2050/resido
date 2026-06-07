@@ -5,6 +5,8 @@ import { withDbPool } from '../../common/db-pool';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+    public reader: PrismaClient;
+
     constructor(config: ConfigService) {
         super({
             datasources: {
@@ -13,13 +15,27 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                 },
             },
         });
+
+        this.reader = new PrismaClient({
+            datasources: {
+                db: {
+                    url: withDbPool(config.get('CORE_READ_URL') || config.get('CORE_WRITE_URL')),
+                },
+            },
+        });
     }
 
     async onModuleInit() {
-        await this.$connect();
+        await Promise.all([
+            this.$connect(),
+            this.reader.$connect(),
+        ]);
     }
 
     async onModuleDestroy() {
-        await this.$disconnect();
+        await Promise.all([
+            this.$disconnect(),
+            this.reader.$disconnect(),
+        ]);
     }
 }

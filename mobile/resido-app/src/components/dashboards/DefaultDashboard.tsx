@@ -515,7 +515,7 @@ export default function DefaultDashboard() {
                                     borderColor: activeWorkspace ? 'rgba(91, 75, 138, 0.2)' : '#8b5cf6' 
                                 }]}>
                                     {activeWorkspace && (activeWorkspace as any).photoUrl ? (
-                                        <Image 
+                                        <ExpoImage 
                                             source={{
                                                 uri: withCacheBust(
                                                     resolveMediaUrl((activeWorkspace as any).photoUrl) || '',
@@ -523,7 +523,8 @@ export default function DefaultDashboard() {
                                                 ),
                                             }} 
                                             style={styles.psWorkspaceImg}
-                                            resizeMode="cover"
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
                                         />
                                     ) : activeWorkspace ? (
                                         <Image source={require('../../../assets/greenwoods_logo.jpg')} style={styles.psWorkspaceImg} />
@@ -661,9 +662,11 @@ export default function DefaultDashboard() {
                                                             onPress={() => onPickHeaderSuggestion(it)}
                                                         >
                                                             {isUser && it.avatar ? (
-                                                                <Image
+                                                                <ExpoImage
                                                                     source={{ uri: it.avatar as string }}
                                                                     style={{ width: 32, height: 32, borderRadius: 16, marginRight: 12, backgroundColor: '#E8E2F2' }}
+                                                                    cachePolicy="memory-disk"
+                                                                    contentFit="cover"
                                                                 />
                                                             ) : (
                                                                 <View style={[styles.psSuggestIcon, {
@@ -879,9 +882,11 @@ export default function DefaultDashboard() {
                                 useNativeControls
                             />
                             <View style={styles.flareExpandInfo}>
-                                <Image
+                                <ExpoImage
                                     source={{ uri: expandedFlare.authorAvatar || 'https://i.pravatar.cc/100' }}
                                     style={styles.flareExpandAvatar}
+                                    cachePolicy="memory-disk"
+                                    contentFit="cover"
                                 />
                                 <View style={{ flex: 1, marginLeft: 10 }}>
                                     <Text style={styles.flareExpandAuthor} numberOfLines={1}>
@@ -1163,7 +1168,12 @@ function StoryItem({ name, image, hasStory }: any) {
     return (
         <TouchableOpacity style={styles.psStoryItem}>
             <View style={[styles.psStoryCircle, hasStory && styles.psStoryCircleActive]}>
-                <Image source={{ uri: image }} style={styles.psStoryImg} />
+                <ExpoImage
+                    source={{ uri: image }}
+                    style={styles.psStoryImg}
+                    cachePolicy="memory-disk"
+                    contentFit="cover"
+                />
             </View>
             <Text style={styles.psStoryLabel}>{name}</Text>
         </TouchableOpacity>

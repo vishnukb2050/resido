@@ -18,7 +18,7 @@ export class GatepassService {
   }
 
   async getGatepasses(tenantId: string, residentId: string) {
-    return this.prisma.gatepass.findMany({
+    return this.prisma.reader.gatepass.findMany({
       where: { tenantId, residentId },
       orderBy: { createdAt: 'desc' },
       take: 200,
@@ -26,7 +26,7 @@ export class GatepassService {
   }
 
   async getGatepassById(tenantId: string, id: string) {
-    const gatepass = await this.prisma.gatepass.findFirst({
+    const gatepass = await this.prisma.reader.gatepass.findFirst({
       where: { id, tenantId },
     });
     if (!gatepass) throw new NotFoundException('Gatepass not found');

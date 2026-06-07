@@ -1,0 +1,134 @@
+<USER_REQUEST>
+Pri	Area	Issue	Evidence	One-line fix
+H	Mobile	
+Home For-You feed is a ScrollView + .map (not virtualized)
+
+DefaultDashboard.tsx:823-938 inside ScrollView:970	
+Move to FlatList/FlashList with keyExtractor + memoized rows.
+
+H	Mobile	
+Chat conversation list renders all rows in ScrollView.map
+
+ChatListScreen.tsx:214,300-340 (FlatList imported but unused)	
+Render conversations through a single FlatList.
+
+H	Mobile	
+Chat list N+1: one getUser() request per direct chat
+
+ChatListScreen.tsx:118-140 Promise.all(ids.map(getUser))	
+Use getPublicIdentitiesBatch or embed names in getConversations.
+
+H	Mobile	
+Every socket message refetches the whole conversation list
+
+ChatListScreen.tsx:87-88 refetchConversations()	
+Patch react-query cache / prepend last message locally.
+
+H	Mobile	
+Home eagerly imports all 7 role dashboards (one renders)
+
+HomeScreen.tsx:7-13 (dead CommunityDashboard import :12)	
+React.lazy() per role; remove unused import.
+
+H	Mobile	
+For-You fetched as 5-request waterfall, duplicated on threads
+
+useForYouFeed.ts:8-21 + ThreadScreen.tsx:110-131	
+One backend for-you endpoint or one shared cached query.
+
+H	Mobile	
+~50 screens use useEffect/useFocusEffect+axios, not react-query
+
+NoticeboardScreen, MemberListScreen, ThreadScreen, …	
+Migrate list screens to useQuery with stable keys + staleTime.
+
+H	Mobile	
+Most images use RN Image; expo-image only on one avatar
+
+DefaultDashboard.tsx:9,910-920	
+Standardize on expo-image with disk cache + placeholder.
+
+H	Backend	
+API gateway buffers entire request AND response in memory
+
+proxy.controller.ts:83-90,196-212	
+Stream proxy (responseType:'stream'); buffer only small JSON routes.
+
+H	Backend	
+Gateway axios limits set to Infinity (OOM risk)
+
+proxy.controller.ts:203-204 maxBody/ContentLength: Infinity	
+Set finite caps aligned to max upload (25–50MB).
+
+H	Backend	
+JWT verified on every request, no cache
+
+proxy.controller.ts:131-137	
+Short-TTL verify cache keyed by token hash/jti.
+
+H	Backend	
+User
+<truncated 3578 bytes>
+ed-set counter updated on publish.
+
+M	Backend	
+In-process stats/category caches not shared across tasks
+
+community.service.ts:14-15; business.service.ts:91-95	
+Move to Redis with same TTL.
+
+M	Backend	
+notification-service has no FCM (WebSocket-only push)
+
+notification.service.ts:35-54; fcmToken in schema	
+Worker consumes queue, sends FCM; WS for in-app only.
+
+M	Infra	
+No CloudWatch alarms / SNS on-call routing
+
+no alarm resources in repo	
+Alarm 5xx, target health, RDS CPU/conns, Redis evictions, ECS CPU.
+
+M	Infra	
+ECS tasks on public subnets with public IPs
+
+vpc/main.tf:1-4; services.tf:128	
+Private subnets + NAT/VPC endpoints; assign_public_ip=false.
+
+M	Infra	
+All 9 services deploy in parallel (herd on RDS/Redis)
+
+deploy.yml:81-84	
+Stage gateway first then data plane; deployment circuit breaker.
+
+M	Infra	
+Prod image_tag = latest (mutable, not SHA-pinned)
+
+prod.tfvars:27	
+Pin immutable git-SHA tags in CI.
+
+M	Infra	
+ALB stickiness + Redis adapter together skews WS load
+
+alb/main.tf:79-83	
+Rely on Redis adapter; drop stickiness after validating fan-out.
+
+
+
+these are the audits done
+
+check is the mobile and backened High and medium issues are fixed....? if not create a detailed plan...
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-07T14:49:21Z.
+
+The user's current state is as follows:
+Active Document: /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/BusinessInvoicesScreen.tsx (LANGUAGE_TSX)
+Cursor is on line: 1
+Other open documents:
+- /home/vishnu/socwhiz/resido/infra/sync-prisma-schemas.sh (LANGUAGE_SHELL)
+- /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/ManageBusinessBookingsScreen.tsx (LANGUAGE_TSX)
+- /home/vishnu/socwhiz/resido/apps/business-service/src/modules/business/business.controller.ts (LANGUAGE_TYPESCRIPT)
+- /home/vishnu/socwhiz/resido/mobile/resido-app/src/services/api.ts (LANGUAGE_TYPESCRIPT)
+- /home/vishnu/socwhiz/resido/mobile/resido-app/src/screens/BusinessInvoicesScreen.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>

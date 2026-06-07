@@ -1,7 +1,8 @@
-import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { Prisma } from '@resido/business-client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationResolverService } from './location-resolver.service';
+import Redis from 'ioredis';
 
 /**
  * Indian district / state name aliases.
@@ -87,13 +88,10 @@ function expandPlaceAliases(name?: string): string[] {
 export class BusinessService {
     private readonly logger = new Logger(BusinessService.name);
 
-    // Process-wide cache for the marketplace category list (see getCategories).
-    private static categoriesCache: { at: number; data: string[] } | null = null;
-    private static readonly CATEGORIES_TTL_MS = 5 * 60_000;
-
     constructor(
         private prisma: PrismaService,
         private locationResolver: LocationResolverService,
+        @Inject('REDIS_CLIENT') private redis: Redis,
     ) {}
 
     /**
@@ -448,7 +446,7 @@ export class BusinessService {
             }
 
             const distanceMap = new Map(rows.map((r) => [r.id, r.distance_km]));
-            const profiles = await this.prisma.businessProfile.findMany({
+            const profiles = await this.prisma.reader.businessProfile.findMany({
                 where: { id: { in: ids } },
                 include: { services: true, slots: { where: { isActive: true } } },
             });
@@ -461,7 +459,7 @@ export class BusinessService {
                     distanceKm: distanceMap.get(p!.id) ?? null,
                 }));
 
-            const totalResult = await this.prisma.$queryRaw<{ count: bigint }[]>`
+            const totalResult = await this.prisma.reader.$queryRaw<{ count: bigint }[]>`
                 SELECT COUNT(DISTINCT b.id)::bigint AS count
                 FROM business_profiles b
                 WHERE b."isActive" = true
@@ -520,7 +518,7 @@ export class BusinessService {
         };
 
         const [profiles, total] = await Promise.all([
-            this.prisma.businessProfile.findMany({
+            this.prisma.reader.businessProfile.findMany({
                 where,
                 include: {
                     services: true,
@@ -533,7 +531,7 @@ export class BusinessService {
                 take: limit,
                 skip: offset,
             }),
-            this.prisma.businessProfile.count({ where }),
+            this.prisma.reader.businessProfile.count({ where }),
         ]);
 
         const items = profiles.map((p) => ({
@@ -553,7 +551,7 @@ export class BusinessService {
         const take = Math.min(Math.max(limit, 1), 20);
 
         const [profiles, serviceItems, categoryRows] = await Promise.all([
-            this.prisma.businessProfile.findMany({
+            this.prisma.reader.businessProfile.findMany({
                 where: {
                     isActive: true,
                     OR: [
@@ -565,7 +563,7 @@ export class BusinessService {
                 take,
                 orderBy: { businessName: 'asc' },
             }),
-            this.prisma.serviceItem.findMany({
+            this.prisma.reader.serviceItem.findMany({
                 where: {
                     name: { contains: q, mode: 'insensitive' },
                     businessProfile: { isActive: true },
@@ -578,7 +576,7 @@ export class BusinessService {
                 },
                 take,
             }),
-            this.prisma.businessProfile.findMany({
+            this.prisma.reader.businessProfile.findMany({
                 where: { isActive: true, category: { contains: q, mode: 'insensitive' } },
                 select: { category: true },
                 take: 50,
@@ -612,7 +610,7 @@ export class BusinessService {
     }
 
     async getProfilesByUserId(userId: string) {
-        const profiles = await this.prisma.businessProfile.findMany({
+        const profiles = await this.prisma.reader.businessProfile.findMany({
             where: { userId },
             include: { services: true, slots: true },
             orderBy: { createdAt: 'desc' }
@@ -624,7 +622,7 @@ export class BusinessService {
     }
 
     async getProfile(id: string) {
-        const profile = await this.prisma.businessProfile.findUnique({
+        const profile = await this.prisma.reader.businessProfile.findUnique({
             where: { id },
             include: { services: true, slots: true }
         });
@@ -645,7 +643,7 @@ export class BusinessService {
             new Set((ids || []).map((i) => (i || '').trim()).filter(Boolean)),
         ).slice(0, 100);
         if (unique.length === 0) return [];
-        const profiles = await this.prisma.businessProfile.findMany({
+        const profiles = await this.prisma.reader.businessProfile.findMany({
             where: { id: { in: unique } },
             include: { services: true, slots: true },
         });
@@ -696,7 +694,7 @@ export class BusinessService {
         profileId: string,
         opts: { from?: string; to?: string } = {},
     ) {
-        const profile = await this.prisma.businessProfile.findFirst({
+        const profile = await this.prisma.reader.businessProfile.findFirst({
             where: { id: profileId, userId },
             select: { id: true, businessName: true, viewCount: true },
         });
@@ -711,7 +709,7 @@ export class BusinessService {
         const from = (opts.from && opts.from.trim()) || defaultFrom.toISOString().split('T')[0];
         const to   = (opts.to   && opts.to.trim())   || today.toISOString().split('T')[0];
 
-        const bookings = await this.prisma.businessBooking.findMany({
+        const bookings = await this.prisma.reader.businessBooking.findMany({
             where: {
                 businessProfileId: profileId,
                 bookingDate: { gte: from, lte: to },
@@ -899,20 +897,29 @@ export class BusinessService {
     }
 
     async getCategories() {
-        // Categories change rarely but this scans every active business
-        // profile. Cache the derived list for a few minutes so the (very hot)
-        // marketplace filter bar doesn't scan the table on every open.
-        const now = Date.now();
-        if (BusinessService.categoriesCache && now - BusinessService.categoriesCache.at < BusinessService.CATEGORIES_TTL_MS) {
-            return BusinessService.categoriesCache.data;
+        const cacheKey = 'business:categories';
+        try {
+            const cached = await this.redis.get(cacheKey);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+        } catch (e: any) {
+            this.logger.error(`Failed to read categories cache from Redis: ${e?.message}`);
         }
-        const profiles = await this.prisma.businessProfile.findMany({
+
+        const profiles = await this.prisma.reader.businessProfile.findMany({
             select: { category: true },
             where: { isActive: true }
         });
         const categories = Array.from(new Set(profiles.map(p => p.category as string).filter(Boolean)));
         const sorted = categories.sort((a, b) => a.localeCompare(b));
-        BusinessService.categoriesCache = { at: now, data: sorted };
+
+        try {
+            await this.redis.set(cacheKey, JSON.stringify(sorted), 'EX', 300); // 5 min TTL
+        } catch (e: any) {
+            this.logger.error(`Failed to write categories cache to Redis: ${e?.message}`);
+        }
+
         return sorted;
     }
 
@@ -990,7 +997,7 @@ export class BusinessService {
     }
 
     async getSlots(profileId: string, date?: string) {
-        const slots = await this.prisma.businessSlot.findMany({
+        const slots = await this.prisma.reader.businessSlot.findMany({
             where: { businessProfileId: profileId, isActive: true },
             orderBy: { createdAt: 'desc' }
         });
@@ -1003,7 +1010,7 @@ export class BusinessService {
         let bookingsBySlot: Record<string, Record<string, number>> = {};
         if (date) {
             try {
-                const bookings = await this.prisma.businessBooking.findMany({
+                const bookings = await this.prisma.reader.businessBooking.findMany({
                     where: { businessProfileId: profileId, bookingDate: date, status: 'CONFIRMED' },
                     select: { slotId: true, timeSlot: true, persons: true },
                 });
@@ -1335,7 +1342,7 @@ export class BusinessService {
     }
 
     async getSlotBookings(profileId: string, slotId: string, date: string) {
-        return this.prisma.businessBooking.findMany({
+        return this.prisma.reader.businessBooking.findMany({
             where: {
                 businessProfileId: profileId,
                 slotId,
@@ -1347,7 +1354,7 @@ export class BusinessService {
     }
 
     async getMyBookings(userId: string) {
-        return this.prisma.businessBooking.findMany({
+        return this.prisma.reader.businessBooking.findMany({
             where: { userId },
             include: {
                 slot: {
@@ -1365,12 +1372,12 @@ export class BusinessService {
 
     async getProfileBookings(userId: string, profileId: string) {
         // Verify owner
-        const profile = await this.prisma.businessProfile.findFirst({
+        const profile = await this.prisma.reader.businessProfile.findFirst({
             where: { id: profileId, userId }
         });
         if (!profile) throw new Error('Unauthorized or Business Profile not found');
 
-        return this.prisma.businessBooking.findMany({
+        return this.prisma.reader.businessBooking.findMany({
             where: { businessProfileId: profileId },
             include: {
                 slot: true,
@@ -1424,12 +1431,12 @@ export class BusinessService {
     }
 
     async listBookingUpdates(userId: string, bookingId: string) {
-        const booking = await this.prisma.businessBooking.findUnique({
+        const booking = await this.prisma.reader.businessBooking.findUnique({
             where: { id: bookingId },
         });
         if (!booking) throw new NotFoundException('Booking not found');
 
-        const profile = await this.prisma.businessProfile.findUnique({
+        const profile = await this.prisma.reader.businessProfile.findUnique({
             where: { id: booking.businessProfileId },
         });
 
@@ -1438,7 +1445,7 @@ export class BusinessService {
             throw new BadRequestException('Not allowed to view these updates');
         }
 
-        return this.prisma.businessBookingUpdate.findMany({
+        return this.prisma.reader.businessBookingUpdate.findMany({
             where: { bookingId },
             orderBy: { createdAt: 'asc' },
         });
@@ -1513,7 +1520,7 @@ export class BusinessService {
     }
 
     async getInvoices(userId: string, profileId: string, limit = 30, offset = 0) {
-        const profile = await this.prisma.businessProfile.findUnique({
+        const profile = await this.prisma.reader.businessProfile.findUnique({
             where: { id: profileId },
             select: { id: true, userId: true },
         });
@@ -1528,13 +1535,13 @@ export class BusinessService {
         const safeOffset = Math.max(offset, 0);
 
         const [items, total] = await Promise.all([
-            this.prisma.businessInvoice.findMany({
+            this.prisma.reader.businessInvoice.findMany({
                 where: { businessProfileId: profileId },
                 orderBy: { createdAt: 'desc' },
                 take: safeLimit,
                 skip: safeOffset,
             }),
-            this.prisma.businessInvoice.count({
+            this.prisma.reader.businessInvoice.count({
                 where: { businessProfileId: profileId },
             }),
         ]);

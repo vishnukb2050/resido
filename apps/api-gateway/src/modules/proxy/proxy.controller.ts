@@ -15,6 +15,10 @@ import { Request, Response } from 'express';
 export class ProxyController {
     private readonly logger = new Logger('Proxy');
 
+    // In-memory cache for verified JWT payloads to avoid CPU-heavy verification on every request.
+    // Key: token string, Value: { payload: any, expiresAt: number }
+    private readonly jwtCache = new Map<string, { payload: any; expiresAt: number }>();
+
     constructor(
         private httpService: HttpService,
         private jwtService: JwtService,
@@ -75,6 +79,35 @@ export class ProxyController {
         return null;
     }
 
+    private verifyTokenWithCache(token: string): any {
+        const now = Date.now();
+        const cached = this.jwtCache.get(token);
+        if (cached && cached.expiresAt > now) {
+            return cached.payload;
+        }
+
+        // Clean up expired entries if the cache grows large
+        if (this.jwtCache.size > 5000) {
+            for (const [k, v] of this.jwtCache.entries()) {
+                if (v.expiresAt <= now) {
+                    this.jwtCache.delete(k);
+                }
+            }
+        }
+
+        const payload = this.jwtService.verify(token, {
+            secret: this.config.get('JWT_SECRET'),
+        });
+
+        // Cache for 10 seconds
+        this.jwtCache.set(token, {
+            payload,
+            expiresAt: now + 10000,
+        });
+
+        return payload;
+    }
+
     /**
      * Read the raw body from the request stream into a Buffer. The gateway runs
      * with `bodyParser: false`, so `req.body` is unset — we drain the stream
@@ -109,7 +142,6 @@ export class ProxyController {
 
         const headers: Record<string, any> = { ...req.headers };
         delete headers.host;
-        delete headers['content-length'];
 
         // Preserve workspace hint before stripping spoofable headers (used only
         // when the JWT has no tenantId but the app has an active community).
@@ -135,9 +167,7 @@ export class ProxyController {
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
             try {
-                const payload = this.jwtService.verify(token, {
-                    secret: this.config.get('JWT_SECRET'),
-                });
+                const payload = this.verifyTokenWithCache(token);
                 if (payload.sub) headers['x-user-id'] = payload.sub;
                 if (payload.phone) headers['x-user-phone'] = payload.phone;
                 if (payload.role) headers['x-user-role'] = payload.role;
@@ -173,26 +203,12 @@ export class ProxyController {
             return res.status(401).json({ message: 'Authentication required' });
         }
 
-        // Buffer the body when the client sends one. GET/HEAD/OPTIONS never carry
-        // a body; DELETE may (e.g. community deletion sends { confirmName }).
-        let bodyBuffer: Buffer | undefined;
         const neverHasBody = ['GET', 'HEAD', 'OPTIONS'].includes(method);
         const mayHaveBody = !neverHasBody && (
             method !== 'DELETE' ||
             Number(req.headers['content-length']) > 0 ||
             !!req.headers['transfer-encoding']
         );
-        if (mayHaveBody) {
-            try {
-                bodyBuffer = await this.readBody(req);
-                if (bodyBuffer.length > 0) {
-                    headers['content-length'] = String(bodyBuffer.length);
-                }
-            } catch (e: any) {
-                this.logger.error(`Failed to read body for ${req.method} ${path}: ${e?.message}`);
-                return res.status(400).json({ message: 'Could not read request body' });
-            }
-        }
 
         try {
             // Per-request access logging is opt-in (PROXY_VERBOSE=1). At high RPS
@@ -200,24 +216,19 @@ export class ProxyController {
             // log storage; errors below are always logged regardless. When on, it
             // uses the structured Logger (level-controllable via LOG_LEVELS).
             if (process.env.PROXY_VERBOSE === '1') {
-                this.logger.log(`${req.method} ${path} → ${targetUrl} (body=${bodyBuffer?.length || 0}b)`);
+                this.logger.log(`${req.method} ${path} → ${targetUrl} (streaming)`);
             }
             const response = await lastValueFrom(
                 this.httpService.request({
                     method: req.method,
                     url: targetUrl,
-                    data: bodyBuffer && bodyBuffer.length > 0 ? bodyBuffer : undefined,
+                    data: mayHaveBody ? req : undefined,
                     headers: headers as any,
                     params: req.query,
-                    maxContentLength: Infinity,
-                    maxBodyLength: Infinity,
+                    maxContentLength: 50 * 1024 * 1024,
+                    maxBodyLength: 50 * 1024 * 1024,
                     timeout: 60000,
-                    // Forward the upstream body as raw bytes. Parsing JSON into an
-                    // object here only to have Express re-serialize it on send is
-                    // pure wasted CPU on every request; passing the Buffer through
-                    // preserves the upstream Content-Type and lets the gzip
-                    // middleware compress it directly.
-                    responseType: 'arraybuffer',
+                    responseType: 'stream',
                     validateStatus: () => true, // forward whatever the service returns
                 }),
             );
@@ -227,14 +238,25 @@ export class ProxyController {
             // content-length is recomputed by Express/compression from the actual
             // bytes; a stale upstream value can mismatch and truncate the response.
             delete respHeaders['content-length'];
-            res.status(response.status).set(respHeaders).send(response.data);
+            
+            res.status(response.status).set(respHeaders);
+
+            response.data.on('error', (err: any) => {
+                this.logger.error(`Response stream error for ${req.method} ${path}: ${err?.message}`);
+                if (!res.headersSent) {
+                    res.status(502).json({ message: 'Response streaming failed', error: err?.message });
+                }
+            });
+
+            response.data.pipe(res);
         } catch (err: any) {
             this.logger.error(`${req.method} ${path}: ${err?.message}`);
             if (err.response) {
                 const respHeaders = { ...err.response.headers } as Record<string, any>;
                 delete respHeaders['transfer-encoding'];
                 delete respHeaders['content-length'];
-                res.status(err.response.status).set(respHeaders).send(err.response.data);
+                res.status(err.response.status).set(respHeaders);
+                err.response.data.pipe(res);
             } else {
                 res.status(502).json({
                     message: 'Internal Gateway Error',
