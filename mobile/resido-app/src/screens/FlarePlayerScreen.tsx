@@ -12,6 +12,7 @@ import AppImage from '../components/AppImage';
 import { Image as ExpoImage } from 'expo-image';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import { takeFlareFeedCache } from '../services/feedCache';
+import { useVideoPrefetch } from '../hooks/useVideoPrefetch';
 
 const { width, height } = Dimensions.get('window');
 const SCREEN_HEIGHT = height;
@@ -54,6 +55,8 @@ export default function FlarePlayerScreen() {
         : 0;
     const [flares, setFlares] = useState<Flare[]>(seeded || []);
     const [activeIndex, setActiveIndex] = useState(seededIndex);
+    
+    useVideoPrefetch(flares, activeIndex);
     const [loading, setLoading] = useState(!seeded);
     // Cursor pagination so swiping never dead-ends — we fetch the next page as
     // the user approaches the end of the loaded list.

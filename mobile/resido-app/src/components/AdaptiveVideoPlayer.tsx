@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View, Text } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { getOrCacheVideo } from '../utils/videoCache';
 
 export type PlaybackInfo = {
     hlsUrl?: string;
@@ -41,6 +42,7 @@ export function AdaptiveVideoPlayer({
 }: Props) {
     const ref = useRef<Video>(null);
     const [loading, setLoading] = useState(true);
+    const [finalUrl, setFinalUrl] = useState<string | null>(null);
 
     const processing = mediaStatus === 'PROCESSING' || mediaStatus === 'QUEUED';
     const failed = mediaStatus === 'FAILED';
@@ -57,13 +59,23 @@ export function AdaptiveVideoPlayer({
     })();
 
     useEffect(() => {
-        if (!ref.current || !streamUrl) return;
+        if (!streamUrl) {
+            setFinalUrl(null);
+            return;
+        }
+        getOrCacheVideo(streamUrl).then((uri) => {
+            setFinalUrl(uri);
+        });
+    }, [streamUrl]);
+
+    useEffect(() => {
+        if (!ref.current || !finalUrl) return;
         if (isActive && autoPlay) {
             ref.current.playAsync().catch(() => undefined);
         } else {
             ref.current.pauseAsync().catch(() => undefined);
         }
-    }, [streamUrl, autoPlay, isActive]);
+    }, [finalUrl, autoPlay, isActive]);
 
     if (processing) {
         return (
@@ -96,26 +108,32 @@ export function AdaptiveVideoPlayer({
 
     return (
         <View style={[styles.container, style]}>
-            <Video
-                ref={ref}
-                style={StyleSheet.absoluteFill}
-                source={{ uri: streamUrl }}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={isActive && autoPlay}
-                isLooping={loop}
-                isMuted={muted}
-                useNativeControls={useNativeControls}
-                usePoster={!!posterUrl}
-                posterSource={posterUrl ? { uri: resolveMediaUrl(posterUrl) || posterUrl } : undefined}
-                onPlaybackStatusUpdate={(s: AVPlaybackStatus) => {
-                    onStatusUpdate?.(s);
-                    if ('isLoaded' in s && s.isLoaded) {
-                        setLoading(false);
-                        if (s.didJustFinish && !s.isLooping) onFinish?.();
-                    }
-                }}
-            />
-            {loading && (
+            {finalUrl ? (
+                <Video
+                    ref={ref}
+                    style={StyleSheet.absoluteFill}
+                    source={{ uri: finalUrl }}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay={isActive && autoPlay}
+                    isLooping={loop}
+                    isMuted={muted}
+                    useNativeControls={useNativeControls}
+                    usePoster={!!posterUrl}
+                    posterSource={posterUrl ? { uri: resolveMediaUrl(posterUrl) || posterUrl } : undefined}
+                    onPlaybackStatusUpdate={(s: AVPlaybackStatus) => {
+                        onStatusUpdate?.(s);
+                        if ('isLoaded' in s && s.isLoaded) {
+                            setLoading(false);
+                            if (s.didJustFinish && !s.isLooping) onFinish?.();
+                        }
+                    }}
+                />
+            ) : (
+                <View style={styles.overlay}>
+                    <ActivityIndicator size="large" color="#fff" />
+                </View>
+            )}
+            {loading && finalUrl && (
                 <View style={styles.overlay}>
                     <ActivityIndicator size="large" color="#fff" />
                 </View>

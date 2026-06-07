@@ -13,6 +13,8 @@ import { getThemeColors } from '../../utils/theme';
 import { resolveMediaUrl, withCacheBust } from '../../utils/mediaUrl';
 import { useProfileRefresh } from '../../hooks/useProfileRefresh';
 import { useForYouFeed } from '../../hooks/useForYouFeed';
+import { getOrCacheVideo } from '../../utils/videoCache';
+import { useVideoPrefetch } from '../../hooks/useVideoPrefetch';
 
 const { width } = Dimensions.get('window');
 
@@ -250,6 +252,25 @@ export default function DefaultDashboard() {
     // sound on, without leaving the MySpace screen.
     const [expandedFlare, setExpandedFlare] = React.useState<any | null>(null);
     const expandedVideoRef = React.useRef<Video>(null);
+
+    const [cachedVideoUri, setCachedVideoUri] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (expandedFlare?._mediaUrl) {
+            getOrCacheVideo(expandedFlare._mediaUrl).then((uri) => {
+                setCachedVideoUri(uri);
+            });
+        } else {
+            setCachedVideoUri(null);
+        }
+    }, [expandedFlare]);
+
+    const activeFlareIndex = React.useMemo(() => {
+        if (!expandedFlare) return -1;
+        return items.findIndex((it: any) => it.id === expandedFlare.id);
+    }, [expandedFlare, items]);
+
+    useVideoPrefetch(items, activeFlareIndex);
 
     // ── Header Search (services / business profiles) ────────────────────────
     // The MySpace/Community header search lets the user start typing a service
@@ -870,17 +891,21 @@ export default function DefaultDashboard() {
                                 // press but doesn't bubble — keep the modal open.
                             }}
                         >
-                            <Video
-                                ref={expandedVideoRef}
-                                source={{ uri: expandedFlare._mediaUrl, overrideFileExtension: 'mp4' } as any}
-                                style={styles.flareExpandVideo}
-                                resizeMode={ResizeMode.CONTAIN}
-                                shouldPlay
-                                isMuted={false}
-                                volume={1.0}
-                                isLooping
-                                useNativeControls
-                            />
+                            {cachedVideoUri ? (
+                                <Video
+                                    ref={expandedVideoRef}
+                                    source={{ uri: cachedVideoUri, overrideFileExtension: 'mp4' } as any}
+                                    style={styles.flareExpandVideo}
+                                    resizeMode={ResizeMode.CONTAIN}
+                                    shouldPlay
+                                    isMuted={false}
+                                    volume={1.0}
+                                    isLooping
+                                    useNativeControls
+                                />
+                            ) : (
+                                <ActivityIndicator color="#fff" size="large" style={styles.flareExpandVideo} />
+                            )}
                             <View style={styles.flareExpandInfo}>
                                 <ExpoImage
                                     source={{ uri: expandedFlare.authorAvatar || 'https://i.pravatar.cc/100' }}
