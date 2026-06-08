@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Patch, Body, Query, UseGuards, Req, Param, 
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { InternalAuthGuard } from '../../common/guards/internal-auth.guard';
+import { JwtOrInternalAuthGuard } from '../../common/guards/jwt-or-internal-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 /**
@@ -228,7 +229,7 @@ export class ProfileController {
 
     // Mobile chat list uses this to resolve direct-conversation counterpart
     // names/photos in a single request (avoids an N+1 getUser fan-out).
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtOrInternalAuthGuard)
     @Get('users/chat-identities/batch')
     async getChatIdentitiesBatch(@Query('ids') ids: string) {
         return this.profileService.getChatIdentitiesBatch(parseBatchIds(ids));

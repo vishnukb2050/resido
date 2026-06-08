@@ -40,12 +40,22 @@ async function bootstrap() {
 
     // Restrict CORS to known origins in prod (CORS_ORIGINS=comma,separated).
     // Native mobile clients don't send an Origin header so they're unaffected;
-    // this only constrains browser/admin callers. Falls back to '*' if unset.
+    // this only constrains browser/admin callers.
+    // SECURITY: In production we REFUSE to start if CORS_ORIGINS is not explicitly
+    // set — defaulting to '*' in production enables CSRF from any website.
     const origins = process.env.CORS_ORIGINS;
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd && !origins) {
+        Logger.error(
+            'CORS_ORIGINS env var is not set. Refusing to start in production with wildcard CORS.',
+            'Bootstrap',
+        );
+        process.exit(1);
+    }
     app.enableCors(
         origins
             ? { origin: origins.split(',').map((o) => o.trim()), credentials: true }
-            : { origin: '*' },
+            : { origin: '*' }, // only reached in non-production environments
     );
 
     // Let Nest run onModuleDestroy/Prisma $disconnect on SIGTERM (ECS rolling

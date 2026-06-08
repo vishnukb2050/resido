@@ -252,8 +252,12 @@ export class BusinessController {
         @Param('profileId') profileId: string,
         @Query('from') from?: string,
         @Query('to') to?: string,
+        @Query('limit') limit?: string,
+        @Query('offset') offset?: string,
     ) {
-        return this.businessService.getBookingReport(userId, profileId, { from, to });
+        const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+        const parsedOffset = offset ? parseInt(offset, 10) : undefined;
+        return this.businessService.getBookingReport(userId, profileId, { from, to, limit: parsedLimit, offset: parsedOffset });
     }
 
     @Post('profiles/:profileId/invoices')

@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import { randomInt } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
@@ -12,7 +13,12 @@ import { Role } from '@resido/user-client';
 
 @Injectable()
 export class AuthService {
-    private memoryOtpStore = new Map<string, { otp: string; expiresAt: number }>();
+    private maskPhone(phone: string): string {
+        if (!phone) return '';
+        const p = phone.trim();
+        if (p.length <= 4) return '****';
+        return '*'.repeat(p.length - 4) + p.slice(-4);
+    }
 
     constructor(
         private prisma: PrismaService,
@@ -27,7 +33,7 @@ export class AuthService {
 
     async sendOtp(phone: string) {
         try {
-            console.log(`[DEBUG] Attempting to send OTP to: ${phone}`);
+            console.log(`[DEBUG] Attempting to send OTP to: ${this.maskPhone(phone)}`);
 
             // ── Per-phone rate limiting ──────────────────────────────────────
             // Prevents SMS credit exhaustion from bots / misconfigured clients.
@@ -53,27 +59,29 @@ export class AuthService {
 
             let user = await this.prisma.userRead.user.findUnique({ where: { phone } });
             if (!user) {
-                console.log(`[DEBUG] User not found, creating new user for: ${phone}`);
+                console.log(`[DEBUG] User not found, creating new user for: ${this.maskPhone(phone)}`);
                 user = await this.prisma.userClient.user.create({ data: { phone } });
             }
 
-            const otp = Math.floor(1000 + Math.random() * 9000).toString();
-            console.log(`[DEBUG] Generated OTP for ${phone}: ${otp}`);
+            // crypto.randomInt is cryptographically secure (unlike Math.random).
+            // Range [1000, 10000) gives exactly 4-digit OTPs with uniform distribution.
+            const otp = randomInt(1000, 10000).toString();
+            console.log(`[DEBUG] Generated OTP for ${this.maskPhone(phone)}: ${otp}`);
             
             try {
                 await this.redis.set(`otp:${phone}`, otp, 'EX', 300);
-                console.log(`[DEBUG] OTP cached in Redis for: ${phone}`);
+                console.log(`[DEBUG] OTP cached in Redis for: ${this.maskPhone(phone)}`);
             } catch (redisError: any) {
-                console.warn(`[WARN] Redis set failed, falling back to memory store:`, redisError.message);
-                this.memoryOtpStore.set(phone, { otp, expiresAt: Date.now() + 300 * 1000 });
+                console.error(`[ERROR] Redis OTP cache write failed:`, redisError.message);
+                throw new BadRequestException('Verification system is temporarily unavailable. Please try again.');
             }
             
             await this.otpService.sendOtp(phone, otp);
-            console.log(`[DEBUG] OTP service call successful for: ${phone}`);
+            console.log(`[DEBUG] OTP service call successful for: ${this.maskPhone(phone)}`);
 
             return { message: 'OTP sent successfully', phone };
         } catch (error) {
-            console.error(`[ERROR] Failed to send OTP for ${phone}:`, error);
+            console.error(`[ERROR] Failed to send OTP for ${this.maskPhone(phone)}:`, error);
             throw error;
         }
     }
@@ -87,15 +95,8 @@ export class AuthService {
         try {
             cachedOtp = await this.redis.get(`otp:${phone}`);
         } catch (redisError: any) {
-            console.warn(`[WARN] Redis get failed, falling back to memory store:`, redisError.message);
-            const entry = this.memoryOtpStore.get(phone);
-            if (entry) {
-                if (entry.expiresAt > Date.now()) {
-                    cachedOtp = entry.otp;
-                } else {
-                    this.memoryOtpStore.delete(phone);
-                }
-            }
+            console.error(`[ERROR] Redis OTP cache read failed:`, redisError.message);
+            throw new BadRequestException('Verification system is temporarily unavailable. Please try again.');
         }
 
         if (!cachedOtp || cachedOtp !== otp) {
@@ -105,8 +106,7 @@ export class AuthService {
         try {
             await this.redis.del(`otp:${phone}`);
         } catch (redisError: any) {
-            console.warn(`[WARN] Redis del failed, removing from memory store:`, redisError.message);
-            this.memoryOtpStore.delete(phone);
+            console.warn(`[WARN] Redis del failed:`, redisError.message);
         }
 
         const workspaces = await this.buildWorkspacesForUser(user.id);
@@ -395,7 +395,7 @@ export class AuthService {
                 isActive: true,
                 OR: [
                     { phone: { in: normalized } },
-                    ...last10.map(s => ({ phone: { endsWith: s } })),
+                    { phoneLast10: { in: last10 } },
                 ],
             },
             select: {

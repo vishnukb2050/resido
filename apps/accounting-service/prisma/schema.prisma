@@ -11,17 +11,20 @@ datasource db {
 
 model Category {
   id           String        @id @default(cuid())
+  tenantId     String
   name         String
   type         TransactionType
   createdAt    DateTime      @default(now())
 
   transactions Transaction[]
 
+  @@index([tenantId])
   @@map("categories")
 }
 
 model Transaction {
   id          String          @id @default(cuid())
+  tenantId    String
   date        DateTime
   type        TransactionType
   amount      Float
@@ -33,11 +36,15 @@ model Transaction {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
+  @@index([tenantId])
+  @@index([categoryId])
+  @@index([addedBy])
   @@map("transactions")
 }
 
 model MonthlyReport {
   id           String   @id @default(cuid())
+  tenantId     String
   year         Int
   month        Int      // 1-12
   totalIncome  Float    @default(0)
@@ -45,7 +52,8 @@ model MonthlyReport {
   balance      Float    @default(0)
   generatedAt  DateTime @default(now())
 
-  @@unique([year, month])
+  @@unique([tenantId, year, month])
+  @@index([tenantId])
   @@map("monthly_reports")
 }
 

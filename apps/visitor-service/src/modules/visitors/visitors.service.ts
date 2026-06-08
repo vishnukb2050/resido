@@ -42,7 +42,7 @@ export class VisitorsService {
   }
 
   async checkout(tenantId: string, id: string) {
-    const entry = await this.prisma.visitorEntry.findFirst({
+    const entry = await this.prisma.reader.visitorEntry.findFirst({
       where: { id, tenantId },
     });
     if (!entry) {

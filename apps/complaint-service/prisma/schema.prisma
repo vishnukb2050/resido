@@ -27,6 +27,10 @@ model Complaint {
 
   comments    ComplaintComment[]
 
+  @@index([tenantId])
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([tenantId, memberId, createdAt(sort: Desc)])
+  @@index([tenantId, assignedTo, createdAt(sort: Desc)])
   @@map("complaints")
 }
 
@@ -39,6 +43,8 @@ model ComplaintComment {
 
   complaint   Complaint @relation(fields: [complaintId], references: [id])
 
+  @@index([complaintId])
+  @@index([memberId])
   @@map("complaint_comments")
 }
 

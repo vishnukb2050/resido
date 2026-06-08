@@ -30,7 +30,8 @@
                 { "name": "BUSINESS_SERVICE_URL",     "value": "http://business-service.resido.local:3009" }
             ],
             "secrets": [
-                { "name": "JWT_SECRET", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret" }
+                { "name": "JWT_SECRET", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret" },
+                { "name": "CORS_ORIGINS", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/cors-origins" }
             ],
             "healthCheck": {
                 "command": ["CMD-SHELL", "wget -q --spider http://localhost:3000/health || exit 1"],

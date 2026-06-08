@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@resido/chat-client';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
+import { buildRedisClient } from '../../common/redis-connection';
 
 interface CreateMessageDto {
     conversationId: string;
@@ -25,7 +28,18 @@ export const PERSONAL_TENANT = 'global';
 
 @Injectable()
 export class ChatService {
-    constructor(private tenantPrisma: TenantPrismaService) {}
+    private redis: Redis | null = null;
+
+    constructor(
+        private tenantPrisma: TenantPrismaService,
+        private config: ConfigService,
+    ) {
+        try {
+            this.redis = buildRedisClient(this.config);
+        } catch (e: any) {
+            console.warn('[ChatService] Redis client initialization failed; running without member cache:', e?.message);
+        }
+    }
 
     /**
      * Direct (1:1) chats are personal and cross-community: a single conversation
@@ -100,6 +114,11 @@ export class ChatService {
             await prisma.conversationMember.create({
                 data: { tenantId, conversationId: conversation.id, memberId },
             });
+            if (this.redis) {
+                await this.redis.del(`chat:members:${conversation.id}`).catch((err) => {
+                    console.warn('[ChatService] Redis cache invalidation failed:', err?.message);
+                });
+            }
             conversation = await prisma.conversation.findFirst({
                 where: { id: conversation.id },
                 include: { members: true },
@@ -357,12 +376,35 @@ export class ChatService {
      * member's personal socket room (inbox notifications). */
     async getConversationMemberIds(conversationId: string): Promise<string[]> {
         if (!conversationId) return [];
+        const cacheKey = `chat:members:${conversationId}`;
+
+        if (this.redis) {
+            try {
+                const cached = await this.redis.get(cacheKey);
+                if (cached) {
+                    return JSON.parse(cached);
+                }
+            } catch (err: any) {
+                console.warn('[ChatService] Redis cache read failed:', err?.message);
+            }
+        }
+
         const prisma = this.tenantPrisma.getReadClient();
         const rows = await prisma.conversationMember.findMany({
             where: { conversationId },
             select: { memberId: true },
         });
-        return rows.map((r: any) => r.memberId);
+        const memberIds = rows.map((r: any) => r.memberId);
+
+        if (this.redis && memberIds.length > 0) {
+            try {
+                await this.redis.set(cacheKey, JSON.stringify(memberIds), 'EX', 60);
+            } catch (err: any) {
+                console.warn('[ChatService] Redis cache write failed:', err?.message);
+            }
+        }
+
+        return memberIds;
     }
 
     /**
@@ -380,4 +422,14 @@ export class ChatService {
         });
         return !!row;
     }
+
+    async getConversation(id: string) {
+        if (!id) return null;
+        const prisma = this.tenantPrisma.getReadClient();
+        return prisma.conversation.findUnique({
+            where: { id },
+            select: { id: true, type: true, name: true, tenantId: true },
+        });
+    }
 }
+

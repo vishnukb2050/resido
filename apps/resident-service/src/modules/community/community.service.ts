@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException, InternalServerErrorException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import Redis from 'ioredis';
+import { pushNotification, pushNotificationMany } from '../../common/notify.helper';
 
 @Injectable()
 export class CommunityService {
@@ -28,7 +29,27 @@ export class CommunityService {
     }
 
     async createNotice(data: any) {
-        return this.prisma.client.notice.create({ data });
+        const notice = await this.prisma.client.notice.create({ data });
+
+        // Push to all active community members (fire-and-forget).
+        setImmediate(async () => {
+            try {
+                const members = await this.prisma.reader.member.findMany({
+                    where: { isActive: true },
+                    select: { userId: true },
+                });
+                const userIds = members.map((m) => m.userId).filter(Boolean) as string[];
+                await pushNotificationMany(userIds, {
+                    title: '📢 New Notice',
+                    body: (notice as any).title || 'A new notice has been posted.',
+                    data: { type: 'NOTICE', noticeId: notice.id },
+                });
+            } catch (e: any) {
+                console.warn('[createNotice] notification dispatch failed:', e?.message);
+            }
+        });
+
+        return notice;
     }
 
     // ─── Polls ──────────────────────────────────────────────────
@@ -306,13 +327,25 @@ export class CommunityService {
         if (!staff) {
             throw new BadRequestException('Selected staff member not found.');
         }
-        return this.prisma.client.complaint.update({
+        const updated = await this.prisma.client.complaint.update({
             where: { id },
             data: {
                 assignedTo: staff.id,
                 status: 'IN_PROGRESS',
             },
         });
+
+        // Notify the assigned staff member (fire-and-forget).
+        if (staff.userId) {
+            pushNotification({
+                userId: staff.userId,
+                title: '🔧 Complaint Assigned to You',
+                body: `A complaint has been assigned to you. Please review and take action.`,
+                data: { type: 'COMPLAINT', complaintId: id },
+            });
+        }
+
+        return updated;
     }
 
     async updateComplaintStatus(id: string, status: any) {
@@ -737,13 +770,48 @@ export class CommunityService {
             }
         }
 
-        return this.prisma.client.event.create({
+        const event = await this.prisma.client.event.create({
             data: {
                 ...eventData,
                 audience,
                 createdBy: creator?.id || args.authUserId || args.memberId || '',
             },
         });
+
+        // Push to all matching members for COMMUNITY events (fire-and-forget).
+        const isCommunityBroadcast =
+            (eventData.visibility === 'COMMUNITY' || !eventData.visibility) && audience.length > 0;
+        if (isCommunityBroadcast) {
+            setImmediate(async () => {
+                try {
+                    // Map audience buckets to actual MemberRole enum values.
+                    const roleMap: Record<string, string[]> = {
+                        MEMBERS: ['MEMBER', 'RESIDENT'],
+                        RESIDENTS: ['RESIDENT', 'MEMBER'],
+                        STAFF: ['SECURITY_STAFF', 'MAINTENANCE_STAFF', 'CLEANING_STAFF', 'CARETAKER', 'ACCOUNTS_STAFF', 'ADMIN_STAFF', 'STAFF', 'SERVICE_STAFF', 'MANAGER_STAFF'],
+                    };
+                    const roles = Array.from(
+                        new Set(audience.flatMap((a: string) => roleMap[a] || [])),
+                    );
+                    const where: any = { isActive: true };
+                    if (roles.length > 0) where.role = { in: roles };
+                    const members = await this.prisma.reader.member.findMany({
+                        where,
+                        select: { userId: true },
+                    });
+                    const userIds = members.map((m) => m.userId).filter(Boolean) as string[];
+                    await pushNotificationMany(userIds, {
+                        title: '🎉 New Event',
+                        body: `${(event as any).title || 'A new community event has been created.'}`,
+                        data: { type: 'EVENT', eventId: event.id },
+                    });
+                } catch (e: any) {
+                    console.warn('[createEvent] notification dispatch failed:', e?.message);
+                }
+            });
+        }
+
+        return event;
     }
 
     async deleteEvent(

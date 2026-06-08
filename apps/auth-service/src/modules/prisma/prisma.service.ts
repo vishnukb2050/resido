@@ -28,6 +28,32 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         this.userClient = new UserClient({
             datasources: { db: { url: withDbPool(config.get('USER_WRITE_URL')) } },
         });
+        this.userClient.$use(async (params, next) => {
+            if (params.model === 'User') {
+                const actions = ['create', 'update', 'upsert', 'createMany', 'updateMany'];
+                if (actions.includes(params.action)) {
+                    const processData = (data: any) => {
+                        if (!data) return;
+                        if (typeof data.phone === 'string') {
+                            data.phoneLast10 = data.phone.replace(/\D/g, '').slice(-10);
+                        }
+                    };
+                    if (params.action === 'create' || params.action === 'update') {
+                        processData(params.args.data);
+                    } else if (params.action === 'createMany') {
+                        if (Array.isArray(params.args.data)) {
+                            params.args.data.forEach(processData);
+                        }
+                    } else if (params.action === 'updateMany') {
+                        processData(params.args.data);
+                    } else if (params.action === 'upsert') {
+                        processData(params.args.create);
+                        processData(params.args.update);
+                    }
+                }
+            }
+            return next(params);
+        });
         this.userRead = new UserClient({
             datasources: { db: { url: withDbPool(config.get('USER_READ_URL')) } },
         });

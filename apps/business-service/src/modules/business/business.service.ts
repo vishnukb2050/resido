@@ -599,6 +599,16 @@ export class BusinessService implements OnModuleInit, OnModuleDestroy {
         const q = query.trim();
         const take = Math.min(Math.max(limit, 1), 20);
 
+        const cacheKey = `business:suggest:${q.toLowerCase()}:${take}`;
+        try {
+            const cached = await this.redis.get(cacheKey);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+        } catch (e: any) {
+            this.logger.error(`Failed to read suggest cache from Redis: ${e?.message}`);
+        }
+
         const [profiles, serviceItems, categoryRows] = await Promise.all([
             this.prisma.reader.businessProfile.findMany({
                 where: {
@@ -640,7 +650,7 @@ export class BusinessService implements OnModuleInit, OnModuleDestroy {
             )
         ).slice(0, take);
 
-        return {
+        const result = {
             categories,
             profiles: profiles.map((p) => ({
                 type: 'profile' as const,
@@ -656,6 +666,16 @@ export class BusinessService implements OnModuleInit, OnModuleDestroy {
                 businessName: s.businessProfile.businessName,
             })),
         };
+
+        if (this.redis) {
+            try {
+                await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 120);
+            } catch (e: any) {
+                this.logger.error(`Failed to write suggest cache to Redis: ${e?.message}`);
+            }
+        }
+
+        return result;
     }
 
     async getProfilesByUserId(userId: string) {
@@ -750,7 +770,7 @@ export class BusinessService implements OnModuleInit, OnModuleDestroy {
     async getBookingReport(
         userId: string,
         profileId: string,
-        opts: { from?: string; to?: string } = {},
+        opts: { from?: string; to?: string; limit?: number; offset?: number } = {},
     ) {
         const profile = await this.prisma.reader.businessProfile.findFirst({
             where: { id: profileId, userId },
@@ -767,6 +787,11 @@ export class BusinessService implements OnModuleInit, OnModuleDestroy {
         const from = (opts.from && opts.from.trim()) || defaultFrom.toISOString().split('T')[0];
         const to   = (opts.to   && opts.to.trim())   || today.toISOString().split('T')[0];
 
+        const limit = opts.limit ?? 100;
+        const offset = opts.offset ?? 0;
+        const safeLimit = Math.min(Math.max(limit, 1), 500);
+        const safeOffset = Math.max(offset, 0);
+
         const bookings = await this.prisma.reader.businessBooking.findMany({
             where: {
                 businessProfileId: profileId,
@@ -780,6 +805,8 @@ export class BusinessService implements OnModuleInit, OnModuleDestroy {
                 { bookingDate: 'desc' },
                 { tokenNumber: 'asc' },
             ],
+            take: safeLimit,
+            skip: safeOffset,
         });
 
         const confirmed = bookings.filter(b => b.status === 'CONFIRMED');

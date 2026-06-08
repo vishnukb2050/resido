@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException, BadRequestException,
 import { Prisma } from '@resido/resident-client';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import Redis from 'ioredis';
+import { pushNotificationMany } from '../../common/notify.helper';
 
 @Injectable()
 export class CommunityFinanceService {
@@ -45,7 +46,7 @@ export class CommunityFinanceService {
 
     // ─── Maintenance Config ────────────────────────────────────
     async getMaintenanceConfig(tenantId: string) {
-        let config = await this.prisma.client.maintenanceConfig.findUnique({ where: { tenantId } });
+        let config = await this.prisma.reader.maintenanceConfig.findUnique({ where: { tenantId } });
         if (!config) {
             config = await this.prisma.client.maintenanceConfig.create({ data: { tenantId } });
         }
@@ -171,7 +172,31 @@ export class CommunityFinanceService {
             cursorId = units[units.length - 1].id;
         }
 
-        return { message: `Bills generated successfully for ${totalUnits} units.` };
+        const result = { message: `Bills generated successfully for ${totalUnits} units.`, units: totalUnits };
+
+        // Notify all active residents that a new maintenance bill has been issued (fire-and-forget).
+        setImmediate(async () => {
+            try {
+                const members = await this.prisma.reader.member.findMany({
+                    where: {
+                        tenantId,
+                        isActive: true,
+                        role: { in: ['RESIDENT', 'MEMBER'] },
+                    },
+                    select: { userId: true },
+                });
+                const userIds = members.map((m) => m.userId).filter(Boolean) as string[];
+                await pushNotificationMany(userIds, {
+                    title: '🏠 New Maintenance Bill',
+                    body: `Your maintenance bill for ${body.month}/${body.year} has been generated. Please pay before the due date.`,
+                    data: { type: 'PAYMENT', month: String(body.month), year: String(body.year) },
+                });
+            } catch (e: any) {
+                console.warn('[generateBills] notification dispatch failed:', e?.message);
+            }
+        });
+
+        return result;
     }
 
     async getMaintenanceStatus(tenantId: string, month: number, year: number) {
@@ -510,31 +535,60 @@ export class CommunityFinanceService {
     }
 
     async listSplits(tenantId: string) {
+        // Step 1: Fetch splits with flat shares
         const splits = await this.prisma.reader.paymentSplit.findMany({
             where: { tenantId },
             orderBy: { createdAt: 'desc' },
             include: {
-                shares: {
-                    include: {
-                        unit: { include: { block: true, families: { include: { members: true } } } },
-                    },
-                },
+                shares: true,
             },
-            // Heavy nested read (shares → unit → families → members); bound the
-            // number of splits returned so an old community can't produce a
-            // multi-MB payload. Most recent first.
             take: 500,
         });
 
+        // Step 2: Fetch all units in the community exactly once
+        const units = await this.prisma.reader.unit.findMany({
+            where: { tenantId },
+            include: {
+                block: true,
+                families: {
+                    include: {
+                        members: true,
+                    },
+                },
+            },
+        });
+        const unitMap = new Map(units.map(u => [u.id, u]));
+
         return splits.map(s => {
             const sharesMapped = s.shares.map(sh => {
-                const allMembers = sh.unit.families.flatMap(f => f.members || []);
+                const unit = unitMap.get(sh.unitId);
+                if (!unit) {
+                    return {
+                        id: sh.id,
+                        unitId: sh.unitId,
+                        unitNumber: 'Unknown',
+                        blockName: 'N/A',
+                        amount: sh.amount,
+                        amountPaid: sh.amountPaid,
+                        status: sh.status,
+                        paymentDate: sh.paymentDate,
+                        paymentMethod: sh.paymentMethod,
+                        receiptUrl: sh.receiptUrl,
+                        description: sh.description,
+                        adminNote: sh.adminNote,
+                        rejectionReason: sh.rejectionReason,
+                        residentName: 'N/A',
+                        residentPhone: 'N/A',
+                        unitResidents: [],
+                    };
+                }
+                const allMembers = unit.families.flatMap(f => f.members || []);
                 const primary = allMembers[0];
                 return {
                     id: sh.id,
                     unitId: sh.unitId,
-                    unitNumber: `${sh.unit.block?.name || ''}${sh.unit.block?.name ? '-' : ''}${sh.unit.number}`,
-                    blockName: sh.unit.block?.name || 'N/A',
+                    unitNumber: `${unit.block?.name || ''}${unit.block?.name ? '-' : ''}${unit.number}`,
+                    blockName: unit.block?.name || 'N/A',
                     amount: sh.amount,
                     amountPaid: sh.amountPaid,
                     status: sh.status,

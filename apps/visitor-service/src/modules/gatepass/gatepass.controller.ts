@@ -13,8 +13,15 @@ export class GatepassController {
   }
 
   @Get()
-  findAll(@Req() req: any, @Query('residentId') residentId: string) {
-    return this.gatepassService.getGatepasses(req.tenantId, residentId);
+  findAll(
+    @Req() req: any,
+    @Query('residentId') residentId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
+    const parsedOffset = offset ? parseInt(offset, 10) : 0;
+    return this.gatepassService.getGatepasses(req.tenantId, residentId, parsedLimit, parsedOffset);
   }
 
   @Get(':id')

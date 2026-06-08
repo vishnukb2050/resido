@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import Redis from 'ioredis';
+import { pushNotificationMany } from '../../common/notify.helper';
 
 @Injectable()
 export class RemindersService implements OnModuleDestroy {
@@ -324,11 +325,11 @@ export class RemindersService implements OnModuleDestroy {
                 const chunkSize = 100;
                 for (let i = 0; i < targetMemberIds.length; i += chunkSize) {
                     const chunk = targetMemberIds.slice(i, i + chunkSize);
-                    
+
                     const notificationsData = chunk.map(memberId => ({
                         tenantId,
                         memberId,
-                        type: 'PAYMENT_REMINDER' as const, // Map to PAYMENT_REMINDER for uniform push alerting
+                        type: 'PAYMENT_REMINDER' as const,
                         title: reminder.title,
                         body: reminder.message,
                         isRead: false
@@ -336,6 +337,22 @@ export class RemindersService implements OnModuleDestroy {
 
                     await this.prisma.client.notification.createMany({
                         data: notificationsData
+                    });
+                }
+
+                // Also deliver real FCM push notifications to each member's device.
+                // Resolve member → userId mapping so notification-service can look up
+                // the FCM token from the auth-service user record.
+                const members = await this.prisma.client.member.findMany({
+                    where: { id: { in: targetMemberIds } },
+                    select: { userId: true },
+                });
+                const userIds = members.map((m) => m.userId).filter(Boolean) as string[];
+                if (userIds.length > 0) {
+                    await pushNotificationMany(userIds, {
+                        title: reminder.title,
+                        body: reminder.message,
+                        data: { type: 'REMINDER', reminderId: reminder.id, category: reminder.category || '' },
                     });
                 }
             }

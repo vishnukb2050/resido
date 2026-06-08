@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { buildRedisClient } from '../../common/redis-connection';
+import { pushNotificationMany, fetchUserIdentities } from '../../common/notify.helper';
 
 @WebSocketGateway({ cors: { origin: '*' }, namespace: '/chat' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit, OnModuleDestroy {
@@ -161,8 +162,51 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             for (const uid of memberIds) {
                 this.server.to(`user:${uid}`).emit('inbox_message', { conversationId, message });
             }
+
+            // Fetch conversation details to build context for push notifications
+            const conversation = await this.chatService.getConversation(conversationId);
+            if (conversation) {
+                // Fetch sender identity to construct a readable title / message format
+                const identities = await fetchUserIdentities(this.config, [message.senderId]);
+                const senderName = identities[message.senderId]?.name || identities[message.senderId]?.profileName || 'Someone';
+
+                let bodyText = message.content || '';
+                if (message.type === 'IMAGE') bodyText = '📷 Photo';
+                else if (message.type === 'VIDEO') bodyText = '🎥 Video';
+                else if (message.type === 'AUDIO') bodyText = '🎵 Audio';
+                else if (message.type === 'FILE') bodyText = '📁 File';
+                else if (message.type === 'POLL') bodyText = '📊 Poll';
+
+                const title = conversation.type === 'GROUP' && conversation.name
+                    ? `💬 ${conversation.name}`
+                    : `💬 ${senderName}`;
+
+                const body = conversation.type === 'GROUP' && conversation.name
+                    ? `${senderName}: ${bodyText}`
+                    : bodyText;
+
+                // Identify which conversation members are NOT actively viewing the chat screen
+                const activeSockets = await this.server.in(`conversation:${conversationId}`).fetchSockets();
+                const activeUserIds = new Set(activeSockets.map((s) => s.data.memberId));
+
+                const offlineUserIds = memberIds.filter(
+                    (uid) => uid !== message.senderId && !activeUserIds.has(uid),
+                );
+
+                if (offlineUserIds.length > 0) {
+                    await pushNotificationMany(this.config, offlineUserIds, {
+                        title,
+                        body,
+                        data: {
+                            type: 'CHAT_MESSAGE',
+                            conversationId,
+                            senderId: message.senderId,
+                        },
+                    });
+                }
+            }
         } catch (e: any) {
-            console.warn('[chat] inbox fan-out failed:', e?.message);
+            console.warn('[chat] inbox fan-out/push failed:', e?.message);
         }
     }
 

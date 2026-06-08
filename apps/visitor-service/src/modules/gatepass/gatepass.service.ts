@@ -17,12 +17,23 @@ export class GatepassService {
     });
   }
 
-  async getGatepasses(tenantId: string, residentId: string) {
-    return this.prisma.reader.gatepass.findMany({
-      where: { tenantId, residentId },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
+  async getGatepasses(tenantId: string, residentId: string, limit = 50, offset = 0) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safeOffset = Math.max(offset, 0);
+
+    const [items, total] = await Promise.all([
+      this.prisma.reader.gatepass.findMany({
+        where: { tenantId, residentId },
+        orderBy: { createdAt: 'desc' },
+        take: safeLimit,
+        skip: safeOffset,
+      }),
+      this.prisma.reader.gatepass.count({
+        where: { tenantId, residentId },
+      }),
+    ]);
+
+    return { items, total };
   }
 
   async getGatepassById(tenantId: string, id: string) {
@@ -34,7 +45,7 @@ export class GatepassService {
   }
 
   async approveGatepass(tenantId: string, id: string, securityMemberId: string) {
-    const gatepass = await this.prisma.gatepass.findFirst({
+    const gatepass = await this.prisma.reader.gatepass.findFirst({
       where: { id, tenantId },
     });
     if (!gatepass) throw new NotFoundException('Gatepass not found');

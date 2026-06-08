@@ -44,6 +44,7 @@ model User {
   // Updated by the mobile app on login and whenever the token refreshes.
   // Nullable — users who haven't granted notification permissions have no token.
   fcmToken     String?
+  phoneLast10 String?
   isActive     Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -64,6 +65,7 @@ model User {
   documentShares       DocumentShare[]
 
   @@index([isActive, linkBusinessProfile])
+  @@index([isActive, phoneLast10])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([profileName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("users")

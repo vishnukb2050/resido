@@ -13,12 +13,16 @@ export class VisitorsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('category') category?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
     return this.visitorsService.getVisitorRegister(
       req.tenantId,
       startDate,
       endDate,
       category,
+      skip ? parseInt(skip, 10) : 0,
+      take ? parseInt(take, 10) : 0,
     );
   }
 

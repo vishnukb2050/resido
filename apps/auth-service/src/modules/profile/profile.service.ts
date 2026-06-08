@@ -672,57 +672,44 @@ export class ProfileService implements OnModuleInit {
         // place + pincode + district + state, so it usually catches what the
         // explicit columns miss, but we still keep the explicit columns for
         // deterministic ordering against the various indexes.
-        const results = await this.prisma.geoRead.locationMaster.findMany({
-            where: {
-                OR: [
-                    { placeName: { contains: query, mode: 'insensitive' } },
-                    { district: { contains: query, mode: 'insensitive' } },
-                    { state: { contains: query, mode: 'insensitive' } },
-                    { pincode: { startsWith: query } },
-                    { searchStr: { contains: lowerQuery, mode: 'insensitive' } },
-                ],
-            },
-            take: 200, // Pull more so state/district aggregation has signal.
-            select: {
-                id: true,
-                placeName: true,
-                pincode: true,
-                district: true,
-                state: true,
-                latitude: true,
-                longitude: true,
-            },
-        });
+        const queryLike = `%${lowerQuery}%`;
+        const startsWithLike = `${lowerQuery}%`;
+
+        // Push ranking logic directly into SQL ORDER BY and limit to 50 results at database level.
+        const results = await this.prisma.geoRead.$queryRawUnsafe<any[]>(
+            `
+            SELECT 
+                id,
+                "placeName",
+                pincode,
+                district,
+                state,
+                latitude,
+                longitude
+            FROM location_master
+            WHERE 
+                LOWER("placeName") LIKE $1
+                OR LOWER(district) LIKE $1
+                OR LOWER(state) LIKE $1
+                OR pincode LIKE $2
+                OR LOWER("searchStr") LIKE $1
+            ORDER BY 
+                (CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN 1 ELSE 0 END) DESC,
+                (CASE WHEN LOWER("placeName") = $3 THEN 1 ELSE 0 END) DESC,
+                (CASE WHEN LOWER("placeName") LIKE $2 THEN 1 ELSE 0 END) DESC,
+                LOWER("placeName") ASC
+            LIMIT 50
+            `,
+            queryLike,
+            startsWithLike,
+            lowerQuery
+        );
 
         this.logger.debug(`📍 Found ${results.length} potential matches for "${query}"`);
         const withCoords = results.filter(r => r.latitude && r.longitude).length;
         this.logger.debug(`📍 Results with Coordinates: ${withCoords}`);
 
-        // Advanced Ranking
-        return results.sort((a, b) => {
-            const aName = a.placeName.toLowerCase();
-            const bName = b.placeName.toLowerCase();
-
-            // 1. TOP PRIORITY: Locations WITH coordinates (OSM/High-Precision)
-            const aHasCoords = a.latitude !== null && a.longitude !== null;
-            const bHasCoords = b.latitude !== null && b.longitude !== null;
-            
-            if (aHasCoords && !bHasCoords) return -1;
-            if (!aHasCoords && bHasCoords) return 1;
-
-            // 2. Exact match on placeName
-            if (aName === lowerQuery && bName !== lowerQuery) return -1;
-            if (aName !== lowerQuery && bName === lowerQuery) return 1;
-
-            // 3. Starts with query
-            if (aName.startsWith(lowerQuery) && !bName.startsWith(lowerQuery)) return -1;
-            if (!aName.startsWith(lowerQuery) && bName.startsWith(lowerQuery)) return 1;
-
-            // 4. Alphabetical
-            return aName.localeCompare(bName);
-        }).slice(0, 50); // Keep enough rows so the client can build
-                          // state/district aggregations even when the user
-                          // types a broad term like a state name.
+        return results;
     }
 
     async reverseGeocode(lat: number, lng: number) {

@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -167,28 +168,6 @@ export class ParkingService {
         const safeLimit = Math.min(Math.max(limit, 1), 100);
         const safeOffset = Math.max(offset, 0);
 
-        const now = new Date();
-
-        // Fail-open auto-freer pass: check if any booked/active bookings have expired
-        try {
-            const expiredBookings = await this.prisma.reader.parkingBooking.findMany({
-                where: {
-                    tenantId,
-                    status: { in: ['BOOKED', 'ACTIVE'] },
-                    endTime: { lt: now },
-                },
-                select: { id: true },
-            });
-            if (expiredBookings.length > 0) {
-                await this.prisma.client.parkingBooking.updateMany({
-                    where: { id: { in: expiredBookings.map((b) => b.id) } },
-                    data: { status: 'FREED', autoFreed: true, markedFreedAt: now },
-                });
-            }
-        } catch (err: any) {
-            console.warn('[getActiveBookings] Auto-freer pass failed:', err?.message);
-        }
-
         const [items, total] = await Promise.all([
             this.prisma.reader.parkingBooking.findMany({
                 where: {
@@ -211,5 +190,29 @@ export class ParkingService {
         ]);
 
         return { items, total, hasMore: safeOffset + items.length < total };
+    }
+
+    @Cron(CronExpression.EVERY_MINUTE)
+    async handleAutoFreeExpiredBookings() {
+        const now = new Date();
+        try {
+            // Run globally across all tenants (Prisma tenant isolation extension does not inject tenantId because ALS store is empty in cron contexts)
+            const expiredBookings = await this.prisma.reader.parkingBooking.findMany({
+                where: {
+                    status: { in: ['BOOKED', 'ACTIVE'] },
+                    endTime: { lt: now },
+                },
+                select: { id: true },
+            });
+            if (expiredBookings.length > 0) {
+                const count = await this.prisma.client.parkingBooking.updateMany({
+                    where: { id: { in: expiredBookings.map((b) => b.id) } },
+                    data: { status: 'FREED', autoFreed: true, markedFreedAt: now },
+                });
+                console.log(`[Parking Cron] Auto-freed ${count.count} expired bookings`);
+            }
+        } catch (err: any) {
+            console.error('[Parking Cron] Auto-freer pass failed:', err?.message);
+        }
     }
 }
