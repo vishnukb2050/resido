@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, InteractionManager } from 'react-native';
+import { Alert, AppState, InteractionManager } from 'react-native';
 import type { Audio as AudioType } from 'expo-av';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { getActiveConversation } from '../services/chatPresence';
+import { getSessionId } from '../utils/jwt';
 
 /**
  * App-wide chat presence: keeps one socket open while the user is signed in so
@@ -124,8 +125,26 @@ export function useChatNotifications() {
             };
             socket.on('inbox_message', onInbox);
 
+            // Single-device policy: the server tells us when this account has
+            // logged in on another device. If the now-active session id differs
+            // from the one in our token, this device is the old one → sign out.
+            const onForceLogout = (payload: { activeSid?: string }) => {
+                const mySid = getSessionId(useAuthStore.getState().token);
+                if (payload?.activeSid && mySid && payload.activeSid === mySid) return;
+                try {
+                    useAuthStore.getState().logout();
+                } finally {
+                    Alert.alert(
+                        'Signed out',
+                        'Your account was used to sign in on another device. Only one device can be active at a time.',
+                    );
+                }
+            };
+            socket.on('force_logout', onForceLogout);
+
             cleanup = () => {
                 socket.off('inbox_message', onInbox);
+                socket.off('force_logout', onForceLogout);
                 releaseChatSocket();
             };
         })();

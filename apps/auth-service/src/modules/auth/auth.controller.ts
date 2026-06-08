@@ -36,9 +36,10 @@ export class AuthController {
     @Post('switch-workspace')
     switchWorkspace(
         @Headers('x-user-id') userId: string,
+        @Headers('x-user-sid') sid: string,
         @Body() body: { tenantId: string; role?: string },
     ) {
-        return this.authService.switchWorkspace(userId, body.tenantId, body.role);
+        return this.authService.switchWorkspace(userId, body.tenantId, body.role, sid);
     }
 
     @Public()

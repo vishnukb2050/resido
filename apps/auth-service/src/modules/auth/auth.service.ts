@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
-import { randomInt } from 'crypto';
+import { randomInt, randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
@@ -111,7 +111,9 @@ export class AuthService {
 
         const workspaces = await this.buildWorkspacesForUser(user.id);
 
-        const tokens = await this.generateTokens(user.id, user.phone, null, null);
+        // Fresh login → start a new single-device session (logs out the old device).
+        const sid = await this.startSession(user.id);
+        const tokens = await this.generateTokens(user.id, user.phone, null, null, null, sid);
         return { 
             ...tokens, 
             workspaces, 
@@ -150,7 +152,8 @@ export class AuthService {
         if (!valid) throw new UnauthorizedException('Invalid credentials');
         if (!staff.isActive) throw new UnauthorizedException('Account is disabled');
 
-        const tokens = await this.generateTokens(staff.id, null, staff.clientId, staff.role as string, staff.client?.dbName || null);
+        const sid = await this.startSession(staff.id);
+        const tokens = await this.generateTokens(staff.id, null, staff.clientId, staff.role as string, staff.client?.dbName || null, sid);
         
         return { 
             ...tokens, 
@@ -207,7 +210,7 @@ export class AuthService {
         });
     }
 
-    async switchWorkspace(userId: string, tenantId: string, role?: string) {
+    async switchWorkspace(userId: string, tenantId: string, role?: string, sid?: string | null) {
         // Find membership — if role specified, find that exact one; else pick the first active one
         const membership = role
             ? await this.prisma.userRead.workspaceMembership.findFirst({
@@ -236,7 +239,10 @@ export class AuthService {
             select: { phone: true },
         });
 
-        const tokens = await this.generateTokens(userId, user?.phone || null, tenantId, membership.role as string, client?.dbName || null);
+        // Switching workspace rotates the token but is the SAME device, so keep
+        // the existing session id rather than starting a new session.
+        const activeSid = await this.ensureSession(userId, sid);
+        const tokens = await this.generateTokens(userId, user?.phone || null, tenantId, membership.role as string, client?.dbName || null, activeSid);
         return {
             ...tokens,
             workspace: {
@@ -265,9 +271,32 @@ export class AuthService {
                 });
                 phone = u?.phone || null;
             }
-            const tokens = await this.generateTokens(payload.sub, phone, payload.tenantId, payload.role, payload.dbName || null);
+
+            // Single-device enforcement: a refresh is only honoured for the
+            // device whose session is currently active. Once another device
+            // logs in, the old device's refresh token is dead.
+            let sid: string | null = payload.sid || null;
+            let currentSid: string | null = null;
+            try {
+                currentSid = await this.redis.get(this.sessionKey(payload.sub));
+            } catch {
+                // Redis down → skip enforcement (fail open) so users aren't locked out.
+            }
+            if (currentSid) {
+                if (!sid || sid !== currentSid) {
+                    throw new UnauthorizedException('SESSION_REPLACED');
+                }
+            } else {
+                // No active session recorded (legacy token issued before this
+                // feature, or the key expired). Adopt this device as the active
+                // session so existing users migrate transparently — no logout.
+                sid = await this.ensureSession(payload.sub, sid);
+            }
+
+            const tokens = await this.generateTokens(payload.sub, phone, payload.tenantId, payload.role, payload.dbName || null, sid);
             return tokens;
-        } catch {
+        } catch (e) {
+            if (e instanceof UnauthorizedException) throw e;
             throw new UnauthorizedException('Invalid refresh token');
         }
     }
@@ -441,8 +470,12 @@ export class AuthService {
         });
     }
 
-    private async generateTokens(userId: string, phone: string | null, tenantId: string | null, role: string | null, dbName: string | null = null) {
-        const payload = { sub: userId, phone, tenantId, role, dbName };
+    private async generateTokens(userId: string, phone: string | null, tenantId: string | null, role: string | null, dbName: string | null = null, sid: string | null = null) {
+        // `sid` (session id) ties the token to a single active device. The gateway
+        // and the refresh endpoint reject any token whose sid no longer matches the
+        // user's current active session in Redis — that is what enforces the
+        // "one device at a time" policy.
+        const payload = { sub: userId, phone, tenantId, role, dbName, sid };
         const [accessToken, refreshToken] = await Promise.all([
             this.jwt.signAsync(payload, {
                 secret: this.config.get('JWT_SECRET'),
@@ -454,5 +487,58 @@ export class AuthService {
             }),
         ]);
         return { accessToken, refreshToken };
+    }
+
+    // ── Single-device session management ────────────────────────────────────
+    // The active session id for a user lives in Redis at `session:<userId>`.
+    // TTL matches the refresh-token lifetime so the key self-expires when the
+    // user could no longer be using the app anyway.
+    private readonly SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
+
+    private sessionKey(userId: string): string {
+        return `session:${userId}`;
+    }
+
+    /**
+     * Begin a brand-new single-device session for a fresh login: mint a new
+     * session id, make it the user's active session, and notify any device
+     * still holding the previous session to log out immediately (via the chat
+     * socket fan-out, which listens on the `resido_notifications` channel).
+     */
+    private async startSession(userId: string): Promise<string> {
+        const sid = randomUUID();
+        try {
+            await this.redis.set(this.sessionKey(userId), sid, 'EX', this.SESSION_TTL_SECONDS);
+            await this.redis.publish(
+                'resido_notifications',
+                JSON.stringify({ type: 'FORCE_LOGOUT', userId, activeSid: sid }),
+            );
+        } catch (e: any) {
+            // If Redis is unavailable we still return a sid so login succeeds;
+            // enforcement simply degrades to "best effort" until Redis is back.
+            console.warn('[auth] startSession failed:', e?.message);
+        }
+        return sid;
+    }
+
+    /**
+     * Return the user's current active session id, creating one (without
+     * kicking the current device) if none exists yet. Used by workspace
+     * switching, which must preserve the same session across token rotation.
+     */
+    private async ensureSession(userId: string, preferredSid?: string | null): Promise<string> {
+        try {
+            const existing = await this.redis.get(this.sessionKey(userId));
+            if (existing) return existing;
+        } catch {
+            // fall through to create
+        }
+        const sid = preferredSid || randomUUID();
+        try {
+            await this.redis.set(this.sessionKey(userId), sid, 'EX', this.SESSION_TTL_SECONDS);
+        } catch (e: any) {
+            console.warn('[auth] ensureSession failed:', e?.message);
+        }
+        return sid;
     }
 }

@@ -238,7 +238,7 @@ export default function DefaultDashboard() {
     const activeWorkspace = useAuthStore((s) => s.activeWorkspace);
     const setActiveWorkspace = useAuthStore((s) => s.setActiveWorkspace);
     const switchRole = useAuthStore((s) => s.switchRole);
-    const { data: items = [], isLoading: loadingActivity } = useForYouFeed();
+    const { data: items = [], isLoading: loadingActivity, loadMore, hasMore, loadingMore } = useForYouFeed();
     const theme = getThemeColors(activeWorkspace?.tenantId);
     const [touchStartX, setTouchStartX] = React.useState(0);
     const { width: windowWidth } = Dimensions.get('window');
@@ -978,6 +978,13 @@ export default function DefaultDashboard() {
                     maxToRenderPerBatch={6}
                     windowSize={9}
                     removeClippedSubviews
+                    onEndReached={hasMore ? loadMore : undefined}
+                    onEndReachedThreshold={0.4}
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <ActivityIndicator style={{ marginVertical: 20 }} color={darkLavender} />
+                        ) : null
+                    }
                 />
                 {flareModal}
                 <BottomNav activeTab="Home" />

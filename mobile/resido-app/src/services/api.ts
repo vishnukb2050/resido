@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Alert } from 'react-native';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../store/authStore';
@@ -119,6 +120,22 @@ api.interceptors.response.use(
         const status = error.response?.status;
         const url: string = original?.url || '';
 
+        // Single-device policy: the gateway/refresh return code SESSION_REPLACED
+        // when the account has logged in on another device. Refreshing would
+        // also fail, so log out immediately with a clear message (the socket
+        // listener handles the instant case; this covers a dropped socket).
+        const sessionReplaced =
+            error.response?.data?.code === 'SESSION_REPLACED' ||
+            error.response?.data?.message === 'SESSION_REPLACED';
+        if (status === 401 && sessionReplaced) {
+            await forceLogout();
+            Alert.alert(
+                'Signed out',
+                'Your account was used to sign in on another device. Only one device can be active at a time.',
+            );
+            return Promise.reject(error);
+        }
+
         // Don't try to refresh for the auth endpoints themselves or after a retry.
         const isAuthCall = url.includes('/auth/refresh') || url.includes('/auth/verify-otp') || url.includes('/auth/login') || url.includes('/auth/send-otp');
 
@@ -158,9 +175,18 @@ api.interceptors.response.use(
                 original.headers = original.headers || {};
                 original.headers['Authorization'] = `Bearer ${newAccess}`;
                 return api(original);
-            } catch (refreshErr) {
+            } catch (refreshErr: any) {
                 onRefreshed(null);
                 await forceLogout();
+                const replaced =
+                    refreshErr?.response?.data?.message === 'SESSION_REPLACED' ||
+                    refreshErr?.response?.data?.code === 'SESSION_REPLACED';
+                if (replaced) {
+                    Alert.alert(
+                        'Signed out',
+                        'Your account was used to sign in on another device. Only one device can be active at a time.',
+                    );
+                }
                 return Promise.reject(refreshErr);
             } finally {
                 isRefreshing = false;

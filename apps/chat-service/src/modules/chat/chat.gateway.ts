@@ -235,6 +235,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             if (channel === 'resido_notifications') {
                 try {
                     const data = JSON.parse(message);
+
+                    // Single-device policy: a new login elsewhere asks every
+                    // currently-connected device for this user to log out. The
+                    // payload carries the now-active session id so the device
+                    // that just logged in (which already holds it) can ignore
+                    // the event and only stale devices sign out.
+                    if (data.type === 'FORCE_LOGOUT' && data.userId) {
+                        this.server.to(`user:${data.userId}`).emit('force_logout', {
+                            activeSid: data.activeSid,
+                        });
+                        return;
+                    }
+
                     // Deliver only to the target user's room. Previously this did
                     // `server.emit(...)` — a fan-out to EVERY connected socket on
                     // EVERY tenant for each notification, which does not scale.

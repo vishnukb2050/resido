@@ -120,23 +120,43 @@ export class BusinessService implements OnModuleInit, OnModuleDestroy {
             // Remove them from the pending set
             await this.redis.srem('business:views:pending', ...pendingIds);
 
-            for (const profileId of pendingIds) {
-                const redisKey = `business:views:${profileId}`;
-                const viewsStr = await this.redis.getset(redisKey, '0');
+            // Read+reset every counter in ONE pipeline instead of a GETSET round
+            // trip per profile. GETSET is atomic, so if another task flushes the
+            // same id concurrently only one side reads a non-zero count.
+            const pipeline = this.redis.pipeline();
+            for (const id of pendingIds) pipeline.getset(`business:views:${id}`, '0');
+            const results = await pipeline.exec();
+
+            const updates: { id: string; views: number }[] = [];
+            pendingIds.forEach((id, i) => {
+                const entry = results?.[i];
+                const viewsStr = entry && !entry[0] ? (entry[1] as string | null) : null;
                 const views = parseInt(viewsStr || '0', 10);
-                if (views > 0) {
-                    try {
-                        await this.prisma.businessProfile.update({
-                            where: { id: profileId },
-                            data: { viewCount: { increment: views } },
-                        });
-                    } catch (err: any) {
-                        this.logger.error(`Failed to flush views for business profile ${profileId}: ${err?.message}`);
-                        // Put them back in the buffer to retry
-                        await this.redis.incrby(redisKey, views);
-                        await this.redis.sadd('business:views:pending', profileId);
-                    }
+                if (views > 0) updates.push({ id, views });
+            });
+            if (updates.length === 0) return;
+
+            try {
+                // One batched increment for the whole window via a VALUES list,
+                // instead of an UPDATE per profile.
+                const values = Prisma.join(
+                    updates.map((u) => Prisma.sql`(${u.id}, ${u.views})`),
+                );
+                await this.prisma.$executeRaw`
+                    UPDATE "business_profiles" AS b
+                    SET "viewCount" = b."viewCount" + v.inc::int
+                    FROM (VALUES ${values}) AS v(id, inc)
+                    WHERE b.id = v.id::text
+                `;
+            } catch (err: any) {
+                this.logger.error(`Failed to batch-flush business profile views: ${err?.message}`);
+                // Re-buffer the counts so the next interval retries them.
+                const retry = this.redis.pipeline();
+                for (const u of updates) {
+                    retry.incrby(`business:views:${u.id}`, u.views);
+                    retry.sadd('business:views:pending', u.id);
                 }
+                await retry.exec();
             }
         } catch (err: any) {
             this.logger.error(`Failed to execute flushProfileViews: ${err?.message}`);

@@ -13,7 +13,6 @@ import { CacheService } from '../cache/cache.service';
 // repeated feed reads at scale.
 const AVATAR_TTL = 300;
 const VISIBILITY_TTL = 300;
-const FOLLOWERS_TTL = 60;
 
 // Allowed post visibility values. Anything else from the client is coerced
 // to PUBLIC on create so we never silently store an unknown bucket that
@@ -135,33 +134,49 @@ export class BlogsService {
     }
 
     /**
-     * Returns the set of user IDs that follow `viewerId`. Used to enforce
-     * CONTACTS-visibility: a post tagged CONTACTS is only visible to people
-     * the author has followed back (synced contacts auto-follow each other,
-     * so mutual-follow is our best proxy for "in author's contact list").
+     * Returns the subset of `candidateIds` that FOLLOW `viewerId`. Bounded by
+     * the page's author ids (≤ a few dozen) so we never load a viral viewer's
+     * entire follower list on every feed request — a single indexed `IN (...)`
+     * lookup against auth-service instead. Used for CONTACTS-visibility, where
+     * a post is only visible to people the author has followed back.
      */
-    private async fetchFollowersOf(viewerId: string): Promise<Set<string>> {
-        if (!viewerId) return new Set();
-
-        const cacheKey = `followers:${viewerId}`;
-        const cached = await this.cache.getJson<string[]>(cacheKey);
-        if (cached) return new Set(cached);
-
+    private async fetchFollowersAmong(viewerId: string, candidateIds: string[]): Promise<string[]> {
+        if (!viewerId || !candidateIds.length) return [];
         try {
             const res = await firstValueFrom(
-                this.http.get(`${this.authBaseUrl()}/follow/followers/${viewerId}`, {
-                    headers: this.internalHeaders(),
-                })
+                this.http.post(
+                    `${this.authBaseUrl()}/follow/followers-among/${viewerId}`,
+                    { candidateIds },
+                    { headers: this.internalHeaders() },
+                ),
             );
-            const rows: any[] = Array.isArray(res?.data) ? res.data : [];
-            const ids = rows
-                .map((r) => r?.followerId)
-                .filter((id): id is string => typeof id === 'string' && id.length > 0);
-            await this.cache.setJson(cacheKey, ids, FOLLOWERS_TTL);
-            return new Set<string>(ids);
+            const ids = res?.data?.followerIds;
+            return Array.isArray(ids) ? ids.filter((id: any): id is string => typeof id === 'string') : [];
         } catch (err: any) {
-            console.warn('[visibility] failed to fetch followers of viewer', viewerId, err?.message);
-            return new Set();
+            console.warn('[visibility] followers-among failed', viewerId, err?.message);
+            return [];
+        }
+    }
+
+    /**
+     * Returns the subset of `candidateIds` that `viewerId` FOLLOWS. Mirrors
+     * fetchFollowersAmong for the other relationship direction.
+     */
+    private async fetchFollowingAmong(viewerId: string, candidateIds: string[]): Promise<string[]> {
+        if (!viewerId || !candidateIds.length) return [];
+        try {
+            const res = await firstValueFrom(
+                this.http.post(
+                    `${this.authBaseUrl()}/follow/following-among/${viewerId}`,
+                    { candidateIds },
+                    { headers: this.internalHeaders() },
+                ),
+            );
+            const ids = res?.data?.followingIds;
+            return Array.isArray(ids) ? ids.filter((id: any): id is string => typeof id === 'string') : [];
+        } catch (err: any) {
+            console.warn('[visibility] following-among failed', viewerId, err?.message);
+            return [];
         }
     }
 
@@ -506,12 +521,11 @@ export class BlogsService {
             feedType === 'RESHARE' ||
             feedType === 'SAVED';
 
-        let followers = new Set<string>();
-        let followingSet = new Set(followingIds);
-        if (userId && !skipVisibilityPass) {
-            followers = await this.fetchFollowersOf(userId);
-            followingSet = new Set(followingIds);
-        }
+        // `followers` accumulates only the author ids (from each scanned batch)
+        // that follow the viewer — populated lazily per batch via a bounded
+        // lookup, never the viewer's full follower list.
+        const followers = new Set<string>();
+        const followingSet = new Set(followingIds);
 
         const collected: any[] = [];
         let scanCursor = this.decodeFeedCursor(cursor);
@@ -544,7 +558,13 @@ export class BlogsService {
                 // Fetch all unique author visibilities for this batch in one
                 // batched call (MGET from Redis, HTTP only for cache misses).
                 const authorIds = [...new Set(batch.map((b: any) => b.authorId).filter(Boolean))] as string[];
-                const authorVisibilities = await this.fetchAuthorVisibilities(authorIds);
+                // Resolve author visibilities AND which of these authors follow
+                // the viewer (for CONTACTS gating) in one bounded round each.
+                const [authorVisibilities, batchFollowerIds] = await Promise.all([
+                    this.fetchAuthorVisibilities(authorIds),
+                    this.fetchFollowersAmong(userId, authorIds),
+                ]);
+                batchFollowerIds.forEach((id) => followers.add(id));
                 visible = batch.filter((b: any) => {
                     if (!this.canSee(
                         b.visibility, b.authorId, userId,
@@ -829,17 +849,15 @@ export class BlogsService {
         // used by the feed for single fetches too.
         if (viewerId && viewerId !== blog.authorId && !blog.businessProfileId) {
             if (blog.visibility === 'CONTACTS' || blog.visibility === 'FOLLOWERS') {
-                const [following, followers] = await Promise.all([
-                    firstValueFrom(
-                        this.http.get(`http://auth-service:3001/follow/following/${viewerId}`),
-                    ).catch(() => ({ data: [] as any[] })),
-                    this.fetchFollowersOf(viewerId),
+                // Only the single author matters here, so probe just that pair
+                // in both directions (bounded indexed lookups).
+                const candidates = [blog.authorId];
+                const [followingIds, followerIds] = await Promise.all([
+                    this.fetchFollowingAmong(viewerId, candidates),
+                    this.fetchFollowersAmong(viewerId, candidates),
                 ]);
-                const followingSet = new Set<string>(
-                    ((following as any)?.data || [])
-                        .map((r: any) => r?.followingId as string | undefined)
-                        .filter((id): id is string => typeof id === 'string' && id.length > 0),
-                );
+                const followingSet = new Set<string>(followingIds);
+                const followers = new Set<string>(followerIds);
                 const allowed = this.canSee(
                     blog.visibility,
                     blog.authorId,

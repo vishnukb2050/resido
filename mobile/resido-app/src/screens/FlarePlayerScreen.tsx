@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Share, Alert } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, FlatList, Share, Alert, InteractionManager } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdaptiveVideoPlayer } from '../components/AdaptiveVideoPlayer';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { io } from 'socket.io-client';
 import { threadApi, FLARES_SOCKET_URL, flaresSocketOptions, getFlaresSocketOptions, unpackFeedPage } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import CommentSheet from '../components/CommentSheet';
@@ -85,32 +84,54 @@ export default function FlarePlayerScreen() {
         fetchFlares(!seeded);
     }, [feedType, initialId]);
 
+    // Defer the live-comments socket until after the first screen paint and
+    // interactions settle. `socket.io-client` is dynamically imported so it
+    // stays off the initial render path (cold start), mirroring
+    // useChatNotifications.
     useEffect(() => {
         if (!activeWorkspace) return;
-        const socket = io(`${FLARES_SOCKET_URL}/flares`, {
-            ...flaresSocketOptions,
-            auth: {
-                ...getFlaresSocketOptions().auth,
-                tenantId: activeWorkspace?.tenantId,
-                dbName: activeWorkspace?.dbName,
-                memberId: user?.id,
-            },
-        });
-        socketRef.current = socket;
 
-        socket.on('new_comment', (data: any) => {
-            if (!data?.blogId) return;
-            setFlares((prev) =>
-                prev.map((f) =>
-                    f.id === data.blogId
-                        ? { ...f, commentsCount: (f.commentsCount || 0) + 1 }
-                        : f,
-                ),
-            );
+        let cancelled = false;
+
+        const task = InteractionManager.runAfterInteractions(async () => {
+            const { io } = await import('socket.io-client');
+            if (cancelled) return;
+
+            const socket = io(`${FLARES_SOCKET_URL}/flares`, {
+                ...flaresSocketOptions,
+                auth: {
+                    ...getFlaresSocketOptions().auth,
+                    tenantId: activeWorkspace?.tenantId,
+                    dbName: activeWorkspace?.dbName,
+                    memberId: user?.id,
+                },
+            });
+            socketRef.current = socket;
+
+            socket.on('new_comment', (data: any) => {
+                if (!data?.blogId) return;
+                setFlares((prev) =>
+                    prev.map((f) =>
+                        f.id === data.blogId
+                            ? { ...f, commentsCount: (f.commentsCount || 0) + 1 }
+                            : f,
+                    ),
+                );
+            });
+
+            // The active flare may have changed while we were deferring; join
+            // whatever is on screen now so live updates aren't missed.
+            const activeId = flares[activeIndex]?.id;
+            if (activeId) {
+                socket.emit('join_flare', { flareId: activeId });
+                joinedFlareRef.current = activeId;
+            }
         });
 
         return () => {
-            socket.disconnect();
+            cancelled = true;
+            task.cancel();
+            socketRef.current?.disconnect();
             socketRef.current = null;
             joinedFlareRef.current = null;
         };

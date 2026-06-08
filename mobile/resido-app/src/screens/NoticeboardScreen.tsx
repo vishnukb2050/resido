@@ -9,6 +9,7 @@ import { communityApi } from '../services/api';
 import { storageApi } from '../services/storage';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import { getFeedSnapshot, setFeedSnapshot } from '../services/feedSnapshotCache';
+import AppImage from '../components/AppImage';
 
 const NOTICES_CACHE_KEY = 'community:notices';
 
@@ -16,7 +17,7 @@ const NOTICES_CACHE_KEY = 'community:notices';
  * Renders a notice image at its natural aspect ratio so the full picture
  * is visible (no cropping). Falls back to 16:9 until dimensions load.
  */
-function NoticeImage({ uri, style }: { uri: string; style?: any }) {
+function NoticeImage({ uri, style, remote }: { uri: string; style?: any; remote?: boolean }) {
     const [aspect, setAspect] = useState<number>(16 / 9);
 
     useEffect(() => {
@@ -29,6 +30,24 @@ function NoticeImage({ uri, style }: { uri: string; style?: any }) {
             () => {},
         );
     }, [uri]);
+
+    if (remote) {
+        return (
+            <AppImage
+                uri={uri}
+                contentFit="contain"
+                style={[
+                    {
+                        width: '100%',
+                        aspectRatio: aspect,
+                        borderRadius: 16,
+                        backgroundColor: '#ffffff',
+                    },
+                    style,
+                ]}
+            />
+        );
+    }
 
     return (
         <Image
@@ -184,6 +203,10 @@ export default function NoticeboardScreen() {
                     data={notices}
                     keyExtractor={(item: any) => item.id}
                     contentContainerStyle={styles.listContent}
+                    initialNumToRender={8}
+                    maxToRenderPerBatch={10}
+                    windowSize={9}
+                    removeClippedSubviews={true}
                     refreshControl={
                         <RefreshControl tintColor="#1d4ed8" refreshing={refreshing} onRefresh={onRefresh} />
                     }
@@ -197,7 +220,7 @@ export default function NoticeboardScreen() {
                                 <Text style={styles.noticeBody}>{item.body}</Text>
 
                                 {photo ? (
-                                    <NoticeImage uri={photo} style={{ marginVertical: 12 }} />
+                                    <NoticeImage uri={photo} remote style={{ marginVertical: 12 }} />
                                 ) : null}
 
                                 <View style={styles.cardFooter}>

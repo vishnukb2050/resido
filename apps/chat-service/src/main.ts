@@ -16,6 +16,15 @@ async function bootstrap() {
         await redisIoAdapter.connectToRedis();
         app.useWebSocketAdapter(redisIoAdapter);
     } catch (e: any) {
+        // In production we run multiple replicas; without the Redis adapter,
+        // `server.to(room)` would only reach sockets on the local task and
+        // chat messages would silently miss users on other tasks. Fail fast so
+        // the task is replaced rather than serving a broken, split-brain socket
+        // layer. Locally (single instance) the in-memory fallback is fine.
+        if (process.env.NODE_ENV === 'production') {
+            console.error('[chat] FATAL: Redis Socket.IO adapter unavailable in production:', e?.message);
+            process.exit(1);
+        }
         console.warn('[chat] Redis adapter unavailable, using in-memory sockets:', e?.message);
     }
 

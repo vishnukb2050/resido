@@ -39,6 +39,10 @@ export default function CommunityMembersScreen() {
                 data={members}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={{ padding: 20, gap: 12 }}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={9}
+                removeClippedSubviews={true}
                 renderItem={({ item }) => (
                     <TouchableOpacity 
                         style={styles.card} 

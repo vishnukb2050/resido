@@ -6,7 +6,6 @@ import {
     Dimensions, 
     TouchableOpacity, 
     FlatList, 
-    Image, 
     TextInput, 
     KeyboardAvoidingView, 
     Platform,
@@ -195,6 +194,10 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                         keyExtractor={item => item.id}
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
+                        initialNumToRender={8}
+                        maxToRenderPerBatch={10}
+                        windowSize={9}
+                        removeClippedSubviews={true}
                     />
                 )}
 
@@ -219,8 +222,8 @@ export default function CommentSheet({ flareId, authorId, onClose }: CommentShee
                             <TouchableOpacity onPress={() => setShowPollBuilder(true)} style={styles.plusBtn}>
                                 <Ionicons name="add" size={24} color="#1d4ed8" />
                             </TouchableOpacity>
-                            <Image 
-                                source={{ uri: user?.profilePhoto || 'https://randomuser.me/api/portraits/lego/1.jpg' }} 
+                            <AppImage 
+                                uri={user?.profilePhoto || 'https://randomuser.me/api/portraits/lego/1.jpg'} 
                                 style={styles.inputAvatar} 
                             />
                             <View style={styles.textInputContainer}>

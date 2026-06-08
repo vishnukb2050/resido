@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Share, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Share, ScrollView, Alert, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { threadApi, FLARES_SOCKET_URL, getFlaresSocketOptions } from '../services/api';
@@ -7,8 +7,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import PollBuilderModal from '../components/PollBuilderModal';
 import { AdaptiveVideoPlayer } from '../components/AdaptiveVideoPlayer';
+import AppImage from '../components/AppImage';
 import { resolveMediaUrl } from '../utils/mediaUrl';
-import { io } from 'socket.io-client';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -29,26 +29,43 @@ export default function ThreadDetailScreen() {
     useEffect(() => {
         fetchThreadDetails();
         fetchComments();
-        
+    }, [id]);
+
+    // Defer the live-comments socket until after the first screen paint and
+    // interactions settle. `socket.io-client` is dynamically imported so it
+    // stays off the initial render path (cold start), mirroring
+    // useChatNotifications.
+    useEffect(() => {
         if (!id) return;
-        const socket = io(`${FLARES_SOCKET_URL}/flares`, getFlaresSocketOptions());
 
-        socket.on('connect', () => {
-            socket.emit('join_flare', { flareId: id });
-        });
+        let socket: any = null;
+        let cancelled = false;
 
-        socket.on('new_comment', (comment: any) => {
-            if (comment.blogId === id) {
-                setComments(prev => {
-                    if (prev.find(c => c.id === comment.id)) return prev;
-                    return [comment, ...prev];
-                });
-                setThread((prev: any) => prev ? { ...prev, commentsCount: (prev.commentsCount || 0) + 1 } : prev);
-            }
+        const task = InteractionManager.runAfterInteractions(async () => {
+            const { io } = await import('socket.io-client');
+            if (cancelled) return;
+
+            socket = io(`${FLARES_SOCKET_URL}/flares`, getFlaresSocketOptions());
+
+            socket.on('connect', () => {
+                socket.emit('join_flare', { flareId: id });
+            });
+
+            socket.on('new_comment', (comment: any) => {
+                if (comment.blogId === id) {
+                    setComments(prev => {
+                        if (prev.find(c => c.id === comment.id)) return prev;
+                        return [comment, ...prev];
+                    });
+                    setThread((prev: any) => prev ? { ...prev, commentsCount: (prev.commentsCount || 0) + 1 } : prev);
+                }
+            });
         });
 
         return () => {
-            socket.disconnect();
+            cancelled = true;
+            task.cancel();
+            socket?.disconnect();
         };
     }, [id]);
 
@@ -197,7 +214,7 @@ export default function ThreadDetailScreen() {
                     ListHeaderComponent={
                         <View style={styles.threadContent}>
                             <View style={styles.authorSection}>
-                                <Image source={{ uri: resolveMediaUrl(thread.authorAvatar) || 'https://i.pravatar.cc/100' }} style={styles.avatar} />
+                                <AppImage uri={resolveMediaUrl(thread.authorAvatar) || 'https://i.pravatar.cc/100'} style={styles.avatar} />
                                 <View style={styles.authorMeta}>
                                     <Text style={styles.authorName}>{thread.authorName || 'Anonymous'}</Text>
                                     <Text style={styles.timeText}>{dayjs(thread.createdAt).fromNow()}</Text>
@@ -232,7 +249,7 @@ export default function ThreadDetailScreen() {
                                         />
                                     </View>
                                 ) : (
-                                    <Image key={i} source={{ uri: resolved }} style={styles.media} resizeMode="cover" />
+                                    <AppImage key={i} uri={resolved} style={styles.media} />
                                 );
                             })}
 
@@ -289,7 +306,7 @@ export default function ThreadDetailScreen() {
                     }
                     renderItem={({ item }) => (
                         <View style={styles.commentItem}>
-                            <Image source={{ uri: resolveMediaUrl(item.userAvatar) || 'https://i.pravatar.cc/100' }} style={styles.commentAvatar} />
+                            <AppImage uri={resolveMediaUrl(item.userAvatar) || 'https://i.pravatar.cc/100'} style={styles.commentAvatar} />
                             <View style={styles.commentBody}>
                                 <View style={styles.commentHeader}>
                                     <Text style={styles.commentAuthor}>{item.userName || 'User'}</Text>
@@ -346,7 +363,7 @@ export default function ThreadDetailScreen() {
                 />
 
                 <View style={styles.inputWrapper}>
-                    <Image source={{ uri: resolveMediaUrl(user?.profilePhoto) || 'https://i.pravatar.cc/100' }} style={styles.smallAvatar} />
+                    <AppImage uri={resolveMediaUrl(user?.profilePhoto) || 'https://i.pravatar.cc/100'} style={styles.smallAvatar} />
                     <TouchableOpacity style={styles.commentPlusBtn} onPress={() => setShowPollBuilder(true)}>
                         <Ionicons name="add" size={24} color="#1d4ed8" />
                     </TouchableOpacity>

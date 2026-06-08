@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, TextInput, Image, Dimensions, StatusBar, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, TextInput, Dimensions, StatusBar, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -8,7 +8,10 @@ import MapView, { Marker, Circle, UrlTile, PROVIDER_GOOGLE } from 'react-native-
 import * as Location from 'expo-location';
 import BottomNav from '../components/BottomNav';
 import OSMMap from '../components/OSMMap';
+import AppImage from '../components/AppImage';
 import { authApi, businessApi, unpackBusinessProfileList } from '../services/api';
+
+const PAGE_SIZE = 50;
 
 const { width, height: windowHeight } = Dimensions.get('window');
 
@@ -87,6 +90,9 @@ export default function ServiceSearchScreen() {
     // the map is the gate for rendering the linked-owner chip.
     const [ownerIdentities, setOwnerIdentities] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const loadingMoreRef = useRef(false);
     const [viewMode, setViewMode] = useState<'LIST' | 'MAP'>('LIST');
     const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number, radius: number } | null>(null);
     const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
@@ -557,6 +563,58 @@ export default function ServiceSearchScreen() {
         setTimeout(() => locationInputRef.current?.focus(), 250);
     };
 
+    const buildSearchParams = (offset: number) => {
+        const params: any = {};
+        if (activeCat !== 'all') {
+            const cat = CATEGORIES.find(c => c.id === activeCat);
+            if (cat) params.category = cat.name;
+        }
+
+        if (debouncedQuery.trim()) {
+            params.query = debouncedQuery.trim();
+        }
+        params.limit = PAGE_SIZE;
+        params.offset = offset;
+
+        if (selectedPin) {
+            params.lat = selectedPin.latitude;
+            params.lng = selectedPin.longitude;
+            params.radius = searchRadius;
+        } else if (userLocation) {
+            params.lat = userLocation.latitude;
+            params.lng = userLocation.longitude;
+            params.radius = userLocation.radius;
+        }
+
+        if (selectedLocation) {
+            params.pincode = selectedLocation.pincode;
+            params.district = selectedLocation.district;
+            params.state = selectedLocation.state;
+        }
+
+        return params;
+    };
+
+    // Hydrate "owned by …" chips. Only userIds whose owner enabled the link
+    // toggle come back, so the chip renders selectively. `merge` keeps already
+    // resolved identities when appending a paginated page.
+    const hydrateOwnerIdentities = async (items: any[], merge: boolean) => {
+        const userIds = Array.from(new Set(
+            items.map((p: any) => p?.userId).filter(Boolean)
+        )) as string[];
+        if (!userIds.length) {
+            if (!merge) setOwnerIdentities({});
+            return;
+        }
+        try {
+            const { data: ids } = await authApi.getPublicIdentitiesBatch(userIds);
+            setOwnerIdentities(prev => (merge ? { ...prev, ...(ids || {}) } : (ids || {})));
+        } catch (idErr) {
+            console.warn('owner identities hydrate failed', idErr);
+            if (!merge) setOwnerIdentities({});
+        }
+    };
+
     const fetchProfiles = async () => {
         // Refuse to list "all profiles in India" when a category/query is
         // active but no location has been picked. The UI shows a banner
@@ -564,61 +622,44 @@ export default function ServiceSearchScreen() {
         if (locationRequired) {
             setProfiles([]);
             setLoading(false);
+            setHasMore(false);
             return;
         }
 
         setLoading(true);
         try {
-            const params: any = {};
-            if (activeCat !== 'all') {
-                const cat = CATEGORIES.find(c => c.id === activeCat);
-                if (cat) params.category = cat.name;
-            }
-
-            if (debouncedQuery.trim()) {
-                params.query = debouncedQuery.trim();
-            }
-            params.limit = 50;
-
-            if (selectedPin) {
-                params.lat = selectedPin.latitude;
-                params.lng = selectedPin.longitude;
-                params.radius = searchRadius;
-            } else if (userLocation) {
-                params.lat = userLocation.latitude;
-                params.lng = userLocation.longitude;
-                params.radius = userLocation.radius;
-            }
-
-            if (selectedLocation) {
-                params.pincode = selectedLocation.pincode;
-                params.district = selectedLocation.district;
-                params.state = selectedLocation.state;
-            }
-
-            const { data } = await businessApi.getProfiles(params);
-            const items = unpackBusinessProfileList(data).items;
-            setProfiles(items);
-            // Hydrate "owned by …" chips. Only userIds whose owner enabled
-            // the link toggle come back, so the chip renders selectively.
-            const userIds = Array.from(new Set(
-                items.map((p: any) => p?.userId).filter(Boolean)
-            )) as string[];
-            if (userIds.length) {
-                try {
-                    const { data: ids } = await authApi.getPublicIdentitiesBatch(userIds);
-                    setOwnerIdentities(ids || {});
-                } catch (idErr) {
-                    console.warn('owner identities hydrate failed', idErr);
-                    setOwnerIdentities({});
-                }
-            } else {
-                setOwnerIdentities({});
-            }
+            const { data } = await businessApi.getProfiles(buildSearchParams(0));
+            const unpacked = unpackBusinessProfileList(data);
+            setProfiles(unpacked.items);
+            setHasMore(unpacked.hasMore);
+            await hydrateOwnerIdentities(unpacked.items, false);
         } catch (error) {
             console.error('Failed to fetch profiles', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadMoreProfiles = async () => {
+        if (loadingMoreRef.current) return;
+        if (!hasMore || loading || locationRequired) return;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+        try {
+            const { data } = await businessApi.getProfiles(buildSearchParams(profiles.length));
+            const unpacked = unpackBusinessProfileList(data);
+            setProfiles(prev => {
+                const map = new Map(prev.map((p: any) => [p.id, p]));
+                for (const it of unpacked.items) map.set(it.id, it);
+                return Array.from(map.values());
+            });
+            setHasMore(unpacked.hasMore);
+            await hydrateOwnerIdentities(unpacked.items, true);
+        } catch (error) {
+            console.error('Failed to load more profiles', error);
+        } finally {
+            loadingMoreRef.current = false;
+            setLoadingMore(false);
         }
     };
 
@@ -979,7 +1020,7 @@ export default function ServiceSearchScreen() {
                         >
                             {POPULAR_SERVICES.map(item => (
                                 <TouchableOpacity key={item.id} style={styles.popularCard}>
-                                    <Image source={{ uri: item.image }} style={styles.popularImage} />
+                                    <AppImage uri={item.image} style={styles.popularImage} />
                                     <View style={styles.popularIconOverlay}>
                                         <MaterialCommunityIcons name={item.icon as any} size={18} color="#1d4ed8" />
                                     </View>
@@ -1102,7 +1143,14 @@ export default function ServiceSearchScreen() {
                 )}
                 ListHeaderComponent={ListHeader}
                 ListEmptyComponent={ListEmpty}
-                ListFooterComponent={ListFooter}
+                ListFooterComponent={
+                    <>
+                        {loadingMore ? (
+                            <ActivityIndicator style={{ marginVertical: 20 }} color="#1d4ed8" />
+                        ) : null}
+                        {ListFooter}
+                    </>
+                }
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
@@ -1111,6 +1159,8 @@ export default function ServiceSearchScreen() {
                 initialNumToRender={10}
                 maxToRenderPerBatch={10}
                 windowSize={11}
+                onEndReached={hasMore ? loadMoreProfiles : undefined}
+                onEndReachedThreshold={0.4}
             />
 
             <BottomNav activeTab="Home" />
@@ -1156,7 +1206,7 @@ const ProCard = React.memo(function ProCard({ pro, ownerIdentities, router }: an
         >
             <View style={styles.proImagePlaceholder}>
                 {pro.logo ? (
-                    <Image source={{ uri: pro.logo }} style={{ width: 60, height: 60, borderRadius: 30, resizeMode: 'cover' }} />
+                    <AppImage uri={pro.logo} style={{ width: 60, height: 60, borderRadius: 30 }} />
                 ) : (
                     <Ionicons name="person" size={30} color="#cbd5e1" />
                 )}
@@ -1191,7 +1241,7 @@ const ProCard = React.memo(function ProCard({ pro, ownerIdentities, router }: an
                         }}
                     >
                         {owner.profilePhoto ? (
-                            <Image source={{ uri: owner.profilePhoto }} style={styles.ownerChipAvatar} />
+                            <AppImage uri={owner.profilePhoto} style={styles.ownerChipAvatar} />
                         ) : (
                             <View style={[styles.ownerChipAvatar, { backgroundColor: '#F4EEFC', alignItems: 'center', justifyContent: 'center' }]}>
                                 <Ionicons name="person" size={10} color="#8b5cf6" />

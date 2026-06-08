@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, Share } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, Share, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Contacts from 'expo-contacts';
 import { authApi } from '../services/api';
@@ -14,7 +14,7 @@ export default function ContactsScreen() {
     const router = useRouter();
 
     useEffect(() => {
-        (async () => {
+        const loadContacts = async () => {
             const { status } = await Contacts.requestPermissionsAsync();
             if (status === 'granted') {
                 const { data } = await Contacts.getContactsAsync({
@@ -45,7 +45,12 @@ export default function ContactsScreen() {
                 }
             }
             setLoading(false);
-        })();
+        };
+
+        const task = InteractionManager.runAfterInteractions(() => {
+            loadContacts();
+        });
+        return () => task.cancel();
     }, []);
 
     const handleInvite = async (phone: string) => {
@@ -118,6 +123,10 @@ export default function ContactsScreen() {
                     data={search.length >= 3 ? [...filtered, ...globalResults.filter(g => !filtered.some(f => f.residoUser?.id === g.id))] : filtered}
                     keyExtractor={(item) => item.id || item.phone}
                     contentContainerStyle={styles.listContent}
+                    initialNumToRender={15}
+                    maxToRenderPerBatch={20}
+                    windowSize={11}
+                    removeClippedSubviews={true}
                     renderItem={({ item }) => {
                         const isGlobal = !item.name && item.phone;
                         const residoUser = item.residoUser || (isGlobal ? item : null);

@@ -86,6 +86,10 @@ export default function FollowListScreen() {
                     data={list}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={list.length === 0 ? { flex: 1 } : { padding: 16 }}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={9}
+                    removeClippedSubviews={true}
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}

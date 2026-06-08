@@ -66,6 +66,9 @@ model Blog {
   @@index([authorId, isActive, createdAt(sort: Desc), id(sort: Desc)])
   @@index([businessProfileId, isActive, createdAt(sort: Desc), id(sort: Desc)])
   @@index([parentId, authorId, tenantId])
+  // GIN index powers the HASHTAG feed filter (`hashtags has <tag>`); without it
+  // the array membership test seq-scans the whole table at scale.
+  @@index([hashtags], type: Gin)
   @@map("blogs")
 }
 

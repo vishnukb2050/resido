@@ -31,7 +31,11 @@
             ],
             "secrets": [
                 { "name": "JWT_SECRET", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/jwt-secret" },
-                { "name": "CORS_ORIGINS", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/cors-origins" }
+                { "name": "CORS_ORIGINS", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/cors-origins" },
+                { "name": "REDIS_HOST",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-host" },
+                { "name": "REDIS_PORT",     "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-port" },
+                { "name": "REDIS_PASSWORD", "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-password" },
+                { "name": "REDIS_TLS",      "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:resido/${ENV}/redis-tls" }
             ],
             "healthCheck": {
                 "command": ["CMD-SHELL", "wget -q --spider http://localhost:3000/health || exit 1"],

@@ -689,6 +689,7 @@ export default function ThreadScreen() {
                     initialNumToRender={8}
                     maxToRenderPerBatch={5}
                     windowSize={8}
+                    removeClippedSubviews={true}
                     ListFooterComponent={
                         loadingMore ? (
                             <ActivityIndicator style={{ marginVertical: 16 }} color="#1d4ed8" />

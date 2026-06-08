@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { residentApi } from '../services/api';
+import AppImage from '../components/AppImage';
 
 export default function MemberListScreen() {
     const router = useRouter();
@@ -60,10 +61,14 @@ export default function MemberListScreen() {
                     data={members}
                     keyExtractor={(item: any) => item.id}
                     contentContainerStyle={styles.listContent}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={9}
+                    removeClippedSubviews={true}
                     renderItem={({ item }) => (
                         <View style={styles.memberCard}>
-                            <Image 
-                                source={{ uri: item.profilePhoto || 'https://i.pravatar.cc/150?u=' + item.id }} 
+                            <AppImage 
+                                uri={item.profilePhoto || 'https://i.pravatar.cc/150?u=' + item.id} 
                                 style={styles.memberImg} 
                             />
                             <View style={styles.memberInfo}>

@@ -4,6 +4,7 @@ import {
     Req,
     Res,
     Logger,
+    Inject,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
 import { Request, Response } from 'express';
 import { LRUCache } from 'lru-cache';
+import type Redis from 'ioredis';
 
 @Controller()
 export class ProxyController {
@@ -31,11 +33,45 @@ export class ProxyController {
         allowStale: false,
     });
 
+    /**
+     * Short-lived cache of each user's active session id (single-device policy).
+     * Keeps the per-request Redis read off the hot path while still reacting to
+     * a new login within a few seconds. The empty string is cached to represent
+     * "no active session" so we don't re-hit Redis for users without one.
+     */
+    private readonly sessionCache = new LRUCache<string, string>({
+        max: 50_000,
+        ttl: 10_000,          // 10 seconds
+        allowStale: false,
+    });
+
     constructor(
         private httpService: HttpService,
         private jwtService: JwtService,
         private config: ConfigService,
+        @Inject('REDIS_CLIENT') private redis: Redis,
     ) {}
+
+    /**
+     * Resolve the user's active session id. Reads from a 10s cache by default;
+     * pass `fresh` to bypass the cache (used to confirm a mismatch before we
+     * actually reject, so a freshly-logged-in device is never wrongly kicked by
+     * a stale cached value).
+     */
+    private async getActiveSid(userId: string, fresh = false): Promise<string | null> {
+        if (!fresh) {
+            const cached = this.sessionCache.get(userId);
+            if (cached !== undefined) return cached || null;
+        }
+        let val: string | null = null;
+        try {
+            val = await this.redis.get(`session:${userId}`);
+        } catch {
+            // Redis unreachable → fail open (cache the miss briefly).
+        }
+        this.sessionCache.set(userId, val || '');
+        return val;
+    }
 
     /**
      * Downstream service base URLs. On ECS these are injected via Cloud Map
@@ -153,6 +189,7 @@ export class ProxyController {
         delete headers['x-user-id'];
         delete headers['x-user-role'];
         delete headers['x-user-phone'];
+        delete headers['x-user-sid'];
         delete headers['x-tenant-id'];
         delete headers['x-db-name'];
         delete headers['x-user-member-id'];
@@ -167,9 +204,31 @@ export class ProxyController {
             const token = authHeader.split(' ')[1];
             try {
                 const payload = this.verifyTokenWithCache(token);
+
+                // ── Single-device enforcement ──────────────────────────────
+                // Reject the request if this token's session id no longer
+                // matches the user's active session (i.e. they logged in on
+                // another device). A mismatch is double-checked against Redis
+                // directly so a just-logged-in device is never kicked by a
+                // stale cached value. Users with no active session recorded
+                // (legacy tokens before this feature) are left untouched.
+                if (payload.sub && !isPublic) {
+                    let activeSid = await this.getActiveSid(payload.sub);
+                    if (activeSid && activeSid !== payload.sid) {
+                        activeSid = await this.getActiveSid(payload.sub, true);
+                        if (activeSid && activeSid !== payload.sid) {
+                            return res.status(401).json({
+                                message: 'Logged in on another device',
+                                code: 'SESSION_REPLACED',
+                            });
+                        }
+                    }
+                }
+
                 if (payload.sub) headers['x-user-id'] = payload.sub;
                 if (payload.phone) headers['x-user-phone'] = payload.phone;
                 if (payload.role) headers['x-user-role'] = payload.role;
+                if (payload.sid) headers['x-user-sid'] = payload.sid;
                 if (payload.tenantId) {
                     headers['x-tenant-id'] = payload.tenantId;
                 } else if (
