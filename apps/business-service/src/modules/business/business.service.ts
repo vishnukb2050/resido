@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException, ForbiddenException, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Prisma } from '@resido/business-client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationResolverService } from './location-resolver.service';
@@ -85,14 +85,63 @@ function expandPlaceAliases(name?: string): string[] {
 }
 
 @Injectable()
-export class BusinessService {
+export class BusinessService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(BusinessService.name);
+    private flushInterval: NodeJS.Timeout | null = null;
 
     constructor(
         private prisma: PrismaService,
         private locationResolver: LocationResolverService,
         @Inject('REDIS_CLIENT') private redis: Redis,
     ) {}
+
+    onModuleInit() {
+        // Flush profile views from Redis buffer to Postgres every 5 minutes
+        this.flushInterval = setInterval(async () => {
+            try {
+                await this.flushProfileViews();
+            } catch (err: any) {
+                this.logger.error(`[BusinessService] Error flushing profile views: ${err?.message}`);
+            }
+        }, 5 * 60 * 1000);
+    }
+
+    onModuleDestroy() {
+        if (this.flushInterval) {
+            clearInterval(this.flushInterval);
+        }
+    }
+
+    async flushProfileViews() {
+        try {
+            const pendingIds = await this.redis.smembers('business:views:pending');
+            if (!pendingIds || pendingIds.length === 0) return;
+
+            // Remove them from the pending set
+            await this.redis.srem('business:views:pending', ...pendingIds);
+
+            for (const profileId of pendingIds) {
+                const redisKey = `business:views:${profileId}`;
+                const viewsStr = await this.redis.getset(redisKey, '0');
+                const views = parseInt(viewsStr || '0', 10);
+                if (views > 0) {
+                    try {
+                        await this.prisma.businessProfile.update({
+                            where: { id: profileId },
+                            data: { viewCount: { increment: views } },
+                        });
+                    } catch (err: any) {
+                        this.logger.error(`Failed to flush views for business profile ${profileId}: ${err?.message}`);
+                        // Put them back in the buffer to retry
+                        await this.redis.incrby(redisKey, views);
+                        await this.redis.sadd('business:views:pending', profileId);
+                    }
+                }
+            }
+        } catch (err: any) {
+            this.logger.error(`Failed to execute flushProfileViews: ${err?.message}`);
+        }
+    }
 
     /**
      * Build the SQL fragment that tests whether ANY value inside the
@@ -670,12 +719,21 @@ export class BusinessService {
             if (viewerId && profile.userId === viewerId) {
                 return { ok: true, skipped: true };
             }
-            const updated = await this.prisma.businessProfile.update({
-                where: { id: profileId },
-                data: { viewCount: { increment: 1 } },
-                select: { viewCount: true },
-            });
-            return { ok: true, viewCount: updated.viewCount };
+
+            const redisKey = `business:views:${profileId}`;
+            try {
+                await this.redis.incr(redisKey);
+                await this.redis.sadd('business:views:pending', profileId);
+                return { ok: true };
+            } catch (redisErr: any) {
+                this.logger.warn(`[trackProfileView] Redis write failed, falling back to DB write: ${redisErr?.message}`);
+                const updated = await this.prisma.businessProfile.update({
+                    where: { id: profileId },
+                    data: { viewCount: { increment: 1 } },
+                    select: { viewCount: true },
+                });
+                return { ok: true, viewCount: updated.viewCount };
+            }
         } catch (err: any) {
             console.warn('[trackProfileView] failed', err?.message);
             return { ok: false };
@@ -907,11 +965,11 @@ export class BusinessService {
             this.logger.error(`Failed to read categories cache from Redis: ${e?.message}`);
         }
 
-        const profiles = await this.prisma.reader.businessProfile.findMany({
-            select: { category: true },
+        const groups = await this.prisma.reader.businessProfile.groupBy({
+            by: ['category'],
             where: { isActive: true }
         });
-        const categories = Array.from(new Set(profiles.map(p => p.category as string).filter(Boolean)));
+        const categories = groups.map(g => g.category as string).filter(Boolean);
         const sorted = categories.sort((a, b) => a.localeCompare(b));
 
         try {

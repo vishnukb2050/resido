@@ -10,5 +10,8 @@
     "scripts": {
         "build:all": "npm run build --workspaces",
         "lint:all": "npm run lint --workspaces"
+    },
+    "devDependencies": {
+        "@types/uuid": "^10.0.0"
     }
 }

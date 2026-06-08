@@ -73,6 +73,9 @@ export class CommunityService {
      *   - resident-service Member.id (CUID)
      *   - auth-service User.id (CUID stored in Member.userId)
      *   - phone (from the JWT, unique within the tenant)
+     *
+     * Results are cached in Redis under `member:{tenantId}:{key}` for 5 minutes
+     * to eliminate the repeated multi-OR DB fan-out on every community request.
      * When found via phone, links `Member.userId` so future lookups hit fast.
      */
     private async resolveMember(input: {
@@ -81,6 +84,26 @@ export class CommunityService {
         phone?: string | null;
     }) {
         const { candidateId, authUserId, phone } = input;
+        const tenantId = PrismaService.als.getStore()?.tenantId ?? 'default';
+        const CACHE_TTL = 300; // 5 minutes
+
+        // Build an ordered list of cache keys to check (most specific first).
+        const cacheKeys: string[] = [];
+        if (authUserId) cacheKeys.push(`member:${tenantId}:u:${authUserId}`);
+        if (candidateId && candidateId !== authUserId) cacheKeys.push(`member:${tenantId}:u:${candidateId}`);
+        if (phone) cacheKeys.push(`member:${tenantId}:p:${phone}`);
+
+        // Check cache before hitting DB.
+        for (const key of cacheKeys) {
+            try {
+                const cached = await this.redis.get(key);
+                if (cached) return JSON.parse(cached);
+            } catch {
+                // Cache miss or parse error — fall through to DB
+            }
+        }
+
+        // Cache miss — build the OR filter and query the replica.
         const ors: any[] = [];
         if (candidateId) ors.push({ id: candidateId }, { userId: candidateId });
         if (authUserId && authUserId !== candidateId) {
@@ -95,18 +118,46 @@ export class CommunityService {
         });
         if (!member) return null;
 
-        // Auto-link the member's userId so subsequent lookups don't depend on phone
+        // Auto-link the member's userId so subsequent lookups don't depend on phone.
         if (authUserId && !member.userId) {
             try {
                 await this.prisma.client.member.update({
                     where: { id: member.id },
                     data: { userId: authUserId },
                 });
+                // Reflect the link in the object we are about to cache.
+                (member as any).userId = authUserId;
             } catch (err: any) {
                 console.warn(`[resolveMember] auto-link userId failed for ${member.id}:`, err?.message);
             }
         }
+
+        // Populate all cache keys so any future lookup variant is a cache hit.
+        const serialized = JSON.stringify(member);
+        const pipeline = this.redis.pipeline();
+        if (authUserId) pipeline.setex(`member:${tenantId}:u:${authUserId}`, CACHE_TTL, serialized);
+        if (candidateId && candidateId !== authUserId) pipeline.setex(`member:${tenantId}:u:${candidateId}`, CACHE_TTL, serialized);
+        if (phone) pipeline.setex(`member:${tenantId}:p:${phone}`, CACHE_TTL, serialized);
+        // Always cache by the canonical member id so direct-id lookups are fast too.
+        pipeline.setex(`member:${tenantId}:u:${member.id}`, CACHE_TTL, serialized);
+        pipeline.exec().catch((err: any) =>
+            console.warn('[resolveMember] Redis pipeline error:', err?.message),
+        );
+
         return member;
+    }
+
+    /**
+     * Invalidates all Redis cache entries for a member.
+     * Call this after any mutation that changes member identity fields
+     * (role change, phone update, deactivation).
+     */
+    async invalidateMemberCache(member: { id: string; userId?: string | null; phone?: string | null }) {
+        const tenantId = PrismaService.als.getStore()?.tenantId ?? 'default';
+        const keys: string[] = [`member:${tenantId}:u:${member.id}`];
+        if (member.userId) keys.push(`member:${tenantId}:u:${member.userId}`);
+        if (member.phone) keys.push(`member:${tenantId}:p:${member.phone}`);
+        if (keys.length) await this.redis.del(...keys);
     }
 
     // ─── Complaints ─────────────────────────────────────────────

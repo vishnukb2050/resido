@@ -94,6 +94,7 @@ model MediaAsset {
   @@index([tenantId, status])
   @@index([blogId, tenantId])
   @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([ownerUserId, createdAt(sort: Desc)])
   @@map("media_assets")
 }
 

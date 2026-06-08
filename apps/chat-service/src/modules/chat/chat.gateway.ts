@@ -36,7 +36,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         // isolated by tenantId).
         let payload: any;
         try {
-            payload = this.jwtService.verify(token, {
+            payload = await this.jwtService.verifyAsync(token, {
                 secret: this.config.get('JWT_SECRET'),
             });
         } catch {

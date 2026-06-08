@@ -515,13 +515,20 @@ export class BlogsService {
 
         const collected: any[] = [];
         let scanCursor = this.decodeFeedCursor(cursor);
-        const maxScans = 6;
+        // Reduced from 6 → 3: the larger first-batch means one DB trip covers
+        // most feeds. A second/third scan only kicks in for feeds where the
+        // majority of candidates are hidden by author profile visibility rules.
+        const maxScans = 3;
 
         for (let scan = 0; scan < maxScans && collected.length < needCount; scan++) {
+            // First scan uses a 6× window so we almost always have enough
+            // visible posts in one DB round trip. Continuation scans fall back
+            // to the 3× window to avoid over-fetching.
+            const batchSize = scan === 0 ? Math.max(pageSize * 6, 60) : Math.max(pageSize * 3, 30);
             const batch = await this.prisma.reader.blog.findMany({
                 where: this.applyFeedCursor(where, scanCursor),
                 orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-                take: Math.max(pageSize * 3, 30),
+                take: batchSize,
                 include: this.blogListInclude(userId) as any,
             });
 
@@ -534,7 +541,9 @@ export class BlogsService {
 
             let visible = batch;
             if (!skipVisibilityPass && userId) {
-                const authorIds = batch.map((b: any) => b.authorId).filter(Boolean);
+                // Fetch all unique author visibilities for this batch in one
+                // batched call (MGET from Redis, HTTP only for cache misses).
+                const authorIds = [...new Set(batch.map((b: any) => b.authorId).filter(Boolean))] as string[];
                 const authorVisibilities = await this.fetchAuthorVisibilities(authorIds);
                 visible = batch.filter((b: any) => {
                     if (!this.canSee(
@@ -555,7 +564,7 @@ export class BlogsService {
             }
 
             collected.push(...visible);
-            if (batch.length < Math.max(pageSize * 3, 30)) break;
+            if (batch.length < batchSize) break;
         }
 
         const hasMore = collected.length > pageSize;
