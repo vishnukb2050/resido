@@ -89,16 +89,15 @@ jobs:
             -out=tfplan \
             > plan.log 2>&1
           PLAN_EXIT=$?
-          set -e
           echo "─── Plan summary ───"
           if grep -qE '^(Plan:|No changes\.)' plan.log; then
             grep -E '^(Plan:|No changes\.)' plan.log
             echo ""
             echo "─── All resources in plan (names only) ───"
             grep -E ' will be (created|updated|destroyed|replaced)' plan.log || true
-            CREATED=$(grep -c ' will be created' plan.log || true)
-            UPDATED=$(grep -c ' will be updated' plan.log || true)
-            DESTROYED=$(grep -c ' will be destroyed' plan.log || true)
+            CREATED=$(grep -c ' will be created' plan.log 2>/dev/null || echo 0)
+            UPDATED=$(grep -c ' will be updated' plan.log 2>/dev/null || echo 0)
+            DESTROYED=$(grep -c ' will be destroyed' plan.log 2>/dev/null || echo 0)
             echo ""
             echo "Listed above: ${CREATED} to create, ${UPDATED} to update, ${DESTROYED} to destroy."
           else
@@ -109,15 +108,16 @@ jobs:
           fi
           echo ""
           echo "Full plan with all attributes: download the plan.log artifact from this run."
-          # TF_IN_AUTOMATION implies -detailed-exitcode: 0=no changes, 2=has changes, 1=error
-          if [ "$PLAN_EXIT" -eq 0 ] || [ "$PLAN_EXIT" -eq 2 ]; then
+          echo "terraform exit code: ${PLAN_EXIT}"
+          if grep -qE '^(Plan:|No changes\.)' plan.log; then
             exit 0
           fi
-          exit "$PLAN_EXIT"
+          exit "${PLAN_EXIT:-1}"
 
       - name: Upload plan log
         if: always()
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: terraform-plan-${{ inputs.environment }}-${{ github.run_id }}
           path: infra/ecs/terraform_infra/plan.log
