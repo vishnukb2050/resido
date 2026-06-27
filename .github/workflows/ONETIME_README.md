@@ -18,7 +18,7 @@ workflow separately in that order.
 
 | What | Where | Notes |
 | --- | --- | --- |
-| **Infra (VPC, RDS, ECS, ECR)** | `terraform.yml` → `infra/ecs/terraform_infra/` | Uses `envs/dev.tfvars` or `envs/prod.tfvars`. |
+| **Infra (VPC, RDS, ECS, ECR)** | `terraform-apply.yml` → `infra/ecs/terraform_infra/` | Plan first with `terraform.yml` if you want a dry run. Uses `envs/dev.tfvars` or `envs/prod.tfvars`. |
 | **ECR login** | GitHub secrets + vars | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ACCOUNT_ID`, `AWS_REGION`. |
 | **DB URLs, Redis** | AWS Secrets Manager | Auto-filled by Terraform (`wire_terraform_infra_secrets=true`). |
 | **JWT, MSG91, R2, Firebase** | AWS Secrets Manager | Start as `REPLACE_ME_*`; update after first `terraform apply`. |

@@ -346,7 +346,7 @@ Resido has a modular CI/CD pipeline built with GitHub Actions located in `.githu
 ### Pipeline Orchestration
 The primary entry point is the **Release** pipeline (`release.yml`), manually triggered from the Actions tab for **dev** or **prod**. It chains four stages in order:
 
-1. **Terraform (`terraform.yml`)** — optional (`run_terraform=true` on first deploy): VPC, RDS, Redis, ECS, Secrets Manager, ALB.
+1. **Terraform Apply (`terraform-apply.yml`)** — optional (`run_terraform=true` on first deploy): VPC, RDS, Redis, ECS, Secrets Manager, ALB. Use **Terraform Plan** (`terraform.yml`) to preview first.
 2. **Database Migration (`db-migrate.yml`)** — `prisma migrate deploy` via one-off ECS tasks (builds auth/notification/chat images first). Creates logical DBs + tables. Never `db push`.
 3. **Build & Push (`build-and-push.yml`)** — builds all 9 service images (parallel matrix) and pushes to ECR.
 4. **Rolling Deployment (`deploy.yml`)** — registers task definitions and updates ECS services.

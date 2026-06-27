@@ -38,7 +38,8 @@ them):
 
 | Workflow file        | Manual trigger name   |
 | -------------------- | --------------------- |
-| `terraform.yml`      | **Terraform**         |
+| `terraform.yml`       | **Terraform Plan** (preview only) |
+| `terraform-apply.yml` | **Terraform Apply** (creates infra) |
 | `db-migrate.yml`     | **DB Migrate**        |
 | `build-and-push.yml` | **Build & Push**      |
 | `deploy.yml`         | **Deploy**            |
@@ -262,7 +263,7 @@ Consider a **separate IAM user** for Terraform vs deploy pipelines in prod.
 - [ ] GitHub Environment `dev` created
 - [ ] 2 secrets set
 - [ ] `TF_STATE_BUCKET` set (matches an existing S3 bucket in AWS)
-- [ ] Terraform workflow run successfully
+- [ ] Terraform Apply workflow run successfully
 - [ ] Remaining 7 variables filled from `terraform output`
 - [ ] AWS Secrets Manager placeholders updated
 - [ ] Release (or Migrate → Build → Deploy) run successfully

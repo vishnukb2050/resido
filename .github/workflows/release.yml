@@ -2,7 +2,7 @@ name: Release (terraform → migrate → build → deploy)
 
 # Full release orchestrator. Stages run in order:
 #
-#   1. terraform.yml       — VPC, RDS, Redis, ECS, Secrets (optional)
+#   1. terraform-apply.yml — VPC, RDS, Redis, ECS, Secrets (optional)
 #   2. db-migrate.yml      — prisma migrate deploy (builds 3 migration images first)
 #   3. build-and-push.yml  — build ALL service images → ECR
 #   4. deploy.yml          — rolling ECS deploy
@@ -65,11 +65,9 @@ jobs:
     name: terraform
     needs: prepare
     if: ${{ inputs.run_terraform }}
-    uses: ./.github/workflows/terraform.yml
+    uses: ./.github/workflows/terraform-apply.yml
     with:
       environment: ${{ inputs.environment }}
-      action: apply
-      auto_approve: true
     secrets: inherit
 
   migrate:

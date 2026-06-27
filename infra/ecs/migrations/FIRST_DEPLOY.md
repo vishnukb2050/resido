@@ -5,7 +5,7 @@
 Use **`release.yml`** with **`run_terraform=true`** and **`run_migrate=true`** on first
 deploy, or run stages manually in order:
 
-1. **Terraform** (`terraform.yml`) — `dev` or `prod`
+1. **Terraform Apply** (`terraform-apply.yml`) — `dev` or `prod` (optional **Terraform Plan** first)
 2. **DB Migrate** (`db-migrate.yml`) — `prisma migrate deploy`
 3. **Build & Push** (`build-and-push.yml`) — all services
 4. **Deploy** (`deploy.yml`)

@@ -1,7 +1,7 @@
-name: Terraform Plan (ECS infra)
+name: Terraform Apply (ECS infra)
 
-# Preview infra changes only — does not create or modify AWS resources.
-# To apply, run the separate "Terraform Apply" workflow.
+# Creates or updates AWS infra (VPC, RDS, Redis, ECS, Secrets, etc.).
+# Run Terraform Plan first to review changes, then apply when ready.
 
 on:
   workflow_dispatch:
@@ -12,6 +12,11 @@ on:
         required: true
         default: dev
         options: [dev, prod]
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -21,8 +26,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  plan:
-    name: terraform plan (${{ inputs.environment }})
+  apply:
+    name: terraform apply (${{ inputs.environment }})
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     env:
@@ -75,16 +80,26 @@ jobs:
           set -euo pipefail
           terraform plan \
             -var-file="envs/${{ inputs.environment }}.tfvars" \
-            -input=false
+            -input=false \
+            -out=tfplan
+
+      - name: Terraform apply
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Print CI env exports
+        run: |
+          echo "─── ci_env_exports (copy to local shell or GitHub vars) ───"
+          terraform output -raw ci_env_exports || true
+          echo ""
+          echo "─── secrets still using REPLACE_ME placeholders ───"
+          terraform output -json secrets_requiring_manual_update 2>/dev/null || true
 
       - name: Summary
         if: always()
         run: |
           {
-            echo "### Terraform Plan"
+            echo "### Terraform Apply"
             echo "- Environment: \`${{ inputs.environment }}\`"
             echo "- State bucket: \`${{ vars.TF_STATE_BUCKET }}\`"
             echo "- Result: ${{ job.status }}"
-            echo ""
-            echo "To create or update resources, run **Terraform Apply** for this environment."
           } >> "$GITHUB_STEP_SUMMARY"
