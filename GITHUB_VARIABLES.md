@@ -4,6 +4,17 @@ Configure per environment: **`dev`** and **`prod`**
 
 Settings → Environments → `<env>` → Environment variables / Environment secrets
 
+## Terraform pipelines (manual, separate)
+
+Actions → pick the workflow → **Run workflow** → choose `dev` or `prod`.
+
+| Step | Workflow in Actions sidebar | What it does |
+|------|----------------------------|--------------|
+| 1 (optional) | **Terraform Plan (ECS infra)** | Preview changes only — no AWS resources created |
+| 2 | **Terraform Apply (ECS infra)** | Plan + apply — creates/updates VPC, RDS, ECS, secrets, etc. |
+
+`Terraform Plan` and `Terraform Apply` are **two different workflows** (not a dropdown inside one). After apply, copy outputs into the variables below.
+
 ## Secrets (set before any pipeline run)
 
 - `AWS_ACCESS_KEY_ID`

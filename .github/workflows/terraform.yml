@@ -1,7 +1,7 @@
-name: Terraform Plan (ECS infra)
+name: Terraform · Plan (ECS infra)
 
 # Preview infra changes only — does not create or modify AWS resources.
-# To apply, run the separate "Terraform Apply" workflow.
+# To apply: Actions → "Terraform · Apply (ECS infra)" → Run workflow → dev or prod.
 
 on:
   workflow_dispatch:
@@ -47,6 +47,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
+          terraform_wrapper: false
 
       - name: Validate Terraform backend config
         run: |
@@ -75,7 +76,20 @@ jobs:
           set -euo pipefail
           terraform plan \
             -var-file="envs/${{ inputs.environment }}.tfvars" \
-            -input=false
+            -input=false \
+            -compact-warnings \
+            2>&1 | tee plan.log
+          echo ""
+          echo "─── Plan summary ───"
+          grep -E '^(Plan:|No changes\.)' plan.log || tail -20 plan.log
+
+      - name: Upload plan log
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}-${{ github.run_id }}
+          path: infra/ecs/terraform_infra/plan.log
+          retention-days: 7
 
       - name: Summary
         if: always()
@@ -86,5 +100,5 @@ jobs:
             echo "- State bucket: \`${{ vars.TF_STATE_BUCKET }}\`"
             echo "- Result: ${{ job.status }}"
             echo ""
-            echo "To create or update resources, run **Terraform Apply** for this environment."
+            echo "To create or update resources, run **Terraform · Apply (ECS infra)** for this environment."
           } >> "$GITHUB_STEP_SUMMARY"

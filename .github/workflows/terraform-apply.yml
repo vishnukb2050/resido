@@ -1,4 +1,4 @@
-name: Terraform Apply (ECS infra)
+name: Terraform · Apply (ECS infra)
 
 # Creates or updates AWS infra (VPC, RDS, Redis, ECS, Secrets, etc.).
 # Run Terraform Plan first to review changes, then apply when ready.
@@ -52,6 +52,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
+          terraform_wrapper: false
 
       - name: Validate Terraform backend config
         run: |
@@ -81,7 +82,12 @@ jobs:
           terraform plan \
             -var-file="envs/${{ inputs.environment }}.tfvars" \
             -input=false \
-            -out=tfplan
+            -compact-warnings \
+            -out=tfplan \
+            2>&1 | tee plan.log
+          echo ""
+          echo "─── Plan summary ───"
+          grep -E '^(Plan:|No changes\.)' plan.log || tail -20 plan.log
 
       - name: Terraform apply
         run: terraform apply -input=false -auto-approve tfplan

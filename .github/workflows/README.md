@@ -54,8 +54,8 @@ Actions → **Release** →
 
 ### Individual stages
 
-- **Terraform plan only:** Actions → **Terraform Plan** → `dev` or `prod`
-- **Terraform apply:** Actions → **Terraform Apply** → `dev` or `prod`
+- **Terraform plan only:** Actions → **Terraform · Plan (ECS infra)** → `dev` or `prod`
+- **Terraform apply:** Actions → **Terraform · Apply (ECS infra)** → `dev` or `prod`
 - **Migrations only:** Actions → **DB Migrate**
 - **Build only:** Actions → **Build & Push**
 - **Deploy only:** Actions → **Deploy** (no migrations)

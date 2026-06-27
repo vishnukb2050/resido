@@ -38,8 +38,8 @@ them):
 
 | Workflow file        | Manual trigger name   |
 | -------------------- | --------------------- |
-| `terraform.yml`       | **Terraform Plan** (preview only) |
-| `terraform-apply.yml` | **Terraform Apply** (creates infra) |
+| `terraform.yml` | **Terraform · Plan** (preview only) |
+| `terraform-apply.yml` | **Terraform · Apply** (creates infra) |
 | `db-migrate.yml`     | **DB Migrate**        |
 | `build-and-push.yml` | **Build & Push**      |
 | `deploy.yml`         | **Deploy**            |
