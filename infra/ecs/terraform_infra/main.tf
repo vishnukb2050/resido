@@ -83,21 +83,21 @@ locals {
   # Connection strings for every logical database the app uses. `ensure-databases.js`
   # (run by the db-migrate ECS task) creates the DBs that RDS does not bootstrap.
   terraform_db_secrets = var.wire_terraform_infra_secrets ? {
-    RDS_WRITE_URL         = "${local.rds_pg_base}/postgres"
-    RDS_READ_URL          = "${local.rds_pg_base}/postgres"
-    MASTER_WRITE_URL      = "${local.rds_pg_base}/resido_master?schema=public"
-    MASTER_READ_URL       = "${local.rds_pg_base}/resido_master?schema=public"
-    USER_WRITE_URL        = "${local.rds_pg_base}/resido_users?schema=public"
-    USER_READ_URL         = "${local.rds_pg_base}/resido_users?schema=public"
-    CORE_WRITE_URL        = "${local.rds_pg_base}/resido_core?schema=public"
-    CORE_READ_URL         = "${local.rds_pg_base}/resido_core?schema=public"
-    GEO_WRITE_URL         = "${local.rds_pg_base}/resido_geodata?schema=public"
-    GEO_READ_URL          = "${local.rds_pg_base}/resido_geodata?schema=public"
-    CHAT_WRITE_URL        = "${local.rds_pg_base}/resido_chat?schema=public"
-    CHAT_READ_URL         = "${local.rds_pg_base}/resido_chat?schema=public"
+    RDS_WRITE_URL          = "${local.rds_pg_base}/postgres"
+    RDS_READ_URL           = "${local.rds_pg_base}/postgres"
+    MASTER_WRITE_URL       = "${local.rds_pg_base}/resido_master?schema=public"
+    MASTER_READ_URL        = "${local.rds_pg_base}/resido_master?schema=public"
+    USER_WRITE_URL         = "${local.rds_pg_base}/resido_users?schema=public"
+    USER_READ_URL          = "${local.rds_pg_base}/resido_users?schema=public"
+    CORE_WRITE_URL         = "${local.rds_pg_base}/resido_core?schema=public"
+    CORE_READ_URL          = "${local.rds_pg_base}/resido_core?schema=public"
+    GEO_WRITE_URL          = "${local.rds_pg_base}/resido_geodata?schema=public"
+    GEO_READ_URL           = "${local.rds_pg_base}/resido_geodata?schema=public"
+    CHAT_WRITE_URL         = "${local.rds_pg_base}/resido_chat?schema=public"
+    CHAT_READ_URL          = "${local.rds_pg_base}/resido_chat?schema=public"
     NOTIFICATION_WRITE_URL = "${local.rds_pg_base}/resido_notifications?schema=public"
-    AUTH_DATABASE_URL     = "${local.rds_pg_base}/resido_master?schema=public"
-    TENANT_DATABASE_URL   = "${local.rds_pg_base}/resido_core?schema=public"
+    AUTH_DATABASE_URL      = "${local.rds_pg_base}/resido_master?schema=public"
+    TENANT_DATABASE_URL    = "${local.rds_pg_base}/resido_core?schema=public"
   } : {}
 
   # ElastiCache from this stack is a single non-TLS node (no AUTH token). Apps
@@ -313,7 +313,7 @@ module "ecs" {
   service_desired_count_default = var.service_desired_count_default
   service_overrides             = var.service_overrides
 
-  enable_autoscaling     = var.enable_ecs_autoscaling
+  enable_autoscaling       = var.enable_ecs_autoscaling
   autoscaling_max_capacity = var.ecs_autoscaling_max_capacity
   autoscaling_cpu_target   = var.ecs_autoscaling_cpu_target
 

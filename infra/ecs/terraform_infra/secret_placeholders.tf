@@ -29,9 +29,9 @@ locals {
 
   default_secret_placeholders = {
     # ─── Auth / gateway (operator) ───────────────────────────────────────────
-    CORS_ORIGINS            = "REPLACE_ME_CORS_ORIGINS"
-    THROTTLE_LIMIT          = "120"
-    THROTTLE_TTL            = "60000"
+    CORS_ORIGINS   = "REPLACE_ME_CORS_ORIGINS"
+    THROTTLE_LIMIT = "120"
+    THROTTLE_TTL   = "60000"
 
     # ─── MSG91 OTP (operator) ────────────────────────────────────────────────
     MSG91_AUTH_KEY    = "REPLACE_ME_MSG91_AUTH_KEY"

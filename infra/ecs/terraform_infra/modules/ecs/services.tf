@@ -65,6 +65,7 @@ resource "aws_ecs_task_definition" "svc" {
         }
       },
       try(each.value.worker, false) ? {
+        portMappings = []
         healthCheck = {
           command     = ["CMD-SHELL", "pgrep -f 'node dist/worker' >/dev/null || exit 1"]
           interval    = 30
