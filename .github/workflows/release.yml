@@ -1,14 +1,14 @@
-name: Release (build → migrate → deploy)
+name: Release (terraform → migrate → build → deploy)
 
-# One-click release orchestrator. Runs the three stages in order, reusing the
-# same image tag throughout:
+# Full release orchestrator. Stages run in order:
 #
-#   1. build-and-push.yml  — build all images, push to ECR
-#   2. db-migrate.yml      — prisma migrate deploy (only if run_migrate = true)
-#   3. deploy.yml          — rolling ECS deploy (waits for migrations first)
+#   1. terraform.yml       — VPC, RDS, Redis, ECS, Secrets (optional)
+#   2. db-migrate.yml      — prisma migrate deploy (builds 3 migration images first)
+#   3. build-and-push.yml  — build ALL service images → ECR
+#   4. deploy.yml          — rolling ECS deploy
 #
-# Run individual stages from their own workflows when you need to; use this
-# when you want the full, ordered release.
+# First-time bootstrap: run_terraform=true, run_migrate=true, services=all.
+# Normal code release:   run_terraform=false, run_migrate=true (or false if no schema change).
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ on:
         type: choice
         required: true
         default: prod
-        options: [prod, staging]
+        options: [dev, prod]
       image_tag:
         description: "Image tag for the whole release (defaults to commit SHA)"
         type: string
@@ -29,8 +29,13 @@ on:
         type: string
         required: false
         default: all
+      run_terraform:
+        description: Run Terraform apply before migrate (first deploy or infra change)
+        type: boolean
+        required: true
+        default: false
       run_migrate:
-        description: Run DB migrations before deploying
+        description: Run DB migrations after infra (before full build)
         type: boolean
         required: true
         default: true
@@ -56,9 +61,35 @@ jobs:
           echo "image_tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Release tag: $tag"
 
+  terraform:
+    name: terraform
+    needs: prepare
+    if: ${{ inputs.run_terraform }}
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: ${{ inputs.environment }}
+      action: apply
+      auto_approve: true
+    secrets: inherit
+
+  migrate:
+    name: db migrate
+    needs: [prepare, terraform]
+    if: >-
+      ${{ inputs.run_migrate
+          && (needs.terraform.result == 'success' || needs.terraform.result == 'skipped') }}
+    uses: ./.github/workflows/db-migrate.yml
+    with:
+      environment: ${{ inputs.environment }}
+      image_tag: ${{ needs.prepare.outputs.image_tag }}
+    secrets: inherit
+
   build:
     name: build & push
-    needs: prepare
+    needs: [prepare, terraform, migrate]
+    if: >-
+      ${{ (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
+          && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
     uses: ./.github/workflows/build-and-push.yml
     with:
       environment: ${{ inputs.environment }}
@@ -66,23 +97,12 @@ jobs:
       services: ${{ inputs.services }}
     secrets: inherit
 
-  migrate:
-    name: db migrate
-    needs: [prepare, build]
-    if: ${{ inputs.run_migrate }}
-    uses: ./.github/workflows/db-migrate.yml
-    with:
-      environment: ${{ inputs.environment }}
-      image_tag: ${{ needs.prepare.outputs.image_tag }}
-    secrets: inherit
-
   deploy:
     name: deploy
-    needs: [prepare, build, migrate]
-    # Run when build succeeded and migrate either succeeded or was skipped.
+    needs: [prepare, terraform, migrate, build]
     if: >-
-      ${{ always()
-          && needs.build.result == 'success'
+      ${{ needs.build.result == 'success'
+          && (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
           && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
     uses: ./.github/workflows/deploy.yml
     with:

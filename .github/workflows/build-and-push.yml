@@ -3,8 +3,8 @@ name: Build & Push (ECR)
 # Builds Resido service Docker images and pushes them to ECR.
 # Wraps infra/ecs/scripts/build-and-push.sh (one job per service, in parallel).
 #
-# Run standalone (workflow_dispatch) or as the first stage of release.yml
-# (workflow_call).
+# Run standalone (workflow_dispatch) or as stage 3 of release.yml
+# (after terraform + migrate).
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
         type: choice
         required: true
         default: prod
-        options: [prod, staging]
+        options: [dev, prod]
       image_tag:
         description: "Image tag (defaults to commit SHA)"
         type: string

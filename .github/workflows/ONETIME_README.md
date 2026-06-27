@@ -1,95 +1,98 @@
 # One-Time CI/CD Setup — Resido
 
-Do this once per AWS environment before running any pipeline
-(`build-and-push.yml`, `db-migrate.yml`, `deploy.yml`, `release.yml`).
+Do this once per AWS environment (`dev` and `prod`) before running pipelines.
 
-## Where to configure things (quick map)
+## Pipeline order (dev and prod)
+
+```
+1. Terraform     →  VPC, ECR, ALB, RDS, Redis, Secrets, ECS cluster
+2. DB Migrate    →  ensure-databases.js + prisma migrate deploy
+3. Build & Push  →  all 9 service images to ECR
+4. Deploy        →  rolling ECS update
+```
+
+Use **Release** with `run_terraform=true` for first bootstrap, or run each
+workflow separately in that order.
+
+## Where to configure things
 
 | What | Where | Notes |
 | --- | --- | --- |
-| **ECR login** | GitHub Environment **secrets** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` + **vars** `AWS_ACCOUNT_ID`, `AWS_REGION` | Pipeline configures these IAM-user credentials, then `amazon-ecr-login` gets a short-lived ECR token. No ECR username/password is stored directly. |
-| **ECR registry URL** | Derived automatically | `{AWS_ACCOUNT_ID}.dkr.ecr.{AWS_REGION}.amazonaws.com` — set only account + region in vars. |
-| **ECR repository names** | Terraform + code convention | One repo per service, name = folder name (`auth-service`, `chat-service`, …). Defined in `infra/ecs/terraform_infra/main.tf` → `service_repository_names`. Pipelines push to that name; you do **not** configure repo names in GitHub. |
-| **DB URLs, JWT, R2, MSG91, etc.** | AWS **Secrets Manager** (from `infra/.env` on first Terraform apply) | Used by **running ECS tasks** and the **db-migrate** ECS task — **not** by the GitHub build/deploy jobs. See `infra/ecs/CONFIGURATION.md`. |
-| **ECS cluster, subnets, task roles** | GitHub Environment **variables** (table below) | Used by migrate + deploy pipelines. |
+| **Infra (VPC, RDS, ECS, ECR)** | `terraform.yml` → `infra/ecs/terraform_infra/` | Uses `envs/dev.tfvars` or `envs/prod.tfvars`. |
+| **ECR login** | GitHub secrets + vars | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ACCOUNT_ID`, `AWS_REGION`. |
+| **DB URLs, Redis** | AWS Secrets Manager | Auto-filled by Terraform (`wire_terraform_infra_secrets=true`). |
+| **JWT, MSG91, R2, Firebase** | AWS Secrets Manager | Start as `REPLACE_ME_*`; update after first `terraform apply`. |
+| **ECS cluster, subnets, roles** | GitHub Environment **variables** | Copy from `terraform output` after first apply. |
 
-**GitHub UI path:** repo → **Settings** → **Environments** → `prod` (or `staging`) → **Environment variables** / **Environment secrets**.
+**GitHub UI:** repo → **Settings** → **Environments** → `dev` or `prod`.
+
+Full variable/secret guide: **[`GITHUB_ENVIRONMENT_VARIABLES.md`](../GITHUB_ENVIRONMENT_VARIABLES.md)**
 
 ---
 
-## 1. Create a GitHub Environment
+## 1. Create GitHub Environments
 
-Under *Settings → Environments*, create one Environment per target:
-`prod` and `staging`. The workflows select the Environment from the
-`environment` input, so each gets its own variables/secrets and (optionally)
-required reviewers.
+Create two environments: **`dev`** and **`prod`**. Each gets its own variables,
+secrets, and optional required reviewers.
+
+The workflow `environment` input must match Terraform tfvars (`dev` / `prod`).
 
 ## 2. Environment variables (`vars.*`)
 
-| Name | Example | Used by |
-| --- | --- | --- |
-| `AWS_REGION` | `ap-south-1` | all |
-| `AWS_ACCOUNT_ID` | `123456789012` | all |
-| `ECS_CLUSTER` | `resido-prod` | migrate, deploy |
-| `ECS_SUBNETS` | `subnet-aaa,subnet-bbb` | migrate (one-off task networking) |
-| `ECS_SECURITY_GROUPS` | `sg-aaa` | migrate (one-off task networking) |
-| `TASK_EXECUTION_ROLE` | `arn:aws:iam::123456789012:role/resido-prod-task-execution` | migrate, deploy |
-| `TASK_ROLE` | `arn:aws:iam::123456789012:role/resido-prod-task` | migrate, deploy |
-| `LOG_GROUP_PREFIX` | `/resido/prod` | deploy (per-service group appended) |
-| `MIGRATE_LOG_GROUP` | `/resido/prod/db-migrate` | migrate |
+See [`VARIABLES.md`](./VARIABLES.md) for the full table. After first Terraform apply:
+
+```bash
+cd infra/ecs/terraform_infra
+terraform init -backend-config=envs/prod.backend.hcl -reconfigure
+terraform output ecs_cluster_name
+terraform output public_subnet_ids
+terraform output ecs_service_security_group_id
+terraform output task_execution_role_arn
+terraform output task_role_arn
+```
 
 ## 3. Environment secrets (`secrets.*`)
 
 | Name | Purpose |
 | --- | --- |
-| `AWS_ACCESS_KEY_ID` | IAM user access key the pipeline uses for AWS (ECR + ECS) |
-| `AWS_SECRET_ACCESS_KEY` | Matching secret key |
-
-These belong to an IAM **user** (programmatic access). Attach a policy with the
-permissions in section 4. Rotate them periodically — unlike OIDC these are
-long-lived credentials, so keep them only as **Environment secrets** (never in
-code or `vars`).
-
-### ECR repository names (already fixed in code)
-
-Repos must exist in AWS before the first push (Terraform creates them):
-
-`api-gateway`, `auth-service`, `resident-service`, `chat-service`,
-`notification-service`, `visitor-service`, `flaredthread-service`,
-`business-service`, `media-worker`.
-
-Push target example:
-
-`123456789012.dkr.ecr.ap-south-1.amazonaws.com/auth-service:<git-sha>`
-
-That URL is built in `infra/ecs/scripts/build-and-push.sh` from
-`AWS_ACCOUNT_ID`, `AWS_REGION`, and the service folder name.
+| `AWS_ACCESS_KEY_ID` | IAM user for pipelines |
+| `AWS_SECRET_ACCESS_KEY` | Matching secret |
 
 ## 4. IAM user for the pipeline
 
-Create an IAM **user** with programmatic access, generate an access key, and
-put the key/secret in the Environment secrets from section 3
-(`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`).
+### Build / migrate / deploy
 
-**Permissions policy** — minimum the pipelines need:
+- `ecr:*` (push/pull)
+- `ecs:RegisterTaskDefinition`, `ecs:RunTask`, `ecs:UpdateService`, `ecs:Describe*`
+- `logs:CreateLogGroup`
+- `iam:PassRole` on task execution + task roles
 
-- `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`,
-  `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`,
-  `ecr:CompleteLayerUpload`, `ecr:PutImage` (build & push)
-- `ecs:RegisterTaskDefinition`, `ecs:RunTask`, `ecs:UpdateService`,
-  `ecs:DescribeTasks`, `ecs:DescribeServices` (migrate & deploy)
-- `logs:CreateLogGroup` (migrate task log group)
-- `iam:PassRole` on `TASK_EXECUTION_ROLE` and `TASK_ROLE`
+### Terraform (additional — or use a separate IAM user)
 
-## 5. Migration baselines (prerequisite for the migrate stage)
+Terraform apply needs broad permissions, including:
 
-`prisma migrate deploy` only applies migrations committed under
-`prisma/migrations/`. Until each DB is baselined, the migrate stage is a safe
-no-op. Baseline once per DB (`resido_master`, `resido_users`, `resido_core`,
-`resido_geodata`) following `infra/ecs/migrations/MIGRATION_STRATEGY.md`, then
-commit the generated migration folders.
+- `ec2`, `elasticloadbalancing`, `ecs`, `ecr`, `rds`, `elasticache`
+- `secretsmanager`, `logs`, `servicediscovery`, `iam` (roles/policies)
+- `s3` (state bucket — if same credentials manage backend)
+
+For production, consider a dedicated Terraform IAM user or OIDC role with
+scoped admin on the Resido stack.
+
+## 5. S3 state buckets (before first Terraform run)
+
+```bash
+aws s3 mb s3://resido-tfstate-dev  --region ap-south-1
+aws s3 mb s3://resido-tfstate-prod --region ap-south-1
+```
+
+See `infra/ecs/CONFIGURATION.md` for versioning setup.
+
+## 6. Migration baselines
+
+Committed under `apps/*/prisma/**/migrations/0_init/`. The migrate stage runs
+`prisma migrate deploy` — never `db push` on ECS.
 
 ---
 
-After this is in place, trigger pipelines from the **Actions** tab — see
-`.github/workflows/README.md` for usage.
+After setup, run **Release** (or stages individually) from the **Actions** tab.
+See [`.github/workflows/README.md`](./README.md).

@@ -119,6 +119,14 @@ output "secrets_requiring_manual_update" {
   ]
 }
 
+output "terraform_auto_generated_secret_names" {
+  description = "Secrets Manager names auto-filled with random values on first apply."
+  value = [
+    for key in keys(local.terraform_auto_secrets) :
+    "${var.project}/${var.environment}/${lower(replace(key, "_", "-"))}"
+  ]
+}
+
 # ─── Convenient env-var blob for CI/CD ───────────────────────────────────────
 
 output "ci_env_exports" {

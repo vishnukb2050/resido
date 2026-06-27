@@ -2,11 +2,13 @@
 
 ## What the pipeline does (every release)
 
-Use **`release.yml`** with **`run_migrate: true`** (default), or run stages manually:
+Use **`release.yml`** with **`run_terraform=true`** and **`run_migrate=true`** on first
+deploy, or run stages manually in order:
 
-1. **build-and-push** — images include `prisma/migrations/**` and `prisma-deploy.sh`
-2. **db-migrate** — one-off ECS tasks run `prisma migrate deploy` for all DBs
-3. **deploy** — rolling ECS deploy (`RUN_PRISMA_PUSH=false`, no boot-time `db push`)
+1. **Terraform** (`terraform.yml`) — `dev` or `prod`
+2. **DB Migrate** (`db-migrate.yml`) — `prisma migrate deploy`
+3. **Build & Push** (`build-and-push.yml`) — all services
+4. **Deploy** (`deploy.yml`)
 
 | Database | Migrations folder | ECS task |
 |----------|-------------------|----------|

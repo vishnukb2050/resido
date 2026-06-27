@@ -1,10 +1,12 @@
-# Remote state in S3. The bucket and key are passed at init time so the
-# same configuration works for both dev and prod accounts:
+# Remote state in S3. Bucket name is supplied at init time (not in this file):
+#
+#   GitHub Actions:  TF_STATE_BUCKET environment variable per dev/prod
+#   Local CLI:       -backend-config="bucket=resido-tfstate-dev"
 #
 #   terraform init \
-#       -backend-config="bucket=resido-tfstate-<dev|prod>" \
-#       -backend-config="key=ecs/terraform.tfstate" \
-#       -backend-config="region=ap-south-1"
+#       -backend-config=envs/backend.partial.hcl \
+#       -backend-config="bucket=<your-state-bucket>" \
+#       -reconfigure
 
 terraform {
   backend "s3" {}

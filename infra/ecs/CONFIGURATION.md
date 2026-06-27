@@ -110,7 +110,7 @@ in Secrets Manager (or override via optional `.env` before first apply):
 - [ ] `INTERNAL_SERVICE_SECRET` — service-to-service auth
 - [ ] `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID`
 - [ ] `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`, `AWS_S3_BUCKET_NAME`, `CLOUDFLARE_R2_PUBLIC_URL` (R2)
-- [ ] `FIREBASE_SERVICE_ACCOUNT_JSON` (and `FCM_SERVER_KEY` if used)
+- [ ] `FIREBASE_SERVICE_ACCOUNT_JSON`
 - [ ] `MEDIA_WORKER_SECRET`
 - [ ] `CORS_ORIGINS` (optional for mobile; set for admin SPAs)
 - [ ] All `*_WRITE_URL` / `*_READ_URL` — **auto-filled** when `wire_terraform_infra_secrets = true`
@@ -258,7 +258,7 @@ aws ecs update-service --cluster resido-$ENV-cluster \
 - [ ] `MEDIA_WORKER_SECRET` and Redis URL present in secrets (media transcoding).
 - [ ] **Migrations in git:** baseline `0_init` SQL is under `apps/auth-service/prisma/*/migrations/`
   and `apps/notification-service/prisma/migrations/`. Pipeline **`release.yml`** with
-  `run_migrate: true` runs `migrate deploy` before deploy (see `migrations/FIRST_DEPLOY.md`).
+  `run_migrate: true` runs `migrate deploy` before build/deploy (see `migrations/FIRST_DEPLOY.md`).
 - [ ] `service_overrides` / `service_desired_count_default` sized for the env.
 
 ---

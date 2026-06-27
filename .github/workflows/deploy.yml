@@ -5,8 +5,8 @@ name: Deploy (ECS)
 # Wraps infra/ecs/scripts/deploy-service.sh.
 #
 # NOTE: This does NOT run migrations. Run db-migrate.yml first (or use
-# release.yml, which migrates before deploying) whenever the release contains
-# schema changes.
+# release.yml, which runs terraform → migrate → build → deploy) whenever the
+# release contains schema changes.
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
         type: choice
         required: true
         default: prod
-        options: [prod, staging]
+        options: [dev, prod]
       image_tag:
         description: "Image tag to deploy (defaults to commit SHA)"
         type: string

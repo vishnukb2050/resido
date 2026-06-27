@@ -1,7 +1,8 @@
 name: DB Migrate (Prisma migrate deploy)
 
-# Applies `prisma migrate deploy` to the production databases by firing the
-# one-off ECS `db-migrate` tasks (see infra/ecs/scripts/run-migrations.sh).
+# Applies `prisma migrate deploy` via one-off ECS `db-migrate` tasks
+# (see infra/ecs/scripts/run-migrations.sh). Builds auth/notification/chat
+# images first — full build of all services runs in the next pipeline stage.
 #
 # This workflow ONLY applies schema migrations. It never deploys services,
 # never runs `prisma db push`, and never uses `--accept-data-loss`.
@@ -17,7 +18,7 @@ on:
         type: choice
         required: true
         default: prod
-        options: [prod, staging]
+        options: [dev, prod]
       image_tag:
         description: "Image tag for the migration container (defaults to commit SHA)"
         type: string

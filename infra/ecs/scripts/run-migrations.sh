@@ -63,7 +63,7 @@ for template in "${TEMPLATES[@]}"; do
         --cluster "$ECS_CLUSTER" \
         --task-definition "$family" \
         --launch-type FARGATE \
-        --network-configuration "awsvpcConfiguration={subnets=$SUBNETS_JSON,securityGroups=$SG_JSON,assignPublicIp=DISABLED}" \
+        --network-configuration "awsvpcConfiguration={subnets=$SUBNETS_JSON,securityGroups=$SG_JSON,assignPublicIp=ENABLED}" \
         --query 'tasks[0].taskArn' \
         --output text)"
 

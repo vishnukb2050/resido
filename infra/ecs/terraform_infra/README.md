@@ -125,8 +125,9 @@ terraform_infra/
 ├── envs/
 │   ├── dev.tfvars           ← cheap, single-AZ-ish, no deletion protection
 │   ├── prod.tfvars          ← Multi-AZ RDS, larger instances, deletion protection
-│   ├── dev.backend.hcl      ← S3 state config: bucket=resido-tfstate-dev
-│   └── prod.backend.hcl     ← S3 state config: bucket=resido-tfstate-prod
+│   ├── backend.partial.hcl  ← S3 state key + region (bucket from GitHub var)
+│   ├── dev.backend.hcl      ← legacy/local reference (bucket passed separately)
+│   └── prod.backend.hcl
 └── modules/
     ├── vpc/        — VPC + IGW + public subnets + routes
     ├── ecr/        — Per-service repos with 30-image retention policy
@@ -146,13 +147,16 @@ boundaries / chicken-and-egg the state backend:
    `resido-dev` and `resido-prod`. The Terraform stack assumes you have
    AWS credentials with admin-ish rights in whichever account you're
    applying against (`AWS_PROFILE` or env vars).
-2. **State buckets** — create one S3 bucket per environment:
+2. **State buckets** — create one S3 bucket per environment, then set the name
+   in GitHub Environment variable `TF_STATE_BUCKET` (`dev` vs `prod`):
    ```bash
    aws s3 mb s3://resido-tfstate-dev  --region ap-south-1
    aws s3 mb s3://resido-tfstate-prod --region ap-south-1
    aws s3api put-bucket-versioning --bucket resido-tfstate-dev  --versioning-configuration Status=Enabled
    aws s3api put-bucket-versioning --bucket resido-tfstate-prod --versioning-configuration Status=Enabled
    ```
+   CI passes the bucket to Terraform: `terraform init -backend-config=... -backend-config="bucket=$TF_STATE_BUCKET"`.
+   See [`.github/GITHUB_ENVIRONMENT_VARIABLES.md`](../../../.github/GITHUB_ENVIRONMENT_VARIABLES.md).
 3. **Cloudflare** (prod) — DNS proxied to the ALB; SSL/TLS mode **Flexible**.
    Keep `acm_certificate_arn = ""` in `envs/prod.tfvars` (no TLS on the ALB).
 
@@ -163,8 +167,11 @@ boundaries / chicken-and-egg the state backend:
 ```bash
 cd infra/ecs/terraform_infra
 
-# Init against the dev state bucket
-terraform init -backend-config=envs/dev.backend.hcl
+# Init — pass your dev state bucket name
+terraform init \
+  -backend-config=envs/backend.partial.hcl \
+  -backend-config="bucket=resido-tfstate-dev" \
+  -reconfigure
 
 # Plan + apply with the dev variables
 terraform plan  -var-file=envs/dev.tfvars
@@ -180,7 +187,10 @@ all the security-group plumbing.
 ### Prod
 
 ```bash
-terraform init  -backend-config=envs/prod.backend.hcl -reconfigure
+terraform init \
+  -backend-config=envs/backend.partial.hcl \
+  -backend-config="bucket=resido-tfstate-prod" \
+  -reconfigure
 terraform plan  -var-file=envs/prod.tfvars
 terraform apply -var-file=envs/prod.tfvars
 ```
@@ -198,13 +208,14 @@ List secrets that still need your values:
 
 ```bash
 terraform output secrets_requiring_manual_update
+terraform output terraform_auto_generated_secret_names
 ```
+
+**Auto-generated on first apply** (no manual step): `jwt-secret`, `jwt-refresh-secret`,
+`internal-service-secret`, `media-worker-secret`.
 
 | Secret (Secrets Manager name)     | What to put in it                                   |
 | --------------------------------- | --------------------------------------------------- |
-| `resido/<env>/jwt-secret`         | JWT signing secret (32+ char random hex)            |
-| `resido/<env>/jwt-refresh-secret` | Refresh-token signing secret                        |
-| `resido/<env>/internal-service-secret` | Service-to-service auth header                   |
 | `resido/<env>/msg91-auth-key`     | MSG91 API key for OTP SMS                           |
 | `resido/<env>/msg91-template-id`  | MSG91 OTP template ID                               |
 | `resido/<env>/aws-access-key-id`  | Cloudflare R2 access key                            |
@@ -212,19 +223,16 @@ terraform output secrets_requiring_manual_update
 | `resido/<env>/aws-s3-endpoint`    | R2 S3-compatible endpoint                           |
 | `resido/<env>/aws-s3-bucket-name` | R2 bucket name                                      |
 | `resido/<env>/cloudflare-r2-public-url` | Public CDN URL for uploads                    |
-| `resido/<env>/fcm-server-key`     | Firebase legacy server key (if used)                |
 | `resido/<env>/firebase-service-account-json` | Firebase service account JSON string   |
-| `resido/<env>/media-worker-secret`| Shared secret for media-worker callbacks            |
 | `resido/<env>/cors-origins`       | Comma-separated admin origins (optional)            |
 
-Populate them with the CLI (run once per environment, after infra exists):
+Populate **manual** secrets with the CLI (run once per environment, after infra exists):
 
 ```bash
 ENV=prod   # or dev
-for name in jwt-secret jwt-refresh-secret internal-service-secret \
-    msg91-auth-key msg91-template-id aws-access-key-id aws-secret-access-key \
+for name in msg91-auth-key msg91-template-id aws-access-key-id aws-secret-access-key \
     aws-s3-endpoint aws-s3-bucket-name cloudflare-r2-public-url \
-    firebase-service-account-json media-worker-secret cors-origins; do
+    firebase-service-account-json cors-origins; do
     read -srp "Value for resido/${ENV}/${name}: " value && echo
     aws secretsmanager put-secret-value \
         --secret-id "resido/${ENV}/${name}" \
@@ -252,8 +260,8 @@ VPC (so it can reach the private RDS), and is idempotent.
 
 So the order is simply:
 
-1. `terraform apply` → RDS instance + `resido_master`
-2. `release.yml` (run_migrate=true) → `db-migrate` task:
+1. `terraform apply` (or **Terraform** workflow) → RDS instance + `resido_master` + ECS + secrets
+2. **Release** with `run_migrate=true` → `db-migrate` task:
    - `ensure-databases.js` creates the other four DBs if missing
    - `prisma migrate deploy` creates/updates all tables
 

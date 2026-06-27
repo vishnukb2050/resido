@@ -13,9 +13,6 @@
 locals {
   # Env var names the operator must replace before production traffic.
   operator_secret_keys = [
-    "JWT_SECRET",
-    "JWT_REFRESH_SECRET",
-    "INTERNAL_SERVICE_SECRET",
     "CORS_ORIGINS",
     "MSG91_AUTH_KEY",
     "MSG91_TEMPLATE_ID",
@@ -27,16 +24,11 @@ locals {
     "AWS_S3_ENDPOINT",
     "AWS_S3_BUCKET_NAME",
     "CLOUDFLARE_R2_PUBLIC_URL",
-    "FCM_SERVER_KEY",
     "FIREBASE_SERVICE_ACCOUNT_JSON",
-    "MEDIA_WORKER_SECRET",
   ]
 
   default_secret_placeholders = {
     # ─── Auth / gateway (operator) ───────────────────────────────────────────
-    JWT_SECRET              = "REPLACE_ME_JWT_SECRET"
-    JWT_REFRESH_SECRET      = "REPLACE_ME_JWT_REFRESH_SECRET"
-    INTERNAL_SERVICE_SECRET = "REPLACE_ME_INTERNAL_SERVICE_SECRET"
     CORS_ORIGINS            = "REPLACE_ME_CORS_ORIGINS"
     THROTTLE_LIMIT          = "120"
     THROTTLE_TTL            = "60000"
@@ -56,11 +48,7 @@ locals {
     CLOUDFLARE_R2_PUBLIC_URL = "REPLACE_ME_CLOUDFLARE_R2_PUBLIC_URL"
 
     # ─── Firebase push (operator) ────────────────────────────────────────────
-    FCM_SERVER_KEY                = "REPLACE_ME_FCM_SERVER_KEY"
     FIREBASE_SERVICE_ACCOUNT_JSON = "REPLACE_ME_FIREBASE_SERVICE_ACCOUNT_JSON"
-
-    # ─── Media worker (operator) ─────────────────────────────────────────────
-    MEDIA_WORKER_SECRET = "REPLACE_ME_MEDIA_WORKER_SECRET"
 
     # ─── Postgres (dummy until wire_terraform_infra_secrets overlays RDS) ────
     RDS_WRITE_URL          = "REPLACE_ME_RDS_WRITE_URL"

@@ -110,9 +110,10 @@ locals {
     REDIS_URL      = module.redis.url
   } : {}
 
-  # Merge order (last wins): placeholders → optional .env → extra → RDS/Redis.
+  # Merge order (last wins): placeholders → auto-generated → .env → extra → RDS/Redis.
   secret_seeds = merge(
     local.default_secret_placeholders,
+    local.terraform_auto_secrets,
     local.dotenv,
     var.extra_secret_seeds,
     local.terraform_db_secrets,

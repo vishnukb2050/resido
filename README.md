@@ -344,20 +344,21 @@ This runs the Xcode compilation pipeline within the EAS cloud container, exporti
 Resido has a modular CI/CD pipeline built with GitHub Actions located in `.github/workflows/`. It is designed to safely handle multi-tenant deployments, microservice matrix builds, and schema migrations.
 
 ### Pipeline Orchestration
-The primary entry point is the **Release** pipeline (`release.yml`), which can be manually triggered via the Actions tab. It chains three stages:
-1. **Build & Push (`build-and-push.yml`)**: Builds Docker images for the specified microservices (matrixed in parallel via Docker Buildx) and pushes them to AWS ECR.
-2. **Database Migration (`db-migrate.yml`)**: Runs Prisma `migrate deploy` using one-off ECS Fargate tasks (`db-migrate` etc.) and blocks until they finish. If migrations fail, the deployment is aborted.
-3. **Rolling Deployment (`deploy.yml`)**: Substitutes env parameters in task definitions using `envsubst`, registers new task definition revisions, updates ECS services, and waits for a steady state.
+The primary entry point is the **Release** pipeline (`release.yml`), manually triggered from the Actions tab for **dev** or **prod**. It chains four stages in order:
+
+1. **Terraform (`terraform.yml`)** — optional (`run_terraform=true` on first deploy): VPC, RDS, Redis, ECS, Secrets Manager, ALB.
+2. **Database Migration (`db-migrate.yml`)** — `prisma migrate deploy` via one-off ECS tasks (builds auth/notification/chat images first). Creates logical DBs + tables. Never `db push`.
+3. **Build & Push (`build-and-push.yml`)** — builds all 9 service images (parallel matrix) and pushes to ECR.
+4. **Rolling Deployment (`deploy.yml`)** — registers task definitions and updates ECS services.
 
 ### Deployment Prerequisites
-For the pipeline to execute and deploy successfully, the following AWS/GitHub requirements must be configured:
-* **GitHub Environment Setup**: Under *Settings -> Environments*, create `prod` or `staging` and configure:
-  * **Secrets**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-  * **Variables**: `AWS_REGION`, `AWS_ACCOUNT_ID`, `ECS_CLUSTER`, `ECS_SUBNETS`, `ECS_SECURITY_GROUPS`, `TASK_EXECUTION_ROLE`, `TASK_ROLE`, `LOG_GROUP_PREFIX`, `MIGRATE_LOG_GROUP`
-* **ECR Repositories**: Individual repos for all 9 services (`api-gateway`, `auth-service`, etc.) must be pre-provisioned via Terraform.
-* **AWS Secrets Manager Setup**: Operational app credentials (DB connections, tokens, third-party APIs) must be seeded in Secrets Manager beforehand.
-* **Prisma DB Baselining**: All databases must be baselined so `migrate deploy` can correctly apply new incremental migrations.
-* **IAM Permissions**: The programmatic IAM user access keys in secrets must have ECR push, ECS service update/task register, and IAM role pass permissions.
+
+See **[`.github/GITHUB_ENVIRONMENT_VARIABLES.md`](.github/GITHUB_ENVIRONMENT_VARIABLES.md)** for the full GitHub Environment setup (`dev` and `prod`): 2 secrets, 9 variables, bootstrap order, and IAM permissions.
+
+* **ECR Repositories**: Created by Terraform on first apply.
+* **AWS Secrets Manager**: Terraform creates all keys with `REPLACE_ME_*` placeholders; update operator secrets after first apply.
+* **Prisma DB Baselining**: Baseline migrations are committed in-repo (`0_init` per DB).
+* **IAM Permissions**: Pipeline user needs ECR/ECS access; Terraform stage needs additional infra permissions.
 
 ---
 

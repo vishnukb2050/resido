@@ -1,0 +1,138 @@
+name: Terraform (ECS infra)
+
+# Provisions / updates VPC, ECR, ALB, RDS, Redis, Secrets Manager, ECS cluster,
+# and services via infra/ecs/terraform_infra/.
+#
+# Run standalone before the first migrate/build/deploy, or as stage 1 of
+# release.yml when run_terraform=true.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment (matches envs/<env>.tfvars)
+        type: choice
+        required: true
+        default: prod
+        options: [dev, prod]
+      action:
+        description: Terraform action
+        type: choice
+        required: true
+        default: apply
+        options: [plan, apply]
+      auto_approve:
+        description: Auto-approve apply (ignored for plan)
+        type: boolean
+        required: true
+        default: false
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      action:
+        type: string
+        required: false
+        default: apply
+      auto_approve:
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    name: terraform ${{ inputs.action }} (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      TF_IN_AUTOMATION: true
+      AWS_REGION: ${{ vars.AWS_REGION }}
+    defaults:
+      run:
+        working-directory: infra/ecs/terraform_infra
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Validate Terraform backend config
+        run: |
+          set -euo pipefail
+          if [ -z "${{ vars.TF_STATE_BUCKET }}" ]; then
+            echo "❌ TF_STATE_BUCKET is not set on GitHub Environment '${{ inputs.environment }}'."
+            echo "   Settings → Environments → ${{ inputs.environment }} → Environment variables"
+            exit 1
+          fi
+          echo "State bucket: ${{ vars.TF_STATE_BUCKET }}"
+
+      - name: Terraform init
+        run: |
+          set -euo pipefail
+          terraform init \
+            -backend-config="envs/backend.partial.hcl" \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -reconfigure
+
+      - name: Terraform fmt check
+        continue-on-error: true
+        run: terraform fmt -check -recursive
+
+      - name: Terraform plan
+        id: plan
+        run: |
+          set -euo pipefail
+          terraform plan \
+            -var-file="envs/${{ inputs.environment }}.tfvars" \
+            -input=false \
+            -out=tfplan
+
+      - name: Terraform apply
+        if: inputs.action == 'apply'
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.auto_approve }}" = "true" ]; then
+            terraform apply -input=false -auto-approve tfplan
+          else
+            echo "auto_approve=false — upload tfplan artifact and apply manually if needed."
+            exit 1
+          fi
+
+      - name: Print CI env exports
+        if: inputs.action == 'apply' && inputs.auto_approve == true
+        run: |
+          echo "─── ci_env_exports (copy to local shell or GitHub vars) ───"
+          terraform output -raw ci_env_exports || true
+          echo ""
+          echo "─── secrets still using REPLACE_ME placeholders ───"
+          terraform output -json secrets_requiring_manual_update 2>/dev/null || true
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Terraform"
+            echo "- Environment: \`${{ inputs.environment }}\`"
+            echo "- State bucket: \`${{ vars.TF_STATE_BUCKET }}\`"
+            echo "- Action: \`${{ inputs.action }}\`"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
