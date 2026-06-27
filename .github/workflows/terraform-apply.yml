@@ -78,18 +78,41 @@ jobs:
 
       - name: Terraform plan
         run: |
-          set -euo pipefail
+          set -uo pipefail
           terraform plan \
             -var-file="envs/${{ inputs.environment }}.tfvars" \
             -input=false \
             -compact-warnings \
+            -no-color \
             -out=tfplan \
-            2>&1 | tee plan.log
-          echo ""
+            > plan.log 2>&1
+          PLAN_EXIT=$?
           echo "─── Plan summary ───"
-          grep -E '^(Plan:|No changes\.)' plan.log || tail -20 plan.log
+          if grep -qE '^(Plan:|No changes\.)' plan.log; then
+            grep -E '^(Plan:|No changes\.)' plan.log
+          elif grep -q 'Error:' plan.log; then
+            echo "Terraform errors:"
+            grep 'Error:' plan.log | tail -30
+            echo ""
+            tail -40 plan.log
+          else
+            tail -40 plan.log
+          fi
+          echo ""
+          echo "Full plan: plan.log (artifact on this run)."
+          exit "$PLAN_EXIT"
+
+      - name: Upload plan log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}-${{ github.run_id }}
+          path: infra/ecs/terraform_infra/plan.log
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Terraform apply
+        if: success()
         run: terraform apply -input=false -auto-approve tfplan
 
       - name: Print CI env exports
