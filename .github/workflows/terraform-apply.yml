@@ -93,6 +93,14 @@ jobs:
           echo "─── Plan summary ───"
           if grep -qE '^(Plan:|No changes\.)' plan.log; then
             grep -E '^(Plan:|No changes\.)' plan.log
+            echo ""
+            echo "─── All resources in plan (names only) ───"
+            grep -E ' will be (created|updated|destroyed|replaced)' plan.log || true
+            CREATED=$(grep -c ' will be created' plan.log || true)
+            UPDATED=$(grep -c ' will be updated' plan.log || true)
+            DESTROYED=$(grep -c ' will be destroyed' plan.log || true)
+            echo ""
+            echo "Listed above: ${CREATED} to create, ${UPDATED} to update, ${DESTROYED} to destroy."
           else
             echo "Terraform failed (exit $PLAN_EXIT). Last lines:"
             grep -E '(^Error:|^│ Error:)' plan.log | tail -40 || true
@@ -100,7 +108,11 @@ jobs:
             tail -50 plan.log
           fi
           echo ""
-          echo "Full plan: plan.log (artifact on this run)."
+          echo "Full plan with all attributes: download the plan.log artifact from this run."
+          # TF_IN_AUTOMATION implies -detailed-exitcode: 0=no changes, 2=has changes, 1=error
+          if [ "$PLAN_EXIT" -eq 0 ] || [ "$PLAN_EXIT" -eq 2 ]; then
+            exit 0
+          fi
           exit "$PLAN_EXIT"
 
       - name: Upload plan log

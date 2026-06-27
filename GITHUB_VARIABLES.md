@@ -8,10 +8,10 @@ Settings → Environments → `<env>` → Environment variables / Environment se
 
 Actions → pick the workflow → **Run workflow** → choose `dev` or `prod`.
 
-| Step | Workflow in Actions sidebar | What it does |
+| Step | Workflow in Actions sidebar | What it shows |
 |------|----------------------------|--------------|
-| 1 (optional) | **Terraform Plan (ECS infra)** | Preview changes only — no AWS resources created |
-| 2 | **Terraform Apply (ECS infra)** | Plan + apply — creates/updates VPC, RDS, ECS, secrets, etc. |
+| 1 (optional) | **Terraform · Plan (ECS infra)** | Preview only — lists every resource name + full `plan.log` artifact |
+| 2 | **Terraform · Apply (ECS infra)** | Plan + apply — creates/updates VPC, RDS, ECS, secrets, etc. |
 
 `Terraform Plan` and `Terraform Apply` are **two different workflows** (not a dropdown inside one). After apply, copy outputs into the variables below.
 
