@@ -4,7 +4,7 @@ output "secret_arns" {
 }
 
 output "secret_names" {
-  description = "Map of ENV_NAME -> full Secrets Manager secret name (e.g. resido/prod/JWT_SECRET)."
+  description = "Map of ENV_NAME -> full Secrets Manager secret name (e.g. resido/prod/jwt-secret)."
   value       = { for k, s in aws_secretsmanager_secret.this : k => s.name }
 }
 

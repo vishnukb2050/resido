@@ -19,7 +19,7 @@ rds_deletion_protection  = false # so `terraform destroy` works during dev itera
 
 redis_node_type = "cache.t4g.micro"
 
-# Dev runs without TLS \u2014 ALB only listens on :80. Add an ACM cert once you have a domain.
+# Dev: HTTP-only ALB (same as prod when Cloudflare terminates TLS at the edge).
 acm_certificate_arn = ""
 
 service_desired_count_default = 1
@@ -35,6 +35,11 @@ enable_vpc_interface_endpoints = false
 
 # S3 gateway endpoint is free and required for ECR pulls to stay on backbone.
 enable_s3_gateway_endpoint = true
+
+wire_terraform_infra_secrets = true
+enable_ecs_autoscaling       = true
+ecs_autoscaling_max_capacity = 4
+ecs_autoscaling_cpu_target   = 70
 
 common_tags = {
   Project     = "resido"

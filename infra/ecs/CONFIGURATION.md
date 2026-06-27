@@ -18,9 +18,9 @@ makes the rest obvious:
 
 | Source | What it feeds | How |
 | ------ | ------------- | --- |
-| **`infra/.env`** | Secrets Manager + **every** container's env vars | On the first `terraform apply`, every `KEY=value` line in `infra/.env` becomes a secret `resido/<env>/<KEY>` **and** is injected into every ECS task as `process.env.KEY`. (See `terraform_infra/main.tf` → `local.dotenv` and `modules/secrets`.) |
+| **`infra/.env`** (optional) | Override placeholder secrets before first apply | Set `dotenv_path` in tfvars if you have real values locally. **Not required** — Terraform creates all keys with `REPLACE_ME_*` dummies by default. |
 | **Cloud Map (automatic)** | `*_SERVICE_URL` env vars | Terraform auto-injects `AUTH_SERVICE_URL`, `RESIDENT_SERVICE_URL`, `CHAT_SERVICE_URL`, … into every container from `modules/ecs/locals.tf` → `service_urls`. **You do not set these.** |
-| **`envs/<env>.tfvars`** | Infra sizing (CPU, RAM, replicas, RDS class, ACM ARN) | Terraform variables. |
+| **`envs/<env>.tfvars`** | Infra sizing (CPU, RAM, replicas, RDS class) | Terraform variables. |
 
 > Key consequence: to add an app config value (e.g. `INTERNAL_SERVICE_SECRET`),
 > you add it to **`infra/.env`** and it lands in every service automatically.
@@ -39,19 +39,45 @@ These live outside Terraform (chicken-and-egg with the state backend):
   aws s3api put-bucket-versioning --bucket resido-tfstate-dev  --versioning-configuration Status=Enabled
   aws s3api put-bucket-versioning --bucket resido-tfstate-prod --versioning-configuration Status=Enabled
   ```
-- [ ] **ACM certificate** for `*.residoapp.com` in `ap-south-1`, validated via
-      Route 53. Put the ARN in `envs/prod.tfvars` → `acm_certificate_arn`.
-      (Dev can leave it `""` → ALB serves `:80` only.)
+- [ ] **Cloudflare DNS** — orange-cloud (proxied) record pointing at the ALB
+      (`terraform output alb_dns_name`). SSL/TLS mode: **Flexible** (HTTPS to
+      users, HTTP to ALB). **No ACM certificate on the ALB.**
 - [ ] AWS credentials with admin-ish rights for the target account
       (`AWS_PROFILE` or env vars).
 
 ---
 
-## 2. `infra/.env` — required keys before first apply
+## 2. Secrets — no `.env` required for first apply
 
-The first apply seeds Secrets Manager from this file. It already contains DB
-URLs, Redis, JWT, R2/S3, MSG91. **Add the keys below** so the scaling
-features from the latest work activate in production.
+On `terraform apply`, **all** Secrets Manager keys are created automatically.
+Operator-owned values start as `REPLACE_ME_*` placeholders in
+`secret_placeholders.tf`. RDS and Redis URLs get **real** values when
+`wire_terraform_infra_secrets = true`.
+
+After apply, list what you still need to fill:
+
+```bash
+terraform output secrets_requiring_manual_update
+```
+
+Update each secret (example):
+
+```bash
+aws secretsmanager put-secret-value \
+  --secret-id resido/prod/jwt-secret \
+  --secret-string "<your-value>"
+```
+
+Then redeploy ECS tasks (§7).
+
+### Optional: `infra/.env` before first apply
+
+If you already have production values locally, set `dotenv_path` in tfvars
+(or pass `-var='dotenv_path=../../.env'`) so real values are seeded instead
+of placeholders. Otherwise skip `.env` entirely and fill secrets in AWS after
+infra is up.
+
+### Keys that must hold REAL values before prod traffic
 
 ### 2a. New keys to ADD (scaling / hardening)
 
@@ -77,15 +103,17 @@ THROTTLE_TTL=60000
 
 ### 2b. Keys that must hold REAL values (not the dev placeholders)
 
-The committed `infra/.env` has working dev values. For prod, make sure these
-are production-grade before the first apply (or fill them in Secrets Manager
-after — see §4):
+The placeholder catalog seeds these with `REPLACE_ME_*` until you update them
+in Secrets Manager (or override via optional `.env` before first apply):
 
 - [ ] `JWT_SECRET`, `JWT_REFRESH_SECRET` — fresh 32+ char secrets
-- [ ] `MSG91_AUTH_KEY` / `MSG91_TEMPLATE_ID`
-- [ ] `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (R2/S3)
-- [ ] `REDIS_HOST` / `REDIS_PASSWORD` / `REDIS_TLS`
-- [ ] All `*_WRITE_URL` / `*_READ_URL` (see §3 for read replicas)
+- [ ] `INTERNAL_SERVICE_SECRET` — service-to-service auth
+- [ ] `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID`
+- [ ] `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`, `AWS_S3_BUCKET_NAME`, `CLOUDFLARE_R2_PUBLIC_URL` (R2)
+- [ ] `FIREBASE_SERVICE_ACCOUNT_JSON` (and `FCM_SERVER_KEY` if used)
+- [ ] `MEDIA_WORKER_SECRET`
+- [ ] `CORS_ORIGINS` (optional for mobile; set for admin SPAs)
+- [ ] All `*_WRITE_URL` / `*_READ_URL` — **auto-filled** when `wire_terraform_infra_secrets = true`
 
 ---
 
@@ -117,9 +145,9 @@ secret-value changes after the first apply, so these survive future applies):
 
 ```bash
 ENV=prod
-aws secretsmanager put-secret-value --secret-id resido/$ENV/JWT_SECRET           --secret-string "<value>"
-aws secretsmanager put-secret-value --secret-id resido/$ENV/INTERNAL_SERVICE_SECRET --secret-string "<value>"
-# ...etc
+aws secretsmanager put-secret-value --secret-id resido/$ENV/jwt-secret --secret-string "<value>"
+aws secretsmanager put-secret-value --secret-id resido/$ENV/internal-service-secret --secret-string "<value>"
+# ...etc — see terraform output secrets_requiring_manual_update
 ```
 
 ---
@@ -222,7 +250,7 @@ aws ecs update-service --cluster resido-$ENV-cluster \
 ## 8. Pre-flight checklist (tick before `terraform apply`)
 
 - [ ] State bucket exists for the target env.
-- [ ] `acm_certificate_arn` set in `envs/prod.tfvars` (prod).
+- [ ] `acm_certificate_arn` left **empty** in `envs/prod.tfvars` (TLS at Cloudflare).
 - [ ] `infra/.env` has `INTERNAL_SERVICE_SECRET` and prod-grade `JWT_SECRET`.
 - [ ] `infra/.env` does **not** contain `SEED_LOCATIONS=true`.
 - [ ] `CORS_ORIGINS` set for prod (or intentionally left open).

@@ -113,9 +113,10 @@ resource "aws_lb_target_group" "flaredthread" {
 }
 
 # ─── Listeners ───────────────────────────────────────────────────────────────
+# Default: HTTP :80 only (Cloudflare terminates TLS at the edge).
+# If acm_certificate_arn is set, :80 redirects to :443 and HTTPS serves traffic.
 
-# Always-on :80. If HTTPS is configured, redirect to it; otherwise serve HTTP
-# directly (dev convenience).
+# Always-on :80. Forwards directly when no ACM cert (Cloudflare SSL mode).
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80

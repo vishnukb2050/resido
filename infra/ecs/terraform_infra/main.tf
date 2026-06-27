@@ -76,8 +76,48 @@ locals {
     )
   }
 
-  # Operator-supplied seeds (via `extra_secret_seeds` tfvar) win over .env.
-  secret_seeds = merge(local.dotenv, var.extra_secret_seeds)
+  # Postgres base URL built from the RDS instance this stack provisions.
+  # urlencode() keeps special characters in the generated password safe.
+  rds_pg_base = "postgresql://${var.rds_username}:${urlencode(random_password.rds.result)}@${module.rds.endpoint}"
+
+  # Connection strings for every logical database the app uses. `ensure-databases.js`
+  # (run by the db-migrate ECS task) creates the DBs that RDS does not bootstrap.
+  terraform_db_secrets = var.wire_terraform_infra_secrets ? {
+    RDS_WRITE_URL         = "${local.rds_pg_base}/postgres"
+    RDS_READ_URL          = "${local.rds_pg_base}/postgres"
+    MASTER_WRITE_URL      = "${local.rds_pg_base}/resido_master?schema=public"
+    MASTER_READ_URL       = "${local.rds_pg_base}/resido_master?schema=public"
+    USER_WRITE_URL        = "${local.rds_pg_base}/resido_users?schema=public"
+    USER_READ_URL         = "${local.rds_pg_base}/resido_users?schema=public"
+    CORE_WRITE_URL        = "${local.rds_pg_base}/resido_core?schema=public"
+    CORE_READ_URL         = "${local.rds_pg_base}/resido_core?schema=public"
+    GEO_WRITE_URL         = "${local.rds_pg_base}/resido_geodata?schema=public"
+    GEO_READ_URL          = "${local.rds_pg_base}/resido_geodata?schema=public"
+    CHAT_WRITE_URL        = "${local.rds_pg_base}/resido_chat?schema=public"
+    CHAT_READ_URL         = "${local.rds_pg_base}/resido_chat?schema=public"
+    NOTIFICATION_WRITE_URL = "${local.rds_pg_base}/resido_notifications?schema=public"
+    AUTH_DATABASE_URL     = "${local.rds_pg_base}/resido_master?schema=public"
+    TENANT_DATABASE_URL   = "${local.rds_pg_base}/resido_core?schema=public"
+  } : {}
+
+  # ElastiCache from this stack is a single non-TLS node (no AUTH token). Apps
+  # read REDIS_HOST/PORT first; REDIS_URL is a convenience for BullMQ/ioredis.
+  terraform_redis_secrets = var.wire_terraform_infra_secrets ? {
+    REDIS_HOST     = module.redis.primary_endpoint
+    REDIS_PORT     = tostring(module.redis.port)
+    REDIS_PASSWORD = ""
+    REDIS_TLS      = "false"
+    REDIS_URL      = module.redis.url
+  } : {}
+
+  # Merge order (last wins): placeholders → optional .env → extra → RDS/Redis.
+  secret_seeds = merge(
+    local.default_secret_placeholders,
+    local.dotenv,
+    var.extra_secret_seeds,
+    local.terraform_db_secrets,
+    local.terraform_redis_secrets,
+  )
 }
 
 # ─── Networking ──────────────────────────────────────────────────────────────
@@ -179,14 +219,10 @@ resource "aws_security_group_rule" "alb_to_flaredthread_service" {
 }
 
 # ─── RDS Postgres ────────────────────────────────────────────────────────────
-# Provisioned by Terraform, but its connection details are NOT pushed into
-# Secrets Manager automatically — the secrets in Secrets Manager mirror the
-# values in .env, which today point at the existing RDS. After this stack
-# is applied, the operator typically:
-#   1. Migrates data from the old RDS to this new one.
-#   2. Updates each *_WRITE_URL / *_READ_URL secret in Secrets Manager to
-#      point at the new endpoint (see `output.rds_endpoint`).
-#   3. Forces a redeploy of every ECS service to pick up the new value.
+# Terraform provisions the instance. Connection URLs are written into Secrets
+# Manager automatically when wire_terraform_infra_secrets = true (see locals
+# terraform_db_secrets). After apply, rotate the password only via Secrets
+# Manager + RDS — not by re-applying with a new random_password.
 
 resource "random_password" "rds" {
   length           = 32
@@ -275,6 +311,10 @@ module "ecs" {
   image_tag                     = var.image_tag
   service_desired_count_default = var.service_desired_count_default
   service_overrides             = var.service_overrides
+
+  enable_autoscaling     = var.enable_ecs_autoscaling
+  autoscaling_max_capacity = var.ecs_autoscaling_max_capacity
+  autoscaling_cpu_target   = var.ecs_autoscaling_cpu_target
 
   tags = var.common_tags
 }

@@ -58,6 +58,24 @@ variable "log_retention_days" {
   default = 14
 }
 
+variable "enable_autoscaling" {
+  description = "Attach CPU target-tracking autoscaling policies to every ECS service."
+  type        = bool
+  default     = true
+}
+
+variable "autoscaling_max_capacity" {
+  description = "Maximum task count per service."
+  type        = number
+  default     = 10
+}
+
+variable "autoscaling_cpu_target" {
+  description = "Target average CPU utilization (percent) for autoscaling."
+  type        = number
+  default     = 70
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

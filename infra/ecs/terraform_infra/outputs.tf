@@ -107,8 +107,16 @@ output "all_secret_arns" {
 }
 
 output "dotenv_keys_loaded" {
-  description = "Keys parsed from .env and mirrored into Secrets Manager on first apply."
+  description = "Keys parsed from optional .env (empty when dotenv_path is unset)."
   value       = sort(keys(local.dotenv))
+}
+
+output "secrets_requiring_manual_update" {
+  description = "Secrets Manager names still using REPLACE_ME placeholders — fill these before prod traffic."
+  value = [
+    for key in local.operator_secret_keys :
+    "${var.project}/${var.environment}/${lower(replace(key, "_", "-"))}"
+  ]
 }
 
 # ─── Convenient env-var blob for CI/CD ───────────────────────────────────────

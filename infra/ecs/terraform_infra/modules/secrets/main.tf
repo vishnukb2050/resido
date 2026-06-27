@@ -1,10 +1,11 @@
 # Secrets Manager mirror of the project .env file.
 #
 # For every entry in var.seed_values we create:
-#   - aws_secretsmanager_secret           name = "<project>/<env>/<KEY>"
-#   - aws_secretsmanager_secret_version   value = seed value from .env
+#   - aws_secretsmanager_secret           name = "<project>/<env>/<kebab-key>"
+#   - aws_secretsmanager_secret_version   value = seed / placeholder value
 #
-# The KEY is the original .env name (e.g. JWT_SECRET, MASTER_WRITE_URL).
+# The map KEY is the container env var name (e.g. JWT_SECRET). The Secrets
+# Manager resource name is kebab-case (jwt-secret) to match deploy task-def JSON.
 # ECS task definitions reference these secret ARNs and expose them inside
 # the container with the same name as the .env key — apps read them via
 # `process.env.JWT_SECRET` exactly like they do in docker-compose today.
@@ -13,7 +14,7 @@
 # rule. That means the operator can rotate any value via:
 #
 #     aws secretsmanager put-secret-value \
-#         --secret-id resido/prod/JWT_SECRET \
+#         --secret-id resido/prod/jwt-secret \
 #         --secret-string "<new-value>"
 #
 # and the next `terraform apply` will NOT roll it back. Terraform still
@@ -27,13 +28,19 @@ locals {
   # unwrap them with nonsensitive() to drive the iteration. The actual
   # secret VALUES stay sensitive at the secret_version layer.
   secret_keys = toset(nonsensitive(keys(var.seed_values)))
+
+  # ECS env var JWT_SECRET → Secrets Manager name resido/prod/jwt-secret
+  secret_sm_names = {
+    for key in local.secret_keys :
+    key => lower(replace(key, "_", "-"))
+  }
 }
 
 resource "aws_secretsmanager_secret" "this" {
   for_each = local.secret_keys
 
-  name                    = "${local.name_prefix}/${each.key}"
-  description             = "Mirrors .env key ${each.key}. Edit via Secrets Manager; Terraform will not overwrite."
+  name                    = "${local.name_prefix}/${local.secret_sm_names[each.key]}"
+  description             = "Env var ${each.key}. Edit via Secrets Manager; Terraform will not overwrite values."
   recovery_window_in_days = var.recovery_window_in_days
   tags                    = merge(var.tags, { EnvKey = each.key })
 }

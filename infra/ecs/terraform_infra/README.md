@@ -153,9 +153,8 @@ boundaries / chicken-and-egg the state backend:
    aws s3api put-bucket-versioning --bucket resido-tfstate-dev  --versioning-configuration Status=Enabled
    aws s3api put-bucket-versioning --bucket resido-tfstate-prod --versioning-configuration Status=Enabled
    ```
-3. **ACM certificate** (prod only) — request `*.residoapp.com` in
-   `ap-south-1`, validate via Route 53, copy the ARN into
-   `envs/prod.tfvars > acm_certificate_arn`.
+3. **Cloudflare** (prod) — DNS proxied to the ALB; SSL/TLS mode **Flexible**.
+   Keep `acm_certificate_arn = ""` in `envs/prod.tfvars` (no TLS on the ALB).
 
 ## Single-apply deploy
 
@@ -191,22 +190,41 @@ terraform apply -var-file=envs/prod.tfvars
 
 ## After the first apply — populate operator-owned secrets
 
-Three of the secrets we manage cannot be derived by Terraform and start
-out with the placeholder value `REPLACE_ME_<NAME>`:
+Terraform creates **every** secret in AWS on the first apply. Values you must
+supply yourself start with `REPLACE_ME_`. RDS and Redis URLs are filled
+automatically when `wire_terraform_infra_secrets = true`.
 
-| Secret                            | What to put in it                                   |
+List secrets that still need your values:
+
+```bash
+terraform output secrets_requiring_manual_update
+```
+
+| Secret (Secrets Manager name)     | What to put in it                                   |
 | --------------------------------- | --------------------------------------------------- |
-| `resido/<env>/jwt-secret`         | The JWT signing secret (32+ char random hex)        |
-| `resido/<env>/msg91-api-key`      | MSG91 API key for OTP SMS                           |
-| `resido/<env>/aws-s3-access-key`  | IAM access key for the S3 uploads bucket            |
-| `resido/<env>/aws-s3-secret-key`  | IAM secret key for the S3 uploads bucket            |
-| `resido/<env>/fcm-server-key`     | Firebase Cloud Messaging server key                 |
+| `resido/<env>/jwt-secret`         | JWT signing secret (32+ char random hex)            |
+| `resido/<env>/jwt-refresh-secret` | Refresh-token signing secret                        |
+| `resido/<env>/internal-service-secret` | Service-to-service auth header                   |
+| `resido/<env>/msg91-auth-key`     | MSG91 API key for OTP SMS                           |
+| `resido/<env>/msg91-template-id`  | MSG91 OTP template ID                               |
+| `resido/<env>/aws-access-key-id`  | Cloudflare R2 access key                            |
+| `resido/<env>/aws-secret-access-key` | Cloudflare R2 secret key                         |
+| `resido/<env>/aws-s3-endpoint`    | R2 S3-compatible endpoint                           |
+| `resido/<env>/aws-s3-bucket-name` | R2 bucket name                                      |
+| `resido/<env>/cloudflare-r2-public-url` | Public CDN URL for uploads                    |
+| `resido/<env>/fcm-server-key`     | Firebase legacy server key (if used)                |
+| `resido/<env>/firebase-service-account-json` | Firebase service account JSON string   |
+| `resido/<env>/media-worker-secret`| Shared secret for media-worker callbacks            |
+| `resido/<env>/cors-origins`       | Comma-separated admin origins (optional)            |
 
-Populate them with the CLI (run once per environment):
+Populate them with the CLI (run once per environment, after infra exists):
 
 ```bash
 ENV=prod   # or dev
-for name in jwt-secret msg91-api-key aws-s3-access-key aws-s3-secret-key fcm-server-key; do
+for name in jwt-secret jwt-refresh-secret internal-service-secret \
+    msg91-auth-key msg91-template-id aws-access-key-id aws-secret-access-key \
+    aws-s3-endpoint aws-s3-bucket-name cloudflare-r2-public-url \
+    firebase-service-account-json media-worker-secret cors-origins; do
     read -srp "Value for resido/${ENV}/${name}: " value && echo
     aws secretsmanager put-secret-value \
         --secret-id "resido/${ENV}/${name}" \
@@ -214,13 +232,15 @@ for name in jwt-secret msg91-api-key aws-s3-access-key aws-s3-secret-key fcm-ser
 done
 ```
 
-Terraform deliberately ignores subsequent changes to these secret
+Optional: seed from a local file instead of placeholders by setting
+`dotenv_path` to your `.env` file before the first apply.
+
+Terraform deliberately ignores subsequent changes to secret
 values, so you can rotate them through the AWS console / `put-secret-value`
 forever without `terraform apply` trying to roll them back.
 
-The DB URLs and Redis URL are managed entirely by Terraform — they
-update automatically if you ever change `rds_instance_class`,
-`rds_username`, or the like.
+The DB URLs and Redis connection vars are managed by Terraform when
+`wire_terraform_infra_secrets = true` — they are **not** `REPLACE_ME_` placeholders.
 
 ## Extra databases — created automatically by the migrate task
 

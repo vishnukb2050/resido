@@ -5,6 +5,9 @@ This folder is the production-style deployment plan for running Resido on
 Everything here is opinionated for a small / medium production workload
 on `ap-south-1`.
 
+> **Resource map (what exists, what's missing, full deploy steps):** see
+> [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md).
+
 > If you only have a single VPS today and just want to ship, you can keep
 > `infra/docker-compose.yml`. This folder kicks in the moment you outgrow
 > "one box" — separate environments, zero-downtime deploys, autoscaling,
@@ -76,19 +79,13 @@ on `ap-south-1`.
 
 ```
                  ┌─────────────────────────────────────────────────┐
-                 │  Route 53 (residoapp.com / superadmin.residoapp.com)
-                 │  ACM cert (TLS)
+                 │  Cloudflare (TLS termination, orange-cloud DNS) │
                  └──────────────────────┬──────────────────────────┘
-                                        │
-                ┌───────────────────────▼────────────────────────────┐
-                │  CloudFront (admin SPA, superadmin SPA, static)    │
-                │       origin → S3 bucket (admin/superadmin build)  │
-                └───────────────────────┬────────────────────────────┘
-                                        │  /api/* → forward
+                                        │  HTTP :80 to origin
                                         ▼
                   ┌──────────────────────────────────────────────────┐
                   │     Application Load Balancer (Public)           │
-                  │     :443 TLS (ACM)  • :80 redirect → :443        │
+                  │     :80 HTTP only — no ACM / no :443 on ALB      │
                   ├──────────────────────────────────────────────────┤
                   │  Listener rule  /socket.io/*  → chat-service-tg  │
                   │  Listener rule  *             → api-gateway-tg   │
@@ -123,7 +120,7 @@ on `ap-south-1`.
 
 | Concern                  | Old (docker-compose on EC2)                      | New (ECS Fargate + ALB)                            |
 | ------------------------ | ------------------------------------------------ | -------------------------------------------------- |
-| TLS / host routing       | Nginx container                                  | ALB + ACM                                          |
+| TLS / host routing       | Nginx container                                  | Cloudflare (edge) + ALB HTTP :80                     |
 | Service ordering         | `depends_on` in compose                          | Inter-service via Cloud Map; **migrations as a separate task**, not in `start.sh` |
 | Service-to-service URL   | `http://auth-service:3001`                       | `http://auth-service.resido.local:3001`            |
 | Restart on crash         | `restart: unless-stopped`                        | ECS service `desiredCount` self-heals             |

@@ -18,7 +18,10 @@ rds_deletion_protection  = true
 
 redis_node_type = "cache.t4g.small"
 
-# Replace with the ACM cert ARN for *.residoapp.com (in ap-south-1) before applying.
+# TLS terminates at Cloudflare (edge). The ALB listens on HTTP :80 only —
+# leave acm_certificate_arn empty. In Cloudflare DNS, proxy the API host
+# (orange cloud) to this ALB; set SSL mode to Flexible or Full (strict only
+# if you add an origin cert on the ALB, which is not required here).
 acm_certificate_arn = ""
 
 service_desired_count_default = 2
@@ -44,6 +47,15 @@ service_overrides = {
   resident-service = { cpu = 1024, memory = 2048, desired_count = 2 }
   chat-service     = { cpu = 1024, memory = 2048, desired_count = 2 }
 }
+
+# Terraform-managed RDS/Redis URLs override .env on first apply (set false if
+# you keep an external database and manage secrets manually).
+wire_terraform_infra_secrets = true
+
+# CPU autoscaling: min = desired_count from overrides above, max = 10 per service.
+enable_ecs_autoscaling       = true
+ecs_autoscaling_max_capacity = 10
+ecs_autoscaling_cpu_target   = 70
 
 common_tags = {
   Project     = "resido"

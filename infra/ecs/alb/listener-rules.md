@@ -1,15 +1,15 @@
 # ALB Listener Rules
 
 The Application Load Balancer replaces the in-cluster Nginx container.
-You need ONE public ALB plus the listener rules below. Everything else
-in ECS (auth, resident, visitor, notification,
-business, flaredthread) stays **private**, reachable only via Cloud Map
-DNS (`<svc>.resido.local`).
+**TLS terminates at Cloudflare** — the ALB listens on **HTTP :80 only** (no
+ACM certificate, no :443 listener). Cloudflare proxies `https://residoapp.com`
+to the ALB origin over plain HTTP.
+
+Set `acm_certificate_arn = ""` in `envs/prod.tfvars` (default). The optional
+HTTPS listener in Terraform exists only if you ever terminate TLS on the ALB
+instead of Cloudflare.
 
 ## Target groups
-
-Create one target group per service that needs ALB exposure. Three services
-face the ALB today:
 
 | Target group              | Protocol | Port | Health check                | ECS service            |
 | ------------------------- | -------- | ---- | --------------------------- | ---------------------- |
@@ -17,87 +17,43 @@ face the ALB today:
 | `resido-prod-chat`        | HTTP     | 3004 | `GET /health` returns 200   | `chat-service`         |
 | `resido-prod-flaredthread`| HTTP     | 3008 | `GET /health` returns 200   | `flaredthread-service` |
 
-Settings worth tuning per TG:
+- `target_type` = `ip` (Fargate `awsvpc`).
+- `deregistration_delay` = `30` s.
+- `stickiness` = `lb_cookie`, 86400 s on chat + flaredthread (WebSocket reconnects).
 
-- `target_type` = `ip` (required by Fargate `awsvpc` network mode).
-- `deregistration_delay.timeout_seconds` = `30` (faster blue/green).
-- `stickiness.enabled` = `true` for the chat and flaredthread TGs (so a
-  WebSocket client lands on the same task across reconnects). Use
-  `lb_cookie`, duration 86 400 s.
-
-If you haven't added the `/health` controllers yet, set the TG health
-check to **TCP** on the container port and add `/health` later.
-
-## Listener 80 → redirect
+## Listener 80 → routing (production with Cloudflare)
 
 | Listener | Protocol | Port | Default action |
 | -------- | -------- | ---- | -------------- |
-| `:80`    | HTTP     | 80   | Redirect to `https://#{host}:443/#{path}?#{query}`, code `HTTP_301` |
+| `:80`    | HTTP     | 80   | Forward → `resido-prod-api-gateway` |
 
-## Listener 443 → routing
+### Listener rules (priority order)
 
-| Listener | Protocol | Port | TLS                   |
-| -------- | -------- | ---- | --------------------- |
-| `:443`   | HTTPS    | 443  | ACM cert for `*.residoapp.com` |
+| Priority | Match                       | Action                            |
+| -------- | --------------------------- | --------------------------------- |
+| 10       | `path-pattern = /socket.io/*` | Forward → `resido-prod-chat`    |
+| 11       | `path-pattern = /flares-io/*` | Forward → `resido-prod-flaredthread` |
+| default  | anything else               | Forward → `resido-prod-api-gateway` |
 
-Default action: **forward to `resido-prod-api-gateway`** target group.
+Flaredthread Socket.IO uses path `/flares-io` (namespace `/flares`).
 
-### Listener rules (evaluated in this order)
+Admin/superadmin SPAs are served from CloudFront + S3, not through this ALB.
+The ALB handles `/api/*` (via gateway), `/socket.io/*`, and `/flares-io/*`.
 
-| Priority | Match                                                                 | Action                                  |
-| -------- | --------------------------------------------------------------------- | --------------------------------------- |
-| 10       | `path-pattern = /socket.io/*`                                         | Forward → `resido-prod-chat`           |
-| 11       | `path-pattern = /flares-io/*`                                         | Forward → `resido-prod-flaredthread`   |
-| default  | anything else                                                         | Forward → `resido-prod-api-gateway`    |
+## Cloudflare setup
 
-Flaredthread Socket.IO uses path `/flares-io` (namespace `/flares`) so it
-does not share `/socket.io/*` with chat.
-
-The two SPAs (`/` on `residoapp.com` and `superadmin.residoapp.com`) do
-**not** route through the ALB — they're served from CloudFront in front
-of S3. The ALB sees `/api/*` (via gateway default), `/socket.io/*`, and
-`/flares-io/*`.
+1. **DNS:** `residoapp.com` (and `api` subdomain if used) → ALB DNS name, **proxied** (orange cloud).
+2. **SSL/TLS mode:** **Flexible** (browser ↔ Cloudflare HTTPS, Cloudflare ↔ ALB HTTP).
+3. **WebSockets:** Enabled (required for chat + flares).
+4. Optional: restrict ALB security group to [Cloudflare IP ranges](https://www.cloudflare.com/ips/) instead of `0.0.0.0/0`.
 
 ## Security groups
 
-- **ALB SG** (`resido-prod-alb-sg`)
-  - Inbound: `0.0.0.0/0` on `80`, `443`.
-  - Outbound: `0.0.0.0/0` on `0-65535` (or scope to the service SG).
-- **Service SG** (`resido-prod-service-sg`, attached to every Fargate
-  task ENI)
-  - Inbound from `resido-prod-alb-sg` on the service port (3000, 3004
-    for ALB-exposed services).
-  - Inbound from `resido-prod-service-sg` (self) on **all TCP** — this
-    lets services call each other through Cloud Map DNS.
-  - Outbound: all (or scope to RDS/ElastiCache/Secrets Manager
-    endpoints if you want zero-trust).
-- **RDS SG** (`resido-prod-rds-sg`)
-  - Inbound from `resido-prod-service-sg` on `5432`.
+- **ALB SG:** inbound **80** from `0.0.0.0/0` (or Cloudflare IPs only).
+- **Service SG:** inbound from ALB SG on 3000, 3004, 3008; self for inter-service traffic.
+- **RDS / Redis SG:** inbound from service SG only.
 
 ## Service Discovery (Cloud Map)
 
-Create one private namespace:
-
-```bash
-aws servicediscovery create-private-dns-namespace \
-    --name resido.local \
-    --vpc vpc-XXXXXXXX
-```
-
-Then, when you create each ECS service, set
-`serviceRegistries[].registryArn` to a Cloud Map service in that
-namespace. This auto-publishes records like `auth-service.resido.local`
-that resolve to the task IPs.
-
-Sample CLI:
-
-```bash
-aws servicediscovery create-service \
-    --name auth-service \
-    --dns-config 'NamespaceId=ns-xxxxx,DnsRecords=[{Type=A,TTL=10}]' \
-    --health-check-custom-config 'FailureThreshold=1'
-```
-
-Repeat for every service. API Gateway already knows to look at
-`http://auth-service.resido.local:3001` because the task definitions in
-this folder inject it via the `*_SERVICE_URL` env vars.
+Private namespace `resido.local` — services call each other as
+`http://auth-service.resido.local:3001`, etc. (injected via `*_SERVICE_URL` env vars).

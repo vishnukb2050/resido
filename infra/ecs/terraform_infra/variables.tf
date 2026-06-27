@@ -99,7 +99,12 @@ variable "redis_engine_version" {
 # ─── ALB / TLS ───────────────────────────────────────────────────────────────
 
 variable "acm_certificate_arn" {
-  description = "Optional ACM cert ARN. If empty the ALB only listens on :80 (use for dev)."
+  description = <<EOT
+Optional ACM cert for HTTPS on the ALB (:443 listener). Leave empty when TLS
+terminates at Cloudflare (recommended): ALB serves HTTP :80 only and Cloudflare
+proxies https://residoapp.com to the ALB origin. Only set this if you terminate
+TLS on the ALB instead of (or in addition to) Cloudflare.
+EOT
   type        = string
   default     = ""
 }
@@ -183,7 +188,7 @@ Caveats:
   - Wrapping single/double quotes are stripped from values.
 EOT
   type        = string
-  default     = "../../../.env"
+  default     = ""
 }
 
 variable "extra_secret_seeds" {
@@ -197,4 +202,35 @@ variable "common_tags" {
   description = "Tags merged into every taggable resource."
   type        = map(string)
   default     = {}
+}
+
+# ─── Terraform-managed connection strings ────────────────────────────────────
+# When true (default), RDS and Redis URLs in Secrets Manager are derived from
+# the RDS/ElastiCache resources THIS stack creates — not from .env. Set false
+# only if you keep an external RDS/Redis and manage those secrets manually.
+
+variable "wire_terraform_infra_secrets" {
+  description = "Overlay Terraform-managed RDS/Redis connection env vars on top of .env seeds."
+  type        = bool
+  default     = true
+}
+
+# ─── ECS autoscaling ─────────────────────────────────────────────────────────
+
+variable "enable_ecs_autoscaling" {
+  description = "Attach target-tracking CPU autoscaling policies to every ECS service."
+  type        = bool
+  default     = true
+}
+
+variable "ecs_autoscaling_max_capacity" {
+  description = "Maximum task count per service when autoscaling is enabled."
+  type        = number
+  default     = 10
+}
+
+variable "ecs_autoscaling_cpu_target" {
+  description = "Target average CPU % for ECS service autoscaling."
+  type        = number
+  default     = 70
 }
