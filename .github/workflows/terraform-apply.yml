@@ -77,8 +77,10 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Terraform plan
+        shell: bash
         run: |
           set -uo pipefail
+          set +e
           terraform plan \
             -var-file="envs/${{ inputs.environment }}.tfvars" \
             -input=false \
@@ -87,16 +89,15 @@ jobs:
             -out=tfplan \
             > plan.log 2>&1
           PLAN_EXIT=$?
+          set -e
           echo "─── Plan summary ───"
           if grep -qE '^(Plan:|No changes\.)' plan.log; then
             grep -E '^(Plan:|No changes\.)' plan.log
-          elif grep -q 'Error:' plan.log; then
-            echo "Terraform errors:"
-            grep 'Error:' plan.log | tail -30
-            echo ""
-            tail -40 plan.log
           else
-            tail -40 plan.log
+            echo "Terraform failed (exit $PLAN_EXIT). Last lines:"
+            grep -E '(^Error:|^│ Error:)' plan.log | tail -40 || true
+            echo ""
+            tail -50 plan.log
           fi
           echo ""
           echo "Full plan: plan.log (artifact on this run)."
