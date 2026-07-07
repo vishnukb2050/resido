@@ -1,7 +1,25 @@
+# Local / temporary full stack — mirrors ECS services (9 apps + media-worker).
+# Postgres & Redis: external (RDS + ElastiCache) via infra/.env
+#
+#   cd infra && docker compose up -d --build
+#   API: http://localhost:3000  (or nginx :80 if hosts point to residoapp.com)
+
+x-resido-common: &resido-common
+  RUN_PRISMA_PUSH: "true"
+  INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-resido-internal-dev-secret}
+  MEDIA_WORKER_SECRET: ${MEDIA_WORKER_SECRET:-resido-media-dev-secret}
+  # Docker DNS — same roles as ECS Cloud Map (resido.local) URLs in Terraform
+  AUTH_SERVICE_URL: http://auth-service:3001
+  RESIDENT_SERVICE_URL: http://resident-service:3002
+  BUSINESS_SERVICE_URL: http://business-service:3009
+  VISITOR_SERVICE_URL: http://visitor-service:3006
+  CHAT_SERVICE_URL: http://chat-service:3004
+  NOTIFICATION_SERVICE_URL: http://notification-service:3005
+  FLAREDTHREAD_SERVICE_URL: http://flaredthread-service:3008
+  FLAREDTHREAD_URL: http://flaredthread-service:3008
+
 services:
-  # ─── Microservices ─────────────────────────────────────────────
-  # Note: PostgreSQL is managed externally (AWS RDS)
-  # Connection details are fetched via .env file.
+  # ─── Microservices (same set as infra/ecs/terraform_infra/modules/ecs) ─────
 
   api-gateway:
     build:
@@ -9,27 +27,26 @@ services:
       dockerfile: Dockerfile
     container_name: resido-api-gateway
     env_file: .env
+    environment:
+      <<: *resido-common
+      PORT: 3000
     ports:
-      - '3000:3000'
+      - "3000:3000"
     networks:
       - resido-net
     restart: unless-stopped
 
-  # resident-service owns the `resido_core` Prisma schema and runs
-  # `prisma db push` on every startup. Every other service that reads/writes
-  # `resido_core` (auth, business, chat, visitor, flaredthread) depends on
-  # this container so docker starts it FIRST, giving
-  # it a head start to push the schema before its consumers wake up.
   resident-service:
     build:
       context: ../apps/resident-service
       dockerfile: Dockerfile
     container_name: resido-resident
     env_file: .env
-    ports:
-      - '3002:3002'
     environment:
-      - PORT=3002
+      <<: *resido-common
+      PORT: 3002
+    ports:
+      - "3002:3002"
     networks:
       - resido-net
     restart: unless-stopped
@@ -40,13 +57,12 @@ services:
       dockerfile: Dockerfile
     container_name: resido-auth
     env_file: .env
-    ports:
-      - '3001:3001'
     environment:
-      - MEDIA_WORKER_SECRET=${MEDIA_WORKER_SECRET:-resido-media-dev-secret}
+      <<: *resido-common
+      PORT: 3001
+    ports:
+      - "3001:3001"
     volumes:
-      # Raw-SQL indexes (GIN / PostGIS GIST / trigram / partial). Applied
-      # by start.sh after `prisma db push` and `enable-postgis.js`.
       - ./db-indexes:/app/db-indexes:ro
     depends_on:
       - resident-service
@@ -54,19 +70,17 @@ services:
       - resido-net
     restart: unless-stopped
 
-  # accounting-service — REMOVED: empty stub; use /community/finance on resident-service.
-  # complaint-service — REMOVED: empty stub; use /community/complaints on resident-service.
-
   chat-service:
     build:
       context: ../apps/chat-service
       dockerfile: Dockerfile
     container_name: resido-chat
     env_file: .env
-    ports:
-      - '3004:3004'
     environment:
-      - PORT=3004
+      <<: *resido-common
+      PORT: 3004
+    ports:
+      - "3004:3004"
     depends_on:
       - resident-service
     networks:
@@ -79,10 +93,11 @@ services:
       dockerfile: Dockerfile
     container_name: resido-notification
     env_file: .env
-    ports:
-      - '3005:3005'
     environment:
-      - PORT=3005
+      <<: *resido-common
+      PORT: 3005
+    ports:
+      - "3005:3005"
     networks:
       - resido-net
     restart: unless-stopped
@@ -93,10 +108,11 @@ services:
       dockerfile: Dockerfile
     container_name: resido-visitor
     env_file: .env
-    ports:
-      - '3006:3006'
     environment:
-      - PORT=3006
+      <<: *resido-common
+      PORT: 3006
+    ports:
+      - "3006:3006"
     depends_on:
       - resident-service
     networks:
@@ -109,10 +125,28 @@ services:
       dockerfile: Dockerfile
     container_name: resido-flaredthread
     env_file: .env
-    ports:
-      - '3008:3008'
     environment:
-      - MEDIA_WORKER_SECRET=${MEDIA_WORKER_SECRET:-resido-media-dev-secret}
+      <<: *resido-common
+      PORT: 3008
+    ports:
+      - "3008:3008"
+    depends_on:
+      - resident-service
+    networks:
+      - resido-net
+    restart: unless-stopped
+
+  business-service:
+    build:
+      context: ../apps/business-service
+      dockerfile: Dockerfile
+    container_name: resido-business
+    env_file: .env
+    environment:
+      <<: *resido-common
+      PORT: 3009
+    ports:
+      - "3009:3009"
     depends_on:
       - resident-service
     networks:
@@ -126,9 +160,7 @@ services:
     container_name: resido-media-worker
     env_file: .env
     environment:
-      - FLAREDTHREAD_URL=http://flaredthread-service:3008
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - MEDIA_WORKER_SECRET=${MEDIA_WORKER_SECRET:-resido-media-dev-secret}
+      <<: *resido-common
     depends_on:
       - flaredthread-service
       - auth-service
@@ -138,33 +170,22 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
+          cpus: "2"
           memory: 4G
 
-  business-service:
-    build:
-      context: ../apps/business-service
-      dockerfile: Dockerfile
-    container_name: resido-business
-    env_file: .env
-    ports:
-      - '3009:3009'
-    depends_on:
-      - resident-service
-    networks:
-      - resido-net
-    restart: unless-stopped
+  # ─── Edge (optional for local admin + websocket paths) ─────────────────────
 
-  # ─── Nginx Reverse Proxy ───────────────────────────────────────
   nginx:
     image: nginx:alpine
     container_name: resido-nginx
     ports:
-      - '80:80'
+      - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - api-gateway
+      - chat-service
+      - flaredthread-service
     networks:
       - resido-net
     restart: unless-stopped
@@ -173,7 +194,7 @@ services:
     build:
       context: ../web/admin
       args:
-        - VITE_API_URL=${VITE_API_URL}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     container_name: resido-admin
     networks:
       - resido-net
@@ -185,7 +206,7 @@ services:
     build:
       context: ../web/superadmin
       args:
-        - VITE_API_URL=${VITE_API_URL}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     container_name: resido-superadmin
     networks:
       - resido-net

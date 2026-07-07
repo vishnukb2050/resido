@@ -24,6 +24,16 @@ acm_certificate_arn = ""
 
 service_desired_count_default = 1
 
+# Dev minimum cost: no CPU autoscaling (avoids surprise scale-out to 4 tasks).
+enable_ecs_autoscaling       = false
+ecs_autoscaling_max_capacity = 1
+ecs_autoscaling_cpu_target   = 70
+
+# media-worker defaults to 1 vCPU / 4 GiB — halve for dev (~$25/mo saved).
+service_overrides = {
+  media-worker = { cpu = 512, memory = 2048 }
+}
+
 # Use existing dev image tag (usually `latest`). Override with -var=image_tag=abc1234 if you want to pin.
 image_tag = "latest"
 
@@ -37,9 +47,6 @@ enable_vpc_interface_endpoints = false
 enable_s3_gateway_endpoint = true
 
 wire_terraform_infra_secrets = true
-enable_ecs_autoscaling       = true
-ecs_autoscaling_max_capacity = 4
-ecs_autoscaling_cpu_target   = 70
 
 common_tags = {
   Project     = "resido"
